@@ -36,7 +36,6 @@ function valueColor(value: number) {
 
 export default function PropagationPanel() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [log, setLog] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,24 +65,6 @@ export default function PropagationPanel() {
 
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (!snapshot) return;
-
-    setLog((prev) => {
-      const updated = [
-        {
-          time: new Date(snapshot.timestamp * 1000).toLocaleTimeString(),
-          sector: snapshot.structural.bias,
-          breadth: snapshot.narrative.momentum,
-          regime: snapshot.composite.regime_hint,
-        },
-        ...prev,
-      ];
-
-      return updated.slice(0, 25);
-    });
-  }, [snapshot]);
 
   if (error) {
     return (
@@ -186,24 +167,6 @@ export default function PropagationPanel() {
           <span className="text-emerald-400">
             {" "}{snapshot.composite.regime_hint.toUpperCase()}
           </span>
-        </div>
-
-      </div>
-
-      <div className="border-t border-neutral-800 pt-4 space-y-2">
-
-        <div className="text-neutral-400">
-          Ripple Log
-        </div>
-
-        <div className="space-y-1 text-xs max-h-64 overflow-y-auto">
-
-          {log.map((entry, idx) => (
-            <div key={idx}>
-              {entry.time} | bias {entry.sector.toFixed(3)} | momentum {entry.breadth.toFixed(3)} | regime {entry.regime}
-            </div>
-          ))}
-
         </div>
 
       </div>

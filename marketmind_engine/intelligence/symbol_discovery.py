@@ -212,13 +212,8 @@ def discover(return_symbols=False):
     print("\n=== DISCOVERY COMPLETE ===\n")
 
 
-    # ------------------------------------------
-    # Return symbols if requested
-    # ------------------------------------------
-
     if return_symbols:
 
-        # confirmed first, then early candidates
         return confirmed + early
 
 

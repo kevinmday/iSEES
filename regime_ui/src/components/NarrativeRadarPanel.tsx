@@ -22,26 +22,47 @@ export default function NarrativeRadarPanel() {
   const [snapshot, setSnapshot] = useState<RadarSnapshot | null>(null);
 
   const fetchRadar = async () => {
+
     try {
-      const res = await fetch("/api/narrative_radar");
+
+      const res = await fetch("/api/rss_events");
+
+      if (!res.ok) return;
+
       const data = await res.json();
-      setSnapshot(data);
+
+      const symbols = (data.validated_symbols || []).map((s: string, i: number) => ({
+        symbol: s,
+        mentions: 1,
+        momentum: Math.max(1 - i * 0.05, 0.1)
+      }));
+
+      const radar: RadarSnapshot = {
+        domains: [],
+        symbols: symbols,
+        updated: new Date().toISOString()
+      };
+
+      setSnapshot(radar);
+
     } catch {
-      // silent fail for now
+      // silent fail
     }
+
   };
 
   useEffect(() => {
 
     fetchRadar();
 
-    const interval = setInterval(() => {
-      fetchRadar();
-    }, 5000);
+    const interval = setInterval(fetchRadar, 5000);
 
     return () => clearInterval(interval);
 
   }, []);
+
+  const domains = snapshot?.domains ?? [];
+  const symbols = snapshot?.symbols ?? [];
 
   return (
 
@@ -53,11 +74,12 @@ export default function NarrativeRadarPanel() {
 
       {!snapshot && (
         <div className="text-gray-500 text-xs">
-          awaiting radar feed...
+          scanning narrative field...
         </div>
       )}
 
       {snapshot && (
+
         <>
 
           {/* DOMAIN PRESSURE */}
@@ -68,9 +90,15 @@ export default function NarrativeRadarPanel() {
               DOMAIN PRESSURE
             </div>
 
+            {domains.length === 0 && (
+              <div className="text-gray-500 text-xs">
+                awaiting domain signals
+              </div>
+            )}
+
             <div className="space-y-1">
 
-              {snapshot.domains.map((d) => (
+              {domains.map((d) => (
 
                 <div
                   key={d.domain}
@@ -98,9 +126,15 @@ export default function NarrativeRadarPanel() {
               EMERGING SYMBOLS
             </div>
 
+            {symbols.length === 0 && (
+              <div className="text-gray-500 text-xs">
+                scanning rss narrative field...
+              </div>
+            )}
+
             <div className="space-y-1">
 
-              {snapshot.symbols.map((s) => (
+              {symbols.map((s) => (
 
                 <div
                   key={s.symbol}
@@ -126,9 +160,11 @@ export default function NarrativeRadarPanel() {
           </div>
 
         </>
+
       )}
 
     </div>
 
   );
+
 }

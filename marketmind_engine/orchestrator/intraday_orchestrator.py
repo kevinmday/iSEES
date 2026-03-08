@@ -15,6 +15,13 @@ from marketmind_engine.execution.policy.default_policy import (
 )
 from marketmind_engine.execution.policy.base import ExecutionDirective
 
+# ---------------------------------------
+# MARKET DISCOVERY + PROPAGATION
+# ---------------------------------------
+
+from marketmind_engine.intelligence.symbol_discovery import discover
+from marketmind_engine.intelligence.propagation_engine import PropagationEngine
+
 
 @dataclass
 class OrchestratorState:
@@ -30,6 +37,7 @@ class IntradayOrchestrator:
         execution_engine=None,
         audit_writer=None,
         execution_policy=None,
+        propagation_engine=None,
     ):
         self._macro_source = macro_source
         self._audit_writer = audit_writer
@@ -46,6 +54,12 @@ class IntradayOrchestrator:
         self._execution_policy = (
             execution_policy or DefaultRegimeExecutionPolicy()
         )
+
+        # ---------------------------------------
+        # PROPAGATION ENGINE
+        # ---------------------------------------
+
+        self.propagation = propagation_engine
 
     # --------------------------------------------------
     # SYSTEMIC FLATTEN
@@ -107,10 +121,50 @@ class IntradayOrchestrator:
         self._audit_writer.write(event)
 
     # --------------------------------------------------
+    # RSS → PROPAGATION PIPELINE
+    # --------------------------------------------------
+
+    def _run_symbol_discovery(self):
+
+        if not self.propagation:
+            return
+
+        try:
+
+            symbols = discover(return_symbols=True)
+
+            if not symbols:
+                return
+
+            for sym in symbols[:10]:  # stability limit
+
+                try:
+
+                    self.propagation.register_narrative_event(
+                        symbol=sym,
+                        domain="equities",
+                        momentum=0.05,
+                        source="rss"
+                    )
+
+                except Exception:
+                    pass
+
+        except Exception as e:
+
+            print(f"Discovery pipeline error: {e}")
+
+    # --------------------------------------------------
     # RUN CYCLE
     # --------------------------------------------------
 
     def run_cycle(self):
+
+        # ---------------------------------------
+        # DISCOVERY → PROPAGATION
+        # ---------------------------------------
+
+        self._run_symbol_discovery()
 
         macro_inputs = self._macro_source.collect()
 
@@ -174,7 +228,7 @@ class IntradayOrchestrator:
             self.state.regime_mode = risk_directive.mode
 
         # --------------------------------------------------
-        # PHASE-14 — UPDATE RECOVERY CONTROLLER
+        # PHASE-14 — RECOVERY
         # --------------------------------------------------
 
         self.recovery_controller.update(
@@ -187,7 +241,7 @@ class IntradayOrchestrator:
         recovery_modifier = self.recovery_controller.modifier()
 
         # --------------------------------------------------
-        # PHASE-15 — DOMAIN MODIFIER (NEUTRAL)
+        # PHASE-15 — DOMAIN MODIFIER
         # --------------------------------------------------
 
         domain_modifier = self.domain_modifier_controller.modifier()

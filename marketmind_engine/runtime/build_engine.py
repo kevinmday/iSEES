@@ -36,7 +36,7 @@ from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 
 
 # ----------------------------------------------------------------------
-# Default Stub Services (Used If Not Injected)
+# Default Stub Services
 # ----------------------------------------------------------------------
 
 class StubCapitalService:
@@ -75,7 +75,7 @@ class StubPolicyEngine:
 
 
 # ----------------------------------------------------------------------
-# Build Engine (Injection-Capable)
+# Build Engine
 # ----------------------------------------------------------------------
 
 def build_engine(
@@ -108,11 +108,6 @@ def build_engine(
         audit_writer=None,
     )
 
-    # ---------------------------------------------------------------
-    # RSS / Narrative Adapter
-    # ---------------------------------------------------------------
-
-    # If none injected, create the real adapter
     narrative_adapter = narrative_adapter or NarrativeAdapter()
 
     coordinator = TradeCoordinator(
@@ -131,10 +126,6 @@ def build_engine(
         coordinator=coordinator,
         execution_service=execution_service,
     )
-
-    # ---------------------------------------------------------------
-    # Inject or default services
-    # ---------------------------------------------------------------
 
     clock = clock or EngineClock()
     price_service = price_service or StubPriceService()
@@ -157,13 +148,7 @@ def build_engine(
         execution_input_factory=execution_input_factory,
     )
 
-    # ---------------------------------------------------------------
-    # Attach services expected by API / intelligence layers
-    # ---------------------------------------------------------------
-
     engine_controller.provider = price_service
-
-    # Attach REAL RSS pipeline
     engine_controller.rss_service = rss_service or narrative_adapter
 
     return engine_controller
