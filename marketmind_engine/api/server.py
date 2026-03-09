@@ -96,7 +96,7 @@ def engine_loop():
                 symbols = set()
 
                 # --------------------------------------------------
-                # 1. RSS POLLING
+                # RSS POLLING
                 # --------------------------------------------------
 
                 if rss_service:
@@ -104,8 +104,6 @@ def engine_loop():
                     try:
 
                         rss_service.worker.poll_once()
-
-                        # Critical step
                         rss_service._update_projection()
 
                         rss_polling_active = True
@@ -128,7 +126,7 @@ def engine_loop():
                         print("RSS polling error:", e)
 
                 # --------------------------------------------------
-                # 2. SYMBOL VALIDATION
+                # SYMBOL VALIDATION
                 # --------------------------------------------------
 
                 validated_symbols = set()
@@ -148,7 +146,7 @@ def engine_loop():
                 print("Validated symbols:", validated_symbols)
 
                 # --------------------------------------------------
-                # 3. ENGINE EVALUATION
+                # ENGINE EVALUATION
                 # --------------------------------------------------
 
                 if validated_symbols:
@@ -164,7 +162,7 @@ def engine_loop():
                             print("Symbol cycle error:", symbol, e)
 
                     # --------------------------------------------------
-                    # 4. PROPAGATION UPDATE
+                    # PROPAGATION UPDATE
                     # --------------------------------------------------
 
                     try:
@@ -173,7 +171,6 @@ def engine_loop():
                         pass
 
                 else:
-
                     print("No validated RSS symbols this cycle")
 
         except Exception as e:
@@ -220,21 +217,6 @@ def stop_engine():
 
 
 # ------------------------------------------------------------------
-# MANUAL RUN
-# ------------------------------------------------------------------
-
-@app.post("/api/engine/run-cycle")
-def run_cycle():
-
-    try:
-        result = engine_controller.run_symbol_cycle("TEST")
-        return result
-
-    except Exception as e:
-        return {"error": str(e)}
-
-
-# ------------------------------------------------------------------
 # ENGINE STATUS
 # ------------------------------------------------------------------
 
@@ -269,48 +251,7 @@ def engine_status():
 
 
 # ------------------------------------------------------------------
-# ACTION ENDPOINT
-# ------------------------------------------------------------------
-
-@app.post("/api/engine/run", response_model=RunDecisionResult)
-def run_engine(req: Optional[RunRequest] = None):
-
-    symbol = "TEST"
-
-    if req and req.symbol:
-        symbol = req.symbol
-
-    if not engine_controller.is_running():
-        return {
-            "decision": "NO_ACTION",
-            "engine_time": -1,
-            "symbol": symbol,
-            "reason": "Engine is not started.",
-        }
-
-    try:
-
-        result = engine_controller.run_symbol_cycle(symbol)
-
-        return {
-            "decision": result.get("decision", "UNKNOWN"),
-            "engine_time": result.get("engine_time", 0),
-            "symbol": symbol,
-            "reason": result.get("reason"),
-        }
-
-    except Exception as e:
-
-        return {
-            "decision": "ERROR",
-            "engine_time": -1,
-            "symbol": symbol,
-            "reason": str(e),
-        }
-
-
-# ------------------------------------------------------------------
-# ENGINE TELEMETRY
+# ENGINE STATE SNAPSHOT
 # ------------------------------------------------------------------
 
 @app.get("/api/engine/state", response_model=EngineStateSnapshot)
@@ -368,62 +309,62 @@ def propagation_snapshot():
 
     try:
         return propagation_engine.snapshot()
-
     except Exception:
         return {"status": "propagation_unavailable"}
 
 
 # ------------------------------------------------------------------
-# RSS DEBUG ENDPOINT
+# PSIQUANTA OBSERVATORY
 # ------------------------------------------------------------------
 
-@app.get("/api/rss_events")
-def rss_events():
-
-    if not rss_service:
-        return {"error": "rss_service_missing"}
+@app.get("/api/psiquant")
+def psiquant_snapshot():
 
     try:
 
-        events = rss_service.get_projection_events()
+        last = engine_controller.get_last_result()
 
-        raw_symbols = set()
+        if not last:
+            return {"psiquant_score": None}
 
-        for event in events:
+        decision_payload = last.get("decision_payload", {})
+        psi = decision_payload.get("psiquant_score")
 
-            if hasattr(event, "symbol") and event.symbol:
-                raw_symbols.add(event.symbol)
-
-            if hasattr(event, "symbols") and event.symbols:
-                for s in event.symbols:
-                    raw_symbols.add(s)
-
-        validated = []
-
-        for s in raw_symbols:
-
-            try:
-                if symbol_validator.is_valid(s):
-                    validated.append(s)
-            except Exception:
-                pass
-
-        return {
-            "headline_count": len(rss_service.buffer._headlines),
-            "event_count": len(events),
-            "raw_symbols": sorted(list(raw_symbols)),
-            "validated_symbols": sorted(validated)
-        }
+        return {"psiquant_score": psi}
 
     except Exception as e:
-        return {"error": str(e)}
+
+        return {
+            "psiquant_score": None,
+            "error": str(e)
+        }
 
 
 # ------------------------------------------------------------------
-# DEBUG SNAPSHOT
+# LAST ENGINE RESULT (UI PRIMARY DATA SOURCE)
 # ------------------------------------------------------------------
 
 @app.get("/api/engine/last")
 def last_result():
 
-    return engine_controller.get_last_result()
+    try:
+
+        last = engine_controller.get_last_result()
+
+        if not last:
+            return {"status": "no_engine_result"}
+
+        decision_payload = last.get("decision_payload", {})
+
+        psi = decision_payload.get("psiquant_score")
+
+        # attach psiquant into result for UI
+        last["psiquant_score"] = psi
+
+        return last
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }

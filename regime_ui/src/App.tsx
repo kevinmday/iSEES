@@ -7,6 +7,7 @@ import NarrativeRadarPanel from "./components/NarrativeRadarPanel";
 import TradeOperationsPanel from "./components/TradeOperationsPanel";
 import TradeCardPanel from "./components/TradeCardPanel";
 import EngineControlPanel from "./components/EngineControlPanel";
+import PsiLeaderboardPanel from "./components/PsiLeaderboardPanel";
 import { useRegimePolling } from "./hooks/useRegimePolling";
 
 type TransitionEvent = {
@@ -24,9 +25,10 @@ function App() {
   const flatten = snapshot?.flatten_triggered ?? false;
   const block = snapshot?.block_new_entries ?? false;
 
+  // FIXED: correct timestamp source from backend
   const updated =
-    snapshot?.timestamp
-      ? new Date(snapshot.timestamp * 1000).toLocaleTimeString()
+    snapshot?.last_cycle_timestamp
+      ? new Date(snapshot.last_cycle_timestamp * 1000).toLocaleTimeString()
       : "--:--:--";
 
   const systemic = regime === "systemic";
@@ -157,6 +159,10 @@ function App() {
         <div className="w-[420px]">
 
           <TradeCardPanel />
+
+          {/* ================= PSIQUANTA LEADERBOARD ================= */}
+
+          <PsiLeaderboardPanel />
 
         </div>
 

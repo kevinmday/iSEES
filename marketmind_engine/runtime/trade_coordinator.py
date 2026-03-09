@@ -11,6 +11,13 @@ from marketmind_engine.execution.position_snapshot import PositionSnapshot
 
 from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 
+# PsiQuanta Fusion
+from marketmind_engine.scoring.psiquanta import (
+    compute_psiquant,
+    IntentionMetrics,
+    QuantMetrics,
+)
+
 
 class TradeCoordinator:
     """
@@ -20,6 +27,10 @@ class TradeCoordinator:
         EXIT > ENTRY
 
     Projection feeds attention only.
+
+    PsiQuanta Phase:
+        Narrative + Quant fusion scoring injected
+        before entry evaluation.
     """
 
     def __init__(
@@ -40,10 +51,6 @@ class TradeCoordinator:
     # --------------------------------------------------
 
     def _poll_narrative(self):
-        """
-        Poll RSS feeds and refresh projection events.
-        Safe no-op if adapter not present.
-        """
 
         if not self._narrative_adapter:
             return
@@ -55,7 +62,7 @@ class TradeCoordinator:
             print(f"[RSS] polling failure: {e}")
 
     # --------------------------------------------------
-    # PROJECTION ROUTING (ATTENTION ONLY)
+    # PROJECTION ROUTING
     # --------------------------------------------------
 
     def _route_projection_events(self):
@@ -66,6 +73,7 @@ class TradeCoordinator:
         events = self._narrative_adapter.get_projection_events()
 
         for event in events:
+
             self._lifecycle_manager.route_rss_event(
                 {
                     "symbol": event.symbol,
@@ -92,8 +100,11 @@ class TradeCoordinator:
         )
 
         for signal in signals:
+
             if signal.action == "EXIT":
+
                 position = position_snapshot.positions.get(signal.symbol)
+
                 if not position:
                     continue
 
@@ -109,6 +120,68 @@ class TradeCoordinator:
         return None
 
     # --------------------------------------------------
+    # PSIQUANTA FUSION
+    # --------------------------------------------------
+
+    def _compute_psiquant(self, execution_input: ExecutionInput):
+
+        """
+        Computes PsiQuanta score and attaches it to policy_result.
+
+        Fully safe — never interrupts engine loop.
+        """
+
+        try:
+
+            policy = getattr(execution_input, "policy_result", None)
+            state = getattr(execution_input, "market_state", None)
+
+            if not policy or not state:
+                return
+
+            # ---------------------------
+            # Intention metrics
+            # ---------------------------
+
+            intention = IntentionMetrics(
+                fils=(getattr(policy, "fils", 0.0) or 0.0),
+                ucip=(getattr(policy, "ucip", 0.0) or 0.0),
+                drift=(getattr(policy, "drift", 0.0) or 0.0),
+                ttcf=(getattr(policy, "ttcf", 0.0) or 0.0),
+            )
+
+            # ---------------------------
+            # Quant metrics
+            # ---------------------------
+
+            quant = QuantMetrics(
+                quant_drift=(getattr(state, "quant_drift", 0.0) or 0.0),
+                momentum_alignment=(getattr(state, "momentum", 0.0) or 0.0),
+                liquidity=(getattr(state, "liquidity", 1.0) or 1.0),
+                volatility=(getattr(state, "volatility", 1.0) or 1.0),
+            )
+
+            psi = compute_psiquant(intention, quant)
+
+            # Attach telemetry to policy result
+            setattr(policy, "psiquant_score", psi.psiquant_score)
+            setattr(policy, "psi_narrative_force", psi.narrative_force)
+            setattr(policy, "psi_capital_force", psi.capital_force)
+            setattr(policy, "psi_chaos_filter", psi.chaos_filter)
+            setattr(policy, "psi_propagation_strength", psi.propagation_strength)
+
+            # ---------------------------
+            # Safe debug output
+            # ---------------------------
+
+            symbol = getattr(policy, "symbol", "UNKNOWN")
+            print(f"[ΨQ] {symbol} score={psi.psiquant_score:.3f}")
+
+        except Exception as e:
+
+            print(f"[PsiQuanta] scoring failure: {e}")
+
+    # --------------------------------------------------
     # MAIN RUN LOOP
     # --------------------------------------------------
 
@@ -119,7 +192,7 @@ class TradeCoordinator:
     ) -> dict:
 
         # --------------------------------------------------
-        # 0. RSS Polling (NEW)
+        # 0. RSS Polling
         # --------------------------------------------------
 
         self._poll_narrative()
@@ -129,10 +202,13 @@ class TradeCoordinator:
         # --------------------------------------------------
 
         regime_result = self._orchestrator.run_cycle()
+
         execution_block = regime_result.get("execution")
 
         directive = None
+
         if execution_block:
+
             from marketmind_engine.execution.policy.base import ExecutionDirective
 
             directive = ExecutionDirective(
@@ -142,7 +218,7 @@ class TradeCoordinator:
             )
 
         # --------------------------------------------------
-        # 2. Projection Routing (Narrative → Attention)
+        # 2. Projection Routing
         # --------------------------------------------------
 
         self._route_projection_events()
@@ -152,13 +228,16 @@ class TradeCoordinator:
         # --------------------------------------------------
 
         exit_intent = None
+
         if market_context_map:
+
             exit_intent = self._resolve_exit_intent(
                 execution_input.position_snapshot,
                 market_context_map,
             )
 
         if exit_intent:
+
             return {
                 "regime": regime_result,
                 "order_intent": exit_intent,
@@ -166,7 +245,13 @@ class TradeCoordinator:
             }
 
         # --------------------------------------------------
-        # 4. ENTRY Authority
+        # 4. PsiQuanta Fusion
+        # --------------------------------------------------
+
+        self._compute_psiquant(execution_input)
+
+        # --------------------------------------------------
+        # 5. ENTRY Authority
         # --------------------------------------------------
 
         entry_intent: Optional[OrderIntent] = self._execution_engine.evaluate(
