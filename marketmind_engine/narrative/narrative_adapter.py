@@ -6,9 +6,12 @@ from .rss.rss_worker import RSSWorker
 from marketmind_engine.narrative.projection.symbol_extractor import (
     SymbolExtractor,
 )
+
 from marketmind_engine.narrative.projection.projection_event import (
     ProjectionEvent,
 )
+
+from marketmind_engine.narrative.propagation_engine import PropagationEngine
 
 
 class NarrativeAdapter:
@@ -20,6 +23,7 @@ class NarrativeAdapter:
     """
 
     def __init__(self):
+
         self.registry = FeedRegistry()
         self.fetcher = RSSFetcher()
         self.buffer = NarrativeBuffer()
@@ -27,8 +31,10 @@ class NarrativeAdapter:
 
         self.extractor = SymbolExtractor()
 
+        self.propagation = PropagationEngine()
+
         self._projection_events = []
-        self._engine_time_counter = 0  # deterministic local counter
+        self._engine_time_counter = 0
 
     # -------------------------------------------------
     # Deterministic Injection
@@ -43,18 +49,14 @@ class NarrativeAdapter:
         self._update_projection()
 
     # -------------------------------------------------
-    # Projection (STRUCTURED CONTRACT)
+    # Projection
     # -------------------------------------------------
 
     def _extract_title(self, item):
-        """
-        Support both legacy dict items and NarrativeItem objects.
-        """
 
         if isinstance(item, dict):
             return item.get("title", "")
 
-        # NarrativeItem object
         return getattr(item, "title", "")
 
     def _update_projection(self):
@@ -62,36 +64,41 @@ class NarrativeAdapter:
         headlines = self.buffer.snapshot()
 
         events = []
-        symbols = set()
 
         for item in headlines:
 
             title = self._extract_title(item)
 
-            extracted = self.extractor.extract(title)
+            extracted_symbols = self.extractor.extract(title)
 
-            for symbol in extracted:
-                symbols.add(symbol)
+            for symbol in extracted_symbols:
 
-        # Deterministic event creation
-        for symbol in sorted(symbols):
+                self._engine_time_counter += 1
 
-            self._engine_time_counter += 1
-
-            events.append(
-                ProjectionEvent(
+                event = ProjectionEvent(
                     symbol=symbol,
                     engine_time=self._engine_time_counter,
                     source="rss",
-                    sentiment=0.0,  # v1 neutral
-                    weight=1.0,     # v1 unit weight
+                    sentiment=0.0,
+                    weight=1.0,
                 )
-            )
+
+                events.append(event)
+
+                self.propagation.ingest_event(event)
 
         self._projection_events = events
 
     def get_projection_events(self):
         return list(self._projection_events)
+
+    # -------------------------------------------------
+    # Propagation Snapshot
+    # -------------------------------------------------
+
+    def get_propagation_snapshot(self):
+
+        return self.propagation.snapshot()
 
     # -------------------------------------------------
     # Shock Calculation
