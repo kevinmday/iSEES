@@ -1,39 +1,56 @@
 import re
-from typing import List
+
+from marketmind_engine.data.company_registry import CompanyRegistry
 
 
 class SymbolExtractor:
-    """
-    Deterministic literal ticker extractor (v1).
 
-    Extracts:
-    - $TICKER
-    - Standalone uppercase tokens (2–5 chars)
+    TICKER_PATTERN = re.compile(r"\b[A-Z]{2,5}\b")
 
-    Does NOT:
-    - Infer implied tickers
-    - Perform NLP
-    - Use probabilistic scoring
-    """
+    # common English tokens that are also tickers
+    TICKER_STOPWORDS = {
+        "AI",
+        "ON",
+        "IT",
+        "SO",
+        "GO",
+        "ALL",
+        "CAN",
+        "FOR",
+        "ARE",
+    }
 
-    # Matches $NVDA
-    DOLLAR_PATTERN = re.compile(r"\$([A-Z]{1,5})")
+    def __init__(self):
 
-    # Matches standalone NVDA (not part of larger word)
-    STANDALONE_PATTERN = re.compile(r"\b([A-Z]{2,5})\b")
+        self.registry = CompanyRegistry()
 
-    def extract(self, text: str) -> List[str]:
-        if not text:
-            return []
+        # fast lookup set
+        self.valid_tickers = set(self.registry.name_to_ticker.values())
+
+    def extract(self, text):
 
         symbols = set()
 
-        # $TICKER matches
-        for match in self.DOLLAR_PATTERN.findall(text):
-            symbols.add(match)
+        # -------------------------------------------------
+        # company name lookup
+        # -------------------------------------------------
 
-        # Standalone uppercase matches
-        for match in self.STANDALONE_PATTERN.findall(text):
-            symbols.add(match)
+        company_matches = self.registry.find(text)
+
+        symbols.update(company_matches)
+
+        # -------------------------------------------------
+        # explicit ticker detection
+        # -------------------------------------------------
+
+        tickers = self.TICKER_PATTERN.findall(text)
+
+        for ticker in tickers:
+
+            if ticker in self.TICKER_STOPWORDS:
+                continue
+
+            if ticker in self.valid_tickers:
+                symbols.add(ticker)
 
         return sorted(symbols)

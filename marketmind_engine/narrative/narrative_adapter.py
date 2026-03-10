@@ -24,15 +24,19 @@ class NarrativeAdapter:
 
     def __init__(self):
 
+        # RSS ingestion stack
         self.registry = FeedRegistry()
         self.fetcher = RSSFetcher()
         self.buffer = NarrativeBuffer()
         self.worker = RSSWorker(self.registry, self.fetcher, self.buffer)
 
+        # Symbol resolution
         self.extractor = SymbolExtractor()
 
+        # Propagation engine
         self.propagation = PropagationEngine()
 
+        # Engine state
         self._projection_events = []
         self._engine_time_counter = 0
 
@@ -45,7 +49,13 @@ class NarrativeAdapter:
         if headlines is None:
             headlines = []
 
-        self.buffer.update(list(headlines))
+        # normalize
+        headlines = list(headlines)
+
+        # update buffer
+        self.buffer.update(headlines)
+
+        # generate projection events
         self._update_projection()
 
     # -------------------------------------------------
@@ -69,10 +79,17 @@ class NarrativeAdapter:
 
             title = self._extract_title(item)
 
+            if not title:
+                continue
+
             extracted_symbols = self.extractor.extract(title)
+
+            if not extracted_symbols:
+                continue
 
             for symbol in extracted_symbols:
 
+                # deterministic engine time
                 self._engine_time_counter += 1
 
                 event = ProjectionEvent(
@@ -85,6 +102,7 @@ class NarrativeAdapter:
 
                 events.append(event)
 
+                # send to propagation engine
                 self.propagation.ingest_event(event)
 
         self._projection_events = events
@@ -112,6 +130,7 @@ class NarrativeAdapter:
             return 0.0
 
         volume = len(headlines)
+
         shock = volume / 100.0
 
         return min(shock, 1.0)
