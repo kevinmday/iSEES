@@ -21,6 +21,7 @@ class ExecutionInputFactory:
         position_service,
         price_service,
         clock,
+        narrative_adapter=None,   # NEW
     ):
         self.regime_service = regime_service
         self.policy_engine = policy_engine
@@ -29,8 +30,12 @@ class ExecutionInputFactory:
         self.price_service = price_service
         self.clock = clock
 
-        # 🔹 Deterministic price memory (per symbol)
+        # NEW
+        self.narrative_adapter = narrative_adapter
+
+        # Deterministic memory
         self._last_price_by_symbol = {}
+        self._price_history = {}
 
     # -------------------------------------------------------------
     # Public Entry
@@ -75,15 +80,15 @@ class ExecutionInputFactory:
     def _build_market_state(self, symbol: str, engine_time) -> MarketState:
         """
         Construct MarketState using available services.
-
-        Keep minimal for now.
-        Extend only when needed.
         """
 
         current_price = self.price_service.get_price(symbol)
         regime_state = self.regime_service.current_state()
 
-        # 🔹 Compute deterministic price delta
+        # ---------------------------------------------------------
+        # Deterministic price delta
+        # ---------------------------------------------------------
+
         previous_price = self._last_price_by_symbol.get(symbol)
 
         if previous_price is None:
@@ -91,27 +96,90 @@ class ExecutionInputFactory:
         else:
             price_delta = current_price - previous_price
 
-        # Update memory for next cycle
         self._last_price_by_symbol[symbol] = current_price
 
-        # Placeholder values — narrative wiring comes later
+        # ---------------------------------------------------------
+        # Maintain rolling price history
+        # ---------------------------------------------------------
+
+        history = self._price_history.setdefault(symbol, [])
+        history.append(current_price)
+
+        if len(history) > 20:
+            history.pop(0)
+
+        # ---------------------------------------------------------
+        # Quant Metrics (deterministic)
+        # ---------------------------------------------------------
+
+        if len(history) > 1:
+            drift = (history[-1] - history[0]) / max(history[0], 1e-6)
+        else:
+            drift = 0.0
+
+        if len(history) > 3:
+            momentum = (history[-1] - history[-3]) / max(history[-3], 1e-6)
+        else:
+            momentum = 0.0
+
+        # volatility estimate
+        if len(history) > 3:
+            mean_price = sum(history) / len(history)
+            variance = sum((p - mean_price) ** 2 for p in history) / len(history)
+            volatility = (variance ** 0.5) / max(mean_price, 1e-6)
+        else:
+            volatility = 0.0
+
+        liquidity = 1.0  # placeholder until volume service wired
+
+        # ---------------------------------------------------------
+        # Narrative Propagation Metrics
+        # ---------------------------------------------------------
+
         fils = 0.0
         ucip = 0.0
-        ttcf = 0.0
+        ttcf = 1.0
+
+        if self.narrative_adapter:
+
+            snapshot = self.narrative_adapter.get_propagation_snapshot()
+
+            symbol_metrics = snapshot.get(symbol)
+
+            if symbol_metrics:
+                fils = symbol_metrics.get("FILS", 0.0)
+                ucip = symbol_metrics.get("UCIP", 0.0)
+                ttcf = symbol_metrics.get("TTCF", 1.0)
+
+        # ---------------------------------------------------------
+        # Construct MarketState
+        # ---------------------------------------------------------
 
         return MarketState(
             symbol=symbol,
             domain=regime_state.domain if hasattr(regime_state, "domain") else "unknown",
             narrative=None,
+
+            # Narrative signals
             fils=fils,
             ucip=ucip,
             ttcf=ttcf,
+
             fractal_levels=None,
+
             data_source="runtime",
             engine_id="paper-runtime",
             timestamp_utc=None,
+
+            # Engine timing
             engine_time=engine_time,
             ignition_time=0,
-            price_delta=price_delta,
+
+            # Quant / price signals
+            price_delta=momentum,
             volume_ratio=1.0,
+
+            volatility=volatility,
+            liquidity=liquidity,
+            responsiveness=drift,
         )

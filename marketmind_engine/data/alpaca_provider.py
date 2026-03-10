@@ -1,52 +1,73 @@
 # marketmind_engine/data/alpaca_provider.py
 
 from typing import Dict
+import os
+
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockLatestTradeRequest
 
 
 class AlpacaProvider:
     """
-    Skeleton Alpaca data provider.
+    Live Alpaca market data provider.
 
-    This class defines the interface and intent for Alpaca-backed
-    market data access, but does NOT perform any API calls.
-
-    Purpose:
-    - Contract validation
-    - Provider wiring
-    - UX / adapter integration
-    - Capability declaration
-
-    Live data access is intentionally unimplemented.
+    Provides real-time price data for the MarketMind engine.
     """
 
     name = "alpaca"
     mode = "live"
 
-    # Declared (not enforced) capabilities
     capabilities = {
         "quotes": True,
         "bars": True,
         "volume": True,
         "historical": True,
-        "orders": False,   # engine must never place orders
-        "streaming": False
+        "orders": False,
+        "streaming": False,
     }
 
     def __init__(self, config: Dict | None = None):
-        """
-        config is accepted for future compatibility,
-        but unused in the skeleton implementation.
-        """
+
         self.config = config or {}
+
+        api_key = os.getenv("ALPACA_API_KEY")
+        secret_key = os.getenv("ALPACA_SECRET_KEY")
+
+        if not api_key or not secret_key:
+            raise RuntimeError(
+                "ALPACA_API_KEY and ALPACA_SECRET_KEY must be set in environment"
+            )
+
+        self.client = StockHistoricalDataClient(api_key, secret_key)
+
+    def get_price(self, symbol: str) -> float:
+        """
+        Returns latest trade price.
+        """
+
+        try:
+
+            request = StockLatestTradeRequest(symbol_or_symbols=symbol)
+
+            trade = self.client.get_stock_latest_trade(request)
+
+            if symbol in trade:
+                return float(trade[symbol].price)
+
+        except Exception as e:
+            print(f"[AlpacaProvider] price fetch error {symbol}: {e}")
+
+        return 0.0
 
     def get_symbol_data(self, symbol: str) -> Dict:
         """
-        Skeleton method.
-
-        This provider intentionally does NOT return live data.
-        Any attempt to call this before implementation is a hard error.
+        Returns structured symbol snapshot used by the engine.
         """
-        raise NotImplementedError(
-            "AlpacaProvider is a skeleton only. "
-            "Live market data access is not yet implemented."
-        )
+
+        price = self.get_price(symbol)
+
+        return {
+            "symbol": symbol,
+            "price": price,
+            "provider": "alpaca"
+        }

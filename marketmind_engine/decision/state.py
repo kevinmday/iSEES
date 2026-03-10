@@ -52,3 +52,9 @@ class MarketState:
     ignition_time: Optional[int] = None        # engine_time at narrative trigger
     price_delta: Optional[float] = None        # % displacement since ignition
     volume_ratio: Optional[float] = None       # volume vs rolling baseline
+
+    # --------------------------------------------------
+    # Phase-13: Quant telemetry (PsiQuanta support)
+    # --------------------------------------------------
+    quant_drift: Optional[float] = None        # price trend strength
+    momentum: Optional[float] = None           # short-term directional pressure

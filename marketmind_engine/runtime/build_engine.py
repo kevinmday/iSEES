@@ -34,6 +34,9 @@ from marketmind_engine.core.engine_clock import EngineClock
 # REAL RSS PIPELINE
 from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 
+# LIVE PRICE PROVIDER
+from marketmind_engine.data.alpaca_quote_provider import AlpacaQuoteProvider
+
 
 # ----------------------------------------------------------------------
 # Default Stub Services
@@ -89,6 +92,10 @@ def build_engine(
     rss_service=None,
 ) -> EngineController:
 
+    # --------------------------------------------------
+    # Macro source
+    # --------------------------------------------------
+
     macro_source = InjectedMacroSource(
         {
             "drawdown_velocity": 0.0,
@@ -116,6 +123,10 @@ def build_engine(
         narrative_adapter=narrative_adapter,
     )
 
+    # --------------------------------------------------
+    # Broker (paper trading)
+    # --------------------------------------------------
+
     broker = PaperBrokerAdapter()
 
     execution_service = ExecutionService(
@@ -127,12 +138,23 @@ def build_engine(
         execution_service=execution_service,
     )
 
+    # --------------------------------------------------
+    # Core services
+    # --------------------------------------------------
+
     clock = clock or EngineClock()
-    price_service = price_service or StubPriceService()
+
+    # LIVE PRICE DATA (Alpaca)
+    price_service = price_service or AlpacaQuoteProvider()
+
     capital_service = capital_service or StubCapitalService()
     position_service = position_service or StubPositionService()
     regime_service = regime_service or StubRegimeService()
     policy_engine = policy_engine or StubPolicyEngine()
+
+    # --------------------------------------------------
+    # Execution Input Factory
+    # --------------------------------------------------
 
     execution_input_factory = ExecutionInputFactory(
         regime_service=regime_service,
@@ -141,7 +163,12 @@ def build_engine(
         position_service=position_service,
         price_service=price_service,
         clock=clock,
+        narrative_adapter=narrative_adapter,   # ← CRITICAL WIRE
     )
+
+    # --------------------------------------------------
+    # Engine Controller
+    # --------------------------------------------------
 
     engine_controller = EngineController(
         runtime_executor=runtime_executor,
