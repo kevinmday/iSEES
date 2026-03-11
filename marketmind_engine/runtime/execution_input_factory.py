@@ -21,7 +21,7 @@ class ExecutionInputFactory:
         position_service,
         price_service,
         clock,
-        narrative_adapter=None,   # NEW
+        narrative_adapter=None,
     ):
         self.regime_service = regime_service
         self.policy_engine = policy_engine
@@ -30,7 +30,7 @@ class ExecutionInputFactory:
         self.price_service = price_service
         self.clock = clock
 
-        # NEW
+        # Optional narrative integration
         self.narrative_adapter = narrative_adapter
 
         # Deterministic memory
@@ -48,19 +48,39 @@ class ExecutionInputFactory:
 
         engine_time = self.clock.now()
 
+        # ---------------------------------------------------------
         # 1️⃣ Build MarketState
+        # ---------------------------------------------------------
+
         market_state = self._build_market_state(symbol, engine_time)
 
+        # ---------------------------------------------------------
         # 2️⃣ Evaluate Policy
+        # ---------------------------------------------------------
+
         policy_result = self.policy_engine.evaluate(market_state)
 
+        # 🔴 CRITICAL FIX
+        # Attach symbol so downstream scoring layers know
+        # what asset they are evaluating.
+        setattr(policy_result, "symbol", symbol)
+
+        # ---------------------------------------------------------
         # 3️⃣ Snapshot Capital
+        # ---------------------------------------------------------
+
         capital_snapshot = self.capital_service.snapshot()
 
+        # ---------------------------------------------------------
         # 4️⃣ Snapshot Position
+        # ---------------------------------------------------------
+
         position_snapshot = self.position_service.snapshot(symbol)
 
+        # ---------------------------------------------------------
         # 5️⃣ Current Price
+        # ---------------------------------------------------------
+
         current_price = self.price_service.get_price(symbol)
 
         return ExecutionInput(

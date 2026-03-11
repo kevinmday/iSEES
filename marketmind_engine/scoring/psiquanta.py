@@ -12,6 +12,7 @@ Design constraints:
 """
 
 from dataclasses import dataclass
+import math
 
 
 # --------------------------------------------------
@@ -41,6 +42,7 @@ class PsiQuantResult:
     capital_force: float
     chaos_filter: float
     propagation_strength: float
+    latency_signal: float
 
 
 # --------------------------------------------------
@@ -50,14 +52,29 @@ class PsiQuantResult:
 def _safe(value: float, default: float = 0.0) -> float:
     """
     Ensures deterministic numeric input.
-    Converts None or invalid values into a safe float.
+    Converts None, NaN, or invalid values into safe floats.
     """
+
     try:
         if value is None:
             return default
-        return float(value)
+
+        v = float(value)
+
+        if math.isnan(v) or math.isinf(v):
+            return default
+
+        return v
+
     except Exception:
         return default
+
+
+def _clamp(value: float, low: float = -10.0, high: float = 10.0) -> float:
+    """
+    Prevent runaway values in replay environments.
+    """
+    return max(low, min(high, value))
 
 
 # --------------------------------------------------
@@ -67,9 +84,15 @@ def _safe(value: float, default: float = 0.0) -> float:
 def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQuantResult:
     """
     Core PsiQuanta fusion calculation.
+
+    Combines narrative propagation force with capital alignment.
+    Adds Narrative-Price Latency detection.
     """
 
-    # --- sanitize inputs ---
+    # --------------------------------------------------
+    # sanitize inputs
+    # --------------------------------------------------
+
     fils = _safe(intention.fils)
     ucip = _safe(intention.ucip)
     drift = _safe(intention.drift)
@@ -80,24 +103,59 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
     liquidity = _safe(quant.liquidity, 1.0)
     volatility = _safe(quant.volatility, 1.0)
 
-    # --- Narrative Force ---
-    narrative_force = fils * ucip * drift
+    # --------------------------------------------------
+    # Narrative Force (corrected model)
+    # --------------------------------------------------
+    # Base signal exists even without acceleration
+    # DRIFT now amplifies rather than gates
 
-    # --- Chaos Suppression ---
-    chaos_filter = max(0.0, 1.0 - ttcf)
+    base_signal = fils * ucip
+    narrative_force = _clamp(base_signal * (1.0 + drift))
 
-    # --- Capital Alignment ---
-    capital_force = (
+    # --------------------------------------------------
+    # Chaos Suppression
+    # --------------------------------------------------
+
+    chaos_filter = _clamp(1.0 - ttcf, 0.0, 1.0)
+
+    # --------------------------------------------------
+    # Capital Alignment
+    # --------------------------------------------------
+
+    capital_force = _clamp(
         quant_drift *
         momentum_alignment *
         liquidity *
         volatility
     )
 
-    # --- Final PsiQuant Score ---
-    psiquant_score = narrative_force * chaos_filter * capital_force
+    # --------------------------------------------------
+    # Propagation Strength
+    # --------------------------------------------------
 
-    propagation_strength = narrative_force * chaos_filter
+    propagation_strength = _clamp(
+        narrative_force *
+        chaos_filter
+    )
+
+    # --------------------------------------------------
+    # Narrative-Price Latency Detection
+    # --------------------------------------------------
+
+    latency_signal = _clamp(
+        narrative_force - capital_force,
+        -1.0,
+        1.0
+    )
+
+    # --------------------------------------------------
+    # Final PsiQuant Score
+    # --------------------------------------------------
+
+    psiquant_score = _clamp(
+        propagation_strength *
+        capital_force
+    )
 
     return PsiQuantResult(
         psiquant_score=psiquant_score,
@@ -105,4 +163,5 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
         capital_force=capital_force,
         chaos_filter=chaos_filter,
         propagation_strength=propagation_strength,
+        latency_signal=latency_signal,
     )

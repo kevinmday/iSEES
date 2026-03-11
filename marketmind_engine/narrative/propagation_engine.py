@@ -6,6 +6,7 @@ Converts ProjectionEvents into intention metrics.
 Outputs:
     FILS
     UCIP
+    DRIFT
     TTCF
 
 Design Principles
@@ -17,20 +18,27 @@ engine tick driven
 """
 
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict
 
 
 class PropagationEngine:
 
     def __init__(self, window: int = 300):
         self.window = window
+
         self.symbol_state = defaultdict(
             lambda: {
                 "timestamps": [],
                 "weights": [],
-                "sources": []
+                "sources": [],
+                "last_mentions": 0,
+                "last_fils": 0.0,
             }
         )
+
+    # --------------------------------------------------
+    # EVENT INGESTION
+    # --------------------------------------------------
 
     def ingest_event(self, event):
         """
@@ -50,6 +58,10 @@ class PropagationEngine:
 
         self._prune_old(event.symbol, event.engine_time)
 
+    # --------------------------------------------------
+    # WINDOW PRUNING
+    # --------------------------------------------------
+
     def _prune_old(self, symbol, current_time):
 
         cutoff = current_time - self.window
@@ -65,6 +77,7 @@ class PropagationEngine:
         new_s = []
 
         for t, w, s in zip(timestamps, weights, sources):
+
             if t >= cutoff:
                 new_t.append(t)
                 new_w.append(w)
@@ -74,6 +87,10 @@ class PropagationEngine:
         state["weights"] = new_w
         state["sources"] = new_s
 
+    # --------------------------------------------------
+    # METRIC COMPUTATION
+    # --------------------------------------------------
+
     def compute_metrics(self, symbol: str) -> Dict:
 
         state = self.symbol_state.get(symbol)
@@ -82,7 +99,8 @@ class PropagationEngine:
             return {
                 "FILS": 0.0,
                 "UCIP": 0.0,
-                "TTCF": 1.0
+                "DRIFT": 0.0,
+                "TTCF": 1.0,
             }
 
         timestamps = state["timestamps"]
@@ -95,33 +113,83 @@ class PropagationEngine:
             return {
                 "FILS": 0.0,
                 "UCIP": 0.0,
-                "TTCF": 1.0
+                "DRIFT": 0.0,
+                "TTCF": 1.0,
             }
 
+        # --------------------------------------------------
+        # FREQUENCY
+        # --------------------------------------------------
+
         frequency = mentions / self.window
+
+        # --------------------------------------------------
+        # VELOCITY
+        # --------------------------------------------------
 
         recent = timestamps[-5:]
         prev = timestamps[-10:-5]
 
-        velocity = max(len(recent) - len(prev), 0) / 10
+        velocity = max(len(recent) - len(prev), 0) / 5
+
+        # --------------------------------------------------
+        # SOURCE DISPERSION
+        # --------------------------------------------------
 
         unique_sources = len(set(sources))
         dispersion = unique_sources / mentions
 
-        fils = frequency * (1 + velocity) * dispersion
-        fils = min(max(fils, 0), 1)
+        # --------------------------------------------------
+        # FILS
+        # --------------------------------------------------
 
-        ucip = (sum(weights) / self.window) * fils
-        ucip = min(max(ucip, 0), 1)
+        fils = frequency * (1 + velocity) * dispersion
+        fils = min(max(fils, 0.0), 1.0)
+
+        # --------------------------------------------------
+        # UCIP
+        # --------------------------------------------------
+
+        total_weight = sum(weights)
+
+        ucip = (total_weight / self.window) * (1 + velocity)
+        ucip = min(max(ucip, 0.0), 1.0)
+
+        # --------------------------------------------------
+        # DRIFT
+        # --------------------------------------------------
+        # Measures propagation acceleration
+        # Emerges when narrative begins spreading
+
+        last_mentions = state["last_mentions"]
+        last_fils = state["last_fils"]
+
+        mention_delta = max(mentions - last_mentions, 0)
+        fils_delta = max(fils - last_fils, 0)
+
+        drift = (mention_delta / 10) * (1 + fils_delta)
+        drift = min(max(drift, 0.0), 1.0)
+
+        state["last_mentions"] = mentions
+        state["last_fils"] = fils
+
+        # --------------------------------------------------
+        # TTCF (chaos filter)
+        # --------------------------------------------------
 
         ttcf = 1 - dispersion
-        ttcf = min(max(ttcf, 0), 1)
+        ttcf = min(max(ttcf, 0.0), 1.0)
 
         return {
             "FILS": round(fils, 4),
             "UCIP": round(ucip, 4),
-            "TTCF": round(ttcf, 4)
+            "DRIFT": round(drift, 4),
+            "TTCF": round(ttcf, 4),
         }
+
+    # --------------------------------------------------
+    # SNAPSHOT
+    # --------------------------------------------------
 
     def snapshot(self):
 

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from marketmind_engine.orchestrator.intraday_orchestrator import IntradayOrchestrator
 from marketmind_engine.execution.execution_engine import ExecutionEngine
@@ -11,40 +11,34 @@ from marketmind_engine.execution.position_snapshot import PositionSnapshot
 
 from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 
-# PsiQuanta Fusion
 from marketmind_engine.scoring.psiquanta import (
     compute_psiquant,
     IntentionMetrics,
     QuantMetrics,
 )
 
+# NEW — Capital propagation engine
+from marketmind_engine.quant.capital_propagation_engine import CapitalPropagationEngine
+
 
 class TradeCoordinator:
-    """
-    Phase 13 — Projection Integrated (Controlled)
-
-    Authority hierarchy:
-        EXIT > ENTRY
-
-    Projection feeds attention only.
-
-    PsiQuanta Phase:
-        Narrative + Quant fusion scoring injected
-        before entry evaluation.
-    """
 
     def __init__(
         self,
         orchestrator: IntradayOrchestrator,
         execution_engine: ExecutionEngine,
         narrative_adapter: Optional[NarrativeAdapter] = None,
+        price_service=None,
     ):
         self._orchestrator = orchestrator
         self._execution_engine = execution_engine
         self._lifecycle_manager = AgentLifecycleManager()
 
-        # Optional narrative injection
         self._narrative_adapter = narrative_adapter
+        self._price_service = price_service
+
+        # NEW
+        self._capital_engine = CapitalPropagationEngine()
 
     # --------------------------------------------------
     # RSS POLLING
@@ -82,6 +76,91 @@ class TradeCoordinator:
                     "sentiment": event.sentiment,
                 }
             )
+
+    # --------------------------------------------------
+    # PROPAGATION METRICS INJECTION
+    # --------------------------------------------------
+
+    def _inject_propagation_metrics(self, execution_input: ExecutionInput):
+
+        if not self._narrative_adapter:
+            return
+
+        policy = getattr(execution_input, "policy_result", None)
+
+        if not policy:
+            return
+
+        symbol = getattr(policy, "symbol", None)
+
+        if not symbol:
+            return
+
+        try:
+
+            snapshot = self._narrative_adapter.get_propagation_snapshot()
+
+            if not snapshot:
+                return
+
+            metrics = snapshot.get(symbol)
+
+            if not metrics:
+                return
+
+            policy.fils = metrics.get("FILS", 0.0)
+            policy.ucip = metrics.get("UCIP", 0.0)
+            policy.drift = metrics.get("DRIFT", 0.0)
+            policy.ttcf = metrics.get("TTCF", 1.0)
+
+        except Exception as e:
+
+            print(f"[PROPAGATION] injection failure: {e}")
+
+    # --------------------------------------------------
+    # CAPITAL FIELD (Quant Propagation)
+    # --------------------------------------------------
+
+    def _fetch_quant_metrics(self, execution_input: ExecutionInput) -> Dict:
+
+        if not self._price_service:
+            return {}
+
+        policy = getattr(execution_input, "policy_result", None)
+
+        if not policy:
+            return {}
+
+        symbol = getattr(policy, "symbol", None)
+
+        if not symbol:
+            return {}
+
+        try:
+
+            quote = self._price_service.get_quote(symbol)
+
+            if not quote:
+                return {}
+
+            price = quote.get("ap") or quote.get("bp")
+
+            if not price:
+                return {}
+
+            print(f"[PRICE] {symbol} {quote}")
+
+            # Update capital propagation
+            self._capital_engine.update(symbol, price)
+
+            metrics = self._capital_engine.get_metrics(symbol)
+
+            return metrics
+
+        except Exception as e:
+
+            print(f"[PRICE] fetch failure {symbol}: {e}")
+            return {}
 
     # --------------------------------------------------
     # EXIT AUTHORITY
@@ -123,26 +202,16 @@ class TradeCoordinator:
     # PSIQUANTA FUSION
     # --------------------------------------------------
 
-    def _compute_psiquant(self, execution_input: ExecutionInput):
-
-        """
-        Computes PsiQuanta score and attaches it to policy_result.
-
-        Fully safe — never interrupts engine loop.
-        """
+    def _compute_psiquant(self, execution_input: ExecutionInput, quant_metrics: Dict):
 
         try:
 
             policy = getattr(execution_input, "policy_result", None)
-            state = getattr(execution_input, "market_state", None)
 
-            if not policy or not state:
+            if not policy:
                 return
 
-            # ---------------------------
-            # Intention metrics
-            # ---------------------------
-
+            # Narrative field
             intention = IntentionMetrics(
                 fils=(getattr(policy, "fils", 0.0) or 0.0),
                 ucip=(getattr(policy, "ucip", 0.0) or 0.0),
@@ -150,32 +219,28 @@ class TradeCoordinator:
                 ttcf=(getattr(policy, "ttcf", 0.0) or 0.0),
             )
 
-            # ---------------------------
-            # Quant metrics
-            # ---------------------------
-
+            # Capital field
             quant = QuantMetrics(
-                quant_drift=(getattr(state, "quant_drift", 0.0) or 0.0),
-                momentum_alignment=(getattr(state, "momentum", 0.0) or 0.0),
-                liquidity=(getattr(state, "liquidity", 1.0) or 1.0),
-                volatility=(getattr(state, "volatility", 1.0) or 1.0),
+                quant_drift=quant_metrics.get("qdrift", 0.0),
+                momentum_alignment=quant_metrics.get("qucip", 0.0),
+                liquidity=quant_metrics.get("qfils", 0.0),
+                volatility=quant_metrics.get("qttcf", 0.0),
             )
 
             psi = compute_psiquant(intention, quant)
 
-            # Attach telemetry to policy result
             setattr(policy, "psiquant_score", psi.psiquant_score)
             setattr(policy, "psi_narrative_force", psi.narrative_force)
             setattr(policy, "psi_capital_force", psi.capital_force)
             setattr(policy, "psi_chaos_filter", psi.chaos_filter)
             setattr(policy, "psi_propagation_strength", psi.propagation_strength)
 
-            # ---------------------------
-            # Safe debug output
-            # ---------------------------
-
             symbol = getattr(policy, "symbol", "UNKNOWN")
-            print(f"[ΨQ] {symbol} score={psi.psiquant_score:.3f}")
+
+            print(
+                f"[ΨQ] {symbol} score={psi.psiquant_score:.3f} "
+                f"(FILS={intention.fils} UCIP={intention.ucip} DRIFT={intention.drift})"
+            )
 
         except Exception as e:
 
@@ -191,15 +256,7 @@ class TradeCoordinator:
         market_context_map: Optional[dict] = None,
     ) -> dict:
 
-        # --------------------------------------------------
-        # 0. RSS Polling
-        # --------------------------------------------------
-
         self._poll_narrative()
-
-        # --------------------------------------------------
-        # 1. Regime Authority
-        # --------------------------------------------------
 
         regime_result = self._orchestrator.run_cycle()
 
@@ -217,15 +274,7 @@ class TradeCoordinator:
                 risk_level=execution_block["risk_level"],
             )
 
-        # --------------------------------------------------
-        # 2. Projection Routing
-        # --------------------------------------------------
-
         self._route_projection_events()
-
-        # --------------------------------------------------
-        # 3. EXIT Authority
-        # --------------------------------------------------
 
         exit_intent = None
 
@@ -244,15 +293,14 @@ class TradeCoordinator:
                 "authority": "EXIT",
             }
 
-        # --------------------------------------------------
-        # 4. PsiQuanta Fusion
-        # --------------------------------------------------
+        # Inject narrative propagation metrics
+        self._inject_propagation_metrics(execution_input)
 
-        self._compute_psiquant(execution_input)
+        # Capital field metrics
+        quant_metrics = self._fetch_quant_metrics(execution_input)
 
-        # --------------------------------------------------
-        # 5. ENTRY Authority
-        # --------------------------------------------------
+        # PsiQuanta fusion
+        self._compute_psiquant(execution_input, quant_metrics)
 
         entry_intent: Optional[OrderIntent] = self._execution_engine.evaluate(
             execution_input,

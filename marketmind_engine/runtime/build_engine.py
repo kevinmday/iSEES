@@ -44,23 +44,20 @@ from marketmind_engine.data.alpaca_quote_provider import AlpacaQuoteProvider
 
 class StubCapitalService:
     def snapshot(self):
-        return type("CapitalSnapshot", (), {
-            "account_equity": 100_000,
-            "buying_power": 100_000,
-            "max_risk_per_trade": 0.01,
-        })()
+        return type(
+            "CapitalSnapshot",
+            (),
+            {
+                "account_equity": 100_000,
+                "buying_power": 100_000,
+                "max_risk_per_trade": 0.01,
+            },
+        )()
 
 
 class StubPositionService:
     def snapshot(self, symbol: str):
-        return type("PositionSnapshot", (), {
-            "positions": {}
-        })()
-
-
-class StubPriceService:
-    def get_price(self, symbol: str) -> float:
-        return 100.0
+        return type("PositionSnapshot", (), {"positions": {}})()
 
 
 class StubRegimeService:
@@ -70,11 +67,15 @@ class StubRegimeService:
 
 class StubPolicyEngine:
     def evaluate(self, market_state):
-        return type("PolicyResult", (), {
-            "action": PolicyAction.HOLD,
-            "confidence": 0.0,
-            "reason": "Stub neutral policy",
-        })()
+        return type(
+            "PolicyResult",
+            (),
+            {
+                "action": PolicyAction.HOLD,
+                "confidence": 0.0,
+                "reason": "Stub neutral policy",
+            },
+        )()
 
 
 # ----------------------------------------------------------------------
@@ -91,6 +92,22 @@ def build_engine(
     narrative_adapter=None,
     rss_service=None,
 ) -> EngineController:
+
+    # --------------------------------------------------
+    # Core services
+    # --------------------------------------------------
+
+    clock = clock or EngineClock()
+
+    # LIVE PRICE PROVIDER (critical runtime dependency)
+    price_service = price_service or AlpacaQuoteProvider()
+
+    capital_service = capital_service or StubCapitalService()
+    position_service = position_service or StubPositionService()
+    regime_service = regime_service or StubRegimeService()
+    policy_engine = policy_engine or StubPolicyEngine()
+
+    narrative_adapter = narrative_adapter or NarrativeAdapter()
 
     # --------------------------------------------------
     # Macro source
@@ -115,12 +132,15 @@ def build_engine(
         audit_writer=None,
     )
 
-    narrative_adapter = narrative_adapter or NarrativeAdapter()
+    # --------------------------------------------------
+    # Trade Coordinator (PRICE INJECTION POINT)
+    # --------------------------------------------------
 
     coordinator = TradeCoordinator(
         orchestrator=orchestrator,
         execution_engine=execution_engine,
         narrative_adapter=narrative_adapter,
+        price_service=price_service,
     )
 
     # --------------------------------------------------
@@ -133,24 +153,15 @@ def build_engine(
         broker=broker
     )
 
+    # --------------------------------------------------
+    # Runtime Executor
+    # --------------------------------------------------
+
     runtime_executor = RuntimeExecutor(
         coordinator=coordinator,
         execution_service=execution_service,
+        price_service=price_service,
     )
-
-    # --------------------------------------------------
-    # Core services
-    # --------------------------------------------------
-
-    clock = clock or EngineClock()
-
-    # LIVE PRICE DATA (Alpaca)
-    price_service = price_service or AlpacaQuoteProvider()
-
-    capital_service = capital_service or StubCapitalService()
-    position_service = position_service or StubPositionService()
-    regime_service = regime_service or StubRegimeService()
-    policy_engine = policy_engine or StubPolicyEngine()
 
     # --------------------------------------------------
     # Execution Input Factory
@@ -163,7 +174,7 @@ def build_engine(
         position_service=position_service,
         price_service=price_service,
         clock=clock,
-        narrative_adapter=narrative_adapter,   # ← CRITICAL WIRE
+        narrative_adapter=narrative_adapter,
     )
 
     # --------------------------------------------------
