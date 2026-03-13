@@ -24,7 +24,22 @@ from typing import Dict
 class PropagationEngine:
 
     def __init__(self, window: int = 300):
+
         self.window = window
+
+        # narrative decay factor
+        self.decay = 0.92
+
+        # narrative reinforcement force
+        self.symbol_force = defaultdict(float)
+
+        # optional deterministic diffusion map
+        self.diffusion_map = {
+            "NVDA": ["SMCI", "TSM", "AVGO"],
+            "AMD": ["TSM", "ARM"],
+            "LMT": ["RTX", "NOC"],
+            "AMZN": ["SHOP", "MELI"],
+        }
 
         self.symbol_state = defaultdict(
             lambda: {
@@ -50,13 +65,49 @@ class PropagationEngine:
         event.weight
         """
 
-        state = self.symbol_state[event.symbol]
+        symbol = event.symbol
+
+        # --------------------------------------------------
+        # Reinforcement physics
+        # --------------------------------------------------
+
+        previous_force = self.symbol_force[symbol]
+
+        reinforced_force = previous_force * self.decay + event.weight
+
+        self.symbol_force[symbol] = reinforced_force
+
+        reinforced_weight = reinforced_force
+
+        # --------------------------------------------------
+        # Store event
+        # --------------------------------------------------
+
+        state = self.symbol_state[symbol]
 
         state["timestamps"].append(event.engine_time)
-        state["weights"].append(event.weight)
+        state["weights"].append(reinforced_weight)
         state["sources"].append(event.source)
 
-        self._prune_old(event.symbol, event.engine_time)
+        self._prune_old(symbol, event.engine_time)
+
+        # --------------------------------------------------
+        # Diffusion (deterministic propagation)
+        # --------------------------------------------------
+
+        neighbors = self.diffusion_map.get(symbol)
+
+        if neighbors:
+
+            for neighbor in neighbors:
+
+                n_state = self.symbol_state[neighbor]
+
+                n_state["timestamps"].append(event.engine_time)
+                n_state["weights"].append(reinforced_weight * 0.35)
+                n_state["sources"].append("diffusion")
+
+                self._prune_old(neighbor, event.engine_time)
 
     # --------------------------------------------------
     # WINDOW PRUNING
@@ -158,8 +209,6 @@ class PropagationEngine:
         # --------------------------------------------------
         # DRIFT
         # --------------------------------------------------
-        # Measures propagation acceleration
-        # Emerges when narrative begins spreading
 
         last_mentions = state["last_mentions"]
         last_fils = state["last_fils"]
@@ -174,7 +223,7 @@ class PropagationEngine:
         state["last_fils"] = fils
 
         # --------------------------------------------------
-        # TTCF (chaos filter)
+        # TTCF
         # --------------------------------------------------
 
         ttcf = 1 - dispersion

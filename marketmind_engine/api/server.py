@@ -363,7 +363,6 @@ def last_result():
 
         psi = decision_payload.get("psiquant_score")
 
-        # attach psiquant into result for UI
         last["psiquant_score"] = psi
 
         return last
@@ -371,5 +370,41 @@ def last_result():
     except Exception as e:
 
         return {
+            "error": str(e)
+        }
+
+
+# ------------------------------------------------------------------
+# NARRATIVE RADAR FEED (LEFT PANEL)
+# ------------------------------------------------------------------
+
+@app.get("/api/rss_events")
+def rss_events():
+
+    try:
+
+        if not rss_service:
+            return {"events": []}
+
+        events = rss_service.get_projection_events()
+
+        output = []
+
+        for e in events[-25:]:
+
+            output.append({
+                "timestamp": getattr(e, "timestamp", 0),
+                "symbol": getattr(e, "symbol", None),
+                "symbols": getattr(e, "symbols", []),
+                "headline": getattr(e, "headline", ""),
+                "source": getattr(e, "source", "rss")
+            })
+
+        return {"events": output}
+
+    except Exception as e:
+
+        return {
+            "events": [],
             "error": str(e)
         }

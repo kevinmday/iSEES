@@ -13,6 +13,10 @@ from marketmind_engine.narrative.projection.projection_event import (
 
 from marketmind_engine.narrative.propagation_engine import PropagationEngine
 
+from marketmind_engine.narrative.narrative_identity import (
+    NarrativeIdentityResolver,
+)
+
 
 class NarrativeAdapter:
     """
@@ -35,6 +39,9 @@ class NarrativeAdapter:
 
         # Propagation engine
         self.propagation = PropagationEngine()
+
+        # Narrative identity resolver
+        self.identity_resolver = NarrativeIdentityResolver()
 
         # Engine state
         self._projection_events = []
@@ -87,6 +94,12 @@ class NarrativeAdapter:
             if not extracted_symbols:
                 continue
 
+            # -------------------------------------------------
+            # Resolve Narrative Identity
+            # -------------------------------------------------
+
+            narrative = self.identity_resolver.resolve(title)
+
             for symbol in extracted_symbols:
 
                 # deterministic engine time
@@ -101,6 +114,9 @@ class NarrativeAdapter:
                 )
 
                 events.append(event)
+
+                # attach symbol to narrative state
+                narrative.assets.add(symbol)
 
                 # send to propagation engine
                 self.propagation.ingest_event(event)

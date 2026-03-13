@@ -17,8 +17,11 @@ from marketmind_engine.scoring.psiquanta import (
     QuantMetrics,
 )
 
-# NEW — Capital propagation engine
+# Capital propagation engine
 from marketmind_engine.quant.capital_propagation_engine import CapitalPropagationEngine
+
+# Symbol state registry
+from marketmind_engine.intelligence.symbol_state_registry import SymbolStateRegistry
 
 
 class TradeCoordinator:
@@ -29,6 +32,7 @@ class TradeCoordinator:
         execution_engine: ExecutionEngine,
         narrative_adapter: Optional[NarrativeAdapter] = None,
         price_service=None,
+        symbol_state_registry: Optional[SymbolStateRegistry] = None,
     ):
         self._orchestrator = orchestrator
         self._execution_engine = execution_engine
@@ -37,8 +41,10 @@ class TradeCoordinator:
         self._narrative_adapter = narrative_adapter
         self._price_service = price_service
 
-        # NEW
         self._capital_engine = CapitalPropagationEngine()
+
+        # Symbol state history
+        self._symbol_state_registry = symbol_state_registry
 
     # --------------------------------------------------
     # RSS POLLING
@@ -108,10 +114,32 @@ class TradeCoordinator:
             if not metrics:
                 return
 
-            policy.fils = metrics.get("FILS", 0.0)
-            policy.ucip = metrics.get("UCIP", 0.0)
-            policy.drift = metrics.get("DRIFT", 0.0)
-            policy.ttcf = metrics.get("TTCF", 1.0)
+            fils = metrics.get("FILS", 0.0)
+            ucip = metrics.get("UCIP", 0.0)
+            drift = metrics.get("DRIFT", 0.0)
+            ttcf = metrics.get("TTCF", 1.0)
+
+            # --------------------------------------------------
+            # STATE HISTORY DRIFT UPDATE
+            # --------------------------------------------------
+
+            if self._symbol_state_registry:
+
+                previous = self._symbol_state_registry.update(
+                    symbol,
+                    fils,
+                    ucip,
+                )
+
+                if previous:
+
+                    delta_fils = fils - previous.last_fils
+                    drift = delta_fils * ucip
+
+            policy.fils = fils
+            policy.ucip = ucip
+            policy.drift = drift
+            policy.ttcf = ttcf
 
         except Exception as e:
 
@@ -150,7 +178,6 @@ class TradeCoordinator:
 
             print(f"[PRICE] {symbol} {quote}")
 
-            # Update capital propagation
             self._capital_engine.update(symbol, price)
 
             metrics = self._capital_engine.get_metrics(symbol)
@@ -211,7 +238,6 @@ class TradeCoordinator:
             if not policy:
                 return
 
-            # Narrative field
             intention = IntentionMetrics(
                 fils=(getattr(policy, "fils", 0.0) or 0.0),
                 ucip=(getattr(policy, "ucip", 0.0) or 0.0),
@@ -219,7 +245,6 @@ class TradeCoordinator:
                 ttcf=(getattr(policy, "ttcf", 0.0) or 0.0),
             )
 
-            # Capital field
             quant = QuantMetrics(
                 quant_drift=quant_metrics.get("qdrift", 0.0),
                 momentum_alignment=quant_metrics.get("qucip", 0.0),
@@ -293,13 +318,10 @@ class TradeCoordinator:
                 "authority": "EXIT",
             }
 
-        # Inject narrative propagation metrics
         self._inject_propagation_metrics(execution_input)
 
-        # Capital field metrics
         quant_metrics = self._fetch_quant_metrics(execution_input)
 
-        # PsiQuanta fusion
         self._compute_psiquant(execution_input, quant_metrics)
 
         entry_intent: Optional[OrderIntent] = self._execution_engine.evaluate(

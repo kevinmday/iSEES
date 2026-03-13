@@ -5,19 +5,31 @@ import yfinance as yf
 
 class SymbolValidator:
     """
-    Maintains a universe of tradable symbols and validates candidates.
-    Cached in memory so the engine loop stays fast.
+    Symbol validation layer for MarketMind.
+
+    Design Goals
+    ------------
+    • deterministic
+    • fast
+    • discovery-friendly
+    • prevents obvious garbage tickers
+    • allows dynamic narrative discovery
     """
 
     def __init__(self):
 
+        # dynamic validated universe
         self.valid_symbols: Set[str] = set()
 
-        self._build_universe()
+        # core liquidity anchors (always allowed)
+        self._seed_universe()
 
-    def _build_universe(self):
+    # --------------------------------------------------
+    # SEED UNIVERSE
+    # --------------------------------------------------
 
-        # Core high-liquidity universe (fast + reliable)
+    def _seed_universe(self):
+
         seed = [
             "SPY", "QQQ", "DIA", "IWM",
             "NVDA", "AMD", "TSLA", "AAPL", "MSFT",
@@ -31,32 +43,71 @@ class SymbolValidator:
         for s in seed:
             self.valid_symbols.add(s)
 
-        # Attempt to extend with Yahoo data (optional)
-        try:
+    # --------------------------------------------------
+    # BASIC SANITY FILTER
+    # --------------------------------------------------
 
-            tickers = yf.Tickers("SPY QQQ NVDA AMD TSLA")
-
-            for t in tickers.tickers.keys():
-                self.valid_symbols.add(t.upper())
-
-        except Exception:
-            pass
-
-    def is_valid(self, symbol: str) -> bool:
+    def _passes_basic_rules(self, symbol: str) -> bool:
 
         if not symbol:
             return False
 
         symbol = symbol.upper()
 
-        # Basic sanity rules
+        # reject long garbage tickers
         if len(symbol) > 5:
             return False
 
+        # reject mixed characters
         if not symbol.isalpha():
             return False
 
-        if self.valid_symbols and symbol not in self.valid_symbols:
+        return True
+
+    # --------------------------------------------------
+    # YAHOO VALIDATION
+    # --------------------------------------------------
+
+    def _validate_with_yahoo(self, symbol: str) -> bool:
+        """
+        Optional validation using Yahoo Finance.
+        Used only for new symbols not already cached.
+        """
+
+        try:
+
+            ticker = yf.Ticker(symbol)
+            info = ticker.fast_info
+
+            if info and "lastPrice" in info:
+                return True
+
+        except Exception:
+            pass
+
+        return False
+
+    # --------------------------------------------------
+    # PUBLIC VALIDATION API
+    # --------------------------------------------------
+
+    def is_valid(self, symbol: str) -> bool:
+
+        if not self._passes_basic_rules(symbol):
             return False
 
-        return True
+        symbol = symbol.upper()
+
+        # already validated
+        if symbol in self.valid_symbols:
+            return True
+
+        # attempt external validation once
+        if self._validate_with_yahoo(symbol):
+
+            # cache successful symbol
+            self.valid_symbols.add(symbol)
+
+            return True
+
+        return False

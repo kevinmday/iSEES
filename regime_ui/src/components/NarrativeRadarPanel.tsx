@@ -25,28 +25,68 @@ export default function NarrativeRadarPanel() {
 
     try {
 
-      const res = await fetch("/api/rss_events");
+      const res = await fetch("http://127.0.0.1:8001/api/rss_events");
 
       if (!res.ok) return;
 
       const data = await res.json();
 
-      const symbols = (data.validated_symbols || []).map((s: string, i: number) => ({
-        symbol: s,
-        mentions: 1,
-        momentum: Math.max(1 - i * 0.05, 0.1)
-      }));
+      const events = data.events || [];
+
+      // --------------------------------------------------
+      // Aggregate symbol mentions
+      // --------------------------------------------------
+
+      const counts: Record<string, number> = {};
+
+      for (const e of events) {
+
+        if (e.symbol) {
+          counts[e.symbol] = (counts[e.symbol] || 0) + 1;
+        }
+
+        if (Array.isArray(e.symbols)) {
+
+          for (const s of e.symbols) {
+            counts[s] = (counts[s] || 0) + 1;
+          }
+
+        }
+
+      }
+
+      // --------------------------------------------------
+      // Convert to radar symbols
+      // --------------------------------------------------
+
+      const symbols: SymbolSignal[] = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([symbol, mentions], i) => ({
+
+          symbol: symbol,
+
+          mentions: mentions,
+
+          momentum: Math.max(1 - i * 0.05, 0.1)
+
+        }));
 
       const radar: RadarSnapshot = {
+
         domains: [],
+
         symbols: symbols,
+
         updated: new Date().toISOString()
+
       };
 
       setSnapshot(radar);
 
     } catch {
+
       // silent fail
+
     }
 
   };

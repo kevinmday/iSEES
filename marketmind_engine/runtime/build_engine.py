@@ -37,6 +37,9 @@ from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 # LIVE PRICE PROVIDER
 from marketmind_engine.data.alpaca_quote_provider import AlpacaQuoteProvider
 
+# NEW STATE HISTORY REGISTRY
+from marketmind_engine.intelligence.symbol_state_registry import SymbolStateRegistry
+
 
 # ----------------------------------------------------------------------
 # Default Stub Services
@@ -110,6 +113,12 @@ def build_engine(
     narrative_adapter = narrative_adapter or NarrativeAdapter()
 
     # --------------------------------------------------
+    # NEW: Symbol State Registry
+    # --------------------------------------------------
+
+    symbol_state_registry = SymbolStateRegistry()
+
+    # --------------------------------------------------
     # Macro source
     # --------------------------------------------------
 
@@ -133,7 +142,7 @@ def build_engine(
     )
 
     # --------------------------------------------------
-    # Trade Coordinator (PRICE INJECTION POINT)
+    # Trade Coordinator (PRICE + STATE INJECTION POINT)
     # --------------------------------------------------
 
     coordinator = TradeCoordinator(
@@ -141,6 +150,7 @@ def build_engine(
         execution_engine=execution_engine,
         narrative_adapter=narrative_adapter,
         price_service=price_service,
+        symbol_state_registry=symbol_state_registry,
     )
 
     # --------------------------------------------------
