@@ -1,8 +1,14 @@
 """
 PsiQuanta Fusion Scoring Module
 
-Combines intention propagation metrics with domain state metrics
+Combines intention propagation metrics with capital propagation metrics
 to produce a unified confidence score.
+
+Updated model:
+
+Signal = NarrativeForce + CapitalForce + Interaction
+
+This removes the previous hard gate where both fields were required.
 
 Design constraints:
 - deterministic
@@ -87,6 +93,8 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
 
     Combines narrative propagation force with capital alignment.
     Adds Narrative-Price Latency detection.
+
+    Updated fusion model allows either field to activate signal.
     """
 
     # --------------------------------------------------
@@ -104,22 +112,27 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
     volatility = _safe(quant.volatility, 1.0)
 
     # --------------------------------------------------
-    # Narrative Force (corrected model)
+    # Narrative Force
     # --------------------------------------------------
-    # Base signal exists even without acceleration
-    # DRIFT now amplifies rather than gates
 
     base_signal = fils * ucip
-    narrative_force = _clamp(base_signal * (1.0 + drift))
+
+    narrative_force = _clamp(
+        base_signal * (1.0 + drift)
+    )
 
     # --------------------------------------------------
     # Chaos Suppression
     # --------------------------------------------------
 
-    chaos_filter = _clamp(1.0 - ttcf, 0.0, 1.0)
+    chaos_filter = _clamp(
+        1.0 - ttcf,
+        0.0,
+        1.0
+    )
 
     # --------------------------------------------------
-    # Capital Alignment
+    # Capital Force
     # --------------------------------------------------
 
     capital_force = _clamp(
@@ -130,7 +143,7 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
     )
 
     # --------------------------------------------------
-    # Propagation Strength
+    # Propagation Strength (Narrative field stability)
     # --------------------------------------------------
 
     propagation_strength = _clamp(
@@ -149,12 +162,15 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
     )
 
     # --------------------------------------------------
-    # Final PsiQuant Score
+    # Dual-Field Fusion Model
     # --------------------------------------------------
 
+    interaction = narrative_force * capital_force
+
     psiquant_score = _clamp(
-        propagation_strength *
-        capital_force
+        narrative_force
+        + capital_force
+        + interaction
     )
 
     return PsiQuantResult(

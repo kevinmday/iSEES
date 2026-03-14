@@ -60,6 +60,34 @@ feeds:
 
 
   # ===============================================================
+  # FDA REGULATORY SIGNALS
+  # ===============================================================
+  # These feeds provide high-signal biotech and healthcare catalysts.
+  # They often precede media coverage.
+
+  - id: fda_press_announcements
+    type: rss
+    url: https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-announcements/rss.xml
+    domain: healthcare
+    weight: 2.5
+    enabled: true
+
+  - id: fda_drug_approvals
+    type: rss
+    url: https://www.fda.gov/drugs/drug-approvals-and-databases/drug-approvals-and-databases/rss.xml
+    domain: ai-bio
+    weight: 3.0
+    enabled: true
+
+  - id: fda_device_recalls
+    type: rss
+    url: https://www.fda.gov/medical-devices/medical-device-recalls/rss.xml
+    domain: healthcare
+    weight: 2.0
+    enabled: true
+
+
+  # ===============================================================
   # INTERNAL / FUTURE SIGNAL TYPES
   # (Disabled until adapters implemented)
   # ===============================================================

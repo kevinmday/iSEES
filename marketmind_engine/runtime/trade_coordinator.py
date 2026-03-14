@@ -17,10 +17,7 @@ from marketmind_engine.scoring.psiquanta import (
     QuantMetrics,
 )
 
-# Capital propagation engine
 from marketmind_engine.quant.capital_propagation_engine import CapitalPropagationEngine
-
-# Symbol state registry
 from marketmind_engine.intelligence.symbol_state_registry import SymbolStateRegistry
 
 
@@ -43,7 +40,6 @@ class TradeCoordinator:
 
         self._capital_engine = CapitalPropagationEngine()
 
-        # Symbol state history
         self._symbol_state_registry = symbol_state_registry
 
     # --------------------------------------------------
@@ -125,10 +121,13 @@ class TradeCoordinator:
 
             if self._symbol_state_registry:
 
+                timestamp = getattr(execution_input, "engine_time", None)
+
                 previous = self._symbol_state_registry.update(
                     symbol,
                     fils,
                     ucip,
+                    timestamp
                 )
 
                 if previous:

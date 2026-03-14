@@ -20,6 +20,8 @@ engine tick driven
 from collections import defaultdict
 from typing import Dict
 
+from marketmind_engine.intelligence.diffusion_graph_engine import DiffusionGraphEngine
+
 
 class PropagationEngine:
 
@@ -33,7 +35,10 @@ class PropagationEngine:
         # narrative reinforcement force
         self.symbol_force = defaultdict(float)
 
-        # optional deterministic diffusion map
+        # learned diffusion engine
+        self.diffusion_engine = DiffusionGraphEngine()
+
+        # optional deterministic diffusion seed map
         self.diffusion_map = {
             "NVDA": ["SMCI", "TSM", "AVGO"],
             "AMD": ["TSM", "ARM"],
@@ -48,6 +53,7 @@ class PropagationEngine:
                 "sources": [],
                 "last_mentions": 0,
                 "last_fils": 0.0,
+                "last_force": 0.0,
             }
         )
 
@@ -68,13 +74,17 @@ class PropagationEngine:
         symbol = event.symbol
 
         # --------------------------------------------------
+        # Diffusion learning (observational)
+        # --------------------------------------------------
+
+        self.diffusion_engine.observe_event(event)
+
+        # --------------------------------------------------
         # Reinforcement physics
         # --------------------------------------------------
 
         previous_force = self.symbol_force[symbol]
-
         reinforced_force = previous_force * self.decay + event.weight
-
         self.symbol_force[symbol] = reinforced_force
 
         reinforced_weight = reinforced_force
@@ -92,7 +102,7 @@ class PropagationEngine:
         self._prune_old(symbol, event.engine_time)
 
         # --------------------------------------------------
-        # Diffusion (deterministic propagation)
+        # Diffusion (deterministic propagation seed map)
         # --------------------------------------------------
 
         neighbors = self.diffusion_map.get(symbol)
@@ -100,6 +110,9 @@ class PropagationEngine:
         if neighbors:
 
             for neighbor in neighbors:
+
+                if neighbor == symbol:
+                    continue
 
                 n_state = self.symbol_state[neighbor]
 
@@ -207,20 +220,34 @@ class PropagationEngine:
         ucip = min(max(ucip, 0.0), 1.0)
 
         # --------------------------------------------------
-        # DRIFT
+        # DRIFT  (true narrative velocity)
         # --------------------------------------------------
 
         last_mentions = state["last_mentions"]
         last_fils = state["last_fils"]
+        last_force = state["last_force"]
 
         mention_delta = max(mentions - last_mentions, 0)
         fils_delta = max(fils - last_fils, 0)
 
-        drift = (mention_delta / 10) * (1 + fils_delta)
+        current_force = self.symbol_force[symbol]
+        force_delta = max(current_force - last_force, 0)
+
+        mention_velocity = mention_delta / 10
+        fils_velocity = fils_delta
+        force_velocity = force_delta / self.window
+
+        drift = (
+            0.5 * mention_velocity +
+            0.3 * fils_velocity +
+            0.2 * force_velocity
+        )
+
         drift = min(max(drift, 0.0), 1.0)
 
         state["last_mentions"] = mentions
         state["last_fils"] = fils
+        state["last_force"] = current_force
 
         # --------------------------------------------------
         # TTCF
@@ -248,3 +275,11 @@ class PropagationEngine:
             metrics[symbol] = self.compute_metrics(symbol)
 
         return metrics
+
+    # --------------------------------------------------
+    # DIFFUSION GRAPH SNAPSHOT
+    # --------------------------------------------------
+
+    def diffusion_snapshot(self):
+
+        return self.diffusion_engine.snapshot()
