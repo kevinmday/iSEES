@@ -71,10 +71,29 @@ class NarrativeState:
     # Number of newly discovered assets
     discovery_count: int = 0
 
+    # -----------------------------------------------------
+    # Narrative Motion Metrics
+    # -----------------------------------------------------
+
+    # Narrative velocity
+    drift: float = 0.0
+
+    # previous drift value
+    previous_drift: float = 0.0
+
+    # Narrative acceleration
+    acceleration: float = 0.0
+
+    # -----------------------------------------------------
     # Lifecycle state
+    # -----------------------------------------------------
+
     lifecycle_state: str = "ignition"
 
+    # -----------------------------------------------------
     # Engine timestamps
+    # -----------------------------------------------------
+
     created_at: float = field(default_factory=time.time)
     last_update: float = field(default_factory=time.time)
 
@@ -86,6 +105,7 @@ class NarrativeState:
         """
         Adds an asset influenced by this narrative.
         """
+
         if symbol not in self.assets:
             self.assets.add(symbol)
             self.discovery_count += 1
@@ -98,15 +118,31 @@ class NarrativeState:
     def apply_reinforcement(self, strength: float) -> None:
         """
         Reinforces narrative force when new mentions appear.
+        Updates drift and acceleration.
         """
 
         if strength <= 0:
             return
 
+        now = time.time()
+        dt = max(now - self.last_update, 1e-6)
+
+        # update force
         self.force += strength
         self.reinforcement_score += strength
+
+        # update drift (velocity of narrative force)
+        new_drift = strength / dt
+
+        # update acceleration
+        self.acceleration = new_drift - self.previous_drift
+
+        # shift drift history
+        self.previous_drift = new_drift
+        self.drift = new_drift
+
         self.lifecycle_state = "reinforcement"
-        self.last_update = time.time()
+        self.last_update = now
 
     # -----------------------------------------------------
     # Decay Application
@@ -117,14 +153,28 @@ class NarrativeState:
         Updates narrative force after decay calculation.
         """
 
+        now = time.time()
+        dt = max(now - self.last_update, 1e-6)
+
+        # apply decay
+        delta = decayed_force - self.force
         self.force = max(decayed_force, 0.0)
+
+        # compute drift
+        new_drift = delta / dt
+
+        # update acceleration
+        self.acceleration = new_drift - self.previous_drift
+
+        self.previous_drift = new_drift
+        self.drift = new_drift
 
         if self.force < 0.05:
             self.lifecycle_state = "decay"
         else:
             self.lifecycle_state = "propagation"
 
-        self.last_update = time.time()
+        self.last_update = now
 
     # -----------------------------------------------------
     # Mutation Handling
@@ -150,6 +200,7 @@ class NarrativeState:
         """
         Returns narrative age in seconds.
         """
+
         return time.time() - self.created_at
 
     # -----------------------------------------------------
@@ -170,6 +221,8 @@ class NarrativeState:
             "reinforcement_score": self.reinforcement_score,
             "mutation_factor": self.mutation_factor,
             "discovery_count": self.discovery_count,
+            "drift": self.drift,
+            "acceleration": self.acceleration,
             "lifecycle_state": self.lifecycle_state,
             "age": self.age(),
         }

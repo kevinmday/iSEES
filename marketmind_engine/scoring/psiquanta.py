@@ -22,6 +22,14 @@ import math
 
 
 # --------------------------------------------------
+# Tunable Constants
+# --------------------------------------------------
+
+# Drift amplification so narrative slope meaningfully influences signal
+DRIFT_GAIN = 50.0
+
+
+# --------------------------------------------------
 # Data Structures
 # --------------------------------------------------
 
@@ -115,10 +123,14 @@ def compute_psiquant(intention: IntentionMetrics, quant: QuantMetrics) -> PsiQua
     # Narrative Force
     # --------------------------------------------------
 
-    base_signal = fils * ucip
+    # Prevent narrative collapse by preserving FILS magnitude
+    base_signal = fils * (1.0 + ucip)
+
+    # amplify drift so narrative slope has visible influence
+    drift_effect = drift * DRIFT_GAIN
 
     narrative_force = _clamp(
-        base_signal * (1.0 + drift)
+        base_signal * (1.0 + drift_effect)
     )
 
     # --------------------------------------------------

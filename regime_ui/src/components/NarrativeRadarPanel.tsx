@@ -20,6 +20,7 @@ type RadarSnapshot = {
 export default function NarrativeRadarPanel() {
 
   const [snapshot, setSnapshot] = useState<RadarSnapshot | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   const fetchRadar = async () => {
 
@@ -32,10 +33,6 @@ export default function NarrativeRadarPanel() {
       const data = await res.json();
 
       const events = data.events || [];
-
-      // --------------------------------------------------
-      // Aggregate symbol mentions
-      // --------------------------------------------------
 
       const counts: Record<string, number> = {};
 
@@ -55,18 +52,12 @@ export default function NarrativeRadarPanel() {
 
       }
 
-      // --------------------------------------------------
-      // Convert to radar symbols
-      // --------------------------------------------------
-
       const symbols: SymbolSignal[] = Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
         .map(([symbol, mentions], i) => ({
 
           symbol: symbol,
-
           mentions: mentions,
-
           momentum: Math.max(1 - i * 0.05, 0.1)
 
         }));
@@ -74,9 +65,7 @@ export default function NarrativeRadarPanel() {
       const radar: RadarSnapshot = {
 
         domains: [],
-
         symbols: symbols,
-
         updated: new Date().toISOString()
 
       };
@@ -144,6 +133,7 @@ export default function NarrativeRadarPanel() {
                   key={d.domain}
                   className="flex justify-between text-gray-300"
                 >
+
                   <span>{d.domain}</span>
 
                   <span>
@@ -178,10 +168,11 @@ export default function NarrativeRadarPanel() {
 
                 <div
                   key={s.symbol}
-                  className="flex justify-between text-gray-300"
+                  onClick={() => setSelectedSymbol(s.symbol)}
+                  className="flex justify-between text-gray-300 cursor-pointer hover:text-cyan-400 hover:bg-gray-800 px-1 rounded"
                 >
 
-                  <span>{s.symbol}</span>
+                  <span className="font-mono">{s.symbol}</span>
 
                   <span>
                     mentions:{s.mentions}
@@ -198,6 +189,39 @@ export default function NarrativeRadarPanel() {
             </div>
 
           </div>
+
+          {/* SYMBOL DETAIL PANEL */}
+
+          {selectedSymbol && (
+
+            <div className="mt-4 p-3 border border-gray-700 rounded text-xs">
+
+              <div className="text-gray-400 mb-2">
+                SYMBOL INSPECTOR
+              </div>
+
+              <div className="text-cyan-400 font-mono text-sm">
+                {selectedSymbol}
+              </div>
+
+              <div className="text-gray-400 mt-2">
+                Narrative activity detected.
+              </div>
+
+              <div className="text-gray-500">
+                Click again to close.
+              </div>
+
+              <div
+                className="text-red-400 mt-2 cursor-pointer"
+                onClick={() => setSelectedSymbol(null)}
+              >
+                close
+              </div>
+
+            </div>
+
+          )}
 
         </>
 
