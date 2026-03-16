@@ -60,9 +60,7 @@ class ExecutionInputFactory:
 
         policy_result = self.policy_engine.evaluate(market_state)
 
-        # 🔴 CRITICAL FIX
         # Attach symbol so downstream scoring layers know
-        # what asset they are evaluating.
         setattr(policy_result, "symbol", symbol)
 
         # ---------------------------------------------------------
@@ -83,7 +81,15 @@ class ExecutionInputFactory:
 
         current_price = self.price_service.get_price(symbol)
 
+        if current_price is None:
+            current_price = 0.0
+
+        # ---------------------------------------------------------
+        # Construct ExecutionInput
+        # ---------------------------------------------------------
+
         return ExecutionInput(
+            symbol=symbol,  # 🔴 FIX: ensure symbol exists on execution_input
             policy_result=policy_result,
             market_state=market_state,
             capital_snapshot=capital_snapshot,
@@ -103,6 +109,10 @@ class ExecutionInputFactory:
         """
 
         current_price = self.price_service.get_price(symbol)
+
+        if current_price is None:
+            current_price = 0.0
+
         regime_state = self.regime_service.current_state()
 
         # ---------------------------------------------------------

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 import threading
 import time
+from collections import deque
 
 from marketmind_engine.runtime.build_engine import build_engine
 from marketmind_engine.api.models import (
@@ -34,6 +35,23 @@ engine_loop_running = False
 
 rss_polling_active = False
 symbol_evaluation_active = False
+
+
+# ------------------------------------------------------------------
+# ENGINE TELEMETRY LOG BUFFER (UI TERMINAL PANEL)
+# ------------------------------------------------------------------
+
+LOG_BUFFER_SIZE = 200
+engine_logs = deque(maxlen=LOG_BUFFER_SIZE)
+
+
+def log(message: str):
+
+    entry = f"{time.strftime('%H:%M:%S')} | {message}"
+
+    print(entry)
+
+    engine_logs.append(entry)
 
 
 # ------------------------------------------------------------------
@@ -115,8 +133,8 @@ def engine_loop():
 
                         events = rss_service.get_projection_events()
 
-                        print("RSS headlines:", len(rss_service.buffer._headlines))
-                        print("RSS events discovered:", len(events))
+                        log(f"RSS headlines: {len(rss_service.buffer._headlines)}")
+                        log(f"RSS events discovered: {len(events)}")
 
                         for event in events:
 
@@ -128,7 +146,7 @@ def engine_loop():
                                     symbols.add(s)
 
                     except Exception as e:
-                        print("RSS polling error:", e)
+                        log(f"RSS polling error: {e}")
 
                 # --------------------------------------------------
                 # SYMBOL VALIDATION
@@ -143,20 +161,56 @@ def engine_loop():
                         if symbol_validator.is_valid(symbol):
                             validated_symbols.add(symbol)
                         else:
-                            print("Filtered symbol:", symbol)
+                            log(f"Filtered symbol: {symbol}")
 
                     except Exception:
                         pass
 
-                print("Validated symbols:", validated_symbols)
+                log(f"Validated symbols: {validated_symbols}")
+
+                # --------------------------------------------------
+                # SYMBOL RANKING
+                # --------------------------------------------------
+
+                ranked_symbols = list(validated_symbols)
+
+                try:
+
+                    if rss_service and hasattr(rss_service, "get_projection_events"):
+
+                        mention_count = {}
+
+                        events = rss_service.get_projection_events()
+
+                        for e in events:
+
+                            if hasattr(e, "symbol") and e.symbol:
+                                mention_count[e.symbol] = mention_count.get(e.symbol, 0) + 1
+
+                            if hasattr(e, "symbols") and e.symbols:
+                                for s in e.symbols:
+                                    mention_count[s] = mention_count.get(s, 0) + 1
+
+                        ranked_symbols.sort(
+                            key=lambda s: mention_count.get(s, 0),
+                            reverse=True
+                        )
+
+                except Exception as e:
+                    log(f"Ranking error: {e}")
+
+                # limit evaluation set
+                evaluation_symbols = ranked_symbols[:30]
+
+                log(f"Ranked evaluation set: {evaluation_symbols}")
 
                 # --------------------------------------------------
                 # ENGINE EVALUATION
                 # --------------------------------------------------
 
-                if validated_symbols:
+                if evaluation_symbols:
 
-                    for symbol in validated_symbols:
+                    for symbol in evaluation_symbols:
 
                         try:
 
@@ -164,7 +218,7 @@ def engine_loop():
                             engine_controller.run_symbol_cycle(symbol)
 
                         except Exception as e:
-                            print("Symbol cycle error:", symbol, e)
+                            log(f"Symbol cycle error: {symbol} {e}")
 
                     # --------------------------------------------------
                     # PROPAGATION UPDATE
@@ -172,14 +226,14 @@ def engine_loop():
 
                     try:
                         propagation_engine.update(validated_symbols)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        log(f"Propagation update error: {e}")
 
                 else:
-                    print("No validated RSS symbols this cycle")
+                    log("No validated RSS symbols this cycle")
 
         except Exception as e:
-            print("Engine loop error:", e)
+            log(f"Engine loop error: {e}")
 
         time.sleep(2)
 
@@ -207,6 +261,8 @@ def start_engine():
 
         engine_loop_thread.start()
 
+    log("Engine started")
+
     return {"status": "started"}
 
 
@@ -217,6 +273,8 @@ def stop_engine():
 
     engine_controller.stop()
     engine_loop_running = False
+
+    log("Engine stopped")
 
     return {"status": "stopped"}
 
@@ -406,5 +464,26 @@ def rss_events():
 
         return {
             "events": [],
+            "error": str(e)
+        }
+
+
+# ------------------------------------------------------------------
+# ENGINE TERMINAL LOG STREAM (UI PANEL)
+# ------------------------------------------------------------------
+
+@app.get("/api/engine/logs")
+def engine_logs_endpoint():
+
+    try:
+
+        return {
+            "logs": list(engine_logs)
+        }
+
+    except Exception as e:
+
+        return {
+            "logs": [],
             "error": str(e)
         }

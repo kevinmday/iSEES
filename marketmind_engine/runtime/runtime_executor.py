@@ -27,13 +27,32 @@ class RuntimeExecutor:
         coordinator: TradeCoordinator,
         execution_service: ExecutionService,
         price_service=None,
+        telemetry_logger=None,
     ):
         self._coordinator = coordinator
         self._execution_service = execution_service
 
         # Optional runtime price provider (AlpacaQuoteProvider)
-        # Passed through build_engine assembly
         self._price_service = price_service
+
+        # Optional UI telemetry logger (provided by server)
+        self._log = telemetry_logger
+
+    # --------------------------------------------------
+    # Runtime Logging Helper
+    # --------------------------------------------------
+
+    def _log_msg(self, msg: str):
+
+        if self._log:
+            try:
+                self._log(msg)
+            except Exception:
+                pass
+
+    # --------------------------------------------------
+    # Runtime Execution Cycle
+    # --------------------------------------------------
 
     def run_cycle(
         self,
@@ -45,10 +64,26 @@ class RuntimeExecutor:
         # Coordinator Execution
         # --------------------------------------------------
 
-        result = self._coordinator.run(
-            execution_input,
-            market_context_map=market_context_map,
-        )
+        try:
+
+            result = self._coordinator.run(
+                execution_input,
+                market_context_map=market_context_map,
+            )
+
+        except Exception as e:
+
+            self._log_msg(f"Coordinator error: {e}")
+
+            return {
+                "decision": "ERROR",
+                "regime": None,
+                "authority": None,
+                "order_intent": None,
+                "execution_receipt": None,
+                "engine_time": execution_input.engine_time,
+                "error": str(e),
+            }
 
         # --------------------------------------------------
         # Order Evaluation
@@ -63,7 +98,50 @@ class RuntimeExecutor:
 
             decision = f"ALLOW_{order_intent.side.upper()}"
 
-            receipt = self._execution_service.submit_intent(order_intent)
+            # --------------------------------------------------
+            # TERMINAL TRADE TRIGGER (UI-independent signal)
+            # --------------------------------------------------
+
+            print("\n\n========== TRADE TRIGGER ==========")
+            print(f"{order_intent.symbol} {order_intent.side.upper()}")
+            print("===================================\n\n")
+
+            self._log_msg(
+                f"OrderIntent detected: {order_intent.symbol} {order_intent.side}"
+            )
+
+            try:
+
+                receipt = self._execution_service.submit_intent(order_intent)
+
+                if receipt:
+                    self._log_msg(
+                        f"ExecutionReceipt received: {order_intent.symbol}"
+                    )
+
+            except Exception as e:
+
+                self._log_msg(
+                    f"ExecutionService error: {order_intent.symbol} {e}"
+                )
+
+        # --------------------------------------------------
+        # Optional Runtime Price Visibility
+        # --------------------------------------------------
+
+        if self._price_service and execution_input.symbol:
+
+            try:
+
+                price = self._price_service.get_price(execution_input.symbol)
+
+                if price:
+                    self._log_msg(
+                        f"[PRICE] {execution_input.symbol} {price}"
+                    )
+
+            except Exception:
+                pass
 
         # --------------------------------------------------
         # Structured Runtime Result
@@ -75,5 +153,5 @@ class RuntimeExecutor:
             "authority": result.get("authority"),
             "order_intent": order_intent,
             "execution_receipt": receipt,
-            "engine_time": execution_input.engine_time,  # Engine owns monotonic time
+            "engine_time": execution_input.engine_time,
         }

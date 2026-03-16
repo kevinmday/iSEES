@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from time import time
+from datetime import datetime
+import pytz
 
 from marketmind_engine.regime.systemic_monitor import (
     SystemicMonitor,
@@ -26,6 +28,7 @@ from marketmind_engine.intelligence.propagation_engine import PropagationEngine
 @dataclass
 class OrchestratorState:
     regime_mode: SystemicMode = SystemicMode.NORMAL
+    market_phase: str = "closed"
 
 
 class IntradayOrchestrator:
@@ -60,6 +63,30 @@ class IntradayOrchestrator:
         # ---------------------------------------
 
         self.propagation = propagation_engine
+
+    # --------------------------------------------------
+    # MARKET PHASE DETECTION
+    # --------------------------------------------------
+
+    def _market_phase(self):
+
+        now = datetime.now(pytz.timezone("US/Eastern"))
+
+        open_time = now.replace(hour=9, minute=30, second=0, microsecond=0)
+        close_time = now.replace(hour=16, minute=0, second=0, microsecond=0)
+
+        premarket_start = now.replace(hour=4, minute=0, second=0, microsecond=0)
+
+        if now < premarket_start:
+            return "closed"
+
+        if premarket_start <= now < open_time:
+            return "premarket"
+
+        if open_time <= now < close_time:
+            return "open"
+
+        return "afterhours"
 
     # --------------------------------------------------
     # SYSTEMIC FLATTEN
@@ -136,7 +163,7 @@ class IntradayOrchestrator:
             if not symbols:
                 return
 
-            for sym in symbols[:10]:  # stability limit
+            for sym in symbols[:10]:
 
                 try:
 
@@ -161,10 +188,41 @@ class IntradayOrchestrator:
     def run_cycle(self):
 
         # ---------------------------------------
-        # DISCOVERY → PROPAGATION
+        # MARKET PHASE
+        # ---------------------------------------
+
+        phase = self._market_phase()
+        self.state.market_phase = phase
+
+        # ---------------------------------------
+        # DISCOVERY ALWAYS RUNS
         # ---------------------------------------
 
         self._run_symbol_discovery()
+
+        # ---------------------------------------
+        # MARKET CLOSED → DISCOVERY ONLY
+        # ---------------------------------------
+
+        if phase == "closed":
+
+            return {
+                "timestamp": time(),
+                "regime": "DISCOVERY",
+                "execution": {
+                    "allow_entries": False,
+                    "size_multiplier": 0,
+                    "risk_level": "none",
+                },
+                "composite_score": 0,
+                "recovery_modifier": 1.0,
+                "domain_modifier": 1.0,
+                "market_phase": phase,
+            }
+
+        # ---------------------------------------
+        # NORMAL SYSTEMIC MONITOR
+        # ---------------------------------------
 
         macro_inputs = self._macro_source.collect()
 
@@ -210,10 +268,6 @@ class IntradayOrchestrator:
 
                 self.state.regime_mode = SystemicMode.NORMAL
 
-        # --------------------------------------------------
-        # NORMAL FLOW
-        # --------------------------------------------------
-
         else:
 
             if previous_mode != risk_directive.mode:
@@ -228,7 +282,7 @@ class IntradayOrchestrator:
             self.state.regime_mode = risk_directive.mode
 
         # --------------------------------------------------
-        # PHASE-14 — RECOVERY
+        # RECOVERY
         # --------------------------------------------------
 
         self.recovery_controller.update(
@@ -241,7 +295,7 @@ class IntradayOrchestrator:
         recovery_modifier = self.recovery_controller.modifier()
 
         # --------------------------------------------------
-        # PHASE-15 — DOMAIN MODIFIER
+        # DOMAIN MODIFIER
         # --------------------------------------------------
 
         domain_modifier = self.domain_modifier_controller.modifier()
@@ -281,4 +335,5 @@ class IntradayOrchestrator:
             "composite_score": composite,
             "recovery_modifier": recovery_modifier,
             "domain_modifier": domain_modifier,
+            "market_phase": phase,
         }
