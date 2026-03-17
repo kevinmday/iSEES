@@ -20,6 +20,15 @@ from marketmind_engine.scoring.psiquanta import (
 from marketmind_engine.quant.capital_propagation_engine import CapitalPropagationEngine
 from marketmind_engine.intelligence.symbol_state_registry import SymbolStateRegistry
 
+# 🔥 NEW (safe imports)
+try:
+    from marketmind_engine.candidates.emitter import emit_candidates
+    from marketmind_engine.candidates.prioritizer import prioritize_candidates, summarize_candidates
+except Exception:
+    emit_candidates = None
+    prioritize_candidates = None
+    summarize_candidates = None
+
 
 class TradeCoordinator:
 
@@ -80,7 +89,7 @@ class TradeCoordinator:
             )
 
     # --------------------------------------------------
-    # PROPAGATION METRICS INJECTION
+    # PROPAGATION METRICS INJECTION (FIXED DRIFT)
     # --------------------------------------------------
 
     def _inject_propagation_metrics(self, execution_input: ExecutionInput):
@@ -115,10 +124,6 @@ class TradeCoordinator:
             drift = metrics.get("DRIFT", 0.0)
             ttcf = metrics.get("TTCF", 1.0)
 
-            # --------------------------------------------------
-            # STATE HISTORY DRIFT UPDATE
-            # --------------------------------------------------
-
             if self._symbol_state_registry:
 
                 timestamp = getattr(execution_input, "engine_time", None)
@@ -133,7 +138,9 @@ class TradeCoordinator:
                 if previous:
 
                     delta_fils = fils - previous.last_fils
-                    drift = delta_fils * ucip
+                    delta_ucip = ucip - previous.last_ucip
+
+                    drift = delta_fils * delta_ucip
 
             policy.fils = fils
             policy.ucip = ucip
@@ -145,7 +152,7 @@ class TradeCoordinator:
             print(f"[PROPAGATION] injection failure: {e}")
 
     # --------------------------------------------------
-    # CAPITAL FIELD (Quant Propagation)
+    # CAPITAL FIELD
     # --------------------------------------------------
 
     def _fetch_quant_metrics(self, execution_input: ExecutionInput) -> Dict:
@@ -254,10 +261,6 @@ class TradeCoordinator:
             psi = compute_psiquant(intention, quant)
 
             setattr(policy, "psiquant_score", psi.psiquant_score)
-            setattr(policy, "psi_narrative_force", psi.narrative_force)
-            setattr(policy, "psi_capital_force", psi.capital_force)
-            setattr(policy, "psi_chaos_filter", psi.chaos_filter)
-            setattr(policy, "psi_propagation_strength", psi.propagation_strength)
 
             symbol = getattr(policy, "symbol", "UNKNOWN")
 
@@ -269,6 +272,47 @@ class TradeCoordinator:
         except Exception as e:
 
             print(f"[PsiQuanta] scoring failure: {e}")
+
+    # --------------------------------------------------
+    # NEW: CANDIDATE PIPELINE (SAFE OBSERVATION ONLY)
+    # --------------------------------------------------
+
+    def _run_candidate_pipeline(self, regime_result: dict):
+
+        if not emit_candidates or not prioritize_candidates:
+            return
+
+        try:
+
+            evaluated_assets = regime_result.get("evaluated_assets")
+
+            if not evaluated_assets:
+                return
+
+            engine_context = regime_result.get("engine_context", {})
+
+            candidates = emit_candidates(
+                engine_context=engine_context,
+                evaluated_assets=evaluated_assets
+            )
+
+            top = prioritize_candidates(candidates)
+
+            if not top:
+                print("[CANDIDATES] No prioritized candidates")
+                return
+
+            print("\n=== MARKETMIND PRIORITIZED CANDIDATES ===\n")
+
+            if summarize_candidates:
+                for row in summarize_candidates(top):
+                    print(row)
+            else:
+                for c in top:
+                    print(c)
+
+        except Exception as e:
+            print(f"[CANDIDATES] pipeline failure: {e}")
 
     # --------------------------------------------------
     # MAIN RUN LOOP
@@ -283,6 +327,9 @@ class TradeCoordinator:
         self._poll_narrative()
 
         regime_result = self._orchestrator.run_cycle()
+
+        # 🔥 NEW (non-invasive observation layer)
+        self._run_candidate_pipeline(regime_result)
 
         execution_block = regime_result.get("execution")
 

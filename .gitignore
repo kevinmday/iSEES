@@ -82,3 +82,13 @@ MarketMindAI_ARCHIVE/
 # =========================
 .tmp/
 .temp/
+
+# ---------------------------
+# React / Vite UI artifacts
+# ---------------------------
+
+regime_ui/node_modules/
+regime_ui/dist/
+regime_ui/.vite/
+regime_ui/.cache/
+regime_ui/.env

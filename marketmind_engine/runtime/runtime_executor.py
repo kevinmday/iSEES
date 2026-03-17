@@ -43,7 +43,6 @@ class RuntimeExecutor:
     # --------------------------------------------------
 
     def _log_msg(self, msg: str):
-
         if self._log:
             try:
                 self._log(msg)
@@ -70,6 +69,17 @@ class RuntimeExecutor:
                 execution_input,
                 market_context_map=market_context_map,
             )
+
+            if not result:
+                self._log_msg("Coordinator returned empty result")
+                return {
+                    "decision": "NO_ACTION",
+                    "regime": None,
+                    "authority": None,
+                    "order_intent": None,
+                    "execution_receipt": None,
+                    "engine_time": execution_input.engine_time,
+                }
 
         except Exception as e:
 
@@ -99,16 +109,27 @@ class RuntimeExecutor:
             decision = f"ALLOW_{order_intent.side.upper()}"
 
             # --------------------------------------------------
-            # TERMINAL TRADE TRIGGER (UI-independent signal)
+            # TERMINAL TRADE TRIGGER (HARD SIGNAL)
             # --------------------------------------------------
 
-            print("\n\n========== TRADE TRIGGER ==========")
-            print(f"{order_intent.symbol} {order_intent.side.upper()}")
-            print("===================================\n\n")
+            score = getattr(order_intent, "score", None)
+
+            trigger_msg = (
+                "\n\n========== TRADE TRIGGER ==========\n"
+                f"{order_intent.symbol} {order_intent.side.upper()}\n"
+                f"ΨQ={score if score is not None else 'NA'}\n"
+                "===================================\n"
+            )
+
+            print(trigger_msg)
 
             self._log_msg(
-                f"OrderIntent detected: {order_intent.symbol} {order_intent.side}"
+                f"🚨 TRADE TRIGGER: {order_intent.symbol} {order_intent.side.upper()} ΨQ={score if score is not None else 'NA'}"
             )
+
+            # --------------------------------------------------
+            # Execution Submission
+            # --------------------------------------------------
 
             try:
 
@@ -124,6 +145,12 @@ class RuntimeExecutor:
                 self._log_msg(
                     f"ExecutionService error: {order_intent.symbol} {e}"
                 )
+
+        # --------------------------------------------------
+        # Decision Visibility (ALWAYS LOGGED)
+        # --------------------------------------------------
+
+        self._log_msg(f"[DECISION] {execution_input.symbol} -> {decision}")
 
         # --------------------------------------------------
         # Optional Runtime Price Visibility

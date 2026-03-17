@@ -16,12 +16,41 @@ from marketmind_engine.api.models import (
     StartResponse,
     StopResponse,
     EngineStatus,
-    RunDecisionResult,
     EngineStateSnapshot,
 )
 
 from marketmind_engine.intelligence.propagation_engine import PropagationEngine
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
+
+
+# ------------------------------------------------------------------
+# LOGGING SETUP (PERSISTENT + TERMINAL + UI BUFFER)
+# ------------------------------------------------------------------
+
+LOG_DIR = "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+
+SESSION_LOG_FILE = os.path.join(
+    LOG_DIR,
+    f"engine_{time.strftime('%Y-%m-%d_%H-%M-%S')}.log"
+)
+
+LOG_BUFFER_SIZE = 200
+engine_logs = deque(maxlen=LOG_BUFFER_SIZE)
+
+
+def log(message: str):
+
+    entry = f"{time.strftime('%H:%M:%S')} | {message}"
+
+    print(entry)
+    engine_logs.append(entry)
+
+    try:
+        with open(SESSION_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(entry + "\n")
+    except Exception:
+        pass
 
 
 # ------------------------------------------------------------------
@@ -35,23 +64,6 @@ engine_loop_running = False
 
 rss_polling_active = False
 symbol_evaluation_active = False
-
-
-# ------------------------------------------------------------------
-# ENGINE TELEMETRY LOG BUFFER (UI TERMINAL PANEL)
-# ------------------------------------------------------------------
-
-LOG_BUFFER_SIZE = 200
-engine_logs = deque(maxlen=LOG_BUFFER_SIZE)
-
-
-def log(message: str):
-
-    entry = f"{time.strftime('%H:%M:%S')} | {message}"
-
-    print(entry)
-
-    engine_logs.append(entry)
 
 
 # ------------------------------------------------------------------
@@ -78,7 +90,7 @@ app = FastAPI(title="MarketMind Engine API")
 
 
 # ------------------------------------------------------------------
-# CORS (UI POLLING)
+# CORS
 # ------------------------------------------------------------------
 
 app.add_middleware(
@@ -95,6 +107,29 @@ app.add_middleware(
 
 class RunRequest(BaseModel):
     symbol: Optional[str] = None
+
+
+# ------------------------------------------------------------------
+# PROPAGATION SAFE WRAPPER
+# ------------------------------------------------------------------
+
+def safe_propagation_update(engine, symbols):
+
+    try:
+
+        if hasattr(engine, "update"):
+            engine.update(symbols)
+            log(f"[PROP] update() applied to {len(symbols)} symbols")
+
+        elif hasattr(engine, "propagate"):
+            engine.propagate(symbols)
+            log(f"[PROP] propagate() fallback applied to {len(symbols)} symbols")
+
+        else:
+            log("[PROP] No valid propagation method found")
+
+    except Exception as e:
+        log(f"[PROP] error: {e}")
 
 
 # ------------------------------------------------------------------
@@ -118,14 +153,10 @@ def engine_loop():
 
                 symbols = set()
 
-                # --------------------------------------------------
-                # RSS POLLING
-                # --------------------------------------------------
-
+                # ---------------- RSS ----------------
                 if rss_service:
 
                     try:
-
                         rss_service.worker.poll_once()
                         rss_service._update_projection()
 
@@ -142,44 +173,33 @@ def engine_loop():
                                 symbols.add(event.symbol)
 
                             if hasattr(event, "symbols") and event.symbols:
-                                for s in event.symbols:
-                                    symbols.add(s)
+                                symbols.update(event.symbols)
 
                     except Exception as e:
                         log(f"RSS polling error: {e}")
 
-                # --------------------------------------------------
-                # SYMBOL VALIDATION
-                # --------------------------------------------------
-
+                # ---------------- VALIDATION ----------------
                 validated_symbols = set()
 
                 for symbol in symbols:
 
                     try:
-
                         if symbol_validator.is_valid(symbol):
                             validated_symbols.add(symbol)
                         else:
                             log(f"Filtered symbol: {symbol}")
-
                     except Exception:
                         pass
 
                 log(f"Validated symbols: {validated_symbols}")
 
-                # --------------------------------------------------
-                # SYMBOL RANKING
-                # --------------------------------------------------
-
+                # ---------------- RANKING ----------------
                 ranked_symbols = list(validated_symbols)
 
                 try:
-
-                    if rss_service and hasattr(rss_service, "get_projection_events"):
+                    if rss_service:
 
                         mention_count = {}
-
                         events = rss_service.get_projection_events()
 
                         for e in events:
@@ -199,35 +219,27 @@ def engine_loop():
                 except Exception as e:
                     log(f"Ranking error: {e}")
 
-                # limit evaluation set
                 evaluation_symbols = ranked_symbols[:30]
 
                 log(f"Ranked evaluation set: {evaluation_symbols}")
 
-                # --------------------------------------------------
-                # ENGINE EVALUATION
-                # --------------------------------------------------
-
+                # ---------------- EVALUATION ----------------
                 if evaluation_symbols:
 
                     for symbol in evaluation_symbols:
 
                         try:
-
                             symbol_evaluation_active = True
                             engine_controller.run_symbol_cycle(symbol)
 
                         except Exception as e:
                             log(f"Symbol cycle error: {symbol} {e}")
 
-                    # --------------------------------------------------
-                    # PROPAGATION UPDATE
-                    # --------------------------------------------------
-
-                    try:
-                        propagation_engine.update(validated_symbols)
-                    except Exception as e:
-                        log(f"Propagation update error: {e}")
+                    # ---------------- PROPAGATION ----------------
+                    safe_propagation_update(
+                        propagation_engine,
+                        validated_symbols
+                    )
 
                 else:
                     log("No validated RSS symbols this cycle")
@@ -261,7 +273,7 @@ def start_engine():
 
         engine_loop_thread.start()
 
-    log("Engine started")
+    log(f"Engine started (log file: {SESSION_LOG_FILE})")
 
     return {"status": "started"}
 
@@ -280,7 +292,7 @@ def stop_engine():
 
 
 # ------------------------------------------------------------------
-# ENGINE STATUS
+# STATUS
 # ------------------------------------------------------------------
 
 @app.get("/api/engine/status", response_model=EngineStatus)
@@ -295,11 +307,9 @@ def engine_status():
     if last:
 
         engine_time = last.get("engine_time")
-
         regime_snapshot = last.get("regime")
 
         if isinstance(regime_snapshot, dict):
-
             regime_name = regime_snapshot.get("regime")
             timestamp = regime_snapshot.get("timestamp")
 
@@ -314,176 +324,12 @@ def engine_status():
 
 
 # ------------------------------------------------------------------
-# ENGINE STATE SNAPSHOT
-# ------------------------------------------------------------------
-
-@app.get("/api/engine/state", response_model=EngineStateSnapshot)
-def engine_state():
-
-    last = engine_controller.get_last_result()
-
-    if not last:
-
-        return {
-            "running": engine_controller.is_running(),
-            "regime": {
-                "timestamp": 0.0,
-                "regime": "unknown",
-                "execution": {},
-                "composite_score": 0.0,
-                "recovery_modifier": 1.0,
-                "domain_modifier": 1.0,
-            },
-            "engine_time": 0,
-            "last_cycle_timestamp": None,
-            "regime_name": "unknown",
-            "flatten_triggered": False,
-            "block_new_entries": False
-        }
-
-    regime_snapshot = last.get("regime")
-
-    regime_name = regime_snapshot.get("regime", "unknown")
-
-    execution = regime_snapshot.get("execution", {})
-
-    allow_entries = execution.get("allow_entries", True)
-
-    flatten_triggered = not allow_entries
-    block_new_entries = not allow_entries
-
-    return {
-        "running": engine_controller.is_running(),
-        "regime": regime_snapshot,
-        "engine_time": last.get("engine_time", 0),
-        "last_cycle_timestamp": regime_snapshot.get("timestamp"),
-        "regime_name": regime_name,
-        "flatten_triggered": flatten_triggered,
-        "block_new_entries": block_new_entries
-    }
-
-
-# ------------------------------------------------------------------
-# PROPAGATION OBSERVATORY
-# ------------------------------------------------------------------
-
-@app.get("/api/propagation_snapshot")
-def propagation_snapshot():
-
-    try:
-        return propagation_engine.snapshot()
-    except Exception:
-        return {"status": "propagation_unavailable"}
-
-
-# ------------------------------------------------------------------
-# PSIQUANTA OBSERVATORY
-# ------------------------------------------------------------------
-
-@app.get("/api/psiquant")
-def psiquant_snapshot():
-
-    try:
-
-        last = engine_controller.get_last_result()
-
-        if not last:
-            return {"psiquant_score": None}
-
-        decision_payload = last.get("decision_payload", {})
-        psi = decision_payload.get("psiquant_score")
-
-        return {"psiquant_score": psi}
-
-    except Exception as e:
-
-        return {
-            "psiquant_score": None,
-            "error": str(e)
-        }
-
-
-# ------------------------------------------------------------------
-# LAST ENGINE RESULT (UI PRIMARY DATA SOURCE)
-# ------------------------------------------------------------------
-
-@app.get("/api/engine/last")
-def last_result():
-
-    try:
-
-        last = engine_controller.get_last_result()
-
-        if not last:
-            return {"status": "no_engine_result"}
-
-        decision_payload = last.get("decision_payload", {})
-
-        psi = decision_payload.get("psiquant_score")
-
-        last["psiquant_score"] = psi
-
-        return last
-
-    except Exception as e:
-
-        return {
-            "error": str(e)
-        }
-
-
-# ------------------------------------------------------------------
-# NARRATIVE RADAR FEED (LEFT PANEL)
-# ------------------------------------------------------------------
-
-@app.get("/api/rss_events")
-def rss_events():
-
-    try:
-
-        if not rss_service:
-            return {"events": []}
-
-        events = rss_service.get_projection_events()
-
-        output = []
-
-        for e in events[-25:]:
-
-            output.append({
-                "timestamp": getattr(e, "timestamp", 0),
-                "symbol": getattr(e, "symbol", None),
-                "symbols": getattr(e, "symbols", []),
-                "headline": getattr(e, "headline", ""),
-                "source": getattr(e, "source", "rss")
-            })
-
-        return {"events": output}
-
-    except Exception as e:
-
-        return {
-            "events": [],
-            "error": str(e)
-        }
-
-
-# ------------------------------------------------------------------
-# ENGINE TERMINAL LOG STREAM (UI PANEL)
+# LOG ENDPOINT
 # ------------------------------------------------------------------
 
 @app.get("/api/engine/logs")
 def engine_logs_endpoint():
 
-    try:
-
-        return {
-            "logs": list(engine_logs)
-        }
-
-    except Exception as e:
-
-        return {
-            "logs": [],
-            "error": str(e)
-        }
+    return {
+        "logs": list(engine_logs)
+    }

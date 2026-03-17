@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from statistics import mean, pstdev
 import time
+import hashlib
 
 from .relative_signal_layer import RelativeSignalLayer
 
@@ -20,12 +21,13 @@ STRUCTURAL_SYMBOLS = [
 
 class PropagationEngine:
     """
-    Stateless multi-layer propagation aggregator.
+    Hybrid propagation engine:
 
-    Pure read-only intelligence layer.
-    No mutation.
-    No execution influence.
-    No lifecycle interaction.
+    • Snapshot layer → stateless (macro / observability)
+    • Symbol layer   → stateful (micro / drift generation)
+
+    Snapshot remains pure.
+    State layer introduces memory, decay, reinforcement, and internal dynamics.
     """
 
     def __init__(self, provider, engine_controller, rss_service):
@@ -34,8 +36,89 @@ class PropagationEngine:
         self.rss_service = rss_service
         self.relative_layer = RelativeSignalLayer()
 
+        # 🔥 Symbol state store
+        self._symbol_state: Dict[str, Dict[str, float]] = {}
+
     # ==========================================================
-    # PUBLIC ENTRY
+    # 🔥 STATEFUL PROPAGATION ENTRY POINT
+    # ==========================================================
+
+    def update(self, symbols):
+
+        if not symbols:
+            return
+
+        now = time.time()
+
+        for symbol in symbols:
+
+            try:
+
+                prev = self._symbol_state.get(symbol, {
+                    "fils": 0.0,
+                    "ucip": 0.0,
+                    "timestamp": now
+                })
+
+                dt = max(now - prev["timestamp"], 1.0)
+
+                # -----------------------------
+                # TIME DECAY (natural fade)
+                # -----------------------------
+                decay = 0.98 ** dt
+
+                fils = prev["fils"] * decay
+                ucip = prev["ucip"] * decay
+
+                # -----------------------------
+                # NARRATIVE REINFORCEMENT
+                # -----------------------------
+                fils += 0.002
+                ucip = min(ucip + 0.01, 1.0)
+
+                # -----------------------------
+                # 🔥 INTERNAL FIELD DYNAMICS (DETERMINISTIC)
+                # -----------------------------
+                seed = self._stable_hash(symbol)
+
+                fils += 0.0002 * seed
+                ucip = min(ucip + 0.0005 * (seed / 10), 1.0)
+
+                # -----------------------------
+                # STORE UPDATED STATE
+                # -----------------------------
+                self._symbol_state[symbol] = {
+                    "fils": fils,
+                    "ucip": ucip,
+                    "timestamp": now
+                }
+
+            except Exception:
+                pass
+
+    # ==========================================================
+    # 🔒 STABLE HASH (REPLAY SAFE)
+    # ==========================================================
+
+    def _stable_hash(self, symbol: str) -> int:
+
+        h = hashlib.md5(symbol.encode()).hexdigest()
+        return int(h[:4], 16) % 10  # deterministic 0–9
+
+    # ==========================================================
+    # OPTIONAL ACCESSOR
+    # ==========================================================
+
+    def get_symbol_state(self, symbol: str) -> Dict[str, float]:
+
+        return self._symbol_state.get(symbol, {
+            "fils": 0.0,
+            "ucip": 0.0,
+            "timestamp": 0
+        })
+
+    # ==========================================================
+    # PUBLIC SNAPSHOT (UNCHANGED)
     # ==========================================================
 
     def snapshot(self) -> Dict[str, Any]:
@@ -47,7 +130,6 @@ class PropagationEngine:
 
             composite = self._composite(structural, narrative, capital)
 
-            # FIX: match RelativeSignalLayer signature
             relative_signals = self.relative_layer.evaluate(
                 structural,
                 narrative,
