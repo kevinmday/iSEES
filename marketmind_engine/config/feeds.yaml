@@ -1,8 +1,8 @@
 # -------------------------------------------------------------------
 # MarketMind Feed Configuration
 # -------------------------------------------------------------------
-# Feeds define narrative signal sources.
-# Parsers are selected by `type`.
+# Feeds define narrative + flow + ignition signal sources.
+# Parsers/adapters are selected by `type`.
 # Only enabled feeds are loaded.
 # -------------------------------------------------------------------
 
@@ -62,8 +62,6 @@ feeds:
   # ===============================================================
   # FDA REGULATORY SIGNALS
   # ===============================================================
-  # These feeds provide high-signal biotech and healthcare catalysts.
-  # They often precede media coverage.
 
   - id: fda_press_announcements
     type: rss
@@ -88,8 +86,76 @@ feeds:
 
 
   # ===============================================================
+  # STRUCTURED NEWS (FASTER THAN RSS)
+  # ===============================================================
+
+  - id: finnhub_news
+    type: structured
+    source: finnhub
+    domain: macro
+    weight: 1.4
+    enabled: false
+
+  - id: benzinga_news
+    type: structured
+    source: benzinga
+    domain: macro
+    weight: 1.5
+    enabled: false
+
+
+  # ===============================================================
+  # OPTIONS FLOW (INSTITUTIONAL POSITIONING)
+  # ===============================================================
+
+  - id: unusual_whales_flow
+    type: flow
+    source: unusual_whales
+    domain: options
+    weight: 3.0
+    enabled: false
+
+  - id: intrinio_options_flow
+    type: flow
+    source: intrinio
+    domain: options
+    weight: 2.8
+    enabled: false
+
+
+  # ===============================================================
+  # MARKET IGNITION (PRICE-LED SIGNALS)
+  # ===============================================================
+
+  - id: price_ignition_detector
+    type: ignition
+    source: price_feed
+    domain: market
+    weight: 2.5
+    enabled: true
+
+
+  # ===============================================================
+  # PRE-MARKET / MOMENTUM SIGNALS
+  # ===============================================================
+
+  - id: premarket_movers
+    type: market_internal
+    source: price_feed
+    domain: market
+    weight: 2.0
+    enabled: true
+
+  - id: volume_spike_detector
+    type: market_internal
+    source: price_feed
+    domain: market
+    weight: 2.2
+    enabled: true
+
+
+  # ===============================================================
   # INTERNAL / FUTURE SIGNAL TYPES
-  # (Disabled until adapters implemented)
   # ===============================================================
 
   - id: rippletruth_stream

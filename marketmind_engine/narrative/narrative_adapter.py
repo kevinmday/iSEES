@@ -17,6 +17,9 @@ from marketmind_engine.narrative.narrative_identity import (
     NarrativeIdentityResolver,
 )
 
+# ✅ NEW (ignition)
+from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
+
 
 class NarrativeAdapter:
     """
@@ -43,12 +46,15 @@ class NarrativeAdapter:
         # Narrative identity resolver
         self.identity_resolver = NarrativeIdentityResolver()
 
+        # ✅ NEW (ignition)
+        self.ignition = IgnitionDetector()
+
         # Engine state
         self._projection_events = []
         self._engine_time_counter = 0
 
     # -------------------------------------------------
-    # Deterministic Injection
+    # Deterministic Injection (RSS)
     # -------------------------------------------------
 
     def inject_headlines(self, headlines):
@@ -56,17 +62,46 @@ class NarrativeAdapter:
         if headlines is None:
             headlines = []
 
-        # normalize
         headlines = list(headlines)
 
-        # update buffer
         self.buffer.update(headlines)
 
-        # generate projection events
         self._update_projection()
 
     # -------------------------------------------------
-    # Projection
+    # ✅ NEW — Price → Ignition → Narrative
+    # -------------------------------------------------
+
+    def ingest_price_data(self, price_data: dict):
+        """
+        Accept price updates and convert to ignition events.
+        """
+
+        events = self.ignition.process_batch(price_data)
+
+        if not events:
+            return
+
+        for e in events:
+
+            # deterministic engine time
+            self._engine_time_counter += 1
+
+            event = ProjectionEvent(
+                symbol=e.symbol,
+                engine_time=self._engine_time_counter,
+                source="ignition",
+                sentiment=0.0,
+                weight=e.weight,
+            )
+
+            # push directly into propagation (same as RSS path)
+            self.propagation.ingest_event(event)
+
+            self._projection_events.append(event)
+
+    # -------------------------------------------------
+    # Projection (RSS path)
     # -------------------------------------------------
 
     def _extract_title(self, item):
@@ -94,15 +129,11 @@ class NarrativeAdapter:
             if not extracted_symbols:
                 continue
 
-            # -------------------------------------------------
             # Resolve Narrative Identity
-            # -------------------------------------------------
-
             narrative = self.identity_resolver.resolve(title)
 
             for symbol in extracted_symbols:
 
-                # deterministic engine time
                 self._engine_time_counter += 1
 
                 event = ProjectionEvent(
@@ -115,10 +146,8 @@ class NarrativeAdapter:
 
                 events.append(event)
 
-                # attach symbol to narrative state
                 narrative.assets.add(symbol)
 
-                # send to propagation engine
                 self.propagation.ingest_event(event)
 
         self._projection_events = events
@@ -131,7 +160,6 @@ class NarrativeAdapter:
     # -------------------------------------------------
 
     def get_propagation_snapshot(self):
-
         return self.propagation.snapshot()
 
     # -------------------------------------------------

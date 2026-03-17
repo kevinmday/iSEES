@@ -6,6 +6,12 @@ from marketmind_engine.execution.execution_receipt import ExecutionReceipt
 from marketmind_engine.execution.execution_input import ExecutionInput
 from marketmind_engine.execution.execution_types import OrderIntent
 
+# ✅ NEW
+from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
+
+# ✅ NEW (critical)
+from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
+
 
 class RuntimeExecutor:
     """
@@ -28,15 +34,22 @@ class RuntimeExecutor:
         execution_service: ExecutionService,
         price_service=None,
         telemetry_logger=None,
+        narrative_adapter: Optional[NarrativeAdapter] = None,
     ):
         self._coordinator = coordinator
         self._execution_service = execution_service
 
-        # Optional runtime price provider (AlpacaQuoteProvider)
         self._price_service = price_service
-
-        # Optional UI telemetry logger (provided by server)
         self._log = telemetry_logger
+
+        # ✅ ignition detector
+        self._ignition = IgnitionDetector()
+
+        # ✅ narrative adapter
+        self._narrative = narrative_adapter or NarrativeAdapter()
+
+        # ✅ STEP 5 — price memory
+        self._last_price = {}
 
     # --------------------------------------------------
     # Runtime Logging Helper
@@ -108,10 +121,6 @@ class RuntimeExecutor:
 
             decision = f"ALLOW_{order_intent.side.upper()}"
 
-            # --------------------------------------------------
-            # TERMINAL TRADE TRIGGER (HARD SIGNAL)
-            # --------------------------------------------------
-
             score = getattr(order_intent, "score", None)
 
             trigger_msg = (
@@ -126,10 +135,6 @@ class RuntimeExecutor:
             self._log_msg(
                 f"🚨 TRADE TRIGGER: {order_intent.symbol} {order_intent.side.upper()} ΨQ={score if score is not None else 'NA'}"
             )
-
-            # --------------------------------------------------
-            # Execution Submission
-            # --------------------------------------------------
 
             try:
 
@@ -147,25 +152,78 @@ class RuntimeExecutor:
                 )
 
         # --------------------------------------------------
-        # Decision Visibility (ALWAYS LOGGED)
+        # Decision Visibility
         # --------------------------------------------------
 
         self._log_msg(f"[DECISION] {execution_input.symbol} -> {decision}")
 
         # --------------------------------------------------
-        # Optional Runtime Price Visibility
+        # 🔥 PRICE → IGNITION → NARRATIVE (FIXED)
         # --------------------------------------------------
 
         if self._price_service and execution_input.symbol:
 
             try:
 
-                price = self._price_service.get_price(execution_input.symbol)
+                symbol = execution_input.symbol
+
+                raw_price = self._price_service.get_price(symbol)
+
+                # ✅ FIX — normalize price
+                price = None
+
+                if isinstance(raw_price, dict):
+                    price = raw_price.get("ap") or raw_price.get("bp")
+                else:
+                    price = raw_price
 
                 if price:
+
+                    self._log_msg(f"[PRICE] {symbol} {price}")
+
+                    # ----------------------------------------
+                    # 🔥 STEP 5 — RELATIVE VOLUME PROXY
+                    # ----------------------------------------
+
+                    prev_price = self._last_price.get(symbol)
+                    self._last_price[symbol] = price
+
+                    volume = 1.0
+
+                    if prev_price and prev_price > 0:
+                        change_pct = abs(price - prev_price) / prev_price
+                        volume = 1.0 + (change_pct * 100)
+
+                    volume = min(volume, 10.0)
+
+                    price_data = {
+                        symbol: {
+                            "price": price,
+                            "volume": volume
+                        }
+                    }
+
+                    # ----------------------------------------
+                    # 🔥 IGNITION DETECTION
+                    # ----------------------------------------
+
+                    events = self._ignition.process_batch(price_data)
+
                     self._log_msg(
-                        f"[PRICE] {execution_input.symbol} {price}"
+                        f"[IGNITION_CHECK] {symbol} price={price} vol={volume:.2f}"
                     )
+
+                    if events:
+                        for e in events:
+                            self._log_msg(
+                                f"[IGNITION_FIRE] {e.symbol} Δ={e.price_change_pct:.3f} vol={e.volume_ratio:.2f}"
+                            )
+
+                    # ----------------------------------------
+                    # 🔥 SEND TO NARRATIVE SYSTEM
+                    # ----------------------------------------
+
+                    self._narrative.ingest_price_data(price_data)
 
             except Exception:
                 pass
