@@ -241,6 +241,18 @@ def engine_loop():
                         validated_symbols
                     )
 
+                    # ---------------- 🔥 FIELD LOGGING ----------------
+                    try:
+                        snap = propagation_engine.snapshot()
+                        n = snap.get("narrative", {})
+                        log(
+                            f"[FIELD] momentum={round(n.get('momentum',0),5)} "
+                            f"conc={round(n.get('concentration',0),5)} "
+                            f"bias={round(n.get('bias',0),5)}"
+                        )
+                    except Exception as e:
+                        log(f"[FIELD] snapshot error: {e}")
+
                 else:
                     log("No validated RSS symbols this cycle")
 
@@ -333,3 +345,27 @@ def engine_logs_endpoint():
     return {
         "logs": list(engine_logs)
     }
+
+
+# ------------------------------------------------------------------
+# PROPAGATION SNAPSHOT (READ ONLY)
+# ------------------------------------------------------------------
+
+@app.get("/api/propagation")
+def get_propagation_snapshot():
+
+    try:
+
+        if not propagation_engine:
+            return {"error": "propagation_engine not initialized"}
+
+        if hasattr(propagation_engine, "snapshot"):
+            return propagation_engine.snapshot()
+
+        if hasattr(propagation_engine, "get_state"):
+            return propagation_engine.get_state()
+
+        return {"error": "no snapshot method available"}
+
+    except Exception as e:
+        return {"error": str(e)}

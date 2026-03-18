@@ -211,54 +211,31 @@ class PropagationEngine:
         }
 
     # ==========================================================
-    # NARRATIVE LAYER
+    # 🔥 NARRATIVE LAYER (FIXED — USE INTERNAL FIELD)
     # ==========================================================
 
     def _narrative_layer(self) -> Dict[str, float]:
 
-        symbols: List[str] = []
-
-        if hasattr(self.rss_service, "get_evaluated_symbols"):
-            try:
-                symbols = self.rss_service.get_evaluated_symbols()
-            except Exception:
-                symbols = []
+        symbols = list(self._symbol_state.keys())
 
         if not symbols:
             return {"bias": 0.0, "concentration": 0.0, "momentum": 0.0}
 
-        data = {}
+        fils_values = []
+        ucip_values = []
 
-        if hasattr(self.provider, "get_batch_data"):
-            try:
-                data = self.provider.get_batch_data(symbols)
-            except Exception:
-                data = {}
+        for s in symbols:
+            state = self._symbol_state.get(s, {})
+            fils_values.append(state.get("fils", 0.0))
+            ucip_values.append(state.get("ucip", 0.0))
 
-        if not data:
-            return {"bias": 0.0, "concentration": 0.0, "momentum": 0.0}
-
-        changes = []
-
-        for v in data.values():
-
-            change = self._extract_change(v)
-
-            if change is None:
-                continue
-
-            try:
-                changes.append(float(change))
-            except Exception:
-                continue
-
-        if not changes:
+        if not fils_values:
             return {"bias": 0.0, "concentration": 0.0, "momentum": 0.0}
 
         return {
-            "bias": mean(changes),
-            "concentration": pstdev(changes) if len(changes) > 1 else 0.0,
-            "momentum": mean(abs(c) for c in changes),
+            "bias": mean(fils_values),
+            "concentration": pstdev(fils_values) if len(fils_values) > 1 else 0.0,
+            "momentum": mean(ucip_values),
         }
 
     # ==========================================================

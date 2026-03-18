@@ -98,7 +98,11 @@ class NarrativeAdapter:
             # push directly into propagation (same as RSS path)
             self.propagation.ingest_event(event)
 
+            # 🔥 persist ignition events as well
             self._projection_events.append(event)
+
+        # 🔥 prune after ingestion
+        self._prune_projection_events()
 
     # -------------------------------------------------
     # Projection (RSS path)
@@ -115,7 +119,7 @@ class NarrativeAdapter:
 
         headlines = self.buffer.snapshot()
 
-        events = []
+        new_events = []
 
         for item in headlines:
 
@@ -144,13 +148,38 @@ class NarrativeAdapter:
                     weight=1.0,
                 )
 
-                events.append(event)
+                new_events.append(event)
 
                 narrative.assets.add(symbol)
 
+                # 🔥 feed propagation immediately
                 self.propagation.ingest_event(event)
 
-        self._projection_events = events
+        # ==========================================================
+        # 🔥 PERSISTENCE (FIELD MEMORY)
+        # ==========================================================
+
+        self._projection_events.extend(new_events)
+
+        # 🔥 prune after update
+        self._prune_projection_events()
+
+    # -------------------------------------------------
+    # 🔥 PRUNING (SHARED)
+    # -------------------------------------------------
+
+    def _prune_projection_events(self):
+
+        cutoff = self._engine_time_counter - 300
+
+        self._projection_events = [
+            e for e in self._projection_events
+            if e.engine_time >= cutoff
+        ]
+
+    # -------------------------------------------------
+    # Accessors
+    # -------------------------------------------------
 
     def get_projection_events(self):
         return list(self._projection_events)
