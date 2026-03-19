@@ -372,6 +372,26 @@ def engine_loop():
 
                             engine_controller.run_symbol_cycle(symbol)
 
+                            # -------- NORMALIZED PRICE DELTA LOG --------
+                            try:
+                                last = engine_controller.get_last_result()
+                                if last:
+                                    symbols_block = last.get("symbols", {})
+                                    if symbol in symbols_block:
+                                        data = symbols_block[symbol]
+
+                                        current_price = data.get("price")
+                                        last_price = data.get("last_price")
+
+                                        price_delta_pct = 0.0
+
+                                        if current_price and last_price and last_price > 0:
+                                            price_delta_pct = (current_price - last_price) / last_price
+
+                                        log(f"[ΔP%] {symbol} {round(price_delta_pct,6)}")
+                            except Exception:
+                                pass
+
                             # -------- DRIFT TRACKING --------
                             drift_now = extract_symbol_drift(engine_controller, symbol)
 
