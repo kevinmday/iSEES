@@ -20,13 +20,16 @@ from marketmind_engine.narrative.narrative_identity import (
 # ✅ NEW (ignition)
 from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
 
+import threading
+
 
 class NarrativeAdapter:
     """
     Deterministic narrative shock adapter.
 
-    Engine-safe.
-    Projection contract locked.
+    🔥 NOW LIVE:
+    - RSS worker runs in background
+    - Projection updates continuously
     """
 
     def __init__(self):
@@ -52,6 +55,12 @@ class NarrativeAdapter:
         # Engine state
         self._projection_events = []
         self._engine_time_counter = 0
+
+        # 🔥 START RSS WORKER (BACKGROUND THREAD)
+        threading.Thread(
+            target=self.worker.run_loop,
+            daemon=True
+        ).start()
 
     # -------------------------------------------------
     # Deterministic Injection (RSS)
@@ -95,13 +104,12 @@ class NarrativeAdapter:
                 weight=e.weight,
             )
 
-            # push directly into propagation (same as RSS path)
+            # push directly into propagation
             self.propagation.ingest_event(event)
 
-            # 🔥 persist ignition events as well
+            # persist ignition events
             self._projection_events.append(event)
 
-        # 🔥 prune after ingestion
         self._prune_projection_events()
 
     # -------------------------------------------------
@@ -133,7 +141,6 @@ class NarrativeAdapter:
             if not extracted_symbols:
                 continue
 
-            # Resolve Narrative Identity
             narrative = self.identity_resolver.resolve(title)
 
             for symbol in extracted_symbols:
@@ -152,20 +159,15 @@ class NarrativeAdapter:
 
                 narrative.assets.add(symbol)
 
-                # 🔥 feed propagation immediately
+                # 🔥 immediate propagation
                 self.propagation.ingest_event(event)
-
-        # ==========================================================
-        # 🔥 PERSISTENCE (FIELD MEMORY)
-        # ==========================================================
 
         self._projection_events.extend(new_events)
 
-        # 🔥 prune after update
         self._prune_projection_events()
 
     # -------------------------------------------------
-    # 🔥 PRUNING (SHARED)
+    # 🔥 PRUNING
     # -------------------------------------------------
 
     def _prune_projection_events(self):
@@ -189,6 +191,10 @@ class NarrativeAdapter:
     # -------------------------------------------------
 
     def get_propagation_snapshot(self):
+
+        # 🔥 ensure projection stays fresh each access
+        self._update_projection()
+
         return self.propagation.snapshot()
 
     # -------------------------------------------------

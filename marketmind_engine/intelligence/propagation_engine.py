@@ -2,6 +2,7 @@ from typing import Dict, Any, List
 from statistics import mean, pstdev
 import time
 import hashlib
+import math
 
 from .relative_signal_layer import RelativeSignalLayer
 
@@ -21,13 +22,12 @@ STRUCTURAL_SYMBOLS = [
 
 class PropagationEngine:
     """
-    Hybrid propagation engine:
+    Hybrid propagation engine (FINALIZED):
 
-    • Snapshot layer → stateless (macro / observability)
-    • Symbol layer   → stateful (micro / drift generation)
-
-    Snapshot remains pure.
-    State layer introduces memory, decay, reinforcement, and internal dynamics.
+    ✔ Clean symbol universe
+    ✔ Provider-aware filtering
+    ✔ Stateful propagation tracking
+    ✔ Replay-safe deterministic behavior
     """
 
     def __init__(self, provider, engine_controller, rss_service):
@@ -36,8 +36,36 @@ class PropagationEngine:
         self.rss_service = rss_service
         self.relative_layer = RelativeSignalLayer()
 
-        # 🔥 Symbol state store
-        self._symbol_state: Dict[str, Dict[str, float]] = {}
+        self._symbol_state: Dict[str, Dict[str, Any]] = {}
+        self._invalid_symbols = set()  # 🔥 prevents repeated 404s
+
+    # ==========================================================
+    # 🔒 SYMBOL FILTER (FINAL — DO NOT TOUCH)
+    # ==========================================================
+
+    def _valid_symbol(self, symbol: str) -> bool:
+
+        if not symbol:
+            return False
+
+        if len(symbol) > 5:
+            return False
+
+        if "-" in symbol or "." in symbol:
+            return False
+
+        # warrants / units / rights / derivatives
+        if symbol.endswith(("W", "WS", "WT", "U", "R")):
+            return False
+
+        # OTC / pink sheet suppression
+        if symbol.endswith(("F", "Y", "Q")):
+            return False
+
+        if not symbol.isalpha():
+            return False
+
+        return True
 
     # ==========================================================
     # 🔥 STATEFUL PROPAGATION ENTRY POINT
@@ -54,16 +82,53 @@ class PropagationEngine:
 
             try:
 
+                # -----------------------------
+                # FILTER: invalid cache
+                # -----------------------------
+                if symbol in self._invalid_symbols:
+                    continue
+
+                # -----------------------------
+                # FILTER: structural validity
+                # -----------------------------
+                if not self._valid_symbol(symbol):
+                    continue
+
+                # -----------------------------
+                # PRICE FETCH
+                # -----------------------------
+                price_now = None
+
+                if hasattr(self.provider, "get_price"):
+                    price_now = self.provider.get_price(symbol)
+
+                # -----------------------------
+                # FILTER: provider rejection
+                # -----------------------------
+                if price_now is None:
+                    self._invalid_symbols.add(symbol)
+                    continue
+
+                # -----------------------------
+                # FILTER: price sanity
+                # -----------------------------
+                if price_now < 2.0:
+                    continue
+
                 prev = self._symbol_state.get(symbol, {
                     "fils": 0.0,
                     "ucip": 0.0,
-                    "timestamp": now
+                    "timestamp": now,
+                    "price_prev": price_now,
+                    "buffer": [],
+                    "lifespan": 0,
+                    "propagation_score": 0.0
                 })
 
                 dt = max(now - prev["timestamp"], 1.0)
 
                 # -----------------------------
-                # TIME DECAY (natural fade)
+                # TIME DECAY
                 # -----------------------------
                 decay = 0.98 ** dt
 
@@ -77,40 +142,96 @@ class PropagationEngine:
                 ucip = min(ucip + 0.01, 1.0)
 
                 # -----------------------------
-                # 🔥 INTERNAL FIELD DYNAMICS (DETERMINISTIC)
+                # INTERNAL FIELD DYNAMICS
                 # -----------------------------
                 seed = self._stable_hash(symbol)
 
                 fils += 0.0002 * seed
                 ucip = min(ucip + 0.0005 * (seed / 10), 1.0)
 
+                # ==========================================================
+                # 🔥 MICRO PRICE DELTA
+                # ==========================================================
+                price_prev = prev.get("price_prev", price_now)
+
+                if price_prev == 0:
+                    delta_micro = 0.0
+                else:
+                    delta_micro = (price_now - price_prev) / price_prev
+
                 # -----------------------------
-                # STORE UPDATED STATE
+                # BUFFER (N = 12)
+                # -----------------------------
+                buffer = prev.get("buffer", [])
+                buffer.append(delta_micro)
+
+                if len(buffer) > 12:
+                    buffer.pop(0)
+
+                # -----------------------------
+                # DERIVED METRICS
+                # -----------------------------
+                bias = sum(buffer)
+
+                total = len(buffer)
+                positive = len([d for d in buffer if d > 0])
+
+                directional_ratio = positive / total if total > 0 else 0.0
+
+                # -----------------------------
+                # LIFESPAN
+                # -----------------------------
+                lifespan = prev.get("lifespan", 0) + 1
+
+                # -----------------------------
+                # PROPAGATION SCORE
+                # -----------------------------
+                propagation_score = bias * directional_ratio * math.log(1 + lifespan)
+
+                # -----------------------------
+                # STORE STATE
                 # -----------------------------
                 self._symbol_state[symbol] = {
                     "fils": fils,
                     "ucip": ucip,
-                    "timestamp": now
+                    "timestamp": now,
+                    "price_prev": price_now,
+                    "buffer": buffer,
+                    "lifespan": lifespan,
+                    "propagation_score": propagation_score,
+                    "bias": bias,
+                    "directional_ratio": directional_ratio,
+                    "delta_micro": delta_micro,
                 }
+
+                # -----------------------------
+                # DEBUG LOG
+                # -----------------------------
+                print(
+                    f"[STATE] {symbol} "
+                    f"Δ={delta_micro:.5f} "
+                    f"bias={bias:.5f} "
+                    f"ratio={directional_ratio:.2f} "
+                    f"life={lifespan} "
+                    f"prop={propagation_score:.5f}"
+                )
 
             except Exception:
                 pass
 
     # ==========================================================
-    # 🔒 STABLE HASH (REPLAY SAFE)
+    # 🔒 STABLE HASH
     # ==========================================================
 
     def _stable_hash(self, symbol: str) -> int:
-
         h = hashlib.md5(symbol.encode()).hexdigest()
-        return int(h[:4], 16) % 10  # deterministic 0–9
+        return int(h[:4], 16) % 10
 
     # ==========================================================
-    # OPTIONAL ACCESSOR
+    # ACCESSOR
     # ==========================================================
 
     def get_symbol_state(self, symbol: str) -> Dict[str, float]:
-
         return self._symbol_state.get(symbol, {
             "fils": 0.0,
             "ucip": 0.0,
@@ -118,7 +239,7 @@ class PropagationEngine:
         })
 
     # ==========================================================
-    # PUBLIC SNAPSHOT (UNCHANGED)
+    # SNAPSHOT
     # ==========================================================
 
     def snapshot(self) -> Dict[str, Any]:
@@ -154,24 +275,7 @@ class PropagationEngine:
             }
 
     # ==========================================================
-    # HELPER
-    # ==========================================================
-
-    def _extract_change(self, record: Dict[str, Any]) -> float | None:
-
-        if not isinstance(record, dict):
-            return None
-
-        if "percent_change" in record:
-            return record["percent_change"]
-
-        if "pct_change" in record:
-            return record["pct_change"]
-
-        return None
-
-    # ==========================================================
-    # STRUCTURAL LAYER
+    # STRUCTURAL
     # ==========================================================
 
     def _structural_layer(self) -> Dict[str, float]:
@@ -191,7 +295,7 @@ class PropagationEngine:
 
         for v in data.values():
 
-            change = self._extract_change(v)
+            change = v.get("percent_change") or v.get("pct_change")
 
             if change is None:
                 continue
@@ -211,7 +315,7 @@ class PropagationEngine:
         }
 
     # ==========================================================
-    # 🔥 NARRATIVE LAYER (FIXED — USE INTERNAL FIELD)
+    # NARRATIVE
     # ==========================================================
 
     def _narrative_layer(self) -> Dict[str, float]:
@@ -229,9 +333,6 @@ class PropagationEngine:
             fils_values.append(state.get("fils", 0.0))
             ucip_values.append(state.get("ucip", 0.0))
 
-        if not fils_values:
-            return {"bias": 0.0, "concentration": 0.0, "momentum": 0.0}
-
         return {
             "bias": mean(fils_values),
             "concentration": pstdev(fils_values) if len(fils_values) > 1 else 0.0,
@@ -239,7 +340,7 @@ class PropagationEngine:
         }
 
     # ==========================================================
-    # CAPITAL LAYER
+    # CAPITAL
     # ==========================================================
 
     def _capital_layer(self) -> Dict[str, float]:
@@ -259,10 +360,8 @@ class PropagationEngine:
         directions = []
 
         for p in positions:
-
             if not isinstance(p, dict):
                 continue
-
             unrealized.append(p.get("unrealized_pct", 0.0))
             directions.append(p.get("direction", 0.0))
 

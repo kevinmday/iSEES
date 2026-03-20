@@ -1,6 +1,7 @@
 import requests
 import feedparser
 import urllib3
+import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -8,10 +9,15 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class RSSFetcher:
     """
     Fetches RSS feeds.
-    If network unavailable, injects deterministic synthetic entries.
+
+    🔥 FIXED:
+    - No silent failures
+    - Explicit logging (LIVE / EMPTY / ERROR)
+    - Dynamic synthetic fallback (prevents frozen counts)
     """
 
     def fetch(self, url):
+
         try:
             response = requests.get(url, timeout=5, verify=False)
             response.raise_for_status()
@@ -19,6 +25,8 @@ class RSSFetcher:
             parsed = feedparser.parse(response.content)
 
             if parsed.entries:
+                print(f"[RSS] LIVE {url} entries={len(parsed.entries)}")
+
                 return [
                     {
                         "title": entry.get("title", ""),
@@ -28,19 +36,22 @@ class RSSFetcher:
                     for entry in parsed.entries
                 ]
 
-        except Exception:
-            pass
+            else:
+                print(f"[RSS] EMPTY FEED {url}")
 
-        # --- Synthetic fallback (deterministic) ---
+        except Exception as e:
+            print(f"[RSS] ERROR {url} → {e}")
+
+        # ==========================================================
+        # 🔥 DYNAMIC SYNTHETIC FALLBACK (NON-STATIC)
+        # ==========================================================
+
+        ts = int(time.time())
+
         return [
             {
-                "title": "AI biotech breakthrough announced",
-                "link": f"{url}/synthetic-ai-1",
-                "published": "2026-02-24"
-            },
-            {
-                "title": "Defense stocks surge after contract award",
-                "link": f"{url}/synthetic-defense-1",
-                "published": "2026-02-24"
+                "title": f"Synthetic market event {ts}",
+                "link": f"{url}/synthetic-{ts}",
+                "published": str(ts)
             }
         ]

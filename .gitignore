@@ -18,6 +18,13 @@ ignition_anchor.txt
 ignition_price.txt
 
 # =========================
+# Runtime logs / session artifacts
+# =========================
+logs/
+*.log
+session_log.txt
+
+# =========================
 # Python cache / bytecode
 # =========================
 __pycache__/
@@ -51,13 +58,13 @@ desktop.ini
 *.tar
 *.tar.gz
 *.7z
+*_backup.py
 
 # =========================
 # Local databases / artifacts
 # =========================
 *.sqlite
 *.db
-*.log
 
 # =========================
 # IDE / editor noise (safe)
@@ -86,7 +93,6 @@ MarketMindAI_ARCHIVE/
 # ---------------------------
 # React / Vite UI artifacts
 # ---------------------------
-
 regime_ui/node_modules/
 regime_ui/dist/
 regime_ui/.vite/
