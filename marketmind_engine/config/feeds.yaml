@@ -17,76 +17,125 @@ global:
 feeds:
 
   # ===============================================================
-  # MACRO NEWS
+  # MACRO + MARKET NEWS (WORKING + RELIABLE)
   # ===============================================================
+
+  - id: marketwatch
+    type: rss
+    url: https://feeds.marketwatch.com/marketwatch/topstories/
+    domain: macro
+    weight: 1.3
+    enabled: true
+
+  - id: seeking_alpha
+    type: rss
+    url: https://seekingalpha.com/market_currents.xml
+    domain: macro
+    weight: 1.7
+    enabled: true
+
+
+  # ===============================================================
+  # GOOGLE NEWS (REFINED — HIGH SIGNAL QUERIES)
+  # ===============================================================
+
+  - id: ai_bio_google
+    type: rss
+    url: https://news.google.com/rss/search?q=AI+biotech+stocks+FDA+approval
+    domain: ai-bio
+    weight: 1.6
+    enabled: true
+
+  - id: defense_google
+    type: rss
+    url: https://news.google.com/rss/search?q=defense+stocks+contract+Pentagon
+    domain: defense
+    weight: 1.5
+    enabled: true
+
+  - id: earnings_google
+    type: rss
+    url: https://news.google.com/rss/search?q=earnings+stock+beats+guidance
+    domain: macro
+    weight: 1.6
+    enabled: true
+
+
+  # ===============================================================
+  # SECTOR-SPECIFIC SIGNAL (CONFIRMED WORKING)
+  # ===============================================================
+
+  - id: defense_news
+    type: rss
+    url: https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml
+    domain: defense
+    weight: 1.8
+    enabled: true
+
+
+  # ===============================================================
+  # DISABLED / NON-WORKING FEEDS (INTENTIONALLY OFF)
+  # ===============================================================
+
+  - id: yahoo_finance
+    type: rss
+    url: https://finance.yahoo.com/news/rssindex
+    domain: macro
+    weight: 1.4
+    enabled: false   # 429 rate limited
+
+  - id: cnbc_markets
+    type: rss
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+    domain: macro
+    weight: 1.4
+    enabled: false   # 403 blocked
+
+  - id: biotech_news
+    type: rss
+    url: https://www.biospace.com/rss/news
+    domain: ai-bio
+    weight: 2.0
+    enabled: false   # 404 dead
 
   - id: cnn_top
     type: rss
     url: https://rss.cnn.com/rss/edition.rss
     domain: macro
     weight: 1.0
-    enabled: true
+    enabled: false
 
   - id: reuters_top
     type: rss
     url: https://feeds.reuters.com/reuters/topNews
     domain: macro
     weight: 1.2
-    enabled: true
-
-
-  # ===============================================================
-  # AI-BIO SECTOR
-  # ===============================================================
-
-  - id: ai_bio_google
-    type: rss
-    url: https://news.google.com/rss/search?q=AI+biotech+stock
-    domain: ai-bio
-    weight: 1.5
-    enabled: true
-
-
-  # ===============================================================
-  # DEFENSE SECTOR
-  # ===============================================================
-
-  - id: defense_google
-    type: rss
-    url: https://news.google.com/rss/search?q=defense+stocks
-    domain: defense
-    weight: 1.3
-    enabled: true
-
-
-  # ===============================================================
-  # FDA REGULATORY SIGNALS
-  # ===============================================================
+    enabled: false
 
   - id: fda_press_announcements
     type: rss
     url: https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-announcements/rss.xml
     domain: healthcare
     weight: 2.5
-    enabled: true
+    enabled: false
 
   - id: fda_drug_approvals
     type: rss
     url: https://www.fda.gov/drugs/drug-approvals-and-databases/drug-approvals-and-databases/rss.xml
     domain: ai-bio
     weight: 3.0
-    enabled: true
+    enabled: false
 
   - id: fda_device_recalls
     type: rss
     url: https://www.fda.gov/medical-devices/medical-device-recalls/rss.xml
     domain: healthcare
     weight: 2.0
-    enabled: true
+    enabled: false
 
 
   # ===============================================================
-  # STRUCTURED NEWS (FASTER THAN RSS)
+  # STRUCTURED NEWS (OFF FOR NOW)
   # ===============================================================
 
   - id: finnhub_news
@@ -105,7 +154,7 @@ feeds:
 
 
   # ===============================================================
-  # OPTIONS FLOW (INSTITUTIONAL POSITIONING)
+  # OPTIONS FLOW (OFF FOR NOW)
   # ===============================================================
 
   - id: unusual_whales_flow
@@ -124,7 +173,7 @@ feeds:
 
 
   # ===============================================================
-  # MARKET IGNITION (PRICE-LED SIGNALS)
+  # MARKET IGNITION (KEEP — IMPORTANT FOR OPEN)
   # ===============================================================
 
   - id: price_ignition_detector

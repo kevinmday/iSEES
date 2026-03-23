@@ -56,6 +56,9 @@ class NarrativeAdapter:
         self._projection_events = []
         self._engine_time_counter = 0
 
+        # 🔥 NEW — event dedupe memory
+        self._seen_event_ids = set()
+
         # 🔥 START RSS WORKER (BACKGROUND THREAD)
         threading.Thread(
             target=self.worker.run_loop,
@@ -136,6 +139,14 @@ class NarrativeAdapter:
             if not title:
                 continue
 
+            # 🔥 NEW — dedupe by title
+            event_id = hash(title)
+
+            if event_id in self._seen_event_ids:
+                continue
+
+            self._seen_event_ids.add(event_id)
+
             extracted_symbols = self.extractor.extract(title)
 
             if not extracted_symbols:
@@ -192,7 +203,7 @@ class NarrativeAdapter:
 
     def get_propagation_snapshot(self):
 
-        # 🔥 ensure projection stays fresh each access
+        # 🔥 safe now due to dedupe
         self._update_projection()
 
         return self.propagation.snapshot()

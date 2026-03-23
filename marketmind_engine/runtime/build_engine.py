@@ -110,6 +110,7 @@ def build_engine(
     regime_service = regime_service or StubRegimeService()
     policy_engine = policy_engine or StubPolicyEngine()
 
+    # 🔥 SINGLE SOURCE OF TRUTH (Narrative Field)
     narrative_adapter = narrative_adapter or NarrativeAdapter()
 
     # --------------------------------------------------
@@ -164,13 +165,14 @@ def build_engine(
     )
 
     # --------------------------------------------------
-    # Runtime Executor
+    # Runtime Executor (🔥 FIX APPLIED)
     # --------------------------------------------------
 
     runtime_executor = RuntimeExecutor(
         coordinator=coordinator,
         execution_service=execution_service,
         price_service=price_service,
+        narrative_adapter=narrative_adapter,  # 🔥 CRITICAL FIX
     )
 
     # --------------------------------------------------

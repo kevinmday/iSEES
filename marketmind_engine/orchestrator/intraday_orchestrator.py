@@ -41,6 +41,8 @@ class IntradayOrchestrator:
         audit_writer=None,
         execution_policy=None,
         propagation_engine=None,
+        broker=None,                    # 🔥 NEW
+        narrative_adapter=None,         # 🔥 NEW
     ):
         self._macro_source = macro_source
         self._audit_writer = audit_writer
@@ -63,6 +65,13 @@ class IntradayOrchestrator:
         # ---------------------------------------
 
         self.propagation = propagation_engine
+
+        # ---------------------------------------
+        # 🔥 NEW — PRICE + NARRATIVE HOOKS
+        # ---------------------------------------
+
+        self.broker = broker
+        self.narrative_adapter = narrative_adapter
 
     # --------------------------------------------------
     # MARKET PHASE DETECTION
@@ -201,6 +210,39 @@ class IntradayOrchestrator:
         self._run_symbol_discovery()
 
         # ---------------------------------------
+        # 🔥 NEW — PRICE → NARRATIVE PIPELINE
+        # ---------------------------------------
+
+        if self.broker and self.narrative_adapter:
+
+            try:
+
+                # Try to get active symbols from propagation
+                symbols = []
+
+                if self.propagation:
+                    try:
+                        symbols = list(self.propagation.symbol_mentions.keys())
+                    except Exception:
+                        pass
+
+                if symbols:
+
+                    price_data = self.broker.get_prices(symbols)
+
+                    # Clean None values
+                    price_data = {
+                        k: v for k, v in price_data.items()
+                        if v is not None
+                    }
+
+                    if price_data:
+                        self.narrative_adapter.ingest_price_data(price_data)
+
+            except Exception as e:
+                print(f"[PRICE INGEST ERROR] {e}")
+
+        # ---------------------------------------
         # MARKET CLOSED → DISCOVERY ONLY
         # ---------------------------------------
 
@@ -232,10 +274,6 @@ class IntradayOrchestrator:
 
         previous_mode = self.state.regime_mode
 
-        # --------------------------------------------------
-        # HARD INTERRUPT
-        # --------------------------------------------------
-
         if risk_directive.flatten_all:
 
             if previous_mode != SystemicMode.STANDBY:
@@ -249,10 +287,6 @@ class IntradayOrchestrator:
 
             self._flatten_all_positions()
             self.state.regime_mode = SystemicMode.STANDBY
-
-        # --------------------------------------------------
-        # STANDBY LOCK
-        # --------------------------------------------------
 
         elif previous_mode == SystemicMode.STANDBY:
 
@@ -281,10 +315,6 @@ class IntradayOrchestrator:
 
             self.state.regime_mode = risk_directive.mode
 
-        # --------------------------------------------------
-        # RECOVERY
-        # --------------------------------------------------
-
         self.recovery_controller.update(
             previous_mode=previous_mode.value,
             current_mode=self.state.regime_mode.value,
@@ -293,16 +323,7 @@ class IntradayOrchestrator:
         )
 
         recovery_modifier = self.recovery_controller.modifier()
-
-        # --------------------------------------------------
-        # DOMAIN MODIFIER
-        # --------------------------------------------------
-
         domain_modifier = self.domain_modifier_controller.modifier()
-
-        # --------------------------------------------------
-        # EXECUTION DIRECTIVE
-        # --------------------------------------------------
 
         base_directive: ExecutionDirective = (
             self._execution_policy.resolve(self.state.regime_mode)
