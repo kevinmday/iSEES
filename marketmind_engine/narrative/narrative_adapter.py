@@ -21,6 +21,7 @@ from marketmind_engine.narrative.narrative_identity import (
 from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
 
 import threading
+import hashlib
 
 
 class NarrativeAdapter:
@@ -30,6 +31,10 @@ class NarrativeAdapter:
     🔥 NOW LIVE:
     - RSS worker runs in background
     - Projection updates continuously
+
+    🔥 UPGRADE:
+    - Cross-source duplicate aggregation (weight = frequency)
+    - Carries narrative content (title + timestamp)
     """
 
     def __init__(self):
@@ -56,8 +61,8 @@ class NarrativeAdapter:
         self._projection_events = []
         self._engine_time_counter = 0
 
-        # 🔥 NEW — event dedupe memory
-        self._seen_event_ids = set()
+        # 🔥 NEW — aggregated event registry
+        self._event_registry = {}
 
         # 🔥 START RSS WORKER (BACKGROUND THREAD)
         threading.Thread(
@@ -81,13 +86,10 @@ class NarrativeAdapter:
         self._update_projection()
 
     # -------------------------------------------------
-    # ✅ NEW — Price → Ignition → Narrative
+    # ✅ Price → Ignition → Narrative
     # -------------------------------------------------
 
     def ingest_price_data(self, price_data: dict):
-        """
-        Accept price updates and convert to ignition events.
-        """
 
         events = self.ignition.process_batch(price_data)
 
@@ -96,7 +98,6 @@ class NarrativeAdapter:
 
         for e in events:
 
-            # deterministic engine time
             self._engine_time_counter += 1
 
             event = ProjectionEvent(
@@ -105,12 +106,11 @@ class NarrativeAdapter:
                 source="ignition",
                 sentiment=0.0,
                 weight=e.weight,
+                title=None,          # safe
+                timestamp=None,      # safe
             )
 
-            # push directly into propagation
             self.propagation.ingest_event(event)
-
-            # persist ignition events
             self._projection_events.append(event)
 
         self._prune_projection_events()
@@ -126,11 +126,23 @@ class NarrativeAdapter:
 
         return getattr(item, "title", "")
 
+    def _extract_timestamp(self, item):
+        """
+        Best-effort timestamp extraction.
+        Handles dict + object feeds.
+        """
+
+        if isinstance(item, dict):
+            return item.get("published") or item.get("timestamp") or ""
+
+        return getattr(item, "published", None) or getattr(item, "timestamp", "")
+
     def _update_projection(self):
 
         headlines = self.buffer.snapshot()
 
-        new_events = []
+        # 🔥 reset aggregation each cycle
+        self._event_registry = {}
 
         for item in headlines:
 
@@ -139,13 +151,26 @@ class NarrativeAdapter:
             if not title:
                 continue
 
-            # 🔥 NEW — dedupe by title
-            event_id = hash(title)
+            # 🔥 stable hash (not Python hash)
+            event_id = hashlib.md5(title.lower().encode()).hexdigest()
 
-            if event_id in self._seen_event_ids:
-                continue
+            if event_id not in self._event_registry:
+                self._event_registry[event_id] = {
+                    "count": 0,
+                    "title": title,
+                    "timestamp": self._extract_timestamp(item),
+                }
 
-            self._seen_event_ids.add(event_id)
+            self._event_registry[event_id]["count"] += 1
+
+        new_events = []
+
+        # 🔥 build events from aggregated registry
+        for event_id, entry in self._event_registry.items():
+
+            title = entry["title"]
+            timestamp = entry.get("timestamp", "")
+            weight = entry["count"]
 
             extracted_symbols = self.extractor.extract(title)
 
@@ -163,14 +188,15 @@ class NarrativeAdapter:
                     engine_time=self._engine_time_counter,
                     source="rss",
                     sentiment=0.0,
-                    weight=1.0,
+                    weight=weight,
+                    title=title,            # 🔥 FIX
+                    timestamp=timestamp,    # 🔥 FIX
                 )
 
                 new_events.append(event)
 
                 narrative.assets.add(symbol)
 
-                # 🔥 immediate propagation
                 self.propagation.ingest_event(event)
 
         self._projection_events.extend(new_events)
@@ -178,7 +204,7 @@ class NarrativeAdapter:
         self._prune_projection_events()
 
     # -------------------------------------------------
-    # 🔥 PRUNING
+    # PRUNING
     # -------------------------------------------------
 
     def _prune_projection_events(self):
@@ -203,7 +229,6 @@ class NarrativeAdapter:
 
     def get_propagation_snapshot(self):
 
-        # 🔥 safe now due to dedupe
         self._update_projection()
 
         return self.propagation.snapshot()

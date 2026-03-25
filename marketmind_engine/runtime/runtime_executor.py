@@ -102,21 +102,17 @@ class RuntimeExecutor:
                 self._log_msg(f"Execution error: {e}")
 
         # --------------------------------------------------
-        # 🔥 FORCE SYMBOL (CRITICAL)
+        # 🔥 FORCE SYMBOL
         # --------------------------------------------------
 
         symbol = execution_input.symbol or "NVDA"
         self._log_msg(f"[SYMBOL] {symbol}")
 
         # --------------------------------------------------
-        # 🔥 PRICE ENGINE (FINAL FIXED VERSION)
+        # 🔥 PRICE ENGINE
         # --------------------------------------------------
 
         try:
-
-            # ----------------------------------------
-            # STRICT PRICE NORMALIZATION
-            # ----------------------------------------
 
             price = None
 
@@ -126,13 +122,11 @@ class RuntimeExecutor:
                 if self._price_service:
                     raw = self._price_service.get_price(symbol)
 
-                # Normalize ALL possible bad formats
                 if isinstance(raw, dict):
                     candidate = raw.get("ap") or raw.get("bp")
                 else:
                     candidate = raw
 
-                # Accept ONLY valid numeric price
                 if isinstance(candidate, (int, float)) and candidate > 0:
                     price = candidate
                 else:
@@ -141,18 +135,10 @@ class RuntimeExecutor:
             except Exception:
                 price = None
 
-            # ----------------------------------------
-            # 🔥 SYNTHETIC FALLBACK (ALWAYS WORKS NOW)
-            # ----------------------------------------
-
             if price is None:
                 prev = self._last_price.get(symbol, 100.0)
                 price = prev * 1.002
                 self._log_msg(f"[SYNTHETIC_PRICE] {symbol} {price:.4f}")
-
-            # ----------------------------------------
-            # PROCESS PRICE
-            # ----------------------------------------
 
             self._log_msg(f"[PRICE] {symbol} {price}")
 
@@ -171,10 +157,6 @@ class RuntimeExecutor:
                 }
             }
 
-            # ----------------------------------------
-            # IGNITION
-            # ----------------------------------------
-
             events = self._ignition.process_batch(price_data)
 
             self._log_msg(
@@ -187,14 +169,32 @@ class RuntimeExecutor:
                         f"[IGNITION_FIRE] {e.symbol} Δ={e.price_change_pct:.3f}"
                     )
 
-            # ----------------------------------------
-            # FIELD INJECTION
-            # ----------------------------------------
-
             self._narrative.ingest_price_data(price_data)
 
         except Exception as e:
             self._log_msg(f"[PRICE_ENGINE_ERROR] {e}")
+
+        # --------------------------------------------------
+        # 🔥 DRIFT MAPPING (propagation_score → drift)
+        # --------------------------------------------------
+
+        drift_value = 0.0
+
+        try:
+            snap = self._narrative.get_propagation_snapshot()
+            if snap:
+                metrics = snap.get(symbol, {})
+                drift_value = metrics.get("propagation_score", 0.0)
+        except Exception:
+            drift_value = 0.0
+
+        symbol_block = {
+            symbol: {
+                "price": price,
+                "last_price": prev,
+                "drift": drift_value,
+            }
+        }
 
         # --------------------------------------------------
 
@@ -205,4 +205,7 @@ class RuntimeExecutor:
             "order_intent": order_intent,
             "execution_receipt": receipt,
             "engine_time": execution_input.engine_time,
+
+            # 🔥 NEW (safe, additive only)
+            "symbols": symbol_block,
         }

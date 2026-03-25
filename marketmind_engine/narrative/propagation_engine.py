@@ -62,37 +62,20 @@ class PropagationEngine:
     # --------------------------------------------------
 
     def ingest_event(self, event):
-        """
-        event fields expected:
-
-        event.symbol
-        event.engine_time
-        event.source
-        event.weight
-        """
 
         symbol = event.symbol
 
-        # --------------------------------------------------
-        # Diffusion learning (observational)
-        # --------------------------------------------------
-
+        # diffusion learning
         self.diffusion_engine.observe_event(event)
 
-        # --------------------------------------------------
-        # Reinforcement physics
-        # --------------------------------------------------
-
+        # reinforcement physics
         previous_force = self.symbol_force[symbol]
         reinforced_force = previous_force * self.decay + event.weight
         self.symbol_force[symbol] = reinforced_force
 
         reinforced_weight = reinforced_force
 
-        # --------------------------------------------------
-        # Store event
-        # --------------------------------------------------
-
+        # store event
         state = self.symbol_state[symbol]
 
         state["timestamps"].append(event.engine_time)
@@ -101,14 +84,10 @@ class PropagationEngine:
 
         self._prune_old(symbol, event.engine_time)
 
-        # --------------------------------------------------
-        # Diffusion (deterministic propagation seed map)
-        # --------------------------------------------------
-
+        # diffusion propagation
         neighbors = self.diffusion_map.get(symbol)
 
         if neighbors:
-
             for neighbor in neighbors:
 
                 if neighbor == symbol:
@@ -141,7 +120,6 @@ class PropagationEngine:
         new_s = []
 
         for t, w, s in zip(timestamps, weights, sources):
-
             if t >= cutoff:
                 new_t.append(t)
                 new_w.append(w)
@@ -188,7 +166,7 @@ class PropagationEngine:
         frequency = mentions / self.window
 
         # --------------------------------------------------
-        # VELOCITY
+        # VELOCITY (event acceleration)
         # --------------------------------------------------
 
         recent = timestamps[-5:]
@@ -220,31 +198,35 @@ class PropagationEngine:
         ucip = min(max(ucip, 0.0), 1.0)
 
         # --------------------------------------------------
-        # DRIFT  (true narrative velocity)
+        # DRIFT  (FIXED — continuous force sensitivity)
         # --------------------------------------------------
 
         last_mentions = state["last_mentions"]
         last_fils = state["last_fils"]
         last_force = state["last_force"]
 
-        mention_delta = max(mentions - last_mentions, 0)
-        fils_delta = max(fils - last_fils, 0)
-
         current_force = self.symbol_force[symbol]
-        force_delta = max(current_force - last_force, 0)
 
+        # 🔥 FIX 1: allow continuous force sensitivity (not just positive jumps)
+        force_velocity = abs(current_force - last_force) / self.window
+
+        # 🔥 FIX 2: allow symmetric FILS movement
+        fils_velocity = abs(fils - last_fils)
+
+        # 🔥 FIX 3: mention velocity still directional (true bursts)
+        mention_delta = max(mentions - last_mentions, 0)
         mention_velocity = mention_delta / 10
-        fils_velocity = fils_delta
-        force_velocity = force_delta / self.window
 
+        # 🔥 NEW weighting — force dominates sustained movement
         drift = (
-            0.5 * mention_velocity +
-            0.3 * fils_velocity +
-            0.2 * force_velocity
+            0.3 * mention_velocity +
+            0.2 * fils_velocity +
+            0.5 * force_velocity
         )
 
         drift = min(max(drift, 0.0), 1.0)
 
+        # update state memory
         state["last_mentions"] = mentions
         state["last_fils"] = fils
         state["last_force"] = current_force

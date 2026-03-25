@@ -22,12 +22,13 @@ STRUCTURAL_SYMBOLS = [
 
 class PropagationEngine:
     """
-    Hybrid propagation engine (FINALIZED):
+    Hybrid propagation engine (FINALIZED + DRIFT ENABLED)
 
     ✔ Clean symbol universe
     ✔ Provider-aware filtering
     ✔ Stateful propagation tracking
     ✔ Replay-safe deterministic behavior
+    ✔ Drift (Δ change over time)
     """
 
     def __init__(self, provider, engine_controller, rss_service):
@@ -37,10 +38,10 @@ class PropagationEngine:
         self.relative_layer = RelativeSignalLayer()
 
         self._symbol_state: Dict[str, Dict[str, Any]] = {}
-        self._invalid_symbols = set()  # 🔥 prevents repeated 404s
+        self._invalid_symbols = set()
 
     # ==========================================================
-    # 🔒 SYMBOL FILTER (FINAL — DO NOT TOUCH)
+    # 🔒 SYMBOL FILTER
     # ==========================================================
 
     def _valid_symbol(self, symbol: str) -> bool:
@@ -54,11 +55,9 @@ class PropagationEngine:
         if "-" in symbol or "." in symbol:
             return False
 
-        # warrants / units / rights / derivatives
         if symbol.endswith(("W", "WS", "WT", "U", "R")):
             return False
 
-        # OTC / pink sheet suppression
         if symbol.endswith(("F", "Y", "Q")):
             return False
 
@@ -82,36 +81,21 @@ class PropagationEngine:
 
             try:
 
-                # -----------------------------
-                # FILTER: invalid cache
-                # -----------------------------
                 if symbol in self._invalid_symbols:
                     continue
 
-                # -----------------------------
-                # FILTER: structural validity
-                # -----------------------------
                 if not self._valid_symbol(symbol):
                     continue
 
-                # -----------------------------
-                # PRICE FETCH
-                # -----------------------------
                 price_now = None
 
                 if hasattr(self.provider, "get_price"):
                     price_now = self.provider.get_price(symbol)
 
-                # -----------------------------
-                # FILTER: provider rejection
-                # -----------------------------
                 if price_now is None:
                     self._invalid_symbols.add(symbol)
                     continue
 
-                # -----------------------------
-                # FILTER: price sanity
-                # -----------------------------
                 if price_now < 2.0:
                     continue
 
@@ -122,7 +106,8 @@ class PropagationEngine:
                     "price_prev": price_now,
                     "buffer": [],
                     "lifespan": 0,
-                    "propagation_score": 0.0
+                    "propagation_score": 0.0,
+                    "delta_micro": 0.0,
                 })
 
                 dt = max(now - prev["timestamp"], 1.0)
@@ -158,6 +143,12 @@ class PropagationEngine:
                     delta_micro = 0.0
                 else:
                     delta_micro = (price_now - price_prev) / price_prev
+
+                # ==========================================================
+                # 🔥 DRIFT (KEY FIX)
+                # ==========================================================
+                prev_delta = prev.get("delta_micro", 0.0)
+                drift = delta_micro - prev_delta
 
                 # -----------------------------
                 # BUFFER (N = 12)
@@ -202,6 +193,7 @@ class PropagationEngine:
                     "bias": bias,
                     "directional_ratio": directional_ratio,
                     "delta_micro": delta_micro,
+                    "drift": drift,  # 🔥 NEW
                 }
 
                 # -----------------------------
@@ -210,6 +202,7 @@ class PropagationEngine:
                 print(
                     f"[STATE] {symbol} "
                     f"Δ={delta_micro:.5f} "
+                    f"drift={drift:.5f} "
                     f"bias={bias:.5f} "
                     f"ratio={directional_ratio:.2f} "
                     f"life={lifespan} "
