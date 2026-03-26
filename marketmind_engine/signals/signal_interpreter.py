@@ -3,7 +3,7 @@
 
 def classify_signal(symbol: str, state: dict) -> str:
     """
-    Signal classification layer (Phase 6G.1)
+    Signal classification layer (Phase 6G.2 — PMAS enabled)
 
     Inputs:
         state = {
@@ -35,13 +35,11 @@ def classify_signal(symbol: str, state: dict) -> str:
     signal = "IGNORE"
 
     # ==========================================================
-    # 🟡 PMAS (Pre-Move Accumulation)
+    # 🔥 PMAS (EARLY ACCUMULATION — NEW PRIMARY TRIGGER)
     # ==========================================================
     if (
-        abs(delta) < 0.002
-        and prop > 0
-        and slope >= 0
-        and life > 5
+        life >= 5 and
+        abs(prop) > 0.0001
     ):
         signal = "WATCH_PMAS"
 
@@ -74,7 +72,7 @@ def classify_signal(symbol: str, state: dict) -> str:
         signal = "EXIT"
 
     # ==========================================================
-    # 🧠 DEBUG PRINT (ALWAYS ON FOR NOW)
+    # 🧠 DEBUG PRINT (CRITICAL FOR VALIDATION)
     # ==========================================================
     print(
         f"[SIGNAL] {symbol} "

@@ -6,35 +6,19 @@ import math
 
 from .relative_signal_layer import RelativeSignalLayer
 
-# 🔥 NEW IMPORT (signal layer)
+# 🔥 SIGNAL LAYER
 from marketmind_engine.signals.signal_interpreter import classify_signal
+
+# 🔥 VALIDATION LOGGER (NEW)
+from marketmind_engine.utils.validation_logger import log_signal
 
 
 STRUCTURAL_SYMBOLS = [
-    "SPY",
-    "QQQ",
-    "DIA",
-    "IWM",
-    "XLF",
-    "XLE",
-    "XLV",
-    "SMH",
-    "ITA",
+    "SPY","QQQ","DIA","IWM","XLF","XLE","XLV","SMH","ITA",
 ]
 
 
 class PropagationEngine:
-    """
-    Hybrid propagation engine (FINALIZED + DRIFT + SLOPE + SIGNALS)
-
-    ✔ Clean symbol universe
-    ✔ Provider-aware filtering
-    ✔ Stateful propagation tracking
-    ✔ Replay-safe deterministic behavior
-    ✔ Drift (Δ change over time)
-    ✔ Drift Slope (acceleration)
-    ✔ Signal classification layer (NEW)
-    """
 
     def __init__(self, provider, engine_controller, rss_service):
         self.provider = provider
@@ -45,35 +29,22 @@ class PropagationEngine:
         self._symbol_state: Dict[str, Dict[str, Any]] = {}
         self._invalid_symbols = set()
 
-    # ==========================================================
-    # 🔒 SYMBOL FILTER
-    # ==========================================================
-
     def _valid_symbol(self, symbol: str) -> bool:
 
         if not symbol:
             return False
-
         if len(symbol) > 5:
             return False
-
         if "-" in symbol or "." in symbol:
             return False
-
-        if symbol.endswith(("W", "WS", "WT", "U", "R")):
+        if symbol.endswith(("W","WS","WT","U","R")):
             return False
-
-        if symbol.endswith(("F", "Y", "Q")):
+        if symbol.endswith(("F","Y","Q")):
             return False
-
         if not symbol.isalpha():
             return False
 
         return True
-
-    # ==========================================================
-    # 🔥 STATEFUL PROPAGATION ENTRY POINT
-    # ==========================================================
 
     def update(self, symbols):
 
@@ -140,9 +111,9 @@ class PropagationEngine:
                 fils += 0.0002 * seed
                 ucip = min(ucip + 0.0005 * (seed / 10), 1.0)
 
-                # ==========================================================
-                # 🔥 MICRO PRICE DELTA
-                # ==========================================================
+                # -----------------------------
+                # MICRO DELTA
+                # -----------------------------
                 price_prev = prev.get("price_prev", price_now)
 
                 if price_prev == 0:
@@ -150,20 +121,20 @@ class PropagationEngine:
                 else:
                     delta_micro = (price_now - price_prev) / price_prev
 
-                # ==========================================================
-                # 🔥 DRIFT (velocity)
-                # ==========================================================
+                # -----------------------------
+                # DRIFT
+                # -----------------------------
                 prev_delta = prev.get("delta_micro", 0.0)
                 drift = delta_micro - prev_delta
 
-                # ==========================================================
-                # 🔥 DRIFT SLOPE (acceleration)
-                # ==========================================================
+                # -----------------------------
+                # DRIFT SLOPE
+                # -----------------------------
                 prev_drift = prev.get("drift", 0.0)
                 drift_slope = drift - prev_drift
 
                 # -----------------------------
-                # BUFFER (N = 12)
+                # BUFFER
                 # -----------------------------
                 buffer = prev.get("buffer", [])
                 buffer.append(delta_micro)
@@ -171,14 +142,10 @@ class PropagationEngine:
                 if len(buffer) > 12:
                     buffer.pop(0)
 
-                # -----------------------------
-                # DERIVED METRICS
-                # -----------------------------
                 bias = sum(buffer)
 
                 total = len(buffer)
                 positive = len([d for d in buffer if d > 0])
-
                 directional_ratio = positive / total if total > 0 else 0.0
 
                 # -----------------------------
@@ -212,7 +179,7 @@ class PropagationEngine:
                 self._symbol_state[symbol] = state
 
                 # -----------------------------
-                # DEBUG STATE LOG
+                # DEBUG STATE
                 # -----------------------------
                 print(
                     f"[STATE] {symbol} "
@@ -226,24 +193,23 @@ class PropagationEngine:
                 )
 
                 # ==========================================================
-                # 🔥 SIGNAL INTERPRETER (NEW)
+                # 🔥 SIGNAL + LOGGING (FINAL PIPELINE)
                 # ==========================================================
-                classify_signal(symbol, state)
+                signal = classify_signal(symbol, state)
+
+                log_signal(
+                    symbol=symbol,
+                    signal=signal,
+                    state=state,
+                    price=price_now
+                )
 
             except Exception:
                 pass
 
-    # ==========================================================
-    # 🔒 STABLE HASH
-    # ==========================================================
-
     def _stable_hash(self, symbol: str) -> int:
         h = hashlib.md5(symbol.encode()).hexdigest()
         return int(h[:4], 16) % 10
-
-    # ==========================================================
-    # ACCESSOR
-    # ==========================================================
 
     def get_symbol_state(self, symbol: str) -> Dict[str, float]:
         return self._symbol_state.get(symbol, {
