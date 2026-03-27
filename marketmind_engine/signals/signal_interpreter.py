@@ -3,24 +3,9 @@
 
 def classify_signal(symbol: str, state: dict) -> str:
     """
-    Signal classification layer (Phase 6G.2 — PMAS enabled)
+    Signal classification layer (Phase 6G.3)
 
-    Inputs:
-        state = {
-            delta_micro,
-            drift,
-            drift_slope,
-            propagation_score,
-            lifespan
-        }
-
-    Output:
-        signal_type:
-            WATCH_PMAS
-            ENTER_TREND
-            ENTER_VOLATILITY
-            EXIT
-            IGNORE
+    Determines ACTION (what to do)
     """
 
     # -------------------------
@@ -35,7 +20,7 @@ def classify_signal(symbol: str, state: dict) -> str:
     signal = "IGNORE"
 
     # ==========================================================
-    # 🔥 PMAS (EARLY ACCUMULATION — NEW PRIMARY TRIGGER)
+    # 🔥 PMAS (EARLY ACCUMULATION — PRIMARY TRIGGER)
     # ==========================================================
     if (
         life >= 5 and
@@ -54,7 +39,7 @@ def classify_signal(symbol: str, state: dict) -> str:
         signal = "ENTER_TREND"
 
     # ==========================================================
-    # ⚡ VOLATILITY (Non-directional spike)
+    # ⚡ VOLATILITY
     # ==========================================================
     elif (
         abs(delta) > 0.002
@@ -71,17 +56,38 @@ def classify_signal(symbol: str, state: dict) -> str:
     ):
         signal = "EXIT"
 
-    # ==========================================================
-    # 🧠 DEBUG PRINT (CRITICAL FOR VALIDATION)
-    # ==========================================================
-    print(
-        f"[SIGNAL] {symbol} "
-        f"→ {signal} | "
-        f"Δ={delta:.5f} "
-        f"d={drift:.5f} "
-        f"s={slope:.5f} "
-        f"p={prop:.5f} "
-        f"life={life}"
-    )
-
     return signal
+
+
+# ==========================================================
+# 🧠 PATTERN CLASSIFICATION (NEW — CLEAN LAYER)
+# ==========================================================
+def classify_pattern(state: dict) -> str:
+    """
+    Pattern classification layer (orthogonal to signal)
+
+    Determines STRUCTURE (what it is)
+    """
+
+    delta = state.get("delta_micro", 0.0)
+    drift = state.get("drift", 0.0)
+    slope = state.get("drift_slope", 0.0)
+    prop = state.get("propagation_score", 0.0)
+
+    # 🔴 FAILURE CASCADE
+    if slope < -0.02 and drift < 0:
+        return "FAILURE_CASCADE"
+
+    # 🟢 CLEAN TREND
+    if delta > 0 and drift > 0 and slope > 0 and prop > 0:
+        return "CLEAN_TREND"
+
+    # 🧬 CONSOLIDATION
+    if prop > 0 and drift < 0 and slope > -0.02:
+        return "CONSOLIDATION"
+
+    # ⚡ IGNITION (early formation)
+    if delta > 0 and drift > 0 and slope > 0:
+        return "IGNITION"
+
+    return "NOISE"

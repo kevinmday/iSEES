@@ -1,5 +1,4 @@
-from typing import Dict, Any, List
-from statistics import mean, pstdev
+from typing import Dict, Any
 import time
 import hashlib
 import math
@@ -7,9 +6,9 @@ import math
 from .relative_signal_layer import RelativeSignalLayer
 
 # 🔥 SIGNAL LAYER
-from marketmind_engine.signals.signal_interpreter import classify_signal
+from marketmind_engine.signals.signal_interpreter import classify_signal, classify_pattern
 
-# 🔥 VALIDATION LOGGER (NEW)
+# 🔥 VALIDATION LOGGER
 from marketmind_engine.utils.validation_logger import log_signal
 
 
@@ -29,23 +28,40 @@ class PropagationEngine:
         self._symbol_state: Dict[str, Dict[str, Any]] = {}
         self._invalid_symbols = set()
 
+    # ==========================================================
+    # 🔧 IMPROVED SYMBOL FILTER (SAFE)
+    # ==========================================================
     def _valid_symbol(self, symbol: str) -> bool:
 
         if not symbol:
             return False
-        if len(symbol) > 5:
+
+        if len(symbol) < 2 or len(symbol) > 5:
             return False
+
         if "-" in symbol or "." in symbol:
             return False
-        if symbol.endswith(("W","WS","WT","U","R")):
-            return False
-        if symbol.endswith(("F","Y","Q")):
-            return False
+
         if not symbol.isalpha():
+            return False
+
+        # Exclude warrants / special instruments
+        if symbol.endswith(("W", "WS", "WT", "U", "R")):
+            return False
+
+        # Exclude OTC / foreign suffixes
+        if symbol.endswith(("F", "Y", "Q")):
+            return False
+
+        # Common false positives
+        if symbol in {"THE", "AND", "FOR", "ARE"}:
             return False
 
         return True
 
+    # ==========================================================
+    # 🔥 MAIN UPDATE LOOP
+    # ==========================================================
     def update(self, symbols):
 
         if not symbols:
@@ -178,8 +194,14 @@ class PropagationEngine:
 
                 self._symbol_state[symbol] = state
 
+                # ==========================================================
+                # 🔥 SIGNAL + PATTERN (CLEAN SEPARATION)
+                # ==========================================================
+                signal = classify_signal(symbol, state)
+                pattern = classify_pattern(state)
+
                 # -----------------------------
-                # DEBUG STATE
+                # DEBUG STATE (ENHANCED)
                 # -----------------------------
                 print(
                     f"[STATE] {symbol} "
@@ -189,14 +211,23 @@ class PropagationEngine:
                     f"bias={bias:.5f} "
                     f"ratio={directional_ratio:.2f} "
                     f"life={lifespan} "
-                    f"prop={propagation_score:.5f}"
+                    f"prop={propagation_score:.5f} "
+                    f"pattern={pattern}"
                 )
 
-                # ==========================================================
-                # 🔥 SIGNAL + LOGGING (FINAL PIPELINE)
-                # ==========================================================
-                signal = classify_signal(symbol, state)
+                print(
+                    f"[SIGNAL] {symbol} → {signal} | "
+                    f"pattern={pattern} "
+                    f"Δ={delta_micro:.5f} "
+                    f"d={drift:.5f} "
+                    f"s={drift_slope:.5f} "
+                    f"p={propagation_score:.5f} "
+                    f"life={lifespan}"
+                )
 
+                # -----------------------------
+                # LOGGING (UNCHANGED)
+                # -----------------------------
                 log_signal(
                     symbol=symbol,
                     signal=signal,
