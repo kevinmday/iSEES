@@ -17,7 +17,6 @@ from marketmind_engine.narrative.narrative_identity import (
     NarrativeIdentityResolver,
 )
 
-# ✅ NEW (ignition)
 from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
 
 import threading
@@ -25,68 +24,34 @@ import hashlib
 
 
 class NarrativeAdapter:
-    """
-    Deterministic narrative shock adapter.
-
-    🔥 NOW LIVE:
-    - RSS worker runs in background
-    - Projection updates continuously
-
-    🔥 UPGRADE:
-    - Cross-source duplicate aggregation (weight = frequency)
-    - Carries narrative content (title + timestamp)
-    """
 
     def __init__(self):
 
-        # RSS ingestion stack
         self.registry = FeedRegistry()
         self.fetcher = RSSFetcher()
         self.buffer = NarrativeBuffer()
         self.worker = RSSWorker(self.registry, self.fetcher, self.buffer)
 
-        # Symbol resolution
         self.extractor = SymbolExtractor()
-
-        # Propagation engine
         self.propagation = PropagationEngine()
-
-        # Narrative identity resolver
         self.identity_resolver = NarrativeIdentityResolver()
-
-        # ✅ NEW (ignition)
         self.ignition = IgnitionDetector()
 
-        # Engine state
         self._projection_events = []
         self._engine_time_counter = 0
 
-        # 🔥 NEW — aggregated event registry
         self._event_registry = {}
 
-        # 🔥 START RSS WORKER (BACKGROUND THREAD)
+        # 🔥 CRITICAL — symbol continuity memory
+        self._last_symbols = set()
+
         threading.Thread(
             target=self.worker.run_loop,
             daemon=True
         ).start()
 
     # -------------------------------------------------
-    # Deterministic Injection (RSS)
-    # -------------------------------------------------
-
-    def inject_headlines(self, headlines):
-
-        if headlines is None:
-            headlines = []
-
-        headlines = list(headlines)
-
-        self.buffer.update(headlines)
-
-        self._update_projection()
-
-    # -------------------------------------------------
-    # ✅ Price → Ignition → Narrative
+    # PRICE INGESTION
     # -------------------------------------------------
 
     def ingest_price_data(self, price_data: dict):
@@ -106,17 +71,20 @@ class NarrativeAdapter:
                 source="ignition",
                 sentiment=0.0,
                 weight=e.weight,
-                title=None,          # safe
-                timestamp=None,      # safe
+                title=None,
+                timestamp=None,
             )
 
             self.propagation.ingest_event(event)
             self._projection_events.append(event)
 
+            # 🔥 keep symbol alive
+            self._last_symbols.add(e.symbol)
+
         self._prune_projection_events()
 
     # -------------------------------------------------
-    # Projection (RSS path)
+    # HELPERS
     # -------------------------------------------------
 
     def _extract_title(self, item):
@@ -127,21 +95,20 @@ class NarrativeAdapter:
         return getattr(item, "title", "")
 
     def _extract_timestamp(self, item):
-        """
-        Best-effort timestamp extraction.
-        Handles dict + object feeds.
-        """
 
         if isinstance(item, dict):
             return item.get("published") or item.get("timestamp") or ""
 
         return getattr(item, "published", None) or getattr(item, "timestamp", "")
 
+    # -------------------------------------------------
+    # CORE PROJECTION
+    # -------------------------------------------------
+
     def _update_projection(self):
 
         headlines = self.buffer.snapshot()
 
-        # 🔥 reset aggregation each cycle
         self._event_registry = {}
 
         for item in headlines:
@@ -151,7 +118,6 @@ class NarrativeAdapter:
             if not title:
                 continue
 
-            # 🔥 stable hash (not Python hash)
             event_id = hashlib.md5(title.lower().encode()).hexdigest()
 
             if event_id not in self._event_registry:
@@ -164,9 +130,9 @@ class NarrativeAdapter:
             self._event_registry[event_id]["count"] += 1
 
         new_events = []
+        current_symbols = set()
 
-        # 🔥 build events from aggregated registry
-        for event_id, entry in self._event_registry.items():
+        for entry in self._event_registry.values():
 
             title = entry["title"]
             timestamp = entry.get("timestamp", "")
@@ -181,6 +147,8 @@ class NarrativeAdapter:
 
             for symbol in extracted_symbols:
 
+                current_symbols.add(symbol)
+
                 self._engine_time_counter += 1
 
                 event = ProjectionEvent(
@@ -189,17 +157,19 @@ class NarrativeAdapter:
                     source="rss",
                     sentiment=0.0,
                     weight=weight,
-                    title=title,            # 🔥 FIX
-                    timestamp=timestamp,    # 🔥 FIX
+                    title=title,
+                    timestamp=timestamp,
                 )
 
                 new_events.append(event)
-
                 narrative.assets.add(symbol)
-
                 self.propagation.ingest_event(event)
 
         self._projection_events.extend(new_events)
+
+        # 🔥 CRITICAL — persist symbols between cycles
+        if current_symbols:
+            self._last_symbols = current_symbols
 
         self._prune_projection_events()
 
@@ -217,24 +187,30 @@ class NarrativeAdapter:
         ]
 
     # -------------------------------------------------
-    # Accessors
+    # 🔥 RESTORED — REQUIRED BY RUNTIME
     # -------------------------------------------------
 
     def get_projection_events(self):
         return list(self._projection_events)
 
     # -------------------------------------------------
-    # Propagation Snapshot
+    # SNAPSHOT
     # -------------------------------------------------
 
     def get_propagation_snapshot(self):
 
         self._update_projection()
 
-        return self.propagation.snapshot()
+        snapshot = self.propagation.snapshot()
+
+        # 🔥 ensure continuity even if no new RSS cycle
+        if not snapshot and self._last_symbols:
+            return {s: {} for s in self._last_symbols}
+
+        return snapshot
 
     # -------------------------------------------------
-    # Shock Calculation
+    # SHOCK
     # -------------------------------------------------
 
     def compute_narrative_shock(self) -> float:

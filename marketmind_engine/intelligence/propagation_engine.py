@@ -28,10 +28,13 @@ class PropagationEngine:
         self._symbol_state: Dict[str, Dict[str, Any]] = {}
         self._invalid_symbols = set()
 
+        # 🔥 SYMBOL CONTINUITY MEMORY
+        self._last_symbols = []
+
     # ==========================================================
-    # 🔧 IMPROVED SYMBOL FILTER (SAFE)
+    # 🔧 SYMBOL FILTER
     # ==========================================================
-    def _valid_symbol(self, symbol: str) -> bool:
+    def _valid_symbol(self, symbol: str):
 
         if not symbol:
             return False
@@ -45,27 +48,46 @@ class PropagationEngine:
         if not symbol.isalpha():
             return False
 
-        # Exclude warrants / special instruments
         if symbol.endswith(("W", "WS", "WT", "U", "R")):
             return False
 
-        # Exclude OTC / foreign suffixes
         if symbol.endswith(("F", "Y", "Q")):
             return False
 
-        # Common false positives
         if symbol in {"THE", "AND", "FOR", "ARE"}:
             return False
 
         return True
 
     # ==========================================================
-    # 🔥 MAIN UPDATE LOOP
+    # 🔥 MAIN UPDATE LOOP (FINAL)
     # ==========================================================
     def update(self, symbols):
 
+        # ----------------------------------------
+        # 🔥 SYMBOL CONTINUITY
+        # ----------------------------------------
+        input_count = len(symbols) if symbols else 0
+
+        if symbols:
+            self._last_symbols = symbols
+        else:
+            symbols = self._last_symbols
+
+        effective_count = len(symbols)
+
         if not symbols:
+            print(f"[FIELD] input=0 active=0 effective=0")
             return
+
+        # ----------------------------------------
+        # 🔥 FIELD VISIBILITY (NEW)
+        # ----------------------------------------
+        active_count = len(self._last_symbols)
+
+        print(
+            f"[FIELD] input={input_count} active={active_count} effective={effective_count}"
+        )
 
         now = time.time()
 
@@ -195,14 +217,11 @@ class PropagationEngine:
                 self._symbol_state[symbol] = state
 
                 # ==========================================================
-                # 🔥 SIGNAL + PATTERN (CLEAN SEPARATION)
+                # 🔥 SIGNAL + PATTERN
                 # ==========================================================
                 signal = classify_signal(symbol, state)
                 pattern = classify_pattern(state)
 
-                # -----------------------------
-                # DEBUG STATE (ENHANCED)
-                # -----------------------------
                 print(
                     f"[STATE] {symbol} "
                     f"Δ={delta_micro:.5f} "
@@ -225,9 +244,6 @@ class PropagationEngine:
                     f"life={lifespan}"
                 )
 
-                # -----------------------------
-                # LOGGING (UNCHANGED)
-                # -----------------------------
                 log_signal(
                     symbol=symbol,
                     signal=signal,
@@ -238,6 +254,28 @@ class PropagationEngine:
             except Exception:
                 pass
 
+        # ----------------------------------------
+        # 🔥 TOP FIELD VISIBILITY (NEW)
+        # ----------------------------------------
+        try:
+            if self._symbol_state:
+                top = max(
+                    self._symbol_state.items(),
+                    key=lambda x: x[1].get("propagation_score", 0)
+                )
+                sym, data = top
+
+                print(
+                    f"[FIELD_TOP] {sym} "
+                    f"prop={data.get('propagation_score', 0):.5f} "
+                    f"life={data.get('lifespan', 0)}"
+                )
+        except Exception:
+            pass
+
+    # ==========================================================
+    # HELPERS
+    # ==========================================================
     def _stable_hash(self, symbol: str) -> int:
         h = hashlib.md5(symbol.encode()).hexdigest()
         return int(h[:4], 16) % 10

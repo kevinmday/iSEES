@@ -102,20 +102,27 @@ class RuntimeExecutor:
                 self._log_msg(f"Execution error: {e}")
 
         # --------------------------------------------------
-        # 🔥 FORCE SYMBOL
+        # 🔥 SYMBOL HANDLING (FIXED — NO EARLY RETURN)
         # --------------------------------------------------
 
-        symbol = execution_input.symbol or "NVDA"
-        self._log_msg(f"[SYMBOL] {symbol}")
+        symbol = execution_input.symbol
+
+        if not symbol:
+            self._log_msg(
+                "[INFO] No symbol provided — skipping price update but continuing field"
+            )
+
+        else:
+            self._log_msg(f"[SYMBOL] {symbol}")
 
         # --------------------------------------------------
-        # 🔥 PRICE ENGINE
+        # 🔥 PRICE ENGINE (SAFE + NON-DESTRUCTIVE)
         # --------------------------------------------------
 
-        try:
+        price = None
+        prev = None
 
-            price = None
-
+        if symbol:
             try:
                 raw = None
 
@@ -129,12 +136,11 @@ class RuntimeExecutor:
 
                 if isinstance(candidate, (int, float)) and candidate > 0:
                     price = candidate
-                else:
-                    price = None
 
             except Exception:
                 price = None
 
+            # fallback synthetic price
             if price is None:
                 prev = self._last_price.get(symbol, 100.0)
                 price = prev * 1.002
@@ -145,6 +151,7 @@ class RuntimeExecutor:
             prev = self._last_price.get(symbol)
             self._last_price[symbol] = price
 
+            # volume proxy
             volume = 1.0
             if prev:
                 change = abs(price - prev) / prev
@@ -157,44 +164,55 @@ class RuntimeExecutor:
                 }
             }
 
-            events = self._ignition.process_batch(price_data)
+            try:
+                events = self._ignition.process_batch(price_data)
 
-            self._log_msg(
-                f"[IGNITION_CHECK] {symbol} price={price} vol={volume:.2f}"
-            )
+                self._log_msg(
+                    f"[IGNITION_CHECK] {symbol} price={price} vol={volume:.2f}"
+                )
 
-            if events:
-                for e in events:
-                    self._log_msg(
-                        f"[IGNITION_FIRE] {e.symbol} Δ={e.price_change_pct:.3f}"
-                    )
+                if events:
+                    for e in events:
+                        self._log_msg(
+                            f"[IGNITION_FIRE] {e.symbol} Δ={e.price_change_pct:.3f}"
+                        )
 
-            self._narrative.ingest_price_data(price_data)
+                # 🔥 feed narrative (non-destructive)
+                self._narrative.ingest_price_data(price_data)
 
-        except Exception as e:
-            self._log_msg(f"[PRICE_ENGINE_ERROR] {e}")
+            except Exception as e:
+                self._log_msg(f"[PRICE_ENGINE_ERROR] {e}")
 
         # --------------------------------------------------
-        # 🔥 DRIFT MAPPING (propagation_score → drift)
+        # 🔥 DRIFT MAPPING (SAFE)
         # --------------------------------------------------
 
         drift_value = 0.0
 
         try:
             snap = self._narrative.get_propagation_snapshot()
-            if snap:
+
+            if symbol and snap:
                 metrics = snap.get(symbol, {})
                 drift_value = metrics.get("propagation_score", 0.0)
+
         except Exception:
             drift_value = 0.0
 
-        symbol_block = {
-            symbol: {
-                "price": price,
-                "last_price": prev,
-                "drift": drift_value,
+        # --------------------------------------------------
+        # 🔥 SYMBOL BLOCK (SAFE)
+        # --------------------------------------------------
+
+        symbol_block = {}
+
+        if symbol:
+            symbol_block = {
+                symbol: {
+                    "price": price,
+                    "last_price": prev,
+                    "drift": drift_value,
+                }
             }
-        }
 
         # --------------------------------------------------
 
@@ -206,6 +224,6 @@ class RuntimeExecutor:
             "execution_receipt": receipt,
             "engine_time": execution_input.engine_time,
 
-            # 🔥 NEW (safe, additive only)
+            # 🔥 NEVER kill field again
             "symbols": symbol_block,
         }
