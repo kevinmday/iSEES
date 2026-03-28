@@ -1,7 +1,7 @@
 import os
 print("🔥 RUNNING FILE:", os.path.abspath(__file__))
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI
@@ -21,7 +21,9 @@ from marketmind_engine.api.models import (
     EngineStatus,
 )
 
-from marketmind_engine.intelligence.propagation_engine import PropagationEngine
+# 🔥 FIXED: NOW USING RUNTIME ENGINE (NOT INTELLIGENCE ENGINE)
+from marketmind_engine.narrative.propagation_engine_runtime import PropagationEngine
+
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
 
 
@@ -89,7 +91,6 @@ symbol_validator = SymbolValidator()
 
 app = FastAPI(title="MarketMind Engine API")
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -129,7 +130,7 @@ def is_market_open():
 
 
 # ------------------------------------------------------------------
-# PROPAGATION WRAPPER (DEBUG ENABLED)
+# PROPAGATION WRAPPER
 # ------------------------------------------------------------------
 
 def safe_propagation_update(engine, symbols):
@@ -218,7 +219,7 @@ def engine_loop():
 
 
 # ------------------------------------------------------------------
-# ROUTES (RESTORED)
+# ROUTES
 # ------------------------------------------------------------------
 
 @app.post("/api/engine/start", response_model=StartResponse)
