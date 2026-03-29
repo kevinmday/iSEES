@@ -1,5 +1,5 @@
 # ============================================================
-# MarketMind — Runtime Executor (Flow-Mapped FINAL + VISIBLE)
+# MarketMind — Runtime Executor (Flow + Direction FINAL)
 # ============================================================
 
 from typing import Optional, Dict, Any
@@ -11,7 +11,7 @@ from marketmind_engine.execution.execution_input import ExecutionInput
 from marketmind_engine.execution.execution_types import OrderIntent
 
 from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
-from marketmind_engine.intelligence.flow_mapper import FlowMapper
+from marketmind_engine.intelligence.flow_mapper import FlowMapper, DirectionalAnalyzer
 from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 
 
@@ -31,6 +31,7 @@ class RuntimeExecutor:
 
         self._ignition = IgnitionDetector()
         self._flow_mapper = FlowMapper()
+        self._direction = DirectionalAnalyzer()  # 🔥 NEW
 
         if narrative_adapter is None:
             raise ValueError(
@@ -39,7 +40,6 @@ class RuntimeExecutor:
 
         self._narrative = narrative_adapter
         self._last_price = {}
-
         self._last_flow_map = None
 
     # --------------------------------------------------
@@ -110,7 +110,7 @@ class RuntimeExecutor:
                 self._log_msg(f"Execution error: {e}")
 
         # --------------------------------------------------
-        # SYMBOL (OPTIONAL)
+        # SYMBOL
         # --------------------------------------------------
 
         symbol = execution_input.symbol
@@ -186,10 +186,8 @@ class RuntimeExecutor:
                 self._log_msg(f"[PRICE_ENGINE_ERROR] {e}")
 
         # --------------------------------------------------
-        # 🔥 GLOBAL FLOW MAPPING (ALWAYS RUNS)
+        # 🔥 GLOBAL FLOW + DIRECTION
         # --------------------------------------------------
-
-        flow_output = None
 
         try:
             snap = self._narrative.get_propagation_snapshot()
@@ -207,16 +205,30 @@ class RuntimeExecutor:
                         "lifespan": data.get("LIFE", 0),
                     }
 
+                # FLOW
                 flow_output = self._flow_mapper.map(adapted_states)
                 self._last_flow_map = flow_output
 
-                long_syms = [x["symbol"] for x in flow_output["long"][:5]]
+                # DIRECTION
+                direction_map = self._direction.update(adapted_states)
+
+                long_syms = [
+                    x["symbol"]
+                    for x in flow_output["long"]
+                    if direction_map.get(x["symbol"], {}).get("direction") == "LONG"
+                ]
+
+                short_syms = [
+                    x["symbol"]
+                    for x in flow_output["long"]
+                    if direction_map.get(x["symbol"], {}).get("direction") == "SHORT"
+                ]
 
                 print("\n" + "=" * 50)
-                print("[FLOW MAP — ACTIVE]")
-                print(f"Top Long → {long_syms}")
+                print("[FLOW MAP — DIRECTIONAL]")
+                print(f"LONG → {long_syms[:5]}")
+                print(f"SHORT → {short_syms[:5]}")
                 print(f"Qualified → {flow_output['debug']['qualified_candidates']}")
-                print(f"[FLOW FULL] {flow_output['all_ranked'][:3]}")
                 print("=" * 50 + "\n")
 
             else:
@@ -226,39 +238,7 @@ class RuntimeExecutor:
             self._log_msg(f"[FLOW_ERROR] {e}")
 
         # --------------------------------------------------
-        # DRIFT (PER SYMBOL)
-        # --------------------------------------------------
-
-        drift_value = 0.0
-
-        try:
-            if symbol and flow_output:
-                drift_value = next(
-                    (
-                        x["drift"]
-                        for x in flow_output["all_ranked"]
-                        if x["symbol"] == symbol
-                    ),
-                    0.0,
-                )
-        except Exception:
-            drift_value = 0.0
-
-        # --------------------------------------------------
-        # SYMBOL BLOCK
-        # --------------------------------------------------
-
-        symbol_block = {}
-
-        if symbol:
-            symbol_block = {
-                symbol: {
-                    "price": price,
-                    "last_price": prev,
-                    "drift": drift_value,
-                }
-            }
-
+        # RETURN
         # --------------------------------------------------
 
         return {
@@ -268,6 +248,6 @@ class RuntimeExecutor:
             "order_intent": order_intent,
             "execution_receipt": receipt,
             "engine_time": execution_input.engine_time,
-            "symbols": symbol_block,
+            "symbols": {},
             "flow_map": self._last_flow_map,
         }

@@ -1,26 +1,28 @@
 # ============================================================
-# MarketMind — Dynamic Flow Mapper (Discovery-First, v2)
+# MarketMind — Dynamic Flow Mapper (Discovery + Direction v3)
 # File: marketmind_engine/intelligence/flow_mapper.py
 # ============================================================
 
 from typing import Dict, List, Any
 
 
+# ============================================================
+# CORE FLOW MAPPER (UNCHANGED FOUNDATION)
+# ============================================================
+
 class FlowMapper:
     """
     Discovery-first mapper:
     Converts propagated symbol state into ranked trade candidates.
 
-    v2 CHANGES:
-    - REMOVED bias dependency (system not producing reliable bias yet)
-    - PURE emergence scoring (drift + propagation + persistence)
-    - Direction deferred to later phase
+    v3:
+    - Keeps emergence scoring
+    - Direction handled separately (non-invasive)
 
     Design Principles:
     - NO hardcoded sectors
-    - NO predefined tickers
     - PURE emergence
-    - STRONG filtering to control noise
+    - STRONG filtering
     """
 
     def __init__(
@@ -37,29 +39,6 @@ class FlowMapper:
     # ENTRY POINT
     # --------------------------------------------------------
     def map(self, symbol_states: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Converts symbol_states into ranked candidates.
-
-        Input:
-            symbol_states = {
-                "XOM": {
-                    "drift": float,
-                    "bias": float (optional / ignored in v2),
-                    "persist": int,
-                    "propagation_score": float,
-                    "lifespan": int
-                },
-                ...
-            }
-
-        Output:
-            {
-                "long": [...],
-                "short": [],
-                "all_ranked": [...],
-                "debug": {...}
-            }
-        """
 
         candidates: List[Dict[str, Any]] = []
 
@@ -73,72 +52,47 @@ class FlowMapper:
                 "symbol": symbol,
                 "score": score,
                 "drift": state.get("drift", 0.0),
-                "bias": state.get("bias", 0.0),  # kept for future use
+                "bias": state.get("bias", 0.0),  # used by direction layer
                 "persist": state.get("persist", 0),
                 "propagation": state.get("propagation_score", 0.0),
                 "lifespan": state.get("lifespan", 0),
             })
 
-        # ----------------------------------------------------
-        # GLOBAL RANKING (PURE EMERGENCE)
-        # ----------------------------------------------------
         ranked = sorted(candidates, key=lambda x: x["score"], reverse=True)
 
-        # ----------------------------------------------------
-        # v2: NO DIRECTION SPLIT YET
-        # ----------------------------------------------------
-        long_candidates = ranked
-        short_candidates: List[Dict[str, Any]] = []
-
         return {
-            "long": long_candidates[: self.max_candidates],
-            "short": short_candidates,
+            "long": ranked[: self.max_candidates],
+            "short": [],
             "all_ranked": ranked[: self.max_candidates],
             "debug": {
                 "total_symbols_seen": len(symbol_states),
                 "qualified_candidates": len(candidates),
-                "long_count": len(long_candidates),
+                "long_count": len(ranked),
                 "short_count": 0,
             },
         }
 
     # --------------------------------------------------------
-    # CORE SCORING ENGINE (EMERGENCE-ONLY)
+    # SCORING ENGINE
     # --------------------------------------------------------
     def _score_symbol(self, state: Dict[str, Any]) -> float | None:
-        """
-        Produces a normalized emergence score.
-
-        v2:
-        - NO bias filtering
-        - NO direction assumption
-        """
 
         drift = state.get("drift", 0.0)
         persist = state.get("persist", 0)
         propagation = state.get("propagation_score", 0.0)
         lifespan = state.get("lifespan", 0)
 
-        # ----------------------------------------------------
-        # HARD FILTERS (ANTI-NOISE)
-        # ----------------------------------------------------
         if persist < self.min_persist:
             return None
 
         if abs(drift) < self.min_drift:
             return None
 
-        # ----------------------------------------------------
-        # NORMALIZATION
-        # ----------------------------------------------------
         drift_n = min(abs(drift), 1.0)
         prop_n = min(propagation, 1.0)
         persist_n = min(persist / 10.0, 1.0)
         life_n = min(lifespan / 20.0, 1.0)
 
-        # ----------------------------------------------------
-        # SCORE COMPOSITION (EMERGENCE)
-        # ----------------------------------------------------
         score = (
             drift_n * 0.4 +
             prop_n * 0.3 +
@@ -149,12 +103,9 @@ class FlowMapper:
         return score
 
     # --------------------------------------------------------
-    # DEBUG / EXPLAIN (VERY USEFUL)
+    # DEBUG
     # --------------------------------------------------------
     def explain(self, symbol_states: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Returns detailed breakdown for inspection / debugging.
-        """
 
         output = []
 
@@ -172,29 +123,81 @@ class FlowMapper:
                 "qualified": score is not None,
             })
 
-        return sorted(
-            output,
-            key=lambda x: (x["score"] or 0),
-            reverse=True
-        )
+        return sorted(output, key=lambda x: (x["score"] or 0), reverse=True)
 
 
 # ============================================================
-# OPTIONAL: METADATA HOOK (DO NOT USE FOR FILTERING)
+# 🔥 DIRECTION LAYER (NEW — NON-DESTRUCTIVE)
+# ============================================================
+
+class DirectionalAnalyzer:
+    """
+    Computes directional bias using Δ (change over time)
+
+    Key idea:
+    Direction = change, not value
+    """
+
+    def __init__(self):
+        self._history = {}
+
+    def update(self, symbol_states: Dict[str, Any]) -> Dict[str, Any]:
+
+        directional = {}
+
+        for symbol, state in symbol_states.items():
+
+            prev = self._history.get(symbol)
+
+            current = {
+                "FILS": state.get("bias", 0.0),
+                "DRIFT": state.get("drift", 0.0),
+                "PROP": state.get("propagation_score", 0.0),
+            }
+
+            if prev:
+                delta_fils = current["FILS"] - prev["FILS"]
+                delta_drift = current["DRIFT"] - prev["DRIFT"]
+                delta_prop = current["PROP"] - prev["PROP"]
+
+                direction = self._classify(
+                    delta_fils,
+                    delta_drift,
+                    delta_prop
+                )
+            else:
+                delta_fils = delta_drift = delta_prop = 0.0
+                direction = "NEUTRAL"
+
+            directional[symbol] = {
+                "direction": direction,
+                "delta_fils": delta_fils,
+                "delta_drift": delta_drift,
+                "delta_prop": delta_prop,
+            }
+
+            self._history[symbol] = current
+
+        return directional
+
+    def _classify(self, df, dd, dp):
+
+        # STRONG LONG
+        if df > 0 and dp > 0:
+            return "LONG"
+
+        # STRONG SHORT
+        if df < 0 and dp < 0:
+            return "SHORT"
+
+        return "NEUTRAL"
+
+
+# ============================================================
+# OPTIONAL METADATA
 # ============================================================
 
 def attach_metadata(symbol: str) -> Dict[str, Any]:
-    """
-    Placeholder for enrichment layer.
-
-    Future:
-    - sector tagging
-    - liquidity classification
-    - beta / volatility
-
-    RULE:
-    Never affect ranking — context only.
-    """
 
     return {
         "sector": None,
