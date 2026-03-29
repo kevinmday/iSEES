@@ -26,6 +26,9 @@ class PropagationEngine:
         self._invalid_symbols = set()
         self._last_symbols = []
 
+        # 🔥 Phase 6G.9 — Persistence tracking
+        self._top_persistence: Dict[str, int] = {}
+
     def _valid_symbol(self, symbol: str):
 
         if not symbol:
@@ -230,7 +233,7 @@ class PropagationEngine:
                 continue
 
         # ==========================================================
-        # 🔥 Phase 6G.8 — Ranking Layer (Observation Only)
+        # 🔥 Phase 6G.8 + 6G.9 + 6G.10 — Ranking + Persistence + Stability
         # ==========================================================
         try:
             if self._symbol_state:
@@ -243,14 +246,35 @@ class PropagationEngine:
 
                 top = ranked[:5]
 
+                current_top = [sym for sym, _ in top]
+
+                # Persistence update
+                for sym in current_top:
+                    if sym in self._top_persistence:
+                        self._top_persistence[sym] += 1
+                    else:
+                        self._top_persistence[sym] = 1
+
+                for sym in list(self._top_persistence.keys()):
+                    if sym not in current_top:
+                        self._top_persistence[sym] -= 1
+                        if self._top_persistence[sym] <= 0:
+                            del self._top_persistence[sym]
+
                 print("\n[TOP CANDIDATES]")
+
                 for sym, data in top:
                     score = data.get("propagation_score", 0.0) * data.get("drift", 0.0)
+                    persistence = self._top_persistence.get(sym, 0)
+                    stability = data.get("propagation_score", 0.0) * persistence
+
                     print(
                         f"{sym} "
                         f"score={score:.6f} "
                         f"prop={data.get('propagation_score', 0.0):.4f} "
-                        f"drift={data.get('drift', 0.0):.4f}"
+                        f"drift={data.get('drift', 0.0):.4f} "
+                        f"persist={persistence} "
+                        f"stab={stability:.6f}"
                     )
 
         except Exception as e:

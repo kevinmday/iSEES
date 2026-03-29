@@ -1,3 +1,7 @@
+# ============================================================
+# MarketMind — Runtime Executor (Flow-Mapped FINAL + VISIBLE)
+# ============================================================
+
 from typing import Optional, Dict, Any
 
 from marketmind_engine.runtime.trade_coordinator import TradeCoordinator
@@ -7,6 +11,7 @@ from marketmind_engine.execution.execution_input import ExecutionInput
 from marketmind_engine.execution.execution_types import OrderIntent
 
 from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
+from marketmind_engine.intelligence.flow_mapper import FlowMapper
 from marketmind_engine.narrative.narrative_adapter import NarrativeAdapter
 
 
@@ -25,6 +30,7 @@ class RuntimeExecutor:
         self._log = telemetry_logger
 
         self._ignition = IgnitionDetector()
+        self._flow_mapper = FlowMapper()
 
         if narrative_adapter is None:
             raise ValueError(
@@ -33,6 +39,8 @@ class RuntimeExecutor:
 
         self._narrative = narrative_adapter
         self._last_price = {}
+
+        self._last_flow_map = None
 
     # --------------------------------------------------
 
@@ -52,7 +60,7 @@ class RuntimeExecutor:
     ) -> Dict[str, Any]:
 
         # --------------------------------------------------
-        # Coordinator
+        # COORDINATOR
         # --------------------------------------------------
 
         try:
@@ -79,7 +87,7 @@ class RuntimeExecutor:
             }
 
         # --------------------------------------------------
-        # Orders
+        # ORDER EXECUTION
         # --------------------------------------------------
 
         order_intent: Optional[OrderIntent] = result.get("order_intent")
@@ -102,21 +110,18 @@ class RuntimeExecutor:
                 self._log_msg(f"Execution error: {e}")
 
         # --------------------------------------------------
-        # 🔥 SYMBOL HANDLING (FIXED — NO EARLY RETURN)
+        # SYMBOL (OPTIONAL)
         # --------------------------------------------------
 
         symbol = execution_input.symbol
 
         if not symbol:
-            self._log_msg(
-                "[INFO] No symbol provided — skipping price update but continuing field"
-            )
-
+            self._log_msg("[INFO] No symbol provided — field-only cycle")
         else:
             self._log_msg(f"[SYMBOL] {symbol}")
 
         # --------------------------------------------------
-        # 🔥 PRICE ENGINE (SAFE + NON-DESTRUCTIVE)
+        # PRICE ENGINE
         # --------------------------------------------------
 
         price = None
@@ -140,7 +145,6 @@ class RuntimeExecutor:
             except Exception:
                 price = None
 
-            # fallback synthetic price
             if price is None:
                 prev = self._last_price.get(symbol, 100.0)
                 price = prev * 1.002
@@ -151,7 +155,6 @@ class RuntimeExecutor:
             prev = self._last_price.get(symbol)
             self._last_price[symbol] = price
 
-            # volume proxy
             volume = 1.0
             if prev:
                 change = abs(price - prev) / prev
@@ -177,30 +180,72 @@ class RuntimeExecutor:
                             f"[IGNITION_FIRE] {e.symbol} Δ={e.price_change_pct:.3f}"
                         )
 
-                # 🔥 feed narrative (non-destructive)
                 self._narrative.ingest_price_data(price_data)
 
             except Exception as e:
                 self._log_msg(f"[PRICE_ENGINE_ERROR] {e}")
 
         # --------------------------------------------------
-        # 🔥 DRIFT MAPPING (SAFE)
+        # 🔥 GLOBAL FLOW MAPPING (ALWAYS RUNS)
+        # --------------------------------------------------
+
+        flow_output = None
+
+        try:
+            snap = self._narrative.get_propagation_snapshot()
+
+            if isinstance(snap, dict) and len(snap) > 0:
+
+                adapted_states = {}
+
+                for symbol_key, data in snap.items():
+                    adapted_states[symbol_key] = {
+                        "drift": data.get("DRIFT", 0.0),
+                        "bias": data.get("FILS", 0.0),
+                        "persist": data.get("LIFE", 0),
+                        "propagation_score": data.get("PROP", 0.0),
+                        "lifespan": data.get("LIFE", 0),
+                    }
+
+                flow_output = self._flow_mapper.map(adapted_states)
+                self._last_flow_map = flow_output
+
+                long_syms = [x["symbol"] for x in flow_output["long"][:5]]
+
+                print("\n" + "=" * 50)
+                print("[FLOW MAP — ACTIVE]")
+                print(f"Top Long → {long_syms}")
+                print(f"Qualified → {flow_output['debug']['qualified_candidates']}")
+                print(f"[FLOW FULL] {flow_output['all_ranked'][:3]}")
+                print("=" * 50 + "\n")
+
+            else:
+                print("\n[FLOW MAP] No data")
+
+        except Exception as e:
+            self._log_msg(f"[FLOW_ERROR] {e}")
+
+        # --------------------------------------------------
+        # DRIFT (PER SYMBOL)
         # --------------------------------------------------
 
         drift_value = 0.0
 
         try:
-            snap = self._narrative.get_propagation_snapshot()
-
-            if symbol and snap:
-                metrics = snap.get(symbol, {})
-                drift_value = metrics.get("propagation_score", 0.0)
-
+            if symbol and flow_output:
+                drift_value = next(
+                    (
+                        x["drift"]
+                        for x in flow_output["all_ranked"]
+                        if x["symbol"] == symbol
+                    ),
+                    0.0,
+                )
         except Exception:
             drift_value = 0.0
 
         # --------------------------------------------------
-        # 🔥 SYMBOL BLOCK (SAFE)
+        # SYMBOL BLOCK
         # --------------------------------------------------
 
         symbol_block = {}
@@ -223,7 +268,6 @@ class RuntimeExecutor:
             "order_intent": order_intent,
             "execution_receipt": receipt,
             "engine_time": execution_input.engine_time,
-
-            # 🔥 NEVER kill field again
             "symbols": symbol_block,
+            "flow_map": self._last_flow_map,
         }
