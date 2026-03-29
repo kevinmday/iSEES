@@ -26,9 +26,6 @@ class PropagationEngine:
         self._invalid_symbols = set()
         self._last_symbols = []
 
-    # ==========================================================
-    # SYMBOL FILTER
-    # ==========================================================
     def _valid_symbol(self, symbol: str):
 
         if not symbol:
@@ -60,9 +57,6 @@ class PropagationEngine:
 
         return True
 
-    # ==========================================================
-    # MAIN UPDATE LOOP
-    # ==========================================================
     def update(self, symbols):
 
         input_count = len(symbols) if symbols else 0
@@ -128,17 +122,11 @@ class PropagationEngine:
 
                 dt = max(now - prev["timestamp"], 1.0)
 
-                # ==========================================
-                # TIME DECAY
-                # ==========================================
                 decay = 0.98 ** dt
 
                 fils = prev["fils"] * decay
                 ucip = prev["ucip"] * decay
 
-                # ==========================================
-                # ASYMMETRIC ENERGY INJECTION
-                # ==========================================
                 seed = self._stable_hash(symbol)
 
                 base_fils = 0.05
@@ -149,13 +137,9 @@ class PropagationEngine:
                 fils += base_fils * (1 + 0.2 * asym)
                 ucip = min(ucip + base_ucip * (1 + 0.2 * asym), 1.0)
 
-                # INTERNAL FIELD DYNAMICS
                 fils += 0.0002 * seed
                 ucip = min(ucip + 0.0005 * (seed / 10), 1.0)
 
-                # ==========================================
-                # PRICE DELTA
-                # ==========================================
                 price_prev = prev.get("price_prev", price_now)
 
                 if price_prev == 0:
@@ -163,14 +147,8 @@ class PropagationEngine:
                 else:
                     delta_micro = (price_now - price_prev) / price_prev
 
-                # ==========================================
-                # 🔥 CORRECT REGIME DETECTION (PRICE CHANGE)
-                # ==========================================
                 price_stale = abs(price_now - price_prev) < 1e-9
 
-                # ==========================================
-                # 🔥 REGIME-AWARE DRIFT
-                # ==========================================
                 prev_fils = prev.get("fils", 0.0)
 
                 drift_field = fils - prev_fils
@@ -183,11 +161,9 @@ class PropagationEngine:
                     drift = 0.7 * drift_field + 0.3 * drift_price
                     regime = "HYBRID"
 
-                # DRIFT SLOPE
                 prev_drift = prev.get("drift", 0.0)
                 drift_slope = drift - prev_drift
 
-                # BUFFER (NOW USING DRIFT — IMPORTANT)
                 buffer = prev.get("buffer", [])
                 buffer.append(drift)
 
@@ -252,6 +228,33 @@ class PropagationEngine:
             except Exception as e:
                 print(f"[ENGINE_ERROR] {symbol} {e}")
                 continue
+
+        # ==========================================================
+        # 🔥 Phase 6G.8 — Ranking Layer (Observation Only)
+        # ==========================================================
+        try:
+            if self._symbol_state:
+
+                ranked = sorted(
+                    self._symbol_state.items(),
+                    key=lambda x: x[1].get("propagation_score", 0.0) * x[1].get("drift", 0.0),
+                    reverse=True
+                )
+
+                top = ranked[:5]
+
+                print("\n[TOP CANDIDATES]")
+                for sym, data in top:
+                    score = data.get("propagation_score", 0.0) * data.get("drift", 0.0)
+                    print(
+                        f"{sym} "
+                        f"score={score:.6f} "
+                        f"prop={data.get('propagation_score', 0.0):.4f} "
+                        f"drift={data.get('drift', 0.0):.4f}"
+                    )
+
+        except Exception as e:
+            print(f"[RANKING_ERROR] {e}")
 
         try:
             if self._symbol_state:
