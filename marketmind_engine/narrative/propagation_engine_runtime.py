@@ -3,13 +3,8 @@ import time
 import hashlib
 import math
 
-# 🔥 FIXED IMPORT (was relative, now absolute)
 from marketmind_engine.intelligence.relative_signal_layer import RelativeSignalLayer
-
-# 🔥 SIGNAL LAYER
 from marketmind_engine.signals.signal_interpreter import classify_signal, classify_pattern
-
-# 🔥 VALIDATION LOGGER
 from marketmind_engine.utils.validation_logger import log_signal
 
 
@@ -27,13 +22,12 @@ class PropagationEngine:
         self.relative_layer = RelativeSignalLayer()
 
         self._symbol_state: Dict[str, Dict[str, Any]] = {}
-        self._invalid_symbols = set()
 
-        # 🔥 SYMBOL CONTINUITY MEMORY
+        self._invalid_symbols = set()
         self._last_symbols = []
 
     # ==========================================================
-    # 🔧 SYMBOL FILTER
+    # SYMBOL FILTER
     # ==========================================================
     def _valid_symbol(self, symbol: str):
 
@@ -55,11 +49,9 @@ class PropagationEngine:
         if symbol.endswith(("F", "Y", "Q")):
             return False
 
-        # 🔥 NEW: reject preferred shares
         if symbol.endswith(("P",)):
             return False
 
-        # 🔥 NEW: reject synthetic prefixes
         if symbol.startswith(("X", "Z")):
             return False
 
@@ -69,7 +61,7 @@ class PropagationEngine:
         return True
 
     # ==========================================================
-    # 🔥 MAIN UPDATE LOOP
+    # MAIN UPDATE LOOP
     # ==========================================================
     def update(self, symbols):
 
@@ -80,19 +72,21 @@ class PropagationEngine:
         else:
             symbols = self._last_symbols
 
-        effective_count = len(symbols)
+        effective_symbols = symbols
 
-        if not symbols:
+        if not effective_symbols:
             print(f"[FIELD] input=0 active=0 effective=0")
             return
 
         active_count = len(self._last_symbols)
+        effective_count = len(effective_symbols)
 
         print(f"[FIELD] input={input_count} active={active_count} effective={effective_count}")
+        print(f"[PROP] effective_symbols={effective_symbols}")
 
         now = time.time()
 
-        for symbol in symbols:
+        for symbol in effective_symbols:
 
             try:
 
@@ -104,13 +98,17 @@ class PropagationEngine:
 
                 price_now = None
 
-                if hasattr(self.provider, "get_price"):
-                    price_now = self.provider.get_price(symbol)
-
-                # 🔥 INVALID SYMBOL LEARNING
-                if price_now is None:
+                try:
+                    if hasattr(self.provider, "get_price"):
+                        price_now = self.provider.get_price(symbol)
+                except Exception as e:
+                    print(f"[PRICE_ERROR] {symbol} failed: {e}")
                     self._invalid_symbols.add(symbol)
-                    print(f"[INVALID_SYMBOL] {symbol} added_to_blacklist")
+                    continue
+
+                if price_now is None:
+                    print(f"[PRICE_ERROR] {symbol} returned None")
+                    self._invalid_symbols.add(symbol)
                     continue
 
                 if price_now < 2.0:
@@ -130,23 +128,34 @@ class PropagationEngine:
 
                 dt = max(now - prev["timestamp"], 1.0)
 
+                # ==========================================
                 # TIME DECAY
+                # ==========================================
                 decay = 0.98 ** dt
 
                 fils = prev["fils"] * decay
                 ucip = prev["ucip"] * decay
 
-                # NARRATIVE REINFORCEMENT
-                fils += 0.002
-                ucip = min(ucip + 0.01, 1.0)
-
-                # INTERNAL FIELD DYNAMICS
+                # ==========================================
+                # ASYMMETRIC ENERGY INJECTION
+                # ==========================================
                 seed = self._stable_hash(symbol)
 
+                base_fils = 0.05
+                base_ucip = 0.03
+
+                asym = seed / 10.0
+
+                fils += base_fils * (1 + 0.2 * asym)
+                ucip = min(ucip + base_ucip * (1 + 0.2 * asym), 1.0)
+
+                # INTERNAL FIELD DYNAMICS
                 fils += 0.0002 * seed
                 ucip = min(ucip + 0.0005 * (seed / 10), 1.0)
 
-                # MICRO DELTA
+                # ==========================================
+                # PRICE DELTA
+                # ==========================================
                 price_prev = prev.get("price_prev", price_now)
 
                 if price_prev == 0:
@@ -154,17 +163,33 @@ class PropagationEngine:
                 else:
                     delta_micro = (price_now - price_prev) / price_prev
 
-                # DRIFT
-                prev_delta = prev.get("delta_micro", 0.0)
-                drift = delta_micro - prev_delta
+                # ==========================================
+                # 🔥 CORRECT REGIME DETECTION (PRICE CHANGE)
+                # ==========================================
+                price_stale = abs(price_now - price_prev) < 1e-9
+
+                # ==========================================
+                # 🔥 REGIME-AWARE DRIFT
+                # ==========================================
+                prev_fils = prev.get("fils", 0.0)
+
+                drift_field = fils - prev_fils
+                drift_price = delta_micro
+
+                if price_stale:
+                    drift = drift_field
+                    regime = "FIELD_ONLY"
+                else:
+                    drift = 0.7 * drift_field + 0.3 * drift_price
+                    regime = "HYBRID"
 
                 # DRIFT SLOPE
                 prev_drift = prev.get("drift", 0.0)
                 drift_slope = drift - prev_drift
 
-                # BUFFER
+                # BUFFER (NOW USING DRIFT — IMPORTANT)
                 buffer = prev.get("buffer", [])
-                buffer.append(delta_micro)
+                buffer.append(drift)
 
                 if len(buffer) > 12:
                     buffer.pop(0)
@@ -175,13 +200,10 @@ class PropagationEngine:
                 positive = len([d for d in buffer if d > 0])
                 directional_ratio = positive / total if total > 0 else 0.0
 
-                # LIFESPAN
                 lifespan = prev.get("lifespan", 0) + 1
 
-                # PROPAGATION SCORE
                 propagation_score = bias * directional_ratio * math.log(1 + lifespan)
 
-                # STORE STATE
                 state = {
                     "fils": fils,
                     "ucip": ucip,
@@ -195,20 +217,23 @@ class PropagationEngine:
                     "delta_micro": delta_micro,
                     "drift": drift,
                     "drift_slope": drift_slope,
+                    "regime": regime,
                 }
 
                 self._symbol_state[symbol] = state
 
-                # SIGNAL + PATTERN
+                print(
+                    f"[STATE] {symbol} "
+                    f"FILS={fils:.4f} "
+                    f"UCIP={ucip:.4f} "
+                    f"DRIFT={drift:.6f} "
+                    f"LIFE={lifespan} "
+                    f"PROP={propagation_score:.6f} "
+                    f"REGIME={regime}"
+                )
+
                 signal = classify_signal(symbol, state)
                 pattern = classify_pattern(state)
-
-                print(
-                    f"[STATE] {symbol} Δ={delta_micro:.5f} drift={drift:.5f} "
-                    f"slope={drift_slope:.5f} bias={bias:.5f} "
-                    f"ratio={directional_ratio:.2f} life={lifespan} "
-                    f"prop={propagation_score:.5f} pattern={pattern}"
-                )
 
                 print(
                     f"[SIGNAL] {symbol} → {signal} | pattern={pattern} "
@@ -224,10 +249,10 @@ class PropagationEngine:
                     price=price_now
                 )
 
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[ENGINE_ERROR] {symbol} {e}")
+                continue
 
-        # FIELD TOP VISIBILITY
         try:
             if self._symbol_state:
                 sym, data = max(
@@ -243,9 +268,6 @@ class PropagationEngine:
         except Exception:
             pass
 
-    # ==========================================================
-    # HELPERS
-    # ==========================================================
     def _stable_hash(self, symbol: str) -> int:
         h = hashlib.md5(symbol.encode()).hexdigest()
         return int(h[:4], 16) % 10

@@ -54,19 +54,24 @@ class PropagationEngine:
         if symbol.endswith(("F", "Y", "Q")):
             return False
 
+        # 🔥 NEW: reject preferred shares
+        if symbol.endswith(("P",)):
+            return False
+
+        # 🔥 NEW: reject synthetic prefixes
+        if symbol.startswith(("X", "Z")):
+            return False
+
         if symbol in {"THE", "AND", "FOR", "ARE"}:
             return False
 
         return True
 
     # ==========================================================
-    # 🔥 MAIN UPDATE LOOP (FINAL)
+    # 🔥 MAIN UPDATE LOOP
     # ==========================================================
     def update(self, symbols):
 
-        # ----------------------------------------
-        # 🔥 SYMBOL CONTINUITY
-        # ----------------------------------------
         input_count = len(symbols) if symbols else 0
 
         if symbols:
@@ -80,14 +85,9 @@ class PropagationEngine:
             print(f"[FIELD] input=0 active=0 effective=0")
             return
 
-        # ----------------------------------------
-        # 🔥 FIELD VISIBILITY (NEW)
-        # ----------------------------------------
         active_count = len(self._last_symbols)
 
-        print(
-            f"[FIELD] input={input_count} active={active_count} effective={effective_count}"
-        )
+        print(f"[FIELD] input={input_count} active={active_count} effective={effective_count}")
 
         now = time.time()
 
@@ -106,8 +106,10 @@ class PropagationEngine:
                 if hasattr(self.provider, "get_price"):
                     price_now = self.provider.get_price(symbol)
 
+                # 🔥 INVALID SYMBOL LEARNING
                 if price_now is None:
                     self._invalid_symbols.add(symbol)
+                    print(f"[INVALID_SYMBOL] {symbol} added_to_blacklist")
                     continue
 
                 if price_now < 2.0:
@@ -127,31 +129,23 @@ class PropagationEngine:
 
                 dt = max(now - prev["timestamp"], 1.0)
 
-                # -----------------------------
                 # TIME DECAY
-                # -----------------------------
                 decay = 0.98 ** dt
 
                 fils = prev["fils"] * decay
                 ucip = prev["ucip"] * decay
 
-                # -----------------------------
                 # NARRATIVE REINFORCEMENT
-                # -----------------------------
                 fils += 0.002
                 ucip = min(ucip + 0.01, 1.0)
 
-                # -----------------------------
                 # INTERNAL FIELD DYNAMICS
-                # -----------------------------
                 seed = self._stable_hash(symbol)
 
                 fils += 0.0002 * seed
                 ucip = min(ucip + 0.0005 * (seed / 10), 1.0)
 
-                # -----------------------------
                 # MICRO DELTA
-                # -----------------------------
                 price_prev = prev.get("price_prev", price_now)
 
                 if price_prev == 0:
@@ -159,21 +153,15 @@ class PropagationEngine:
                 else:
                     delta_micro = (price_now - price_prev) / price_prev
 
-                # -----------------------------
                 # DRIFT
-                # -----------------------------
                 prev_delta = prev.get("delta_micro", 0.0)
                 drift = delta_micro - prev_delta
 
-                # -----------------------------
                 # DRIFT SLOPE
-                # -----------------------------
                 prev_drift = prev.get("drift", 0.0)
                 drift_slope = drift - prev_drift
 
-                # -----------------------------
                 # BUFFER
-                # -----------------------------
                 buffer = prev.get("buffer", [])
                 buffer.append(delta_micro)
 
@@ -186,19 +174,13 @@ class PropagationEngine:
                 positive = len([d for d in buffer if d > 0])
                 directional_ratio = positive / total if total > 0 else 0.0
 
-                # -----------------------------
                 # LIFESPAN
-                # -----------------------------
                 lifespan = prev.get("lifespan", 0) + 1
 
-                # -----------------------------
                 # PROPAGATION SCORE
-                # -----------------------------
                 propagation_score = bias * directional_ratio * math.log(1 + lifespan)
 
-                # -----------------------------
                 # STORE STATE
-                # -----------------------------
                 state = {
                     "fils": fils,
                     "ucip": ucip,
@@ -216,31 +198,21 @@ class PropagationEngine:
 
                 self._symbol_state[symbol] = state
 
-                # ==========================================================
-                # 🔥 SIGNAL + PATTERN
-                # ==========================================================
+                # SIGNAL + PATTERN
                 signal = classify_signal(symbol, state)
                 pattern = classify_pattern(state)
 
                 print(
-                    f"[STATE] {symbol} "
-                    f"Δ={delta_micro:.5f} "
-                    f"drift={drift:.5f} "
-                    f"slope={drift_slope:.5f} "
-                    f"bias={bias:.5f} "
-                    f"ratio={directional_ratio:.2f} "
-                    f"life={lifespan} "
-                    f"prop={propagation_score:.5f} "
-                    f"pattern={pattern}"
+                    f"[STATE] {symbol} Δ={delta_micro:.5f} drift={drift:.5f} "
+                    f"slope={drift_slope:.5f} bias={bias:.5f} "
+                    f"ratio={directional_ratio:.2f} life={lifespan} "
+                    f"prop={propagation_score:.5f} pattern={pattern}"
                 )
 
                 print(
-                    f"[SIGNAL] {symbol} → {signal} | "
-                    f"pattern={pattern} "
-                    f"Δ={delta_micro:.5f} "
-                    f"d={drift:.5f} "
-                    f"s={drift_slope:.5f} "
-                    f"p={propagation_score:.5f} "
+                    f"[SIGNAL] {symbol} → {signal} | pattern={pattern} "
+                    f"Δ={delta_micro:.5f} d={drift:.5f} "
+                    f"s={drift_slope:.5f} p={propagation_score:.5f} "
                     f"life={lifespan}"
                 )
 
@@ -254,16 +226,13 @@ class PropagationEngine:
             except Exception:
                 pass
 
-        # ----------------------------------------
-        # 🔥 TOP FIELD VISIBILITY (NEW)
-        # ----------------------------------------
+        # FIELD TOP VISIBILITY
         try:
             if self._symbol_state:
-                top = max(
+                sym, data = max(
                     self._symbol_state.items(),
                     key=lambda x: x[1].get("propagation_score", 0)
                 )
-                sym, data = top
 
                 print(
                     f"[FIELD_TOP] {sym} "
