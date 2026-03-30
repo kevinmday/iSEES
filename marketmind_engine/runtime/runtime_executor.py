@@ -1,5 +1,5 @@
 # ============================================================
-# MarketMind — Runtime Executor (Flow + Direction FINAL)
+# MarketMind — Runtime Executor (Flow + Direction + Projection FINAL)
 # ============================================================
 
 from typing import Optional, Dict, Any
@@ -31,7 +31,7 @@ class RuntimeExecutor:
 
         self._ignition = IgnitionDetector()
         self._flow_mapper = FlowMapper()
-        self._direction = DirectionalAnalyzer()  # 🔥 NEW
+        self._direction = DirectionalAnalyzer()
 
         if narrative_adapter is None:
             raise ValueError(
@@ -50,6 +50,40 @@ class RuntimeExecutor:
                 self._log(msg)
             except Exception:
                 pass
+
+    # --------------------------------------------------
+    # 🔥 NEW: FIELD PROJECTION (TOP CANDIDATES)
+    # --------------------------------------------------
+
+    def _emit_top_candidates(self, snapshot: dict):
+        try:
+            if not snapshot:
+                return
+
+            ranked = sorted(
+                snapshot.items(),
+                key=lambda x: x[1].get("PROP", 0.0),
+                reverse=True
+            )[:5]
+
+            # Optional: suppress low-energy spam
+            max_prop = max(v.get("PROP", 0.0) for v in snapshot.values())
+            if max_prop < 0.01:
+                return
+
+            print("\n[TOP CANDIDATES]")
+
+            for symbol, data in ranked:
+                prop = data.get("PROP", 0.0)
+                drift = data.get("DRIFT", 0.0)
+                fils = data.get("FILS", 0.0)
+
+                print(
+                    f"{symbol} score={prop:.4f} prop={prop:.4f} drift={drift:.4f} fils={fils:.4f}"
+                )
+
+        except Exception as e:
+            self._log_msg(f"[TOP_CANDIDATES_ERROR] {e}")
 
     # --------------------------------------------------
 
@@ -186,13 +220,16 @@ class RuntimeExecutor:
                 self._log_msg(f"[PRICE_ENGINE_ERROR] {e}")
 
         # --------------------------------------------------
-        # 🔥 GLOBAL FLOW + DIRECTION
+        # 🔥 GLOBAL FLOW + DIRECTION + PROJECTION
         # --------------------------------------------------
 
         try:
             snap = self._narrative.get_propagation_snapshot()
 
             if isinstance(snap, dict) and len(snap) > 0:
+
+                # 🔥 NEW: emit top candidates
+                self._emit_top_candidates(snap)
 
                 adapted_states = {}
 
@@ -205,11 +242,9 @@ class RuntimeExecutor:
                         "lifespan": data.get("LIFE", 0),
                     }
 
-                # FLOW
                 flow_output = self._flow_mapper.map(adapted_states)
                 self._last_flow_map = flow_output
 
-                # DIRECTION
                 direction_map = self._direction.update(adapted_states)
 
                 long_syms = [
