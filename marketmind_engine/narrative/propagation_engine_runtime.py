@@ -4,7 +4,7 @@ import hashlib
 import math
 
 from marketmind_engine.intelligence.relative_signal_layer import RelativeSignalLayer
-from marketmind_engine.signals.signal_interpreter import classify_signal, classify_pattern
+from marketmind_engine.signals.signal_interpreter import classify_signal
 from marketmind_engine.utils.validation_logger import log_signal
 
 
@@ -123,7 +123,6 @@ class PropagationEngine:
                 })
 
                 dt = max(now - prev["timestamp"], 1.0)
-
                 decay = 0.98 ** dt
 
                 fils = prev["fils"] * decay
@@ -151,7 +150,7 @@ class PropagationEngine:
 
                 price_stale = abs(price_now - price_prev) < 1e-9
 
-                # 🔥 FIELD DELTA (THE REAL FIX)
+                # 🔥 FIELD DELTA
                 prev_fils = prev.get("fils", 0.0)
                 delta_field = fils - prev_fils
 
@@ -195,7 +194,7 @@ class PropagationEngine:
                     "bias": bias,
                     "directional_ratio": directional_ratio,
                     "delta_micro": delta_micro,
-                    "delta_field": delta_field,  # 🔥 stored
+                    "delta_field": delta_field,
                     "drift": drift,
                     "drift_slope": drift_slope,
                     "regime": regime,
@@ -213,11 +212,11 @@ class PropagationEngine:
                     f"REGIME={regime}"
                 )
 
+                # 🔥 USE NEW SIGNAL CLASSIFIER (PRIMARY)
                 signal = classify_signal(symbol, state)
-                pattern = classify_pattern(state)
 
                 print(
-                    f"[SIGNAL] {symbol} → {signal} | pattern={pattern} "
+                    f"[SIGNAL] {symbol} → {signal} "
                     f"Δ={delta_field:.5f} d={drift:.5f} "
                     f"s={drift_slope:.5f} p={propagation_score:.5f} "
                     f"life={lifespan}"
@@ -234,9 +233,7 @@ class PropagationEngine:
                 print(f"[ENGINE_ERROR] {symbol} {e}")
                 continue
 
-        # ==========================================================
-        # RANKING + PERSISTENCE
-        # ==========================================================
+        # ---------------- RANKING ----------------
         try:
             if self._symbol_state:
 
@@ -277,21 +274,6 @@ class PropagationEngine:
 
         except Exception as e:
             print(f"[RANKING_ERROR] {e}")
-
-        try:
-            if self._symbol_state:
-                sym, data = max(
-                    self._symbol_state.items(),
-                    key=lambda x: x[1].get("propagation_score", 0)
-                )
-
-                print(
-                    f"[FIELD_TOP] {sym} "
-                    f"prop={data.get('propagation_score', 0):.5f} "
-                    f"life={data.get('lifespan', 0)}"
-                )
-        except Exception:
-            pass
 
     def _stable_hash(self, symbol: str) -> int:
         h = hashlib.md5(symbol.encode()).hexdigest()

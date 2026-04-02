@@ -20,7 +20,8 @@ from marketmind_engine.scoring.psiquanta import (
 from marketmind_engine.quant.capital_propagation_engine import CapitalPropagationEngine
 from marketmind_engine.intelligence.symbol_state_registry import SymbolStateRegistry
 
-# 🔥 NEW (safe imports)
+from marketmind_engine.intelligence.signal_classifier import classify_signal
+
 try:
     from marketmind_engine.candidates.emitter import emit_candidates
     from marketmind_engine.candidates.prioritizer import prioritize_candidates, summarize_candidates
@@ -82,13 +83,10 @@ class TradeCoordinator:
             )
 
     # --------------------------------------------------
-    # 🔥 FIXED PROPAGATION METRICS
+    # 🔥 FIXED: ALWAYS EMIT FIELD SIGNAL
     # --------------------------------------------------
 
     def _inject_propagation_metrics(self, execution_input: ExecutionInput):
-
-        if not self._narrative_adapter:
-            return
 
         policy = getattr(execution_input, "policy_result", None)
         if not policy:
@@ -99,25 +97,24 @@ class TradeCoordinator:
             return
 
         try:
-
-            snapshot = self._narrative_adapter.get_propagation_snapshot()
-            if not snapshot:
-                return
-
-            metrics = snapshot.get(symbol)
-            if not metrics:
-                return
-
-            fils = metrics.get("FILS", 0.0)
-            ucip = metrics.get("UCIP", 0.0)
-            engine_drift = metrics.get("DRIFT", 0.0)
-            ttcf = metrics.get("TTCF", 1.0)
-
+            fils = 0.0
+            ucip = 0.0
+            drift = 0.0
+            ttcf = 1.0
             delta_fils = 0.0
-            delta_ucip = 0.0
 
+            # Try to pull real propagation data (if available)
+            if self._narrative_adapter:
+                snapshot = self._narrative_adapter.get_propagation_snapshot()
+                if snapshot and symbol in snapshot:
+                    metrics = snapshot.get(symbol, {})
+                    fils = metrics.get("FILS", 0.0)
+                    ucip = metrics.get("UCIP", 0.0)
+                    drift = metrics.get("DRIFT", 0.0)
+                    ttcf = metrics.get("TTCF", 1.0)
+
+            # State tracking (delta)
             if self._symbol_state_registry:
-
                 timestamp = getattr(execution_input, "engine_time", None)
 
                 previous = self._symbol_state_registry.update(
@@ -125,30 +122,40 @@ class TradeCoordinator:
                     fils,
                     ucip,
                     timestamp,
-                    engine_drift,
+                    drift,
                 )
 
                 if previous:
                     delta_fils = fils - previous.last_fils
-                    delta_ucip = ucip - previous.last_ucip
-
-            # 🔥 KEEP ENGINE DRIFT (DO NOT OVERWRITE)
-            drift = engine_drift
 
             # --------------------------------------------------
-            # 🔥 CRITICAL FIX — PASS DELTA FORWARD
+            # FIELD STATE (ALWAYS BUILT)
             # --------------------------------------------------
 
+            state = {
+                "delta_field": delta_fils,
+                "drift": drift,
+                "drift_slope": 0.0,
+                "propagation_score": abs(fils * drift),
+                "lifespan": getattr(policy, "life", 0),
+            }
+
+            field_signal = classify_signal(symbol, state)
+
+            # Attach to policy
             policy.fils = fils
             policy.ucip = ucip
             policy.drift = drift
             policy.ttcf = ttcf
-
             policy.delta_fils = delta_fils
-            policy.delta_ucip = delta_ucip
+            policy.field_signal = field_signal
 
-            # DEBUG (optional)
-            # print(f"[DELTA] {symbol} ΔF={delta_fils:.5f}")
+            # 🔥 GUARANTEED OUTPUT
+            print(
+                f"[FIELD_SIGNAL] {symbol} → {field_signal} "
+                f"Δ={delta_fils:.5f} d={drift:.5f} "
+                f"life={state['lifespan']}"
+            )
 
         except Exception as e:
             print(f"[PROPAGATION] injection failure: {e}")
@@ -157,8 +164,6 @@ class TradeCoordinator:
 
     def _fetch_quant_metrics(self, execution_input: ExecutionInput) -> Dict:
 
-        print("TRACE: fetch_quant_metrics called")
-
         policy = getattr(execution_input, "policy_result", None)
         if not policy:
             return {}
@@ -168,35 +173,26 @@ class TradeCoordinator:
             return {}
 
         try:
-
             price = None
 
-            try:
-                if self._price_service:
+            if self._price_service:
+                try:
                     quote = self._price_service.get_quote(symbol)
-
                     if isinstance(quote, dict):
                         candidate = quote.get("ap") or quote.get("bp")
-                    else:
-                        candidate = None
-
-                    if isinstance(candidate, (int, float)) and candidate > 0:
-                        price = candidate
-
-            except Exception:
-                price = None
+                        if isinstance(candidate, (int, float)) and candidate > 0:
+                            price = candidate
+                except Exception:
+                    pass
 
             if price is None:
                 prev = self._last_price.get(symbol, 100.0)
                 price = prev * 1.002
                 print(f"[SYNTHETIC_PRICE] {symbol} {price:.4f}")
 
-            print(f"[PRICE] {symbol} {price}")
-
             self._last_price[symbol] = price
 
             self._capital_engine.update(symbol, price)
-
             return self._capital_engine.get_metrics(symbol)
 
         except Exception as e:
@@ -205,42 +201,9 @@ class TradeCoordinator:
 
     # --------------------------------------------------
 
-    def _resolve_exit_intent(
-        self,
-        position_snapshot: PositionSnapshot,
-        market_context_map: dict,
-    ) -> Optional[OrderIntent]:
-
-        self._lifecycle_manager.sync_with_portfolio(position_snapshot)
-
-        signals: List[AgentSignal] = self._lifecycle_manager.evaluate_all(
-            market_context_map
-        )
-
-        for signal in signals:
-            if signal.action == "EXIT":
-
-                position = position_snapshot.positions.get(signal.symbol)
-                if not position:
-                    continue
-
-                return OrderIntent(
-                    symbol=signal.symbol,
-                    side="sell",
-                    order_type="market",
-                    quantity=position.quantity,
-                    rationale=signal.reason,
-                    confidence=signal.confidence,
-                )
-
-        return None
-
-    # --------------------------------------------------
-
     def _compute_psiquant(self, execution_input: ExecutionInput, quant_metrics: Dict):
 
         try:
-
             policy = getattr(execution_input, "policy_result", None)
             if not policy:
                 return
@@ -277,16 +240,9 @@ class TradeCoordinator:
 
         regime_result = self._orchestrator.run_cycle()
 
-        if not regime_result.get("evaluated_assets"):
-            regime_result["evaluated_assets"] = [
-                {"symbol": "NVDA"},
-                {"symbol": "TSLA"},
-                {"symbol": "AMD"},
-            ]
-            print("[FALLBACK] Injected default evaluated_assets")
-
         self._route_projection_events()
 
+        # 🔥 THIS IS THE CRITICAL CALL
         self._inject_propagation_metrics(execution_input)
 
         quant_metrics = self._fetch_quant_metrics(execution_input)
