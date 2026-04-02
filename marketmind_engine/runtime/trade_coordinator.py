@@ -50,11 +50,8 @@ class TradeCoordinator:
         self._capital_engine = CapitalPropagationEngine()
         self._symbol_state_registry = symbol_state_registry
 
-        # 🔥 NEW — price memory per symbol
         self._last_price: Dict[str, float] = {}
 
-    # --------------------------------------------------
-    # RSS POLLING
     # --------------------------------------------------
 
     def _poll_narrative(self):
@@ -85,7 +82,7 @@ class TradeCoordinator:
             )
 
     # --------------------------------------------------
-    # PROPAGATION METRICS
+    # 🔥 FIXED PROPAGATION METRICS
     # --------------------------------------------------
 
     def _inject_propagation_metrics(self, execution_input: ExecutionInput):
@@ -113,8 +110,11 @@ class TradeCoordinator:
 
             fils = metrics.get("FILS", 0.0)
             ucip = metrics.get("UCIP", 0.0)
-            drift = metrics.get("DRIFT", 0.0)
+            engine_drift = metrics.get("DRIFT", 0.0)
             ttcf = metrics.get("TTCF", 1.0)
+
+            delta_fils = 0.0
+            delta_ucip = 0.0
 
             if self._symbol_state_registry:
 
@@ -124,29 +124,40 @@ class TradeCoordinator:
                     symbol,
                     fils,
                     ucip,
-                    timestamp
+                    timestamp,
+                    engine_drift,
                 )
 
                 if previous:
                     delta_fils = fils - previous.last_fils
                     delta_ucip = ucip - previous.last_ucip
-                    drift = delta_fils * delta_ucip
+
+            # 🔥 KEEP ENGINE DRIFT (DO NOT OVERWRITE)
+            drift = engine_drift
+
+            # --------------------------------------------------
+            # 🔥 CRITICAL FIX — PASS DELTA FORWARD
+            # --------------------------------------------------
 
             policy.fils = fils
             policy.ucip = ucip
             policy.drift = drift
             policy.ttcf = ttcf
 
+            policy.delta_fils = delta_fils
+            policy.delta_ucip = delta_ucip
+
+            # DEBUG (optional)
+            # print(f"[DELTA] {symbol} ΔF={delta_fils:.5f}")
+
         except Exception as e:
             print(f"[PROPAGATION] injection failure: {e}")
 
     # --------------------------------------------------
-    # 🔍 TRACE ONLY — NO LOGIC CHANGE
-    # --------------------------------------------------
 
     def _fetch_quant_metrics(self, execution_input: ExecutionInput) -> Dict:
 
-        print("TRACE: fetch_quant_metrics called")  # 🔥 SAFE TRACE
+        print("TRACE: fetch_quant_metrics called")
 
         policy = getattr(execution_input, "policy_result", None)
         if not policy:

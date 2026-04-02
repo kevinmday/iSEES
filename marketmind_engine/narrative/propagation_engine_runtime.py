@@ -26,7 +26,6 @@ class PropagationEngine:
         self._invalid_symbols = set()
         self._last_symbols = []
 
-        # 🔥 Phase 6G.9 — Persistence tracking
         self._top_persistence: Dict[str, int] = {}
 
     def _valid_symbol(self, symbol: str):
@@ -152,9 +151,11 @@ class PropagationEngine:
 
                 price_stale = abs(price_now - price_prev) < 1e-9
 
+                # 🔥 FIELD DELTA (THE REAL FIX)
                 prev_fils = prev.get("fils", 0.0)
+                delta_field = fils - prev_fils
 
-                drift_field = fils - prev_fils
+                drift_field = delta_field
                 drift_price = delta_micro
 
                 if price_stale:
@@ -194,6 +195,7 @@ class PropagationEngine:
                     "bias": bias,
                     "directional_ratio": directional_ratio,
                     "delta_micro": delta_micro,
+                    "delta_field": delta_field,  # 🔥 stored
                     "drift": drift,
                     "drift_slope": drift_slope,
                     "regime": regime,
@@ -216,7 +218,7 @@ class PropagationEngine:
 
                 print(
                     f"[SIGNAL] {symbol} → {signal} | pattern={pattern} "
-                    f"Δ={delta_micro:.5f} d={drift:.5f} "
+                    f"Δ={delta_field:.5f} d={drift:.5f} "
                     f"s={drift_slope:.5f} p={propagation_score:.5f} "
                     f"life={lifespan}"
                 )
@@ -233,7 +235,7 @@ class PropagationEngine:
                 continue
 
         # ==========================================================
-        # 🔥 Phase 6G.8 + 6G.9 + 6G.10 — Ranking + Persistence + Stability
+        # RANKING + PERSISTENCE
         # ==========================================================
         try:
             if self._symbol_state:
@@ -248,12 +250,8 @@ class PropagationEngine:
 
                 current_top = [sym for sym, _ in top]
 
-                # Persistence update
                 for sym in current_top:
-                    if sym in self._top_persistence:
-                        self._top_persistence[sym] += 1
-                    else:
-                        self._top_persistence[sym] = 1
+                    self._top_persistence[sym] = self._top_persistence.get(sym, 0) + 1
 
                 for sym in list(self._top_persistence.keys()):
                     if sym not in current_top:
