@@ -40,6 +40,7 @@ from marketmind_engine.api.models import StartResponse
 from marketmind_engine.narrative.propagation_engine_runtime import PropagationEngine
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
 from marketmind_engine.intelligence.signal_layer import SignalLayer
+from marketmind_engine.execution.execution_layer import ExecutionLayer  # 🔥 NEW
 
 # --------------------------------------------------
 # GLOBAL STATE
@@ -83,6 +84,7 @@ propagation_engine = PropagationEngine(
 
 symbol_validator = SymbolValidator()
 signal_layer = SignalLayer()
+execution_layer = ExecutionLayer()  # 🔥 NEW
 
 engine_loop_thread = None
 engine_loop_running = False
@@ -145,7 +147,7 @@ def safe_propagation_update(engine, symbols):
         log(f"[PROP ERROR] {e}")
 
 # --------------------------------------------------
-# SNAPSHOT (FIXED + SAFE)
+# SNAPSHOT + EXECUTION
 # --------------------------------------------------
 
 def generate_snapshot():
@@ -193,9 +195,20 @@ def generate_snapshot():
         log("[SNAPSHOT] no data")
         return
 
+    # -------------------------------
+    # SIGNAL LAYER
+    # -------------------------------
     signal_results = signal_layer.compute(rows)
     signal_results = sorted(signal_results, key=lambda x: x.get("score", 0), reverse=True)
 
+    # -------------------------------
+    # EXECUTION LAYER (NEW)
+    # -------------------------------
+    candidates = execution_layer.evaluate(signal_results)
+
+    # -------------------------------
+    # SNAPSHOT PRINT
+    # -------------------------------
     top = signal_results[:5]
     avg = sum([r.get("drift", 0) for r in signal_results]) / len(signal_results)
 
@@ -228,6 +241,11 @@ def generate_snapshot():
 
     log(f"AVG DRIFT: {avg:+.6f}")
     log("========================================")
+
+    # -------------------------------
+    # EXECUTION PRINT (NEW)
+    # -------------------------------
+    execution_layer.print_candidates(candidates)
 
 # --------------------------------------------------
 # ENGINE LOOP
