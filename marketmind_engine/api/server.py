@@ -1,5 +1,27 @@
 import os
-print("🔥 RUNNING FILE:", os.path.abspath(__file__))
+import sys
+import time
+
+MM_ROLE = os.getenv("MM_ROLE", "UNKNOWN")
+
+try:
+    if sys.platform == "win32":
+        if MM_ROLE == "SANDBOX":
+            os.system("title MMAI SANDBOX (8000)")
+            os.system("color 0A")
+        elif MM_ROLE == "STATE":
+            os.system("title MMAI STATE (8002)")
+            os.system("color 0B")
+        else:
+            os.system("title MMAI UNKNOWN")
+except Exception:
+    pass
+
+print("\n" + "="*60)
+print("🚀 MARKETMIND ENGINE START")
+print(f"🔥 ROLE: {MM_ROLE}")
+print(f"📂 FILE: {os.path.abspath(__file__)}")
+print("="*60 + "\n")
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -9,70 +31,47 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import threading
-import time
 from collections import deque
 from datetime import datetime
 import pytz
 
 from marketmind_engine.runtime.build_engine import build_engine
-from marketmind_engine.api.models import (
-    StartResponse,
-    StopResponse,
-    EngineStatus,
-)
-
-# 🔥 FIXED: NOW USING RUNTIME ENGINE (NOT INTELLIGENCE ENGINE)
+from marketmind_engine.api.models import StartResponse, StopResponse, EngineStatus
 from marketmind_engine.narrative.propagation_engine_runtime import PropagationEngine
-
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
 
+# --------------------------------------------------
+# GLOBAL STATE
+# --------------------------------------------------
 
-# ------------------------------------------------------------------
-# LOGGING SETUP
-# ------------------------------------------------------------------
-
-LOG_DIR = "logs"
-os.makedirs(LOG_DIR, exist_ok=True)
-
-SESSION_LOG_FILE = os.path.join(
-    LOG_DIR,
-    f"engine_{time.strftime('%Y-%m-%d_%H-%M-%S')}.log"
-)
-
-engine_logs = deque(maxlen=200)
-
+engine_logs = deque(maxlen=1000)
 
 def log(message: str):
-    entry = f"{time.strftime('%H:%M:%S')} | {message}"
+    entry = f"{time.strftime('%H:%M:%S')} | [{MM_ROLE}] {message}"
     print(entry)
     engine_logs.append(entry)
 
-    try:
-        with open(SESSION_LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(entry + "\n")
-    except Exception:
-        pass
+# 🔥 CAPTURE RAW PRINT OUTPUT (STATE FIX)
+class CapturePrint:
+    def __init__(self, original):
+        self.original = original
 
+    def write(self, data):
+        self.original.write(data)
 
-# ------------------------------------------------------------------
-# ENGINE BOOTSTRAP
-# ------------------------------------------------------------------
+        if "[STATE]" in data:
+            engine_logs.append(data.strip())
+
+    def flush(self):
+        self.original.flush()
+
+sys.stdout = CapturePrint(sys.stdout)
+
+# --------------------------------------------------
+# ENGINE
+# --------------------------------------------------
 
 engine_controller = build_engine()
-
-engine_loop_thread = None
-engine_loop_running = False
-
-rss_polling_active = False
-symbol_evaluation_active = False
-
-last_signature = None
-last_full_run_ts = 0
-
-RSS_POLL_INTERVAL = 15
-last_rss_poll = 0
-
-evaluation_symbols = []
 
 provider = getattr(engine_controller, "provider", None)
 rss_service = getattr(engine_controller, "rss_service", None)
@@ -85,11 +84,19 @@ propagation_engine = PropagationEngine(
 
 symbol_validator = SymbolValidator()
 
-# ------------------------------------------------------------------
-# FASTAPI APP
-# ------------------------------------------------------------------
+engine_loop_thread = None
+engine_loop_running = False
 
-app = FastAPI(title="MarketMind Engine API")
+RSS_POLL_INTERVAL = 15
+last_rss_poll = 0
+
+evaluation_symbols = []
+
+# --------------------------------------------------
+# FASTAPI
+# --------------------------------------------------
+
+app = FastAPI(title=f"MarketMind Engine API ({MM_ROLE})")
 
 app.add_middleware(
     CORSMiddleware,
@@ -99,14 +106,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 class RunRequest(BaseModel):
     symbol: Optional[str] = None
 
-
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # HELPERS
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 def normalize_event(e):
     try:
@@ -118,7 +123,6 @@ def normalize_event(e):
     except Exception:
         return str(e)
 
-
 def is_market_open():
     try:
         now = datetime.now(pytz.timezone("US/Eastern"))
@@ -128,35 +132,74 @@ def is_market_open():
     except Exception:
         return True
 
-
-# ------------------------------------------------------------------
-# PROPAGATION WRAPPER
-# ------------------------------------------------------------------
+# --------------------------------------------------
+# PROPAGATION
+# --------------------------------------------------
 
 def safe_propagation_update(engine, symbols):
-
     log("[DEBUG] entering safe_propagation_update")
-    log(f"[DEBUG_ENGINE_TYPE] {engine} | has_update={hasattr(engine, 'update')}")
-    log(f"[DEBUG_PROP_CALL] symbols={len(symbols)}")
-
     try:
         if hasattr(engine, "update"):
             engine.update(symbols)
-            log(f"[PROP] update() applied to {len(symbols)} symbols")
-        else:
-            log("[PROP] No update() method found")
     except Exception as e:
-        log(f"[PROP] error: {e}")
+        log(f"[PROP ERROR] {e}")
 
+# --------------------------------------------------
+# SNAPSHOT
+# --------------------------------------------------
 
-# ------------------------------------------------------------------
+def generate_snapshot():
+
+    drifts = []
+
+    for line in list(engine_logs)[-300:]:
+
+        if "[STATE]" in line:
+            try:
+                parts = line.split()
+
+                symbol = parts[1]
+                drift = float(parts[4].split("=")[1])
+
+                drifts.append((symbol, drift))
+
+            except:
+                pass
+
+    if not drifts:
+        log("[SNAPSHOT] no data")
+        return
+
+    drifts_sorted = sorted(drifts, key=lambda x: x[1], reverse=True)
+
+    top = drifts_sorted[:5]
+    bottom = drifts_sorted[-5:]
+
+    avg = sum([d for _, d in drifts]) / len(drifts)
+
+    log("================ SNAPSHOT ================")
+    log(f"TIME: {time.strftime('%H:%M:%S')}")
+    log(f"SYMBOLS: {len(drifts)}")
+
+    log("TOP DRIFT:")
+    for s, d in top:
+        log(f"  {s}  {d:+.6f}")
+
+    log("BOTTOM DRIFT:")
+    for s, d in bottom:
+        log(f"  {s}  {d:+.6f}")
+
+    log(f"AVG DRIFT: {avg:+.6f}")
+    log("========================================")
+
+# --------------------------------------------------
 # ENGINE LOOP
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 def engine_loop():
 
     global engine_loop_running
-    global last_signature, last_full_run_ts, last_rss_poll, evaluation_symbols
+    global last_rss_poll, evaluation_symbols
 
     while engine_loop_running:
 
@@ -167,9 +210,7 @@ def engine_loop():
                 now = time.time()
                 symbols = set()
                 events = None
-                rss_changed = False
 
-                # ---------------- RSS ----------------
                 if rss_service and (now - last_rss_poll > RSS_POLL_INTERVAL):
 
                     rss_service.worker.poll_once()
@@ -183,11 +224,6 @@ def engine_loop():
                     if events:
                         log(f"[DEBUG_EVENT_0] {normalize_event(events[0])}")
 
-                        signature = hash(tuple(sorted(normalize_event(e) for e in events)))
-                        rss_changed = signature != last_signature
-                        last_signature = signature
-
-                # ---------------- BUILD SYMBOL SET ----------------
                 if events:
                     for e in events:
                         if hasattr(e, "symbol") and e.symbol:
@@ -195,32 +231,28 @@ def engine_loop():
                         if hasattr(e, "symbols"):
                             symbols.update(e.symbols)
 
-                # ---------------- VALIDATE ----------------
                 validated = [s for s in symbols if symbol_validator.is_valid(s)]
                 evaluation_symbols = validated[:30]
 
                 log(f"Symbols: {evaluation_symbols}")
 
-                # ---------------- EXECUTION ----------------
                 if is_market_open():
                     for s in evaluation_symbols:
                         engine_controller.run_symbol_cycle(s)
 
-                # ---------------- PROPAGATION ----------------
-                safe_propagation_update(
-                    propagation_engine,
-                    evaluation_symbols
-                )
+                safe_propagation_update(propagation_engine, evaluation_symbols)
+
+                # 🔥 NOW WILL WORK
+                generate_snapshot()
 
         except Exception as e:
             log(f"Engine loop error: {e}")
 
         time.sleep(2)
 
-
-# ------------------------------------------------------------------
+# --------------------------------------------------
 # ROUTES
-# ------------------------------------------------------------------
+# --------------------------------------------------
 
 @app.post("/api/engine/start", response_model=StartResponse)
 def start_engine():
@@ -235,28 +267,3 @@ def start_engine():
 
     log("Engine started")
     return {"status": "started"}
-
-
-@app.post("/api/engine/stop", response_model=StopResponse)
-def stop_engine():
-    global engine_loop_running
-
-    engine_controller.stop()
-    engine_loop_running = False
-
-    log("Engine stopped")
-    return {"status": "stopped"}
-
-
-@app.get("/api/engine/status", response_model=EngineStatus)
-def engine_status():
-    return {
-        "running": engine_controller.is_running(),
-        "rss_polling": rss_polling_active,
-        "symbol_evaluation": symbol_evaluation_active
-    }
-
-
-@app.get("/api/engine/logs")
-def engine_logs_endpoint():
-    return {"logs": list(engine_logs)}
