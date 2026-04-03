@@ -40,7 +40,8 @@ from marketmind_engine.api.models import StartResponse
 from marketmind_engine.narrative.propagation_engine_runtime import PropagationEngine
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
 from marketmind_engine.intelligence.signal_layer import SignalLayer
-from marketmind_engine.execution.execution_layer import ExecutionLayer  # 🔥 NEW
+from marketmind_engine.execution.execution_layer import ExecutionLayer
+from marketmind_engine.intelligence.why_layer import WhyLayer  # 🔥 NEW
 
 # --------------------------------------------------
 # GLOBAL STATE
@@ -84,7 +85,8 @@ propagation_engine = PropagationEngine(
 
 symbol_validator = SymbolValidator()
 signal_layer = SignalLayer()
-execution_layer = ExecutionLayer()  # 🔥 NEW
+execution_layer = ExecutionLayer()
+why_layer = WhyLayer()  # 🔥 NEW
 
 engine_loop_thread = None
 engine_loop_running = False
@@ -93,6 +95,7 @@ RSS_POLL_INTERVAL = 15
 last_rss_poll = 0
 
 evaluation_symbols = []
+latest_events = []  # 🔥 NEW (persist events for WHY layer)
 
 # --------------------------------------------------
 # FASTAPI
@@ -147,10 +150,12 @@ def safe_propagation_update(engine, symbols):
         log(f"[PROP ERROR] {e}")
 
 # --------------------------------------------------
-# SNAPSHOT + EXECUTION
+# SNAPSHOT + EXECUTION + WHY
 # --------------------------------------------------
 
 def generate_snapshot():
+
+    global latest_events
 
     rows_map = {}
 
@@ -202,7 +207,7 @@ def generate_snapshot():
     signal_results = sorted(signal_results, key=lambda x: x.get("score", 0), reverse=True)
 
     # -------------------------------
-    # EXECUTION LAYER (NEW)
+    # EXECUTION LAYER
     # -------------------------------
     candidates = execution_layer.evaluate(signal_results)
 
@@ -243,9 +248,24 @@ def generate_snapshot():
     log("========================================")
 
     # -------------------------------
-    # EXECUTION PRINT (NEW)
+    # EXECUTION PRINT
     # -------------------------------
     execution_layer.print_candidates(candidates)
+
+    # -------------------------------
+    # WHY LAYER (NEW)
+    # -------------------------------
+    if latest_events:
+        why_results = []
+
+        for r in top:
+            symbol = r.get("symbol")
+            if symbol:
+                why_results.append(
+                    why_layer.analyze(symbol, latest_events)
+                )
+
+        why_layer.print_why(why_results)
 
 # --------------------------------------------------
 # ENGINE LOOP
@@ -254,7 +274,7 @@ def generate_snapshot():
 def engine_loop():
 
     global engine_loop_running
-    global last_rss_poll, evaluation_symbols
+    global last_rss_poll, evaluation_symbols, latest_events
 
     while engine_loop_running:
 
@@ -273,6 +293,7 @@ def engine_loop():
 
                     last_rss_poll = now
                     events = rss_service.get_projection_events()
+                    latest_events = events  # 🔥 persist for WHY layer
 
                     log(f"RSS events: {len(events)}")
 
