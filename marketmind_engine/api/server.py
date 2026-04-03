@@ -39,6 +39,7 @@ from marketmind_engine.runtime.build_engine import build_engine
 from marketmind_engine.api.models import StartResponse, StopResponse, EngineStatus
 from marketmind_engine.narrative.propagation_engine_runtime import PropagationEngine
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
+from marketmind_engine.intelligence.signal_layer import SignalLayer
 
 # --------------------------------------------------
 # GLOBAL STATE
@@ -51,14 +52,12 @@ def log(message: str):
     print(entry)
     engine_logs.append(entry)
 
-# 🔥 CAPTURE RAW PRINT OUTPUT
 class CapturePrint:
     def __init__(self, original):
         self.original = original
 
     def write(self, data):
         self.original.write(data)
-
         if "[STATE]" in data:
             engine_logs.append(data.strip())
 
@@ -83,6 +82,7 @@ propagation_engine = PropagationEngine(
 )
 
 symbol_validator = SymbolValidator()
+signal_layer = SignalLayer()
 
 engine_loop_thread = None
 engine_loop_running = False
@@ -145,19 +145,18 @@ def safe_propagation_update(engine, symbols):
         log(f"[PROP ERROR] {e}")
 
 # --------------------------------------------------
-# SNAPSHOT (FIXED + RANKING)
+# SNAPSHOT (DEDUPED + SIGNAL LAYER)
 # --------------------------------------------------
 
 def generate_snapshot():
 
-    rows = []
+    rows_map = {}
 
     for line in list(engine_logs)[-300:]:
 
         if "[STATE]" in line:
             try:
                 parts = line.split()
-
                 symbol = parts[1]
 
                 drift = 0.0
@@ -177,33 +176,52 @@ def generate_snapshot():
 
                 score = drift * ucip * life
 
-                rows.append((symbol, score, drift, ucip, life))
+                # 🔥 DEDUPE: overwrite by symbol (keeps latest)
+                rows_map[symbol] = {
+                    "symbol": symbol,
+                    "score": score,
+                    "drift": drift,
+                    "ucip": ucip,
+                    "life": life,
+                }
 
             except Exception:
                 pass
+
+    rows = list(rows_map.values())
 
     if not rows:
         log("[SNAPSHOT] no data")
         return
 
-    rows_sorted = sorted(rows, key=lambda x: x[1], reverse=True)
+    signal_results = signal_layer.compute(rows)
+    signal_results = sorted(signal_results, key=lambda x: x["score"], reverse=True)
 
-    top = rows_sorted[:5]
-    bottom = rows_sorted[-5:]
-
-    avg = sum([r[2] for r in rows]) / len(rows)
+    top = signal_results[:5]
+    avg = sum([r["drift"] for r in signal_results]) / len(signal_results)
 
     log("================ SNAPSHOT ================")
     log(f"TIME: {time.strftime('%H:%M:%S')}")
-    log(f"SYMBOLS: {len(rows)}")
+    log(f"SYMBOLS: {len(signal_results)}")
 
-    log("TOP SCORE:")
-    for s, score, d, p, L in top:
-        log(f"  {s:<6} score={score:+.4f}  d={d:+.5f}  p={p:+.5f}  L={L}")
+    log("TOP SIGNALS:")
+    for r in top:
+        log(
+            f"  {r['symbol']:<6} "
+            f"score={r['score']:+.4f}  "
+            f"Δ={r['delta']:+.4f}  "
+            f"→ {r['signal']}"
+        )
 
-    log("BOTTOM SCORE:")
-    for s, score, d, p, L in bottom:
-        log(f"  {s:<6} score={score:+.4f}  d={d:+.5f}  p={p:+.5f}  L={L}")
+    log("WEAKENING:")
+    for r in signal_results:
+        if r["signal"] == "EXHAUSTION":
+            log(
+                f"  {r['symbol']:<6} "
+                f"score={r['score']:+.4f}  "
+                f"Δ={r['delta']:+.4f}  "
+                f"→ EXHAUSTION"
+            )
 
     log(f"AVG DRIFT: {avg:+.6f}")
     log("========================================")
@@ -258,7 +276,6 @@ def engine_loop():
 
                 safe_propagation_update(propagation_engine, evaluation_symbols)
 
-                # 🔥 RANKING SNAPSHOT ACTIVE
                 generate_snapshot()
 
         except Exception as e:
