@@ -51,7 +51,7 @@ def log(message: str):
     print(entry)
     engine_logs.append(entry)
 
-# 🔥 CAPTURE RAW PRINT OUTPUT (STATE FIX)
+# 🔥 CAPTURE RAW PRINT OUTPUT
 class CapturePrint:
     def __init__(self, original):
         self.original = original
@@ -145,12 +145,12 @@ def safe_propagation_update(engine, symbols):
         log(f"[PROP ERROR] {e}")
 
 # --------------------------------------------------
-# SNAPSHOT
+# SNAPSHOT (FIXED + RANKING)
 # --------------------------------------------------
 
 def generate_snapshot():
 
-    drifts = []
+    rows = []
 
     for line in list(engine_logs)[-300:]:
 
@@ -159,35 +159,51 @@ def generate_snapshot():
                 parts = line.split()
 
                 symbol = parts[1]
-                drift = float(parts[4].split("=")[1])
 
-                drifts.append((symbol, drift))
+                drift = 0.0
+                ucip = 0.0
+                life = 0
 
-            except:
+                for p in parts:
+                    if p.startswith("DRIFT="):
+                        drift = float(p.split("=")[1])
+                    elif p.startswith("UCIP="):
+                        ucip = float(p.split("=")[1])
+                    elif p.startswith("LIFE="):
+                        life = int(p.split("=")[1])
+
+                if life == 0:
+                    continue
+
+                score = drift * ucip * life
+
+                rows.append((symbol, score, drift, ucip, life))
+
+            except Exception:
                 pass
 
-    if not drifts:
+    if not rows:
         log("[SNAPSHOT] no data")
         return
 
-    drifts_sorted = sorted(drifts, key=lambda x: x[1], reverse=True)
+    rows_sorted = sorted(rows, key=lambda x: x[1], reverse=True)
 
-    top = drifts_sorted[:5]
-    bottom = drifts_sorted[-5:]
+    top = rows_sorted[:5]
+    bottom = rows_sorted[-5:]
 
-    avg = sum([d for _, d in drifts]) / len(drifts)
+    avg = sum([r[2] for r in rows]) / len(rows)
 
     log("================ SNAPSHOT ================")
     log(f"TIME: {time.strftime('%H:%M:%S')}")
-    log(f"SYMBOLS: {len(drifts)}")
+    log(f"SYMBOLS: {len(rows)}")
 
-    log("TOP DRIFT:")
-    for s, d in top:
-        log(f"  {s}  {d:+.6f}")
+    log("TOP SCORE:")
+    for s, score, d, p, L in top:
+        log(f"  {s:<6} score={score:+.4f}  d={d:+.5f}  p={p:+.5f}  L={L}")
 
-    log("BOTTOM DRIFT:")
-    for s, d in bottom:
-        log(f"  {s}  {d:+.6f}")
+    log("BOTTOM SCORE:")
+    for s, score, d, p, L in bottom:
+        log(f"  {s:<6} score={score:+.4f}  d={d:+.5f}  p={p:+.5f}  L={L}")
 
     log(f"AVG DRIFT: {avg:+.6f}")
     log("========================================")
@@ -242,7 +258,7 @@ def engine_loop():
 
                 safe_propagation_update(propagation_engine, evaluation_symbols)
 
-                # 🔥 NOW WILL WORK
+                # 🔥 RANKING SNAPSHOT ACTIVE
                 generate_snapshot()
 
         except Exception as e:
