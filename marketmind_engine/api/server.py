@@ -36,7 +36,7 @@ from datetime import datetime
 import pytz
 
 from marketmind_engine.runtime.build_engine import build_engine
-from marketmind_engine.api.models import StartResponse, StopResponse, EngineStatus
+from marketmind_engine.api.models import StartResponse
 from marketmind_engine.narrative.propagation_engine_runtime import PropagationEngine
 from marketmind_engine.intelligence.symbol_validator import SymbolValidator
 from marketmind_engine.intelligence.signal_layer import SignalLayer
@@ -145,7 +145,7 @@ def safe_propagation_update(engine, symbols):
         log(f"[PROP ERROR] {e}")
 
 # --------------------------------------------------
-# SNAPSHOT (DEDUPED + SIGNAL LAYER)
+# SNAPSHOT (FIXED + SAFE)
 # --------------------------------------------------
 
 def generate_snapshot():
@@ -176,7 +176,6 @@ def generate_snapshot():
 
                 score = drift * ucip * life
 
-                # 🔥 DEDUPE: overwrite by symbol (keeps latest)
                 rows_map[symbol] = {
                     "symbol": symbol,
                     "score": score,
@@ -195,10 +194,10 @@ def generate_snapshot():
         return
 
     signal_results = signal_layer.compute(rows)
-    signal_results = sorted(signal_results, key=lambda x: x["score"], reverse=True)
+    signal_results = sorted(signal_results, key=lambda x: x.get("score", 0), reverse=True)
 
     top = signal_results[:5]
-    avg = sum([r["drift"] for r in signal_results]) / len(signal_results)
+    avg = sum([r.get("drift", 0) for r in signal_results]) / len(signal_results)
 
     log("================ SNAPSHOT ================")
     log(f"TIME: {time.strftime('%H:%M:%S')}")
@@ -207,20 +206,24 @@ def generate_snapshot():
     log("TOP SIGNALS:")
     for r in top:
         log(
-            f"  {r['symbol']:<6} "
-            f"score={r['score']:+.4f}  "
-            f"Δ={r['delta']:+.4f}  "
-            f"→ {r['signal']}"
+            f"  {r.get('symbol','NA'):<6} "
+            f"score={r.get('score',0):+.4f}  "
+            f"Δ={r.get('delta',0):+.4f}  "
+            f"ΔΔ={r.get('accel',0):+.4f}  "
+            f"p={r.get('persistence', r.get('persist', 1)):<2}  "
+            f"conf={r.get('confidence',0):.4f} "
+            f"→ {r.get('confidence_label','NA'):<6} | {r.get('signal','NA')}"
         )
 
     log("WEAKENING:")
     for r in signal_results:
-        if r["signal"] == "EXHAUSTION":
+        if r.get("signal") in ["EXHAUSTION", "COLLAPSING"]:
             log(
-                f"  {r['symbol']:<6} "
-                f"score={r['score']:+.4f}  "
-                f"Δ={r['delta']:+.4f}  "
-                f"→ EXHAUSTION"
+                f"  {r.get('symbol','NA'):<6} "
+                f"score={r.get('score',0):+.4f}  "
+                f"Δ={r.get('delta',0):+.4f}  "
+                f"conf={r.get('confidence',0):.4f} "
+                f"→ {r.get('signal','NA')}"
             )
 
     log(f"AVG DRIFT: {avg:+.6f}")

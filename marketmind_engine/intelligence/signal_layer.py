@@ -3,6 +3,7 @@
 class SignalLayer:
     def __init__(self):
         self.prev_scores = {}
+        self.prev_deltas = {}  # 🔥 NEW (Δ memory for ΔΔ)
 
     def compute(self, ranked_symbols):
         """
@@ -24,17 +25,27 @@ class SignalLayer:
             else:
                 symbol, score, drift, ucip, life = item
 
-            prev = self.prev_scores.get(symbol, score)
-            delta = score - prev
-            self.prev_scores[symbol] = score
+            # --- Δ (velocity) ---
+            prev_score = self.prev_scores.get(symbol, score)
+            delta = score - prev_score
 
-            signal = self.classify(score, delta)
+            # --- ΔΔ (acceleration) ---
+            prev_delta = self.prev_deltas.get(symbol, 0.0)
+            accel = delta - prev_delta
+
+            # --- store memory ---
+            self.prev_scores[symbol] = score
+            self.prev_deltas[symbol] = delta
+
+            # --- classification ---
+            signal = self.classify(score, delta, accel)
 
             results.append({
                 "symbol": symbol,
                 "score": score,
                 "delta": delta,
-                "signal": signal,
+                "accel": accel,        # 🔥 NEW
+                "signal": signal,      # preserved field name
                 "drift": drift,
                 "ucip": ucip,
                 "life": life,
@@ -42,17 +53,35 @@ class SignalLayer:
 
         return results
 
-    def classify(self, score, delta):
-        if abs(delta) < 1e-6:
+    # --------------------------------------------------
+    # 🔥 EXTENDED CLASSIFIER (Δ + ΔΔ)
+    # --------------------------------------------------
+    def classify(self, score, delta, accel):
+        # --- near-zero guard ---
+        if abs(delta) < 1e-6 and abs(accel) < 1e-6:
             return "STABLE"
 
+        # --- classic behavior preserved first ---
         if score > 0:
             if delta > 0:
+                # now refined by acceleration
+                if accel > 0:
+                    return "ACCELERATING"
+                if accel < 0:
+                    return "DECELERATING"
                 return "CONTINUATION"
+
             if delta < 0:
+                if accel < 0:
+                    return "COLLAPSING"
+                if accel > 0:
+                    return "STABILIZING"
                 return "EXHAUSTION"
 
         if score <= 0 and delta > 0:
+            if accel > 0:
+                return "IGNITION_ACCEL"
             return "IGNITION"
 
+        # --- fallback ---
         return "STABLE"
