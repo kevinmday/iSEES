@@ -19,6 +19,9 @@ from marketmind_engine.narrative.narrative_identity import (
 
 from marketmind_engine.intelligence.ignition_detector import IgnitionDetector
 
+# 🔥 NEW — earnings adapter
+from marketmind_engine.narrative.sources.earnings_adapter import EarningsAdapter
+
 import threading
 import hashlib
 
@@ -36,6 +39,10 @@ class NarrativeAdapter:
         self.propagation = PropagationEngine()
         self.identity_resolver = NarrativeIdentityResolver()
         self.ignition = IgnitionDetector()
+
+        # 🔥 NEW
+        self.earnings_adapter = EarningsAdapter()
+        self._latest_earnings_payload = None  # placeholder for webhook/test
 
         self._projection_events = []
         self._engine_time_counter = 0
@@ -82,6 +89,60 @@ class NarrativeAdapter:
             self._last_symbols.add(e.symbol)
 
         self._prune_projection_events()
+
+    # -------------------------------------------------
+    # 🔥 NEW — EARNINGS INGESTION
+    # -------------------------------------------------
+
+    def ingest_earnings_payload(self, payload: dict):
+        """
+        External entry point (webhook or manual injection)
+        Stores latest payload for processing in projection cycle
+        """
+        self._latest_earnings_payload = payload
+
+    def _process_earnings(self):
+
+        if not self._latest_earnings_payload:
+            return []
+
+        events = self.earnings_adapter.parse_webhook(
+            self._latest_earnings_payload
+        )
+
+        projection_events = []
+
+        for e in events:
+
+            symbols = e.get("symbols", [])
+            weight = e.get("weight", 1.0)
+            title = e.get("text")
+            timestamp = e.get("timestamp")
+
+            for symbol in symbols:
+
+                self._engine_time_counter += 1
+
+                event = ProjectionEvent(
+                    symbol=symbol,
+                    engine_time=self._engine_time_counter,
+                    source="earnings",
+                    sentiment=0.0,
+                    weight=weight,
+                    title=title,
+                    timestamp=timestamp,
+                )
+
+                projection_events.append(event)
+                self.propagation.ingest_event(event)
+
+                # 🔥 maintain continuity
+                self._last_symbols.add(symbol)
+
+        # clear after processing (important)
+        self._latest_earnings_payload = None
+
+        return projection_events
 
     # -------------------------------------------------
     # HELPERS
@@ -165,7 +226,11 @@ class NarrativeAdapter:
                 narrative.assets.add(symbol)
                 self.propagation.ingest_event(event)
 
+        # 🔥 NEW — process earnings in SAME cycle (parallel, not replacing RSS)
+        earnings_events = self._process_earnings()
+
         self._projection_events.extend(new_events)
+        self._projection_events.extend(earnings_events)
 
         # 🔥 CRITICAL — persist symbols between cycles
         if current_symbols:

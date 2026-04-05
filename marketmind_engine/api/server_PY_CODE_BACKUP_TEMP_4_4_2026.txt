@@ -26,7 +26,7 @@ print("="*60 + "\n")
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -43,12 +43,8 @@ from marketmind_engine.intelligence.signal_layer import SignalLayer
 from marketmind_engine.execution.execution_layer import ExecutionLayer
 from marketmind_engine.intelligence.why_layer import WhyLayer
 
-# 🔥 REMOVE benzinga dependency (per your directive)
-# from marketmind_engine.adapters.benzinga_adapter import fetch_benzinga_news
-
-# 🔥 NEW — MASSIVE ADAPTER
-from marketmind_engine.adapters.massive_adapter import MassiveAdapter
-
+# 🔥 NEW — BENZINGA
+from marketmind_engine.adapters.benzinga_adapter import fetch_benzinga_news
 
 # --------------------------------------------------
 # GLOBAL STATE
@@ -75,7 +71,6 @@ class CapturePrint:
 
 sys.stdout = CapturePrint(sys.stdout)
 
-
 # --------------------------------------------------
 # ENGINE
 # --------------------------------------------------
@@ -91,9 +86,6 @@ propagation_engine = PropagationEngine(
     rss_service=rss_service,
 )
 
-# 🔥 MASSIVE ADAPTER INIT
-massive_adapter = MassiveAdapter(propagation_engine)
-
 symbol_validator = SymbolValidator()
 signal_layer = SignalLayer()
 execution_layer = ExecutionLayer()
@@ -103,14 +95,13 @@ engine_loop_thread = None
 engine_loop_running = False
 
 RSS_POLL_INTERVAL = 15
+BENZINGA_POLL_INTERVAL = 10  # 🔥 NEW
+
 last_rss_poll = 0
+last_benzinga_poll = 0
 
 evaluation_symbols = []
-latest_events = []
-
-# 🔥 EARNINGS BUFFER
-earnings_events_buffer = []
-
+latest_events = []  # combined RSS + Benzinga
 
 # --------------------------------------------------
 # FASTAPI
@@ -128,7 +119,6 @@ app.add_middleware(
 
 class RunRequest(BaseModel):
     symbol: Optional[str] = None
-
 
 # --------------------------------------------------
 # HELPERS
@@ -153,7 +143,6 @@ def is_market_open():
     except Exception:
         return True
 
-
 # --------------------------------------------------
 # PROPAGATION
 # --------------------------------------------------
@@ -166,9 +155,8 @@ def safe_propagation_update(engine, symbols):
     except Exception as e:
         log(f"[PROP ERROR] {e}")
 
-
 # --------------------------------------------------
-# SNAPSHOT
+# SNAPSHOT + EXECUTION + WHY
 # --------------------------------------------------
 
 def generate_snapshot():
@@ -230,16 +218,35 @@ def generate_snapshot():
     log(f"TIME: {time.strftime('%H:%M:%S')}")
     log(f"SYMBOLS: {len(signal_results)}")
 
+    log("TOP SIGNALS:")
     for r in top:
         log(
-            f"{r.get('symbol','NA')} "
-            f"score={r.get('score',0):+.4f} "
-            f"Δ={r.get('delta',0):+.4f} "
-            f"→ {r.get('signal','NA')}"
+            f"  {r.get('symbol','NA'):<6} "
+            f"score={r.get('score',0):+.4f}  "
+            f"Δ={r.get('delta',0):+.4f}  "
+            f"ΔΔ={r.get('accel',0):+.4f}  "
+            f"p={r.get('persistence', r.get('persist', 1)):<2}  "
+            f"conf={r.get('confidence',0):.4f} "
+            f"→ {r.get('confidence_label','NA'):<6} | {r.get('signal','NA')}"
         )
+
+    log(f"AVG DRIFT: {avg:+.6f}")
+    log("========================================")
 
     execution_layer.print_candidates(candidates)
 
+    # WHY LAYER
+    if latest_events:
+        why_results = []
+
+        for r in top:
+            symbol = r.get("symbol")
+            if symbol:
+                why_results.append(
+                    why_layer.analyze(symbol, latest_events)
+                )
+
+        why_layer.print_why(why_results)
 
 # --------------------------------------------------
 # ENGINE LOOP
@@ -248,9 +255,8 @@ def generate_snapshot():
 def engine_loop():
 
     global engine_loop_running
-    global last_rss_poll
+    global last_rss_poll, last_benzinga_poll
     global evaluation_symbols, latest_events
-    global earnings_events_buffer
 
     while engine_loop_running:
 
@@ -262,8 +268,11 @@ def engine_loop():
                 symbols = set()
 
                 rss_events = []
+                benzinga_events = []
 
-                # ---------------- RSS ----------------
+                # -------------------------
+                # RSS
+                # -------------------------
                 if rss_service and (now - last_rss_poll > RSS_POLL_INTERVAL):
 
                     rss_service.worker.poll_once()
@@ -274,10 +283,28 @@ def engine_loop():
 
                     log(f"RSS events: {len(rss_events)}")
 
-                # ---------------- MERGE ----------------
-                latest_events = (rss_events or []) + earnings_events_buffer
-                earnings_events_buffer = []
+                    if rss_events:
+                        log(f"[DEBUG_EVENT_0] {normalize_event(rss_events[0])}")
 
+                # -------------------------
+                # BENZINGA 🔥 NEW
+                # -------------------------
+                if now - last_benzinga_poll > BENZINGA_POLL_INTERVAL:
+
+                    benzinga_events = fetch_benzinga_news()
+                    last_benzinga_poll = now
+
+                    if benzinga_events:
+                        log(f"[BENZINGA] events: {len(benzinga_events)}")
+
+                # -------------------------
+                # MERGE EVENTS
+                # -------------------------
+                latest_events = (rss_events or []) + (benzinga_events or [])
+
+                # -------------------------
+                # SYMBOL EXTRACTION
+                # -------------------------
                 for e in latest_events:
 
                     if hasattr(e, "symbol") and e.symbol:
@@ -286,6 +313,7 @@ def engine_loop():
                     if hasattr(e, "symbols"):
                         symbols.update(e.symbols)
 
+                    # benzinga dict format
                     if isinstance(e, dict):
                         for s in e.get("symbols", []):
                             symbols.add(s)
@@ -295,11 +323,9 @@ def engine_loop():
 
                 log(f"Symbols: {evaluation_symbols}")
 
-                # 🔥 TEST MASSIVE PIPELINE (REMOVE LATER)
-                massive_adapter.ingest_trade("UONEK", 10.0, 100)
-                massive_adapter.ingest_trade("UONEK", 10.2, 120)
-
-                # ---------------- EXECUTION ----------------
+                # -------------------------
+                # RUN ENGINE
+                # -------------------------
                 if is_market_open():
                     for s in evaluation_symbols:
                         engine_controller.run_symbol_cycle(s)
@@ -312,7 +338,6 @@ def engine_loop():
             log(f"Engine loop error: {e}")
 
         time.sleep(2)
-
 
 # --------------------------------------------------
 # ROUTES
@@ -331,36 +356,3 @@ def start_engine():
 
     log("Engine started")
     return {"status": "started"}
-
-
-# 🔥 EARNINGS WEBHOOK
-@app.post("/api/earnings/webhook")
-async def earnings_webhook(request: Request):
-
-    global earnings_events_buffer
-
-    try:
-        payload = await request.json()
-
-        content = payload.get("data", {}).get("content", {})
-        ticker = content.get("ticker")
-
-        if not ticker:
-            return {"status": "error"}
-
-        event = {
-            "source": "earnings",
-            "symbols": [ticker],
-            "timestamp": payload.get("data", {}).get("timestamp"),
-            "title": f"{ticker} earnings",
-        }
-
-        earnings_events_buffer.append(event)
-
-        log(f"[EARNINGS] received: {ticker}")
-
-        return {"status": "ok"}
-
-    except Exception as e:
-        log(f"[EARNINGS ERROR] {e}")
-        return {"status": "error"}

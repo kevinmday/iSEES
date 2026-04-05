@@ -28,6 +28,40 @@ class PropagationEngine:
 
         self._top_persistence: Dict[str, int] = {}
 
+        # 🔥 NEW: external Δ buffer (Massive)
+        self._external_delta: Dict[str, float] = {}
+
+    # --------------------------------------------------
+    # 🔥 UPDATED: Massive Δ injection (ONLY CHANGE)
+    # --------------------------------------------------
+
+    def inject_delta(self, symbol: str, delta: float):
+        """
+        Called by Massive adapter
+        """
+
+        # 🔥 ensure symbol exists in engine
+        if symbol not in self._symbol_state:
+            self._symbol_state[symbol] = {
+                "fils": 0.0,
+                "ucip": 0.0,
+                "timestamp": time.time(),
+                "price_prev": 0.0,
+                "buffer": [],
+                "lifespan": 0,
+                "propagation_score": 0.0,
+                "delta_micro": 0.0,
+                "drift": 0.0,
+            }
+
+            # 🔥 ensure it participates in update loop
+            if symbol not in self._last_symbols:
+                self._last_symbols.append(symbol)
+
+        self._external_delta[symbol] = delta
+
+    # --------------------------------------------------
+
     def _valid_symbol(self, symbol: str):
 
         if not symbol:
@@ -58,6 +92,8 @@ class PropagationEngine:
             return False
 
         return True
+
+    # --------------------------------------------------
 
     def update(self, symbols):
 
@@ -154,14 +190,26 @@ class PropagationEngine:
                 prev_fils = prev.get("fils", 0.0)
                 delta_field = fils - prev_fils
 
+                # 🔥 NEW: Massive Δ
+                delta_external = self._external_delta.get(symbol, 0.0)
+
+                # --------------------------------------------------
+                # 🔥 DRIFT COMPOSITION (CORE UPGRADE)
+                # --------------------------------------------------
+
                 drift_field = delta_field
                 drift_price = delta_micro
+                drift_massive = delta_external
 
                 if price_stale:
-                    drift = drift_field
+                    drift = drift_field + 0.5 * drift_massive
                     regime = "FIELD_ONLY"
                 else:
-                    drift = 0.7 * drift_field + 0.3 * drift_price
+                    drift = (
+                        0.5 * drift_field +
+                        0.3 * drift_price +
+                        0.7 * drift_massive
+                    )
                     regime = "HYBRID"
 
                 prev_drift = prev.get("drift", 0.0)
@@ -195,6 +243,7 @@ class PropagationEngine:
                     "directional_ratio": directional_ratio,
                     "delta_micro": delta_micro,
                     "delta_field": delta_field,
+                    "delta_external": delta_external,
                     "drift": drift,
                     "drift_slope": drift_slope,
                     "regime": regime,
@@ -207,18 +256,22 @@ class PropagationEngine:
                     f"FILS={fils:.4f} "
                     f"UCIP={ucip:.4f} "
                     f"DRIFT={drift:.6f} "
+                    f"EXTΔ={delta_external:.6f} "
                     f"LIFE={lifespan} "
                     f"PROP={propagation_score:.6f} "
                     f"REGIME={regime}"
                 )
 
-                # 🔥 USE NEW SIGNAL CLASSIFIER (PRIMARY)
                 signal = classify_signal(symbol, state)
 
                 print(
                     f"[SIGNAL] {symbol} → {signal} "
-                    f"Δ={delta_field:.5f} d={drift:.5f} "
-                    f"s={drift_slope:.5f} p={propagation_score:.5f} "
+                    f"Δf={delta_field:.5f} "
+                    f"Δp={delta_micro:.5f} "
+                    f"Δx={delta_external:.5f} "
+                    f"d={drift:.5f} "
+                    f"s={drift_slope:.5f} "
+                    f"p={propagation_score:.5f} "
                     f"life={lifespan}"
                 )
 
