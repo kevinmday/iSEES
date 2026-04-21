@@ -1,0 +1,68 @@
+# ============================================================
+# testing/run_phase9.py
+# iSEES-UAP — Phase 9 Runner
+# ============================================================
+
+from isees_uap_v0_baseline import ISEES_UAP
+from testing.adversarial_generator import get_adversarial_tests
+
+from mitigation.false_coherence import apply_false_coherence_penalty
+from mitigation.temporal_alignment import temporal_entropy_adjustment
+from mitigation.sparse_data import sparse_penalty
+from mitigation.deception import apply_deception_penalty, generate_deception_flags
+
+from tokens.token_extractor import extract_all_tokens
+from search.search_vector_engine import rank_vectors, group_by_tier
+
+from output.reporter import build_report, explain_classification, export_json, export_text
+
+
+def run_phase9():
+
+    engine = ISEES_UAP()
+    tests = get_adversarial_tests()
+
+    for name, (s, r, e, _) in tests.items():
+
+        base = engine.run(s, r, e)
+
+        # Phase pipeline
+        C1 = apply_false_coherence_penalty(base.coherence, s.values)
+        C2 = sparse_penalty(C1, s.values, r.values, e.values)
+        C3 = apply_deception_penalty(C2, s.values, r.values,
+                                    base.coherence, base.entropy)
+
+        H2 = temporal_entropy_adjustment(s.values, r.values, base.entropy)
+
+        flags = generate_deception_flags(s.values, r.values,
+                                         base.coherence, base.entropy)
+
+        classification = engine.classify(C3, H2)
+
+        # Vectors
+        s_tokens, r_tokens, e_tokens = extract_all_tokens(s, r, e)
+        vectors = rank_vectors(s_tokens, r_tokens, e_tokens, C3, H2)
+
+        # Build report
+        report = build_report(
+            name,
+            [base.coherence, C1, C2, C3],
+            [base.entropy, H2],
+            classification,
+            flags,
+            vectors
+        )
+
+        explanation = explain_classification(C3, H2, flags)
+
+        # Output
+        print(f"\n{name.upper()}")
+        print(f"CLASS: {classification}")
+        print(f"EXPLAIN: {explanation}")
+
+        export_json(report, f"output/{name}.json")
+        export_text(report, f"output/{name}.txt")
+
+
+if __name__ == "__main__":
+    run_phase9()
