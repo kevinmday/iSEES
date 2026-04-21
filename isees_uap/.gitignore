@@ -1,0 +1,7 @@
+# generated reports
+output/*.json
+output/*.txt
+
+# cache
+__pycache__/
+*.pyc
