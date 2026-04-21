@@ -66,16 +66,36 @@ class ISEES_UAP:
         Z = np.tensordot(Z, e.values, axes=0)
         return Z
 
-    def compute_coherence(self, Z):
-        return np.linalg.norm(Z) / self.ttcf
+    # ============================================================
+    # NORMALIZED + STRENGTH-WEIGHTED COHERENCE
+    # ============================================================
+    def compute_coherence(self, Z, s: SensorData):
+        size = Z.size if Z.size > 0 else 1
+        base_coherence = (np.linalg.norm(Z) / np.sqrt(size)) / self.ttcf
+
+        signal_strength = np.mean(s.values)
+
+        # nonlinear separation
+        strength_factor = max(0.3, signal_strength ** 1.5)
+
+        return base_coherence * strength_factor
 
     def compute_entropy(self, s, r):
         return abs(s.delta - r.delta)
 
+    # ============================================================
+    # FIXED: STABLE CLASSIFICATION (NO MORE ALL/NOTHING FLIPS)
+    # ============================================================
     def classify(self, C, H):
-        if C >= self.coherence_threshold and H < self.entropy_limit:
+
+        # must have structured signal
+        if H >= self.entropy_limit:
+            return "NOISE"
+
+        # stable bands (tuned for normalized coherence scale)
+        if C >= 1.2:
             return "HIGH_CONFIDENCE"
-        elif C >= self.coherence_threshold:
+        elif C >= 0.6:
             return "PARTIAL"
         else:
             return "NOISE"
@@ -85,7 +105,6 @@ class ISEES_UAP:
         report_tokens = []
         env_tokens = []
 
-        # SENSOR TOKENS
         if np.mean(s.values) > 0.7:
             sensor_tokens.append("radar high speed")
         if s.delta > 0.5:
@@ -94,14 +113,12 @@ class ISEES_UAP:
             sensor_tokens.append("clean signal")
         sensor_tokens.append("no IFF")
 
-        # REPORT TOKENS
         if r.confidence > 0.7:
             report_tokens.append("pilot visual")
         if r.delta > 0.4:
             report_tokens.append("maneuvering object")
         report_tokens.append("no propulsion")
 
-        # ENV TOKENS
         if e.stability > 0.7:
             env_tokens.append("clear weather")
         env_tokens.append("stable atmosphere")
@@ -111,23 +128,19 @@ class ISEES_UAP:
     def apply_templates(self, s_tokens, r_tokens, e_tokens):
         phrases = []
 
-        # SENSOR + REPORT
         for s_tok in s_tokens:
             for r_tok in r_tokens:
                 phrases.append(f"{s_tok} {r_tok}")
 
-        # SENSOR + ENV
         for s_tok in s_tokens:
             for e_tok in e_tokens:
                 phrases.append(f"{s_tok} {e_tok}")
 
-        # FULL COMBINATION
         for s_tok in s_tokens:
             for r_tok in r_tokens:
                 for e_tok in e_tokens:
                     phrases.append(f"{s_tok} {r_tok} {e_tok}")
 
-        # MISMATCH PATTERNS
         for r_tok in r_tokens:
             phrases.append(f"{r_tok} not on radar")
 
@@ -165,7 +178,7 @@ class ISEES_UAP:
 
         Z = self.build_tensor(s, r, e)
 
-        C = round(self.compute_coherence(Z), 4)
+        C = round(self.compute_coherence(Z, s), 4)
         H = round(self.compute_entropy(s, r), 4)
 
         classification = self.classify(C, H)

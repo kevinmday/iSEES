@@ -1,0 +1,16 @@
+{
+  "sensor": {
+    "values": [0.65, 0.7, 0.6, 0.68, 0.62],
+    "delta": 0.5,
+    "noise": 0.25
+  },
+  "report": {
+    "values": [0.55, 0.6, 0.58],
+    "delta": 0.45,
+    "confidence": 0.7
+  },
+  "environment": {
+    "values": [0.7, 0.65],
+    "stability": 0.6
+  }
+}
