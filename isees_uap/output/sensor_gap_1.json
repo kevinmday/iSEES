@@ -1,0 +1,39 @@
+{
+  "event": "sensor_gap_1",
+  "timestamp": "2026-04-21T14:57:29.359258",
+  "coherence_flow": {
+    "base": 0.3793,
+    "phase3": 0.0759,
+    "phase5": 0.0228,
+    "phase8": 0.0228
+  },
+  "entropy_flow": {
+    "base": 0.3,
+    "adjusted": 0.45
+  },
+  "classification": "NOISE",
+  "flags": {},
+  "top_vectors": [
+    {
+      "phrase": "clean signal no propulsion low turbulence environment",
+      "score": 0.0125
+    },
+    {
+      "phrase": "no IFF silent movement low turbulence environment",
+      "score": 0.0125
+    },
+    {
+      "phrase": "low noise radar no propulsion",
+      "score": 0.0125
+    },
+    {
+      "phrase": "clear detection no propulsion stable atmosphere",
+      "score": 0.0125
+    },
+    {
+      "phrase": "clear detection stable atmosphere",
+      "score": 0.0125
+    }
+  ],
+  "vector_count": 129
+}

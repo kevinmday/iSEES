@@ -1,0 +1,41 @@
+{
+  "event": "deception_2",
+  "timestamp": "2026-04-21T14:57:29.346469",
+  "coherence_flow": {
+    "base": 0.5102,
+    "phase3": 0.2551,
+    "phase5": 0.2551,
+    "phase8": 0.1276
+  },
+  "entropy_flow": {
+    "base": 0.4,
+    "adjusted": 0.2
+  },
+  "classification": "NOISE",
+  "flags": {
+    "high_deception": true
+  },
+  "top_vectors": [
+    {
+      "phrase": "sustained contact clear weather",
+      "score": 0.1021
+    },
+    {
+      "phrase": "no IFF high visibility conditions",
+      "score": 0.1021
+    },
+    {
+      "phrase": "continuous tracking pilot visual low turbulence environment",
+      "score": 0.1021
+    },
+    {
+      "phrase": "persistent track no visible exhaust high visibility conditions",
+      "score": 0.1021
+    },
+    {
+      "phrase": "low noise radar no propulsion",
+      "score": 0.1021
+    }
+  ],
+  "vector_count": 486
+}

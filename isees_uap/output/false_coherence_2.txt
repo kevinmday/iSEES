@@ -1,0 +1,24 @@
+EVENT: false_coherence_2
+TIME: 2026-04-21T14:57:29.346469
+
+COHERENCE FLOW:
+  base: 1.8849
+  phase3: 0.377
+  phase5: 0.377
+  phase8: 0.1885
+
+ENTROPY FLOW:
+  base: 0.0
+  adjusted: 0.0
+
+CLASSIFICATION: NOISE
+FLAGS: {'high_deception': True}
+
+TOP SEARCH VECTORS:
+  clean signal no propulsion low turbulence environment | 0.1885
+  no IFF silent movement low turbulence environment | 0.1885
+  no IFF high visibility conditions | 0.1885
+  strong radar return no propulsion clear weather | 0.1885
+  low noise radar no visible exhaust high visibility conditions | 0.1885
+
+TOTAL VECTORS: 201

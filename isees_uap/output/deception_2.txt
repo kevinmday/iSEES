@@ -1,0 +1,24 @@
+EVENT: deception_2
+TIME: 2026-04-21T14:57:29.346469
+
+COHERENCE FLOW:
+  base: 0.5102
+  phase3: 0.2551
+  phase5: 0.2551
+  phase8: 0.1276
+
+ENTROPY FLOW:
+  base: 0.4
+  adjusted: 0.2
+
+CLASSIFICATION: NOISE
+FLAGS: {'high_deception': True}
+
+TOP SEARCH VECTORS:
+  sustained contact clear weather | 0.1021
+  no IFF high visibility conditions | 0.1021
+  continuous tracking pilot visual low turbulence environment | 0.1021
+  persistent track no visible exhaust high visibility conditions | 0.1021
+  low noise radar no propulsion | 0.1021
+
+TOTAL VECTORS: 486

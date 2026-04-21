@@ -1,0 +1,24 @@
+EVENT: sensor_gap_1
+TIME: 2026-04-21T14:57:29.359258
+
+COHERENCE FLOW:
+  base: 0.3793
+  phase3: 0.0759
+  phase5: 0.0228
+  phase8: 0.0228
+
+ENTROPY FLOW:
+  base: 0.3
+  adjusted: 0.45
+
+CLASSIFICATION: NOISE
+FLAGS: {}
+
+TOP SEARCH VECTORS:
+  clean signal no propulsion low turbulence environment | 0.0125
+  no IFF silent movement low turbulence environment | 0.0125
+  low noise radar no propulsion | 0.0125
+  clear detection no propulsion stable atmosphere | 0.0125
+  clear detection stable atmosphere | 0.0125
+
+TOTAL VECTORS: 129
