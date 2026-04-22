@@ -1,5 +1,6 @@
 // ============================================================
 // src/components/RightPanel.tsx — HYBRID (RAW + SEARCH OPS)
+// FULL DROP-IN REPLACEMENT (WITH RUN TOP SEARCH)
 // ============================================================
 
 type Vector = {
@@ -25,10 +26,29 @@ export default function RightPanel({ report }: { report: Report | null }) {
   };
 
   // --------------------------------------------
+  // OPEN SEARCH (NEW - RESTORED)
+  // --------------------------------------------
+  const openSearch = (text: string) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  // --------------------------------------------
+  // RUN TOP SEARCH (CRITICAL FIX)
+  // --------------------------------------------
+  const runTopSearch = () => {
+    if (report.top_vectors && report.top_vectors.length > 0) {
+      openSearch(report.top_vectors[0].phrase);
+    }
+  };
+
+  // --------------------------------------------
   // EXPAND SEARCH PHRASES
   // --------------------------------------------
   const expand = (phrase: string) => {
-    if (phrase.toLowerCase().includes("tic tac")) {
+    const p = phrase.toLowerCase();
+
+    if (p.includes("tic tac")) {
       return [
         "USS Princeton radar logs 2004",
         "AN/SPY-1 anomalous track data",
@@ -36,7 +56,7 @@ export default function RightPanel({ report }: { report: Report | null }) {
       ];
     }
 
-    if (phrase.toLowerCase().includes("omaha")) {
+    if (p.includes("omaha")) {
       return [
         "USS Omaha FLIR footage metadata",
         "Navy pyramid UAP video analysis",
@@ -101,22 +121,36 @@ export default function RightPanel({ report }: { report: Report | null }) {
       <div style={{ marginTop: 30 }}>
         <h3>Search Operations</h3>
 
+        {/* ✅ RUN TOP SEARCH (RESTORED) */}
+        <div style={{ marginBottom: 10 }}>
+          <button onClick={runTopSearch}>
+            Run Top Search
+          </button>
+        </div>
+
         {/* TOP VECTORS */}
         <h4>Top Vectors</h4>
         {report.top_vectors?.length ? (
           report.top_vectors.map((v, i) => (
             <div
               key={i}
-              onClick={() => copy(v.phrase)}
               style={{
                 padding: 8,
                 marginBottom: 6,
-                background: "#1a1a1a",
-                cursor: "pointer"
+                background: "#1a1a1a"
               }}
-              title="Click to copy"
             >
-              {v.phrase} | {v.score}
+              <div>{v.phrase} | {v.score}</div>
+
+              <div style={{ marginTop: 5 }}>
+                <button onClick={() => copy(v.phrase)}>Copy</button>
+                <button
+                  onClick={() => openSearch(v.phrase)}
+                  style={{ marginLeft: 6 }}
+                >
+                  Open
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -129,15 +163,23 @@ export default function RightPanel({ report }: { report: Report | null }) {
           expand(v.phrase).map((e, i) => (
             <div
               key={v.phrase + i}
-              onClick={() => copy(e)}
               style={{
                 padding: 6,
                 marginBottom: 4,
-                background: "#111",
-                cursor: "pointer"
+                background: "#111"
               }}
             >
-              {e}
+              <div>{e}</div>
+
+              <div style={{ marginTop: 4 }}>
+                <button onClick={() => copy(e)}>Copy</button>
+                <button
+                  onClick={() => openSearch(e)}
+                  style={{ marginLeft: 6 }}
+                >
+                  Open
+                </button>
+              </div>
             </div>
           ))
         )}

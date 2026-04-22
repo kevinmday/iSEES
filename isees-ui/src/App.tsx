@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — STEP 13 (RANKING + RUN TOP SEARCHES)
+// src/App.tsx — STEP 17 (RESTORE TOP SEARCH EXECUTION)
 // ============================================================
 
 import { useEffect, useState } from "react";
@@ -15,6 +15,15 @@ type CaseItem = {
   status: string;
 };
 
+type SavedPack = {
+  id: number;
+  location: string;
+  context: string;
+  description: string;
+  targets: string[];
+  phrases: string[];
+};
+
 export default function App() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selected, setSelected] = useState<CaseItem | null>(null);
@@ -24,6 +33,12 @@ export default function App() {
   const [targets, setTargets] = useState<string[]>([]);
   const [phrases, setPhrases] = useState<string[]>([]);
 
+  const [lastInput, setLastInput] = useState<any>(null);
+  const [library, setLibrary] = useState<SavedPack[]>([]);
+
+  // ============================================================
+  // INIT
+  // ============================================================
   useEffect(() => {
     const data: CaseItem[] = [
       { id: 1, name: "Tic Tac 2004", status: "HIGH_CONFIDENCE" },
@@ -33,6 +48,27 @@ export default function App() {
 
     setCases(data);
     setSelected(data[0]);
+
+    const saved = localStorage.getItem("isees_library");
+
+    if (saved) {
+      const parsed: SavedPack[] = JSON.parse(saved);
+      setLibrary(parsed);
+
+      if (parsed.length > 0) {
+        const latest = parsed[0];
+
+        setTargets(latest.targets);
+        setPhrases(latest.phrases);
+        setLastInput({
+          location: latest.location,
+          context: latest.context,
+          description: latest.description
+        });
+
+        setActiveTab("capture");
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -49,96 +85,50 @@ export default function App() {
   const toTitleCase = (str: string) =>
     str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
 
-  const copyToClipboard = (text: string) => {
+  const openSearch = (q: string) =>
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
+
+  const copyToClipboard = (text: string) =>
     navigator.clipboard.writeText(text);
-  };
 
-  const openSearch = (query: string) => {
-    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-    window.open(url, "_blank");
-  };
-
-  // ============================================================
-  // RANKING ENGINE (simple + deterministic)
-  // ============================================================
   const scorePhrase = (p: string) => {
     const l = p.toLowerCase();
-
     let score = 0;
-
     if (l.includes("faa")) score += 5;
     if (l.includes("airport")) score += 4;
     if (l.includes("radar")) score += 3;
-    if (l.includes("anomaly")) score += 2;
     if (l.includes("news")) score += 1;
-    if (l.includes("facebook") || l.includes("reddit")) score -= 1;
-
+    if (l.includes("facebook")) score -= 1;
     return score;
   };
 
   // ============================================================
-  // INTELLIGENCE ENGINE
+  // ANALYZE
   // ============================================================
   const handleAnalyze = ({ location, context, description }: any) => {
-    let newTargets: string[] = [];
-    let newPhrases: string[] = [];
+    setLastInput({ location, context, description });
 
-    const loc = location.toLowerCase();
-    const desc = description.toLowerCase();
-    const cleanLocation = location.trim();
+    const clean = location.trim().toLowerCase();
+    const event = description.toLowerCase().includes("light")
+      ? "strange lights"
+      : "unusual activity";
 
-    let airport = "Local Airport";
-    let news = "Local News";
-    let social = "Local Social Groups";
+    const newTargets = [
+      "Local Airport (Radar / ATC)",
+      "FAA Incident Data",
+      "Flight Tracking Logs"
+    ];
 
-    if (loc.includes("medford")) {
-      airport = "Rogue Valley International–Medford Airport";
-      news = "Mail Tribune (Medford)";
-      social = "Rogue Valley Facebook Groups";
-    }
-
-    if (context === "aviation") {
-      newTargets = [
-        `${airport} (Radar / ATC)`,
-        "FAA Incident Data",
-        "Flight Tracking Logs",
-      ];
-    } else {
-      newTargets = [airport, news, social];
-    }
-
-    let eventTerms: string[] = [];
-
-    if (desc.includes("light")) eventTerms.push("strange lights");
-    if (desc.includes("object")) eventTerms.push("unknown object");
-    if (desc.includes("radar")) eventTerms.push("radar anomaly");
-
-    if (eventTerms.length === 0) eventTerms.push("unusual activity");
-
-    newTargets.forEach((target) => {
-      const t = target.toLowerCase();
-
-      eventTerms.forEach((event) => {
-        if (t.includes("airport") || t.includes("faa")) {
-          newPhrases.push(`${cleanLocation} ${event} airport`);
-          newPhrases.push(`${cleanLocation} FAA ${event}`);
-          newPhrases.push(`${cleanLocation} ${event} radar`);
-        } else {
-          newPhrases.push(`${cleanLocation} ${event}`);
-        }
-      });
-    });
-
-    // secondary
-    eventTerms.forEach((event) => {
-      newPhrases.push(`${cleanLocation} ${event} news`);
-      newPhrases.push(`site:news.google.com ${cleanLocation} ${event}`);
-      newPhrases.push(`site:facebook.com ${cleanLocation} ${event}`);
-    });
+    let newPhrases = [
+      `${clean} FAA ${event}`,
+      `${clean} ${event} airport`,
+      `${clean} ${event} radar`,
+      `${clean} ${event} news`,
+      `site:news.google.com ${clean} ${event}`,
+      `site:facebook.com ${clean} ${event}`
+    ];
 
     newPhrases = Array.from(new Set(newPhrases));
-
-    // APPLY RANKING
     newPhrases.sort((a, b) => scorePhrase(b) - scorePhrase(a));
 
     setTargets(newTargets);
@@ -146,26 +136,64 @@ export default function App() {
   };
 
   // ============================================================
-  // RUN TOP SEARCHES
+  // SAVE
   // ============================================================
-  const runTopSearches = () => {
-    phrases.slice(0, 3).forEach((p, i) => {
-      setTimeout(() => openSearch(p), i * 400);
-    });
+  const savePack = () => {
+    if (!lastInput) return;
+
+    const pack: SavedPack = {
+      id: Date.now(),
+      ...lastInput,
+      targets,
+      phrases
+    };
+
+    const updated = [pack, ...library];
+    setLibrary(updated);
+    localStorage.setItem("isees_library", JSON.stringify(updated));
   };
 
+  // ============================================================
+  // LOAD
+  // ============================================================
+  const loadPack = (p: SavedPack) => {
+    setTargets(p.targets);
+    setPhrases(p.phrases);
+    setLastInput({
+      location: p.location,
+      context: p.context,
+      description: p.description
+    });
+    setActiveTab("capture");
+  };
+
+  // ============================================================
+  // EXECUTION HELPERS (NEW)
+  // ============================================================
+  const runBestSearch = () => {
+    if (phrases.length > 0) openSearch(phrases[0]);
+  };
+
+  const runTopThree = () => {
+    phrases.slice(0, 3).forEach((p) => openSearch(p));
+  };
+
+  // ============================================================
+  // UI
+  // ============================================================
   return (
     <div style={{ height: "100vh", color: "white" }}>
-      
       {/* HEADER */}
-      <div style={{ padding: "10px", borderBottom: "1px solid gray" }}>
+      <div style={{ padding: 10, borderBottom: "1px solid gray" }}>
         <strong>
           {activeTab === "capture" ? "CAPTURE MODE" : "LIVE REPORT MODE"}
-        </strong>
-        {" | "}
+        </strong>{" "}
+        |{" "}
         {activeTab === "capture"
-          ? "New Case"
-          : `selected: ${selected ? selected.name : "none"}`}
+          ? lastInput
+            ? `${lastInput.location} | ${lastInput.context}`
+            : "New Case"
+          : `selected: ${selected?.name}`}
 
         <div style={{ marginTop: 10 }}>
           <button onClick={() => setActiveTab("cases")}>Cases</button>
@@ -176,47 +204,67 @@ export default function App() {
       </div>
 
       <MainLayout
-        left={<CaseList cases={cases} selected={selected} onSelect={(c) => setSelected(c)} />}
+        left={
+          <div>
+            <h4>Cases</h4>
+            <CaseList cases={cases} selected={selected} onSelect={setSelected} />
+
+            <h4 style={{ marginTop: 20 }}>Saved</h4>
+            {library.length === 0 && <div>No saved cases</div>}
+            {library.map((p) => (
+              <div key={p.id} onClick={() => loadPack(p)} style={{ cursor: "pointer" }}>
+                {p.location} — {p.description}
+              </div>
+            ))}
+          </div>
+        }
 
         center={
-          activeTab === "cases"
-            ? <CaseCard report={report} />
-            : <CaptureTab onAnalyze={handleAnalyze} />
+          activeTab === "capture"
+            ? <CaptureTab onAnalyze={handleAnalyze} />
+            : <CaseCard report={report} />
         }
 
         right={
-          activeTab === "cases" ? (
-            <RightPanel report={report} />
-          ) : (
-            <div>
-              <h4>Search Targets</h4>
-              <ul>
-                {targets.map((t, i) => <li key={i}>{t}</li>)}
-              </ul>
+          activeTab === "capture"
+            ? (
+              <div>
+                <h4>Search Targets</h4>
+                <ul>{targets.map((t, i) => <li key={i}>{t}</li>)}</ul>
 
-              <h4 style={{ marginTop: 20 }}>Search Phrases</h4>
+                <h4>Search Phrases</h4>
 
-              <button onClick={runTopSearches}>
-                Run Top Searches
-              </button>
-
-              {phrases.map((p, i) => (
-                <div key={i} style={{ marginTop: 10 }}>
-                  <div
-                    style={{ cursor: "pointer", color: "#7dd3fc" }}
-                    onClick={() => openSearch(p)}
-                  >
-                    🔍 {toTitleCase(p)}
-                  </div>
-
-                  <button onClick={() => copyToClipboard(p)}>Copy</button>
-                  <button onClick={() => openSearch(p)} style={{ marginLeft: 6 }}>
-                    Open
+                {/* 🔥 EXECUTION CONTROLS */}
+                <div style={{ marginBottom: 10 }}>
+                  <button onClick={runBestSearch}>Run Best Search</button>
+                  <button onClick={runTopThree} style={{ marginLeft: 5 }}>
+                    Run Top 3
+                  </button>
+                  <button onClick={savePack} style={{ marginLeft: 5 }}>
+                    Save Pack
                   </button>
                 </div>
-              ))}
-            </div>
-          )
+
+                {phrases.map((p, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <span
+                      style={{ cursor: "pointer", color: "#7dd3fc" }}
+                      onClick={() => openSearch(p)}
+                    >
+                      🔍 {toTitleCase(p)}
+                    </span>
+
+                    <div style={{ marginTop: 4 }}>
+                      <button onClick={() => copyToClipboard(p)}>Copy</button>
+                      <button onClick={() => openSearch(p)} style={{ marginLeft: 5 }}>
+                        Open
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+            : <RightPanel report={report} />
         }
       />
     </div>
