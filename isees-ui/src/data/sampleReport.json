@@ -1,0 +1,14 @@
+{
+  "event": "OMAHA",
+  "mode": "INVESTIGATION_REQUIRED",
+  "gap_type": "INCOMPLETE_SIGNAL",
+  "recommended_actions": [
+    "Expand time window",
+    "Query nearby assets",
+    "Check environmental interference"
+  ],
+  "top_vectors": [
+    { "phrase": "no propulsion not on radar", "score": 0.12 },
+    { "phrase": "maneuvering object not on radar", "score": 0.11 }
+  ]
+}
