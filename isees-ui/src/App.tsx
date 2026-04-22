@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — STEP 7 (TARGETS + SEARCH PHRASE ENGINE INLINE)
+// src/App.tsx — STEP 13 (RANKING + RUN TOP SEARCHES)
 // ============================================================
 
 import { useEffect, useState } from "react";
@@ -20,12 +20,10 @@ export default function App() {
   const [selected, setSelected] = useState<CaseItem | null>(null);
   const [report, setReport] = useState<any>(null);
 
-  // CAPTURE MODE STATE
   const [activeTab, setActiveTab] = useState<"cases" | "capture">("cases");
   const [targets, setTargets] = useState<string[]>([]);
   const [phrases, setPhrases] = useState<string[]>([]);
 
-  // INITIAL CASE LOAD
   useEffect(() => {
     const data: CaseItem[] = [
       { id: 1, name: "Tic Tac 2004", status: "HIGH_CONFIDENCE" },
@@ -37,7 +35,6 @@ export default function App() {
     setSelected(data[0]);
   }, []);
 
-  // REPORT FETCH
   useEffect(() => {
     if (!selected) return;
 
@@ -47,7 +44,40 @@ export default function App() {
   }, [selected]);
 
   // ============================================================
-  // INTELLIGENCE ENGINE (GEO + CONTEXT + PHRASES)
+  // HELPERS
+  // ============================================================
+  const toTitleCase = (str: string) =>
+    str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const openSearch = (query: string) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    window.open(url, "_blank");
+  };
+
+  // ============================================================
+  // RANKING ENGINE (simple + deterministic)
+  // ============================================================
+  const scorePhrase = (p: string) => {
+    const l = p.toLowerCase();
+
+    let score = 0;
+
+    if (l.includes("faa")) score += 5;
+    if (l.includes("airport")) score += 4;
+    if (l.includes("radar")) score += 3;
+    if (l.includes("anomaly")) score += 2;
+    if (l.includes("news")) score += 1;
+    if (l.includes("facebook") || l.includes("reddit")) score -= 1;
+
+    return score;
+  };
+
+  // ============================================================
+  // INTELLIGENCE ENGINE
   // ============================================================
   const handleAnalyze = ({ location, context, description }: any) => {
     let newTargets: string[] = [];
@@ -55,10 +85,8 @@ export default function App() {
 
     const loc = location.toLowerCase();
     const desc = description.toLowerCase();
+    const cleanLocation = location.trim();
 
-    // ------------------------------------------------------------
-    // GEO RESOLUTION (v1 — extendable)
-    // ------------------------------------------------------------
     let airport = "Local Airport";
     let news = "Local News";
     let social = "Local Social Groups";
@@ -69,84 +97,75 @@ export default function App() {
       social = "Rogue Valley Facebook Groups";
     }
 
-    if (loc.includes("phoenix")) {
-      airport = "Phoenix Sky Harbor International Airport";
-      news = "AZ Central (Phoenix)";
-      social = "Phoenix Community Groups";
-    }
-
-    if (loc.includes("san diego")) {
-      airport = "San Diego International Airport";
-      news = "San Diego Union-Tribune";
-      social = "San Diego Community Groups";
-    }
-
-    // ------------------------------------------------------------
-    // CONTEXT → TARGET ROUTING
-    // ------------------------------------------------------------
     if (context === "aviation") {
       newTargets = [
         `${airport} (Radar / ATC)`,
         "FAA Incident Data",
         "Flight Tracking Logs",
       ];
-    } else if (context === "witness") {
-      newTargets = [
-        news,
-        social,
-        "Police Scanner Logs",
-      ];
-    } else if (context === "military") {
-      newTargets = [
-        "Nearby Military Installations",
-        "Radar Systems",
-        "Training Logs",
-      ];
     } else {
-      newTargets = [
-        airport,
-        news,
-        social,
-      ];
+      newTargets = [airport, news, social];
     }
 
-    // ------------------------------------------------------------
-    // KEYWORD EXTRACTION (simple deterministic)
-    // ------------------------------------------------------------
-    let keywords: string[] = [];
+    let eventTerms: string[] = [];
 
-    if (desc.includes("light")) keywords.push("strange light");
-    if (desc.includes("object")) keywords.push("unknown object");
-    if (desc.includes("radar")) keywords.push("radar anomaly");
-    if (desc.includes("fast")) keywords.push("high speed object");
+    if (desc.includes("light")) eventTerms.push("strange lights");
+    if (desc.includes("object")) eventTerms.push("unknown object");
+    if (desc.includes("radar")) eventTerms.push("radar anomaly");
 
-    // fallback
-    if (keywords.length === 0) {
-      keywords.push("unusual activity");
-    }
+    if (eventTerms.length === 0) eventTerms.push("unusual activity");
 
-    // ------------------------------------------------------------
-    // TARGET → SEARCH PHRASES
-    // ------------------------------------------------------------
     newTargets.forEach((target) => {
-      keywords.forEach((k) => {
-        newPhrases.push(`${target} ${k}`);
+      const t = target.toLowerCase();
+
+      eventTerms.forEach((event) => {
+        if (t.includes("airport") || t.includes("faa")) {
+          newPhrases.push(`${cleanLocation} ${event} airport`);
+          newPhrases.push(`${cleanLocation} FAA ${event}`);
+          newPhrases.push(`${cleanLocation} ${event} radar`);
+        } else {
+          newPhrases.push(`${cleanLocation} ${event}`);
+        }
       });
     });
 
-    // OPTIONAL: de-duplicate
+    // secondary
+    eventTerms.forEach((event) => {
+      newPhrases.push(`${cleanLocation} ${event} news`);
+      newPhrases.push(`site:news.google.com ${cleanLocation} ${event}`);
+      newPhrases.push(`site:facebook.com ${cleanLocation} ${event}`);
+    });
+
     newPhrases = Array.from(new Set(newPhrases));
+
+    // APPLY RANKING
+    newPhrases.sort((a, b) => scorePhrase(b) - scorePhrase(a));
 
     setTargets(newTargets);
     setPhrases(newPhrases);
   };
 
+  // ============================================================
+  // RUN TOP SEARCHES
+  // ============================================================
+  const runTopSearches = () => {
+    phrases.slice(0, 3).forEach((p, i) => {
+      setTimeout(() => openSearch(p), i * 400);
+    });
+  };
+
   return (
     <div style={{ height: "100vh", color: "white" }}>
+      
       {/* HEADER */}
       <div style={{ padding: "10px", borderBottom: "1px solid gray" }}>
-        <strong>LIVE REPORT MODE</strong> | selected:{" "}
-        {selected ? selected.name : "none"}
+        <strong>
+          {activeTab === "capture" ? "CAPTURE MODE" : "LIVE REPORT MODE"}
+        </strong>
+        {" | "}
+        {activeTab === "capture"
+          ? "New Case"
+          : `selected: ${selected ? selected.name : "none"}`}
 
         <div style={{ marginTop: 10 }}>
           <button onClick={() => setActiveTab("cases")}>Cases</button>
@@ -157,64 +176,47 @@ export default function App() {
       </div>
 
       <MainLayout
-        left={
-          <div>
-            <h4>LEFT PANEL</h4>
-
-            <CaseList
-              cases={cases}
-              selected={selected}
-              onSelect={(c: CaseItem) => setSelected(c)}
-            />
-          </div>
-        }
+        left={<CaseList cases={cases} selected={selected} onSelect={(c) => setSelected(c)} />}
 
         center={
-          <div>
-            <h4>CENTER PANEL</h4>
-
-            {activeTab === "cases" && <CaseCard report={report} />}
-
-            {activeTab === "capture" && (
-              <CaptureTab onAnalyze={handleAnalyze} />
-            )}
-          </div>
+          activeTab === "cases"
+            ? <CaseCard report={report} />
+            : <CaptureTab onAnalyze={handleAnalyze} />
         }
 
         right={
-          <div>
-            <h4>RIGHT PANEL</h4>
+          activeTab === "cases" ? (
+            <RightPanel report={report} />
+          ) : (
+            <div>
+              <h4>Search Targets</h4>
+              <ul>
+                {targets.map((t, i) => <li key={i}>{t}</li>)}
+              </ul>
 
-            {activeTab === "cases" && <RightPanel report={report} />}
+              <h4 style={{ marginTop: 20 }}>Search Phrases</h4>
 
-            {activeTab === "capture" && (
-              <div>
-                <h4>Search Targets</h4>
+              <button onClick={runTopSearches}>
+                Run Top Searches
+              </button>
 
-                {targets.length === 0 ? (
-                  <p>No targets yet</p>
-                ) : (
-                  <ul>
-                    {targets.map((t, i) => (
-                      <li key={i}>{t}</li>
-                    ))}
-                  </ul>
-                )}
+              {phrases.map((p, i) => (
+                <div key={i} style={{ marginTop: 10 }}>
+                  <div
+                    style={{ cursor: "pointer", color: "#7dd3fc" }}
+                    onClick={() => openSearch(p)}
+                  >
+                    🔍 {toTitleCase(p)}
+                  </div>
 
-                <h4 style={{ marginTop: "20px" }}>Search Phrases</h4>
-
-                {phrases.length === 0 ? (
-                  <p>No phrases yet</p>
-                ) : (
-                  <ul>
-                    {phrases.map((p, i) => (
-                      <li key={i}>{p}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
+                  <button onClick={() => copyToClipboard(p)}>Copy</button>
+                  <button onClick={() => openSearch(p)} style={{ marginLeft: 6 }}>
+                    Open
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
         }
       />
     </div>
