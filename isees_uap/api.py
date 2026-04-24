@@ -1,5 +1,5 @@
 # ============================================================
-# isees_uap/api.py — STEP 3 (CONTRACT + GAP ENFORCEMENT)
+# isees_uap/api.py — STEP 3 + GEO INTEGRATION (Phase 2B)
 # ============================================================
 
 from fastapi import FastAPI
@@ -7,6 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 from typing import List, Dict, Any
+
+# ------------------------------------------------------------
+# NEW — GEO + TARGET LAYER
+# ------------------------------------------------------------
+from geo.resolver import resolve_location_to_assets
+from target.fusion import build_geo_targets
+
 
 app = FastAPI()
 
@@ -52,9 +59,8 @@ def normalize_report(data: Dict[str, Any], case_name: str) -> Dict[str, Any]:
     actions_remaining = data.get("actions_remaining")
 
     # --------------------------------------------------------
-    # GAP ENFORCEMENT (NEW)
+    # GAP ENFORCEMENT
     # --------------------------------------------------------
-    # If data is incomplete, we MUST have a gap type
     if not gap_type and data_complete is False:
         gap_type = "UNKNOWN_GAP"
 
@@ -153,6 +159,25 @@ def get_report(case_name: str):
     }
 
     return normalize_report(fallback, case_name)
+
+
+# ------------------------------------------------------------
+# NEW — GEO TARGET ENDPOINT (PHASE 2B)
+# ------------------------------------------------------------
+@app.get("/geo/targets")
+def geo_targets(location: str):
+    """
+    Resolve a location into ranked, real-world investigation targets
+    """
+
+    resolved = resolve_location_to_assets(location)
+    targets = build_geo_targets(resolved)
+
+    return {
+        "location": location,
+        "resolved": resolved.get("resolved"),
+        "targets": targets
+    }
 
 
 # ------------------------------------------------------------
