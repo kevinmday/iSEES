@@ -1,5 +1,5 @@
 // ============================================================
-// src/components/CaseCard.tsx — SAFE HYBRID VERSION
+// src/components/CaseCard.tsx — STEP 22 (CONTRACT LOCKED)
 // ============================================================
 
 type CaseItem = {
@@ -10,8 +10,17 @@ type CaseItem = {
 
 type Report = {
   event?: string;
-  mode?: string;
+
+  // ----------------------------------------------------------
+  // BACKEND TRUTH CONTRACT (LOCKED)
+  // ----------------------------------------------------------
   gap_type?: string;
+  data_complete?: boolean;
+  actions_remaining?: boolean;
+
+  // ----------------------------------------------------------
+  // OUTPUTS
+  // ----------------------------------------------------------
   recommended_actions?: string[];
   top_vectors?: { phrase: string; score: number }[];
 };
@@ -22,6 +31,7 @@ type Props = {
 };
 
 export default function CaseCard({ caseItem, report }: Props) {
+
   // ----------------------------------------------------------
   // NO DATA
   // ----------------------------------------------------------
@@ -30,22 +40,63 @@ export default function CaseCard({ caseItem, report }: Props) {
   }
 
   // ----------------------------------------------------------
-  // FALLBACK: USING caseItem (CURRENT STATE)
+  // STATUS MODEL (CONTRACT-DRIVEN)
+  // ----------------------------------------------------------
+  const hasReport = !!report;
+
+  // Fallback logic if backend not yet providing fields
+  const fallbackHasGap = !!report?.gap_type;
+
+  const actionsRemaining =
+    report?.actions_remaining !== undefined
+      ? report.actions_remaining
+      : !fallbackHasGap;
+
+  const dataComplete =
+    report?.data_complete !== undefined
+      ? report.data_complete
+      : !fallbackHasGap;
+
+  const caseStatus =
+    !hasReport ? "ACTIVE"
+    : actionsRemaining ? "ACTIVE"
+    : "CLOSED";
+
+  const dataStatus =
+    dataComplete ? "COMPLETE" : "INCOMPLETE";
+
+  const reopen =
+    dataComplete ? "N/A" : "New data";
+
+  const statusBlock = (
+    <div
+      style={{
+        background: "#1f2937",
+        padding: 12,
+        marginBottom: 12,
+        borderRadius: 6
+      }}
+    >
+      <div><strong>CASE STATUS:</strong> {caseStatus}</div>
+
+      <div>
+        <strong>DATA STATUS:</strong> {dataStatus}
+        {report?.gap_type ? ` (${report.gap_type})` : ""}
+      </div>
+
+      <div><strong>REOPENS ON:</strong> {reopen}</div>
+    </div>
+  );
+
+  // ----------------------------------------------------------
+  // FALLBACK (NO REPORT YET)
   // ----------------------------------------------------------
   if (!report && caseItem) {
     return (
       <div style={{ padding: "10px" }}>
         <h2>{caseItem.name}</h2>
 
-        <div
-          style={{
-            background: "#333",
-            padding: 10,
-            marginBottom: 10
-          }}
-        >
-          STATUS: {caseItem.status}
-        </div>
+        {statusBlock}
 
         <div style={{ opacity: 0.6 }}>
           Case ID: {caseItem.id}
@@ -55,21 +106,13 @@ export default function CaseCard({ caseItem, report }: Props) {
   }
 
   // ----------------------------------------------------------
-  // FULL REPORT MODE (FUTURE BACKEND)
+  // FULL REPORT MODE
   // ----------------------------------------------------------
   return (
     <div style={{ padding: "10px" }}>
-      <h1>{report?.event || "Unknown Event"}</h1>
+      <h1>{report?.event || caseItem?.name || "Unknown Event"}</h1>
 
-      <div
-        style={{
-          background: report?.mode === "RESOLVED" ? "green" : "darkred",
-          padding: 10,
-          marginBottom: 10
-        }}
-      >
-        MODE: {report?.mode || "N/A"}
-      </div>
+      {statusBlock}
 
       <div
         style={{
@@ -83,18 +126,26 @@ export default function CaseCard({ caseItem, report }: Props) {
 
       <h3>Recommended Actions</h3>
       <ul>
-        {report?.recommended_actions?.map((a, i) => (
-          <li key={i}>{a}</li>
-        )) || <li>No actions</li>}
+        {report?.recommended_actions?.length ? (
+          report.recommended_actions.map((a, i) => (
+            <li key={i}>{a}</li>
+          ))
+        ) : (
+          <li>No actions</li>
+        )}
       </ul>
 
       <h3>Top Search Vectors</h3>
       <ul>
-        {report?.top_vectors?.map((v, i) => (
-          <li key={i}>
-            {v.phrase} | {v.score}
-          </li>
-        )) || <li>No vectors</li>}
+        {report?.top_vectors?.length ? (
+          report.top_vectors.map((v, i) => (
+            <li key={i}>
+              {v.phrase} | {v.score}
+            </li>
+          ))
+        ) : (
+          <li>No vectors</li>
+        )}
       </ul>
     </div>
   );

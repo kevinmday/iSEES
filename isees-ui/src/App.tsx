@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — STEP 17 (RESTORE TOP SEARCH EXECUTION)
+// src/App.tsx — STEP 24 (GEO-AWARE TARGETS + WEIGHTED MODEL)
 // ============================================================
 
 import { useEffect, useState } from "react";
@@ -24,6 +24,15 @@ type SavedPack = {
   phrases: string[];
 };
 
+type FeedbackType = "useful" | "noise" | "partial" | null;
+
+type ScoredPhrase = {
+  phrase: string;
+  score: number;
+  why: string[];
+  feedback: FeedbackType;
+};
+
 export default function App() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selected, setSelected] = useState<CaseItem | null>(null);
@@ -31,10 +40,10 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<"cases" | "capture">("cases");
   const [targets, setTargets] = useState<string[]>([]);
-  const [phrases, setPhrases] = useState<string[]>([]);
+  const [phrases, setPhrases] = useState<ScoredPhrase[]>([]);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackType>>({});
 
   const [lastInput, setLastInput] = useState<any>(null);
-  const [library, setLibrary] = useState<SavedPack[]>([]);
 
   // ============================================================
   // INIT
@@ -49,25 +58,9 @@ export default function App() {
     setCases(data);
     setSelected(data[0]);
 
-    const saved = localStorage.getItem("isees_library");
-
-    if (saved) {
-      const parsed: SavedPack[] = JSON.parse(saved);
-      setLibrary(parsed);
-
-      if (parsed.length > 0) {
-        const latest = parsed[0];
-
-        setTargets(latest.targets);
-        setPhrases(latest.phrases);
-        setLastInput({
-          location: latest.location,
-          context: latest.context,
-          description: latest.description
-        });
-
-        setActiveTab("capture");
-      }
+    const storedFeedback = localStorage.getItem("isees_feedback");
+    if (storedFeedback) {
+      setFeedbackMap(JSON.parse(storedFeedback));
     }
   }, []);
 
@@ -88,18 +81,100 @@ export default function App() {
   const openSearch = (q: string) =>
     window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
 
-  const copyToClipboard = (text: string) =>
-    navigator.clipboard.writeText(text);
+  // ============================================================
+  // GEO TARGETS (NEW)
+  // ============================================================
+  const buildGeoTargets = (location: string) => {
+    const l = location.toLowerCase();
 
-  const scorePhrase = (p: string) => {
+    if (l.includes("grants pass") || l.includes("medford")) {
+      return [
+        "FAA (Medford KMFR radar coverage)",
+        "Airport (Grants Pass 3S8 AWOS)",
+        "Airport (Medford KMFR ATC)",
+        "Local News (KOBI-TV Medford)",
+        "Newspaper (Rogue Valley Times)",
+        "Radio (KMED / KCNA)"
+      ];
+    }
+
+    if (l.includes("phoenix")) {
+      return [
+        "FAA (Phoenix KPHX radar)",
+        "Airport (KPHX ATC)",
+        "Local News (Fox 10 Phoenix)",
+        "Newspaper (Arizona Republic)",
+        "Police Dispatch (Phoenix PD)"
+      ];
+    }
+
+    return [
+      "FAA (regional radar)",
+      "Local Airport (ATC / AWOS)",
+      "Flight Tracking Logs",
+      "Local News Coverage"
+    ];
+  };
+
+  // ============================================================
+  // WEIGHTED FEEDBACK MODEL
+  // ============================================================
+  const getFeedbackMultiplier = (feedback: FeedbackType) => {
+    if (feedback === "useful") return 1.6;
+    if (feedback === "partial") return 1.2;
+    if (feedback === "noise") return 0.6;
+    return 1.0;
+  };
+
+  // ============================================================
+  // SCORING
+  // ============================================================
+  const scorePhrase = (p: string): ScoredPhrase => {
     const l = p.toLowerCase();
-    let score = 0;
-    if (l.includes("faa")) score += 5;
-    if (l.includes("airport")) score += 4;
-    if (l.includes("radar")) score += 3;
-    if (l.includes("news")) score += 1;
-    if (l.includes("facebook")) score -= 1;
-    return score;
+
+    let base = 0;
+    const why: string[] = [];
+
+    if (l.includes("faa")) {
+      base += 5;
+      why.push("FAA domain relevance");
+    }
+
+    if (l.includes("airport")) {
+      base += 4;
+      why.push("Airport context");
+    }
+
+    if (l.includes("radar")) {
+      base += 3;
+      why.push("Radar evidence vector");
+    }
+
+    if (l.includes("news")) {
+      base += 1;
+      why.push("News coverage");
+    }
+
+    if (l.includes("facebook")) {
+      base -= 1;
+      why.push("Low reliability source");
+    }
+
+    if (why.length === 0) {
+      why.push("General relevance");
+    }
+
+    const feedback = feedbackMap[p] || null;
+    const multiplier = getFeedbackMultiplier(feedback);
+
+    const score = Math.round(base * multiplier);
+
+    return {
+      phrase: p,
+      score,
+      why,
+      feedback
+    };
   };
 
   // ============================================================
@@ -113,13 +188,9 @@ export default function App() {
       ? "strange lights"
       : "unusual activity";
 
-    const newTargets = [
-      "Local Airport (Radar / ATC)",
-      "FAA Incident Data",
-      "Flight Tracking Logs"
-    ];
+    const geoTargets = buildGeoTargets(location);
 
-    let newPhrases = [
+    let raw = [
       `${clean} FAA ${event}`,
       `${clean} ${event} airport`,
       `${clean} ${event} radar`,
@@ -128,54 +199,27 @@ export default function App() {
       `site:facebook.com ${clean} ${event}`
     ];
 
-    newPhrases = Array.from(new Set(newPhrases));
-    newPhrases.sort((a, b) => scorePhrase(b) - scorePhrase(a));
+    const unique = Array.from(new Set(raw));
+    const scored = unique.map(scorePhrase);
 
-    setTargets(newTargets);
-    setPhrases(newPhrases);
+    scored.sort((a, b) => b.score - a.score);
+
+    setTargets(geoTargets);
+    setPhrases(scored);
   };
 
   // ============================================================
-  // SAVE
+  // FEEDBACK
   // ============================================================
-  const savePack = () => {
-    if (!lastInput) return;
+  const setFeedback = (phrase: string, value: FeedbackType) => {
+    const updated = { ...feedbackMap, [phrase]: value };
+    setFeedbackMap(updated);
+    localStorage.setItem("isees_feedback", JSON.stringify(updated));
 
-    const pack: SavedPack = {
-      id: Date.now(),
-      ...lastInput,
-      targets,
-      phrases
-    };
-
-    const updated = [pack, ...library];
-    setLibrary(updated);
-    localStorage.setItem("isees_library", JSON.stringify(updated));
-  };
-
-  // ============================================================
-  // LOAD
-  // ============================================================
-  const loadPack = (p: SavedPack) => {
-    setTargets(p.targets);
-    setPhrases(p.phrases);
-    setLastInput({
-      location: p.location,
-      context: p.context,
-      description: p.description
-    });
-    setActiveTab("capture");
-  };
-
-  // ============================================================
-  // EXECUTION HELPERS (NEW)
-  // ============================================================
-  const runBestSearch = () => {
-    if (phrases.length > 0) openSearch(phrases[0]);
-  };
-
-  const runTopThree = () => {
-    phrases.slice(0, 3).forEach((p) => openSearch(p));
+    setPhrases(prev =>
+      prev.map(p => scorePhrase(p.phrase))
+        .sort((a, b) => b.score - a.score)
+    );
   };
 
   // ============================================================
@@ -183,88 +227,41 @@ export default function App() {
   // ============================================================
   return (
     <div style={{ height: "100vh", color: "white" }}>
-      {/* HEADER */}
-      <div style={{ padding: 10, borderBottom: "1px solid gray" }}>
-        <strong>
-          {activeTab === "capture" ? "CAPTURE MODE" : "LIVE REPORT MODE"}
-        </strong>{" "}
-        |{" "}
-        {activeTab === "capture"
-          ? lastInput
-            ? `${lastInput.location} | ${lastInput.context}`
-            : "New Case"
-          : `selected: ${selected?.name}`}
-
-        <div style={{ marginTop: 10 }}>
-          <button onClick={() => setActiveTab("cases")}>Cases</button>
-          <button onClick={() => setActiveTab("capture")} style={{ marginLeft: 10 }}>
-            Capture
-          </button>
-        </div>
-      </div>
-
       <MainLayout
-        left={
+        left={<CaseList cases={cases} selected={selected} onSelect={setSelected} />}
+        center={<CaptureTab onAnalyze={handleAnalyze} />}
+        right={
           <div>
-            <h4>Cases</h4>
-            <CaseList cases={cases} selected={selected} onSelect={setSelected} />
+            <h3>Search Targets</h3>
+            <ul>
+              {targets.map((t, i) => <li key={i}>{t}</li>)}
+            </ul>
 
-            <h4 style={{ marginTop: 20 }}>Saved</h4>
-            {library.length === 0 && <div>No saved cases</div>}
-            {library.map((p) => (
-              <div key={p.id} onClick={() => loadPack(p)} style={{ cursor: "pointer" }}>
-                {p.location} — {p.description}
+            <h3>Search Phrases</h3>
+
+            {phrases.map((p, i) => (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <div
+                  onClick={() => openSearch(p.phrase)}
+                  style={{ cursor: "pointer", color: "#7dd3fc" }}
+                >
+                  🔍 {toTitleCase(p.phrase)}
+                </div>
+
+                <div style={{ fontSize: 12 }}>
+                  Score: {p.score} {p.feedback && `(feedback: ${p.feedback})`}
+                </div>
+
+                <ul style={{ fontSize: 12 }}>
+                  {p.why.map((w, idx) => <li key={idx}>{w}</li>)}
+                </ul>
+
+                <button onClick={() => setFeedback(p.phrase, "useful")}>Useful</button>
+                <button onClick={() => setFeedback(p.phrase, "partial")}>Partial</button>
+                <button onClick={() => setFeedback(p.phrase, "noise")}>Noise</button>
               </div>
             ))}
           </div>
-        }
-
-        center={
-          activeTab === "capture"
-            ? <CaptureTab onAnalyze={handleAnalyze} />
-            : <CaseCard report={report} />
-        }
-
-        right={
-          activeTab === "capture"
-            ? (
-              <div>
-                <h4>Search Targets</h4>
-                <ul>{targets.map((t, i) => <li key={i}>{t}</li>)}</ul>
-
-                <h4>Search Phrases</h4>
-
-                {/* 🔥 EXECUTION CONTROLS */}
-                <div style={{ marginBottom: 10 }}>
-                  <button onClick={runBestSearch}>Run Best Search</button>
-                  <button onClick={runTopThree} style={{ marginLeft: 5 }}>
-                    Run Top 3
-                  </button>
-                  <button onClick={savePack} style={{ marginLeft: 5 }}>
-                    Save Pack
-                  </button>
-                </div>
-
-                {phrases.map((p, i) => (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <span
-                      style={{ cursor: "pointer", color: "#7dd3fc" }}
-                      onClick={() => openSearch(p)}
-                    >
-                      🔍 {toTitleCase(p)}
-                    </span>
-
-                    <div style={{ marginTop: 4 }}>
-                      <button onClick={() => copyToClipboard(p)}>Copy</button>
-                      <button onClick={() => openSearch(p)} style={{ marginLeft: 5 }}>
-                        Open
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-            : <RightPanel report={report} />
         }
       />
     </div>
