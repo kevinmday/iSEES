@@ -1,5 +1,5 @@
 # ============================================================
-# source_resolver.py — FINAL (ROBUST METADATA + STABLE RULES)
+# source_resolver.py — FINAL (CONSOLIDATED + ROBUST)
 # ============================================================
 
 from typing import List, Dict, Any
@@ -22,21 +22,17 @@ class ResolvedTarget:
         return {
             "name": self.name,
             "type": self.type,
-            "relevance": self.relevance,
+            "relevance": round(self.relevance, 2),
             "actions": self.actions,
             "metadata": self.metadata,
         }
 
 
 # ------------------------------------------------------------
-# HELPER — ICAO EXTRACTION (NEW)
+# HELPER — ICAO EXTRACTION
 # ------------------------------------------------------------
 
 def extract_icao(name: str):
-    """
-    Extract ICAO from strings like:
-    'Rogue Valley International Airport (KMFR)'
-    """
     match = re.search(r"\(([A-Z0-9]{3,4})\)", name or "")
     return match.group(1) if match else None
 
@@ -51,7 +47,6 @@ def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
 
     S = getattr(vector, "tokens_s", [])
     R = getattr(vector, "tokens_r", [])
-    E = getattr(vector, "tokens_e", [])
     score = getattr(vector, "score", 0.0)
 
     # --------------------------------------------------------
@@ -81,7 +76,7 @@ def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
             )
 
     # --------------------------------------------------------
-    # RULE 2 — COMMS / SIGNAL
+    # RULE 2 — COMMS
     # --------------------------------------------------------
     if "comms" in S:
         for airport in geo_assets.get("airports", []):
@@ -107,7 +102,7 @@ def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
             )
 
     # --------------------------------------------------------
-    # RULE 3 — MEDIA / REPORTING
+    # RULE 3 — MEDIA
     # --------------------------------------------------------
     if "anomaly" in R or "report" in R or "news" in R:
         for outlet in geo_assets.get("media", []):
@@ -129,7 +124,7 @@ def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
             )
 
     # --------------------------------------------------------
-    # RULE 4 — DEFAULT FALLBACK
+    # FALLBACK
     # --------------------------------------------------------
     if not targets:
         targets.append(
@@ -150,6 +145,26 @@ def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
 
 
 # ------------------------------------------------------------
+# 🔥 CONSOLIDATION LAYER (NEW)
+# ------------------------------------------------------------
+
+def consolidate_targets(targets: List[ResolvedTarget]) -> List[ResolvedTarget]:
+
+    merged = {}
+
+    for t in targets:
+        key = (t.name, t.type)
+
+        if key not in merged:
+            merged[key] = t
+        else:
+            # aggregate score
+            merged[key].relevance += t.relevance
+
+    return list(merged.values())
+
+
+# ------------------------------------------------------------
 # BATCH RESOLUTION
 # ------------------------------------------------------------
 
@@ -160,11 +175,12 @@ def resolve_vectors(vectors: List[Any], geo_assets: Dict[str, Any]) -> List[Reso
     for v in vectors:
         all_targets.extend(resolve_vector(v, geo_assets))
 
-    return all_targets
+    # 🔥 APPLY CONSOLIDATION
+    return consolidate_targets(all_targets)
 
 
 # ------------------------------------------------------------
-# SIMPLE FORMATTER (CLI / DEBUG)
+# FORMATTER
 # ------------------------------------------------------------
 
 def format_targets(targets: List[ResolvedTarget]) -> str:

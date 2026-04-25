@@ -1,12 +1,12 @@
 # ============================================================
-# phrase/engine.py — Grounded Phrase Engine (iSEES Phase 3)
+# phrase/engine.py — SIGNAL-AWARE PHRASE ENGINE (FIXED)
 # ============================================================
 
 from typing import List, Dict
 
 
 # ------------------------------------------------------------
-# TEMPLATE LIBRARY (DETERMINISTIC)
+# TEMPLATE LIBRARY (ENHANCED SIGNAL)
 # ------------------------------------------------------------
 
 PHRASE_TEMPLATES = {
@@ -14,11 +14,20 @@ PHRASE_TEMPLATES = {
         "FAA radar logs near {name} during event window",
         "ATC communications at {name} around incident time",
         "flight activity near {name} during anomaly",
+
+        # 🔥 SIGNAL INJECTION (CRITICAL)
+        "radar anomaly near {name}",
+        "unidentified aircraft near {name}",
+        "ATC communication anomaly at {name}",
+        "flight path irregularity near {name}",
     ],
     "MILITARY": [
         "DoD activity near {name} during event window",
         "military radar data around {name}",
         "restricted airspace activity near {name}",
+
+        # signal
+        "military radar anomaly near {name}",
     ],
     "RADAR": [
         "radar returns near {name} during event window",
@@ -42,34 +51,43 @@ PHRASE_TEMPLATES = {
 # ------------------------------------------------------------
 
 def build_phrases(resolved: Dict, max_targets: int = 3) -> List[str]:
-    """
-    Convert ranked assets into structured investigation phrases
-    with distance-aware context.
-    """
 
-    if not resolved.get("resolved"):
+    if not resolved or not resolved.get("resolved"):
         return ["location unresolved — expand search region"]
 
     phrases = []
 
     for asset in resolved.get("assets", [])[:max_targets]:
 
-        # skip generic anchors (optional but recommended)
-        if asset["type"] == "INFRA":
+        # ----------------------------------------------------
+        # NORMALIZE TYPE (CRITICAL FIX)
+        # ----------------------------------------------------
+        atype = str(asset.get("type", "UNKNOWN")).upper()
+
+        # skip generic anchors if desired
+        if atype == "INFRA":
             continue
 
-        name = clean_name(asset["name"])
-        dist = asset.get("distance_km", 0.0)
-        atype = asset["type"]
+        name = clean_name(asset.get("name", "unknown"))
+        dist = asset.get("distance", asset.get("distance_km", 0.0))
 
         templates = PHRASE_TEMPLATES.get(atype, PHRASE_TEMPLATES["UNKNOWN"])
 
-        # embed distance into name for grounded phrasing
         name_with_dist = f"{name} ({round(dist, 2)} km)"
 
         for t in templates:
-            phrase = t.format(name=name_with_dist)
-            phrases.append(phrase)
+            phrases.append(t.format(name=name_with_dist))
+
+    # --------------------------------------------------------
+    # GUARANTEED BASELINE SIGNAL (NO DEAD PIPELINE)
+    # --------------------------------------------------------
+    if not phrases:
+        phrases.extend([
+            "radar anomaly",
+            "unidentified aerial phenomenon",
+            "flight path irregularity",
+            "airspace anomaly detected"
+        ])
 
     return phrases
 
@@ -80,8 +98,12 @@ def build_phrases(resolved: Dict, max_targets: int = 3) -> List[str]:
 
 def clean_name(name: str) -> str:
     """
-    Remove excessive labels like (KMFR)
+    Remove labels like (KMFR)
     """
+    if not name:
+        return "unknown"
+
     if "(" in name:
         name = name.split("(")[0].strip()
+
     return name
