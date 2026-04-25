@@ -1,51 +1,56 @@
 # ============================================================
-# geo/assets.py — FINAL FIXED (TYPE + ICAO + GUARANTEED AIRPORT)
+# geo/assets.py — FINAL (GEO-CORRECT + EXPANDED DISCOVERY)
 # ============================================================
 
 from typing import List, Dict
 import requests
+import math
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
+# ------------------------------------------------------------
+# PUBLIC ENTRY
+# ------------------------------------------------------------
+
 def get_nearby_assets(lat: float, lon: float, radius: int = 50000) -> List[Dict]:
     """
-    Deterministic Asset Discovery
+    Deterministic Asset Discovery (Geo-Correct)
 
     Strategy:
-    1. Query Overpass
-    2. Ensure at least one airport exists
-    3. Never return empty
+    1. Query Overpass (local radius)
+    2. If empty → expand radius
+    3. If still empty → fallback (LOCAL synthetic)
     """
 
     assets = query_overpass(lat, lon, radius)
 
     # --------------------------------------------------------
-    # ENSURE AT LEAST ONE AIRPORT EXISTS
+    # EXPAND SEARCH IF EMPTY (CORRECT FALLBACK)
     # --------------------------------------------------------
-    has_airport = any(a.get("type") == "airport" for a in assets)
-
-    if not has_airport:
-        assets.append({
-            "name": "Rogue Valley International Airport (KMFR)",
-            "type": "airport",
-            "icao": "KMFR",
-            "distance": 0,   # deterministic fallback
-            "lat": 42.3742,
-            "lon": -122.8735
-        })
+    if not assets:
+        assets = query_overpass(lat, lon, radius * 3)
 
     # --------------------------------------------------------
-    # FINAL SAFETY (never empty)
+    # FINAL FALLBACK (LOCAL ONLY)
     # --------------------------------------------------------
     if not assets:
         assets = fallback_assets(lat, lon)
+
+    # --------------------------------------------------------
+    # ADD DISTANCE (CRITICAL FOR SCORING)
+    # --------------------------------------------------------
+    for a in assets:
+        if a.get("lat") and a.get("lon"):
+            a["distance"] = haversine(lat, lon, a["lat"], a["lon"])
+        else:
+            a["distance"] = None
 
     return assets
 
 
 # ------------------------------------------------------------
-# PRIMARY — Overpass
+# PRIMARY — Overpass (EXPANDED)
 # ------------------------------------------------------------
 
 def query_overpass(lat: float, lon: float, radius: int) -> List[Dict]:
@@ -56,8 +61,16 @@ def query_overpass(lat: float, lon: float, radius: int) -> List[Dict]:
       node["aeroway"="aerodrome"](around:{radius},{lat},{lon});
       way["aeroway"="aerodrome"](around:{radius},{lat},{lon});
 
+      node["aeroway"="helipad"](around:{radius},{lat},{lon});
+
       node["military"](around:{radius},{lat},{lon});
       way["military"](around:{radius},{lat},{lon});
+
+      node["man_made"="tower"](around:{radius},{lat},{lon});
+      way["man_made"="tower"](around:{radius},{lat},{lon});
+
+      node["communication"](around:{radius},{lat},{lon});
+      way["communication"](around:{radius},{lat},{lon});
     );
     out center;
     """
@@ -86,7 +99,7 @@ def query_overpass(lat: float, lon: float, radius: int) -> List[Dict]:
                 "lat": lat_val,
                 "lon": lon_val,
                 "icao": tags.get("icao", None),
-                "distance": None  # distance handled downstream if needed
+                "distance": None
             })
 
         return results
@@ -96,25 +109,30 @@ def query_overpass(lat: float, lon: float, radius: int) -> List[Dict]:
 
 
 # ------------------------------------------------------------
-# FALLBACK — Deterministic Known Assets
+# FALLBACK — LOCAL SYNTHETIC (NOT GLOBAL)
 # ------------------------------------------------------------
 
 def fallback_assets(lat: float, lon: float) -> List[Dict]:
+    """
+    Last-resort fallback — preserves locality
+    NEVER injects unrelated geography
+    """
 
     return [
         {
-            "name": "Rogue Valley International Airport (KMFR)",
+            "name": "Local Airspace (Unresolved)",
             "type": "airport",
-            "icao": "KMFR",
-            "distance": 0,
-            "lat": 42.3742,
-            "lon": -122.8735
+            "icao": None,
+            "lat": lat,
+            "lon": lon,
+            "distance": 0
         },
         {
-            "name": "Medford OR Regional Infrastructure",
+            "name": "Regional Infrastructure Node",
             "type": "infra",
             "lat": lat,
-            "lon": lon
+            "lon": lon,
+            "distance": 0
         }
     ]
 
@@ -131,4 +149,34 @@ def classify_asset(tags: Dict) -> str:
     if "military" in tags:
         return "military"
 
+    if "man_made" in tags:
+        return "tower"
+
+    if "communication" in tags:
+        return "comms"
+
     return "unknown"
+
+
+# ------------------------------------------------------------
+# DISTANCE — HAVERSINE
+# ------------------------------------------------------------
+
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Distance in kilometers
+    """
+
+    R = 6371.0
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+
+    a = math.sin(dphi / 2.0) ** 2 + \
+        math.cos(phi1) * math.cos(phi2) * \
+        math.sin(dlambda / 2.0) ** 2
+
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
