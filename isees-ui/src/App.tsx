@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — STEP 24 (GEO-AWARE TARGETS + WEIGHTED MODEL)
+// src/App.tsx — STEP 25 (GRAPH ENABLED UI — SAFE MODE)
 // ============================================================
 
 import { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import CaseList from "./components/CaseList";
 import CaseCard from "./components/CaseCard";
 import RightPanel from "./components/RightPanel";
 import CaptureTab from "./components/CaptureTab";
+import GraphView from "./components/GraphView"; // SAFE GRAPH
 
 type CaseItem = {
   id: number;
@@ -36,14 +37,12 @@ type ScoredPhrase = {
 export default function App() {
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selected, setSelected] = useState<CaseItem | null>(null);
-  const [report, setReport] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<"cases" | "capture">("cases");
   const [targets, setTargets] = useState<string[]>([]);
   const [phrases, setPhrases] = useState<ScoredPhrase[]>([]);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackType>>({});
 
-  const [lastInput, setLastInput] = useState<any>(null);
+  const [graphData, setGraphData] = useState<any>(null);
 
   // ============================================================
   // INIT
@@ -64,14 +63,6 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!selected) return;
-
-    import("./services/reportService").then(({ getReport }) => {
-      getReport(selected.id).then(setReport);
-    });
-  }, [selected]);
-
   // ============================================================
   // HELPERS
   // ============================================================
@@ -81,44 +72,6 @@ export default function App() {
   const openSearch = (q: string) =>
     window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
 
-  // ============================================================
-  // GEO TARGETS (NEW)
-  // ============================================================
-  const buildGeoTargets = (location: string) => {
-    const l = location.toLowerCase();
-
-    if (l.includes("grants pass") || l.includes("medford")) {
-      return [
-        "FAA (Medford KMFR radar coverage)",
-        "Airport (Grants Pass 3S8 AWOS)",
-        "Airport (Medford KMFR ATC)",
-        "Local News (KOBI-TV Medford)",
-        "Newspaper (Rogue Valley Times)",
-        "Radio (KMED / KCNA)"
-      ];
-    }
-
-    if (l.includes("phoenix")) {
-      return [
-        "FAA (Phoenix KPHX radar)",
-        "Airport (KPHX ATC)",
-        "Local News (Fox 10 Phoenix)",
-        "Newspaper (Arizona Republic)",
-        "Police Dispatch (Phoenix PD)"
-      ];
-    }
-
-    return [
-      "FAA (regional radar)",
-      "Local Airport (ATC / AWOS)",
-      "Flight Tracking Logs",
-      "Local News Coverage"
-    ];
-  };
-
-  // ============================================================
-  // WEIGHTED FEEDBACK MODEL
-  // ============================================================
   const getFeedbackMultiplier = (feedback: FeedbackType) => {
     if (feedback === "useful") return 1.6;
     if (feedback === "partial") return 1.2;
@@ -126,86 +79,70 @@ export default function App() {
     return 1.0;
   };
 
-  // ============================================================
-  // SCORING
-  // ============================================================
   const scorePhrase = (p: string): ScoredPhrase => {
     const l = p.toLowerCase();
 
     let base = 0;
     const why: string[] = [];
 
-    if (l.includes("faa")) {
-      base += 5;
-      why.push("FAA domain relevance");
-    }
+    if (l.includes("faa")) { base += 5; why.push("FAA domain relevance"); }
+    if (l.includes("airport")) { base += 4; why.push("Airport context"); }
+    if (l.includes("radar")) { base += 3; why.push("Radar evidence vector"); }
+    if (l.includes("news")) { base += 1; why.push("News coverage"); }
+    if (l.includes("facebook")) { base -= 1; why.push("Low reliability source"); }
 
-    if (l.includes("airport")) {
-      base += 4;
-      why.push("Airport context");
-    }
-
-    if (l.includes("radar")) {
-      base += 3;
-      why.push("Radar evidence vector");
-    }
-
-    if (l.includes("news")) {
-      base += 1;
-      why.push("News coverage");
-    }
-
-    if (l.includes("facebook")) {
-      base -= 1;
-      why.push("Low reliability source");
-    }
-
-    if (why.length === 0) {
-      why.push("General relevance");
-    }
+    if (why.length === 0) why.push("General relevance");
 
     const feedback = feedbackMap[p] || null;
-    const multiplier = getFeedbackMultiplier(feedback);
+    const score = Math.round(base * getFeedbackMultiplier(feedback));
 
-    const score = Math.round(base * multiplier);
-
-    return {
-      phrase: p,
-      score,
-      why,
-      feedback
-    };
+    return { phrase: p, score, why, feedback };
   };
 
   // ============================================================
   // ANALYZE
   // ============================================================
-  const handleAnalyze = ({ location, context, description }: any) => {
-    setLastInput({ location, context, description });
+  const handleAnalyze = async ({ location, context, description }: any) => {
 
+    // --- phrase generation ---
     const clean = location.trim().toLowerCase();
     const event = description.toLowerCase().includes("light")
       ? "strange lights"
       : "unusual activity";
 
-    const geoTargets = buildGeoTargets(location);
-
     let raw = [
       `${clean} FAA ${event}`,
       `${clean} ${event} airport`,
       `${clean} ${event} radar`,
-      `${clean} ${event} news`,
-      `site:news.google.com ${clean} ${event}`,
-      `site:facebook.com ${clean} ${event}`
+      `${clean} ${event} news`
     ];
 
     const unique = Array.from(new Set(raw));
-    const scored = unique.map(scorePhrase);
+    const scored = unique.map(scorePhrase).sort((a, b) => b.score - a.score);
 
-    scored.sort((a, b) => b.score - a.score);
-
-    setTargets(geoTargets);
     setPhrases(scored);
+
+    // --- backend graph fetch ---
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:8001/resolve/real?location=${encodeURIComponent(location)}`
+      );
+
+      const data = await res.json();
+
+      // safe guards
+      setTargets(
+        Array.isArray(data?.top_targets)
+          ? data.top_targets.map((t: any) => t.name)
+          : []
+      );
+
+      setGraphData(data?.vector_graph || null);
+
+    } catch (err) {
+      console.error("Graph fetch failed:", err);
+      setGraphData(null);
+    }
   };
 
   // ============================================================
@@ -229,7 +166,25 @@ export default function App() {
     <div style={{ height: "100vh", color: "white" }}>
       <MainLayout
         left={<CaseList cases={cases} selected={selected} onSelect={setSelected} />}
-        center={<CaptureTab onAnalyze={handleAnalyze} />}
+
+        center={
+          <div>
+            <CaptureTab onAnalyze={handleAnalyze} />
+
+            {/* GRAPH */}
+            {graphData ? (
+              <>
+                <h3 style={{ marginTop: 20 }}>Vector Graph</h3>
+                <GraphView graph={graphData} />
+              </>
+            ) : (
+              <div style={{ marginTop: 20, opacity: 0.5 }}>
+                No graph data yet
+              </div>
+            )}
+          </div>
+        }
+
         right={
           <div>
             <h3>Search Targets</h3>
@@ -249,7 +204,7 @@ export default function App() {
                 </div>
 
                 <div style={{ fontSize: 12 }}>
-                  Score: {p.score} {p.feedback && `(feedback: ${p.feedback})`}
+                  Score: {p.score}
                 </div>
 
                 <ul style={{ fontSize: 12 }}>
