@@ -1,11 +1,12 @@
 // ============================================================
-// GraphView.tsx — iSEES Canvas Graph (STABLE / NO DEPENDENCIES)
+// GraphView.tsx — INTERACTIVE (TRUE 1:1 CLICK + RESPONSIVE)
 // ============================================================
 
 import React, { useEffect, useRef } from "react";
 
-export default function GraphView({ graph }: any) {
+export default function GraphView({ graph, onNodeClick }: any) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const nodePositions = useRef<any>({});
 
   useEffect(() => {
     if (!graph || !canvasRef.current) return;
@@ -13,6 +14,11 @@ export default function GraphView({ graph }: any) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // 🔥 CRITICAL: match canvas to actual display size EVERY DRAW
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
 
     const width = canvas.width;
     const height = canvas.height;
@@ -22,19 +28,21 @@ export default function GraphView({ graph }: any) {
     const nodes = graph.nodes || [];
     const edges = graph.edges || [];
 
-    // --- layout ---
     const centerX = width / 2;
     const centerY = height / 2;
     const radius = Math.min(width, height) / 3;
 
     const positioned: any = {};
+    nodePositions.current = {};
 
+    // --- layout ---
     nodes.forEach((n: any, i: number) => {
       const angle = (i / nodes.length) * Math.PI * 2;
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
 
       positioned[n.id] = { ...n, x, y };
+      nodePositions.current[n.id] = { x, y };
     });
 
     // --- edges ---
@@ -65,24 +73,51 @@ export default function GraphView({ graph }: any) {
 
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
+      ctx.arc(p.x, p.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
       ctx.fillStyle = "#ffffff";
       ctx.font = "12px sans-serif";
-      ctx.fillText(n.label, p.x + 8, p.y + 4);
+      ctx.fillText(n.label, p.x + 12, p.y + 4);
     });
 
   }, [graph]);
 
+  // 🔥 TRUE CLICK (NO SCALING NEEDED NOW)
+  const handleClick = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    for (const id in nodePositions.current) {
+      const p = nodePositions.current[id];
+
+      const dx = x - p.x;
+      const dy = y - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 14) {
+        console.log("CLICKED:", id);
+        onNodeClick?.(id);
+        break;
+      }
+    }
+  };
+
   return (
     <canvas
       ref={canvasRef}
-      width={800}
-      height={600}
+      onClick={handleClick}
       style={{
+        width: "100%",
+        height: "600px",
         background: "#0a0a0a",
-        border: "1px solid #222"
+        border: "1px solid #222",
+        cursor: "pointer"
       }}
     />
   );

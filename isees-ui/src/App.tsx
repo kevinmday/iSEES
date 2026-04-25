@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — STEP 25 (GRAPH ENABLED UI — SAFE MODE)
+// src/App.tsx — STEP 26 (GRAPH INTERACTIVE UI)
 // ============================================================
 
 import { useEffect, useState } from "react";
@@ -8,21 +8,12 @@ import CaseList from "./components/CaseList";
 import CaseCard from "./components/CaseCard";
 import RightPanel from "./components/RightPanel";
 import CaptureTab from "./components/CaptureTab";
-import GraphView from "./components/GraphView"; // SAFE GRAPH
+import GraphView from "./components/GraphView";
 
 type CaseItem = {
   id: number;
   name: string;
   status: string;
-};
-
-type SavedPack = {
-  id: number;
-  location: string;
-  context: string;
-  description: string;
-  targets: string[];
-  phrases: string[];
 };
 
 type FeedbackType = "useful" | "noise" | "partial" | null;
@@ -43,6 +34,9 @@ export default function App() {
   const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackType>>({});
 
   const [graphData, setGraphData] = useState<any>(null);
+
+  // 🔥 NEW
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   // ============================================================
   // INIT
@@ -89,7 +83,6 @@ export default function App() {
     if (l.includes("airport")) { base += 4; why.push("Airport context"); }
     if (l.includes("radar")) { base += 3; why.push("Radar evidence vector"); }
     if (l.includes("news")) { base += 1; why.push("News coverage"); }
-    if (l.includes("facebook")) { base -= 1; why.push("Low reliability source"); }
 
     if (why.length === 0) why.push("General relevance");
 
@@ -102,9 +95,8 @@ export default function App() {
   // ============================================================
   // ANALYZE
   // ============================================================
-  const handleAnalyze = async ({ location, context, description }: any) => {
+  const handleAnalyze = async ({ location, description }: any) => {
 
-    // --- phrase generation ---
     const clean = location.trim().toLowerCase();
     const event = description.toLowerCase().includes("light")
       ? "strange lights"
@@ -122,7 +114,6 @@ export default function App() {
 
     setPhrases(scored);
 
-    // --- backend graph fetch ---
     try {
       const res = await fetch(
         `http://127.0.0.1:8001/resolve/real?location=${encodeURIComponent(location)}`
@@ -130,7 +121,6 @@ export default function App() {
 
       const data = await res.json();
 
-      // safe guards
       setTargets(
         Array.isArray(data?.top_targets)
           ? data.top_targets.map((t: any) => t.name)
@@ -160,6 +150,48 @@ export default function App() {
   };
 
   // ============================================================
+  // NODE ACTION PANEL
+  // ============================================================
+  const renderNodeActions = () => {
+    if (!selectedNode) return null;
+
+    return (
+      <div style={{ marginTop: 10 }}>
+        <h4>Node: {selectedNode}</h4>
+
+        {selectedNode.includes("Airport") && (
+          <ul>
+            <li>Request FAA radar logs</li>
+            <li>Check ADS-B flight data</li>
+            <li>File FOIA request</li>
+          </ul>
+        )}
+
+        {selectedNode.includes("Tower") && (
+          <ul>
+            <li>Review ATC communications</li>
+            <li>Check LiveATC archives</li>
+          </ul>
+        )}
+
+        {selectedNode === "Local News" && (
+          <ul>
+            <li>Search KOBI-TV archives</li>
+            <li>Check Rogue Valley Times</li>
+          </ul>
+        )}
+
+        {selectedNode === "radar" && (
+          <ul>
+            <li>Radar anomaly queries</li>
+            <li>Signal verification</li>
+          </ul>
+        )}
+      </div>
+    );
+  };
+
+  // ============================================================
   // UI
   // ============================================================
   return (
@@ -171,11 +203,16 @@ export default function App() {
           <div>
             <CaptureTab onAnalyze={handleAnalyze} />
 
-            {/* GRAPH */}
             {graphData ? (
               <>
                 <h3 style={{ marginTop: 20 }}>Vector Graph</h3>
-                <GraphView graph={graphData} />
+
+                <GraphView
+                  graph={graphData}
+                  onNodeClick={setSelectedNode}
+                />
+
+                {renderNodeActions()}
               </>
             ) : (
               <div style={{ marginTop: 20, opacity: 0.5 }}>
