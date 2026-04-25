@@ -1,5 +1,5 @@
 # ============================================================
-# source_resolver.py — FINAL (CONSOLIDATED + ROBUST)
+# source_resolver.py — GRAPH-ENABLED + CONSOLIDATED + WEIGHTED
 # ============================================================
 
 from typing import List, Dict, Any
@@ -41,95 +41,157 @@ def extract_icao(name: str):
 # CORE RESOLVER
 # ------------------------------------------------------------
 
-def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
+def resolve_vector(vector, geo_assets: Dict[str, Any]):
 
     targets = []
+    graph_nodes = []
+    graph_edges = []
 
     S = getattr(vector, "tokens_s", [])
     R = getattr(vector, "tokens_r", [])
     score = getattr(vector, "score", 0.0)
 
     # --------------------------------------------------------
-    # RULE 1 — AVIATION / RADAR
+    # SIGNAL NODES
+    # --------------------------------------------------------
+    for s in S:
+        graph_nodes.append({
+            "id": f"S:{s}",
+            "type": "signal",
+            "label": s
+        })
+
+    for r in R:
+        graph_nodes.append({
+            "id": f"R:{r}",
+            "type": "relation",
+            "label": r
+        })
+
+    # --------------------------------------------------------
+    # AVIATION
     # --------------------------------------------------------
     if "radar" in S or "flight" in S:
         for airport in geo_assets.get("airports", []):
 
-            icao = airport.get("icao") or extract_icao(airport.get("name"))
+            name = airport.get("name", "Unknown Airport")
+            icao = airport.get("icao") or extract_icao(name)
             distance = airport.get("distance")
 
-            targets.append(
-                ResolvedTarget(
-                    name=airport.get("name", "Unknown Airport"),
-                    type="aviation",
-                    relevance=score,
-                    actions=[
-                        "Request FAA radar logs (FOIA)",
-                        "Check tower communications (ATC recordings)",
-                        "Cross-check ADS-B flight data"
-                    ],
-                    metadata={
-                        "icao": icao,
-                        "distance": distance if distance is not None else 0
-                    }
-                )
+            target = ResolvedTarget(
+                name=name,
+                type="aviation",
+                relevance=score,
+                actions=[
+                    "Request FAA radar logs (FOIA)",
+                    "Check tower communications (ATC recordings)",
+                    "Cross-check ADS-B flight data"
+                ],
+                metadata={
+                    "icao": icao,
+                    "distance": distance if distance is not None else 0
+                }
             )
 
+            targets.append(target)
+
+            graph_nodes.append({
+                "id": name,
+                "type": "target",
+                "label": name
+            })
+
+            for s in S:
+                graph_edges.append({
+                    "from": f"S:{s}",
+                    "to": name
+                })
+
     # --------------------------------------------------------
-    # RULE 2 — COMMS
+    # COMMS
     # --------------------------------------------------------
     if "comms" in S:
         for airport in geo_assets.get("airports", []):
 
-            icao = airport.get("icao") or extract_icao(airport.get("name"))
+            base_name = airport.get("name", "Unknown Airport")
+            name = f"{base_name} Tower"
+            icao = airport.get("icao") or extract_icao(base_name)
             distance = airport.get("distance")
 
-            targets.append(
-                ResolvedTarget(
-                    name=f"{airport.get('name')} Tower",
-                    type="aviation_comms",
-                    relevance=score,
-                    actions=[
-                        "Review ATC frequency recordings",
-                        "Check liveATC archives if available",
-                        "Identify controller logs for timeframe"
-                    ],
-                    metadata={
-                        "icao": icao,
-                        "distance": distance if distance is not None else 0
-                    }
-                )
+            target = ResolvedTarget(
+                name=name,
+                type="aviation_comms",
+                relevance=score,
+                actions=[
+                    "Review ATC frequency recordings",
+                    "Check liveATC archives if available",
+                    "Identify controller logs for timeframe"
+                ],
+                metadata={
+                    "icao": icao,
+                    "distance": distance if distance is not None else 0
+                }
             )
 
+            targets.append(target)
+
+            graph_nodes.append({
+                "id": name,
+                "type": "target",
+                "label": name
+            })
+
+            for s in S:
+                graph_edges.append({
+                    "from": f"S:{s}",
+                    "to": name
+                })
+
     # --------------------------------------------------------
-    # RULE 3 — MEDIA
+    # MEDIA
     # --------------------------------------------------------
     if "anomaly" in R or "report" in R or "news" in R:
         for outlet in geo_assets.get("media", []):
 
-            targets.append(
-                ResolvedTarget(
-                    name=outlet.get("name", "Local Media"),
-                    type="media",
-                    relevance=score * 0.9,
-                    actions=[
-                        "Search news archives for event timeframe",
-                        "Review broadcast logs",
-                        "Contact newsroom tip line"
-                    ],
-                    metadata={
-                        "city": outlet.get("city")
-                    }
-                )
+            name = outlet.get("name", "Local Media")
+
+            target = ResolvedTarget(
+                name=name,
+                type="media",
+                relevance=score * 0.9,
+                actions=[
+                    "Search news archives for event timeframe",
+                    "Review broadcast logs",
+                    "Contact newsroom tip line"
+                ],
+                metadata={
+                    "city": outlet.get("city")
+                }
             )
+
+            targets.append(target)
+
+            graph_nodes.append({
+                "id": name,
+                "type": "target",
+                "label": name
+            })
+
+            for r in R:
+                graph_edges.append({
+                    "from": f"R:{r}",
+                    "to": name
+                })
 
     # --------------------------------------------------------
     # FALLBACK
     # --------------------------------------------------------
     if not targets:
+        name = "General Area Investigation"
+
         targets.append(
             ResolvedTarget(
-                name="General Area Investigation",
+                name=name,
                 type="generic",
                 relevance=score,
                 actions=[
@@ -141,11 +203,17 @@ def resolve_vector(vector, geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
             )
         )
 
-    return targets
+        graph_nodes.append({
+            "id": name,
+            "type": "target",
+            "label": name
+        })
+
+    return targets, graph_nodes, graph_edges
 
 
 # ------------------------------------------------------------
-# 🔥 CONSOLIDATION LAYER (NEW)
+# CONSOLIDATE TARGETS
 # ------------------------------------------------------------
 
 def consolidate_targets(targets: List[ResolvedTarget]) -> List[ResolvedTarget]:
@@ -158,25 +226,66 @@ def consolidate_targets(targets: List[ResolvedTarget]) -> List[ResolvedTarget]:
         if key not in merged:
             merged[key] = t
         else:
-            # aggregate score
             merged[key].relevance += t.relevance
 
     return list(merged.values())
 
 
 # ------------------------------------------------------------
-# BATCH RESOLUTION
+# CONSOLIDATE EDGES (🔥 NEW)
 # ------------------------------------------------------------
 
-def resolve_vectors(vectors: List[Any], geo_assets: Dict[str, Any]) -> List[ResolvedTarget]:
+def consolidate_edges(edges: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+    edge_map = {}
+
+    for e in edges:
+        key = (e["from"], e["to"])
+
+        if key not in edge_map:
+            edge_map[key] = {
+                "from": e["from"],
+                "to": e["to"],
+                "weight": 1
+            }
+        else:
+            edge_map[key]["weight"] += 1
+
+    return list(edge_map.values())
+
+
+# ------------------------------------------------------------
+# MAIN ENTRY
+# ------------------------------------------------------------
+
+def resolve_vectors(vectors: List[Any], geo_assets: Dict[str, Any]):
 
     all_targets = []
+    all_nodes = []
+    all_edges = []
 
     for v in vectors:
-        all_targets.extend(resolve_vector(v, geo_assets))
+        t, n, e = resolve_vector(v, geo_assets)
+        all_targets.extend(t)
+        all_nodes.extend(n)
+        all_edges.extend(e)
 
-    # 🔥 APPLY CONSOLIDATION
-    return consolidate_targets(all_targets)
+    # Targets
+    consolidated_targets_list = consolidate_targets(all_targets)
+
+    # Nodes
+    unique_nodes = {n["id"]: n for n in all_nodes}.values()
+
+    # 🔥 NEW — EDGE CONSOLIDATION
+    consolidated_edges = consolidate_edges(all_edges)
+
+    return {
+        "targets": consolidated_targets_list,
+        "graph": {
+            "nodes": list(unique_nodes),
+            "edges": consolidated_edges
+        }
+    }
 
 
 # ------------------------------------------------------------

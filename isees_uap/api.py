@@ -1,11 +1,10 @@
 # ============================================================
-# isees_uap/api.py — PHASE 5B (STABLE + SIGNAL-AWARE)
+# isees_uap/api.py — FINAL (GRAPH ENABLED + STABLE)
 # ============================================================
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import json
 from typing import List, Dict, Any
 
 # ------------------------------------------------------------
@@ -29,7 +28,6 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(__file__)
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
 
 # ------------------------------------------------------------
@@ -48,7 +46,7 @@ def geo_targets(location: str):
 
 
 # ------------------------------------------------------------
-# FULL RESOLUTION PIPELINE (STABLE)
+# FULL RESOLUTION PIPELINE (GRAPH ENABLED)
 # ------------------------------------------------------------
 @app.get("/resolve/real")
 def resolve_real(location: str):
@@ -89,9 +87,6 @@ def resolve_real(location: str):
                 if not isinstance(tokens, dict):
                     continue
 
-                # ------------------------------------------------
-                # NORMALIZED VECTOR (CRITICAL)
-                # ------------------------------------------------
                 class Vector:
                     def __init__(self, t):
                         self.tokens_s = (
@@ -115,7 +110,7 @@ def resolve_real(location: str):
                             or []
                         )
 
-                        # 🔥 KEY CHANGE: score based on signal presence
+                        # Score = signal strength
                         self.score = (
                             len(self.tokens_s)
                             + len(self.tokens_r)
@@ -133,7 +128,7 @@ def resolve_real(location: str):
         print("PIPELINE ERROR:", e)
 
     # --------------------------------------------------------
-    # STEP 3 — GUARANTEED SIGNAL (NOT FALLBACK, CONTROLLED)
+    # STEP 3 — GUARANTEED SIGNAL
     # --------------------------------------------------------
     if not vectors:
         print("⚠️ No signal generated — injecting baseline vector")
@@ -141,21 +136,44 @@ def resolve_real(location: str):
         class Vector:
             def __init__(self):
                 self.tokens_s = ["radar"]
-                self.tokens_r = ["FAA", "anomaly"]
+                self.tokens_r = ["anomaly"]
                 self.tokens_e = ["baseline"]
                 self.score = 1.0
 
         vectors = [Vector()]
 
     # --------------------------------------------------------
-    # STEP 4 — RESOLVE
+    # STEP 4 — RESOLVE (🔥 FIXED CONTRACT)
     # --------------------------------------------------------
-    targets = resolve_vectors(vectors, geo_assets)
+    result = resolve_vectors(vectors, geo_assets)
+
+    targets = result.get("targets", [])
+    graph = result.get("graph", {"nodes": [], "edges": []})
+
+    # --------------------------------------------------------
+    # STEP 5 — SAFE OUTPUT
+    # --------------------------------------------------------
+    safe_targets = []
+
+    for t in targets:
+        try:
+            safe_targets.append(t.to_dict())
+        except Exception:
+            safe_targets.append({
+                "name": str(t),
+                "type": "unknown",
+                "relevance": 0,
+                "actions": [],
+                "metadata": {}
+            })
 
     return {
         "location": location,
         "resolved": geo.get("resolved"),
-        "targets": [t.to_dict() for t in targets]
+
+        # 🔥 NEW LAYERED OUTPUT
+        "top_targets": safe_targets,
+        "vector_graph": graph
     }
 
 
