@@ -1,12 +1,13 @@
 // ============================================================
-// GraphView.tsx — INTERACTIVE (TRUE 1:1 CLICK + RESPONSIVE)
+// GraphView.tsx — INTERACTIVE + PATH HIGHLIGHTING (Phase 6A)
 // ============================================================
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function GraphView({ graph, onNodeClick }: any) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodePositions = useRef<any>({});
+  const [activeNode, setActiveNode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!graph || !canvasRef.current) return;
@@ -35,7 +36,9 @@ export default function GraphView({ graph, onNodeClick }: any) {
     const positioned: any = {};
     nodePositions.current = {};
 
-    // --- layout ---
+    // --------------------------------------------------------
+    // LAYOUT
+    // --------------------------------------------------------
     nodes.forEach((n: any, i: number) => {
       const angle = (i / nodes.length) * Math.PI * 2;
       const x = centerX + Math.cos(angle) * radius;
@@ -45,15 +48,46 @@ export default function GraphView({ graph, onNodeClick }: any) {
       nodePositions.current[n.id] = { x, y };
     });
 
-    // --- edges ---
-    ctx.strokeStyle = "#444";
+    // --------------------------------------------------------
+    // BUILD CONNECTION SET
+    // --------------------------------------------------------
+    const connected = new Set<string>();
 
+    if (activeNode) {
+      connected.add(activeNode);
+
+      edges.forEach((e: any) => {
+        const src = e.from || e.source;
+        const tgt = e.to || e.target;
+
+        if (src === activeNode || tgt === activeNode) {
+          connected.add(src);
+          connected.add(tgt);
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // EDGES
+    // --------------------------------------------------------
     edges.forEach((e: any) => {
-      const from = positioned[e.from];
-      const to = positioned[e.to];
+      const src = e.from || e.source;
+      const tgt = e.to || e.target;
+
+      const from = positioned[src];
+      const to = positioned[tgt];
       if (!from || !to) return;
 
-      ctx.lineWidth = Math.max(1, e.weight || 1);
+      const isActive =
+        !activeNode || (connected.has(src) && connected.has(tgt));
+
+      ctx.globalAlpha = isActive ? 1 : 0.08;
+
+      ctx.lineWidth = isActive
+        ? Math.max(2, e.weight || 1)
+        : 1;
+
+      ctx.strokeStyle = isActive ? "#7fb3ff" : "#333";
 
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
@@ -61,15 +95,25 @@ export default function GraphView({ graph, onNodeClick }: any) {
       ctx.stroke();
     });
 
-    // --- nodes ---
+    // --------------------------------------------------------
+    // NODES
+    // --------------------------------------------------------
     nodes.forEach((n: any) => {
       const p = positioned[n.id];
       if (!p) return;
+
+      const isActive =
+        !activeNode || connected.has(n.id);
+
+      ctx.globalAlpha = isActive ? 1 : 0.15;
 
       let color = "#888";
       if (n.type === "signal") color = "#00d4ff";
       if (n.type === "relation") color = "#ffcc00";
       if (n.type === "target") color = "#00ff88";
+
+      // highlight selected node
+      if (n.id === activeNode) color = "#00ffd0";
 
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -81,9 +125,12 @@ export default function GraphView({ graph, onNodeClick }: any) {
       ctx.fillText(n.label, p.x + 12, p.y + 4);
     });
 
-  }, [graph]);
+    ctx.globalAlpha = 1;
+  }, [graph, activeNode]);
 
-  // 🔥 TRUE CLICK (NO SCALING NEEDED NOW)
+  // --------------------------------------------------------
+  // CLICK HANDLER (UNCHANGED PRECISION)
+  // --------------------------------------------------------
   const handleClick = (e: any) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -102,10 +149,15 @@ export default function GraphView({ graph, onNodeClick }: any) {
 
       if (dist < 14) {
         console.log("CLICKED:", id);
+
+        setActiveNode(id);
         onNodeClick?.(id);
-        break;
+        return;
       }
     }
+
+    // click empty space → reset
+    setActiveNode(null);
   };
 
   return (

@@ -1,12 +1,10 @@
 // ============================================================
-// src/App.tsx — STEP 26 (GRAPH INTERACTIVE UI)
+// src/App.tsx — STEP 27 (DYNAMIC ACTION PANEL — FIXED)
 // ============================================================
 
 import { useEffect, useState } from "react";
 import MainLayout from "./layout/MainLayout";
 import CaseList from "./components/CaseList";
-import CaseCard from "./components/CaseCard";
-import RightPanel from "./components/RightPanel";
 import CaptureTab from "./components/CaptureTab";
 import GraphView from "./components/GraphView";
 
@@ -35,8 +33,8 @@ export default function App() {
 
   const [graphData, setGraphData] = useState<any>(null);
 
-  // 🔥 NEW
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  // 🔥 FIX: store FULL NODE (not just string)
+  const [selectedNode, setSelectedNode] = useState<any>(null);
 
   // ============================================================
   // INIT
@@ -50,69 +48,12 @@ export default function App() {
 
     setCases(data);
     setSelected(data[0]);
-
-    const storedFeedback = localStorage.getItem("isees_feedback");
-    if (storedFeedback) {
-      setFeedbackMap(JSON.parse(storedFeedback));
-    }
   }, []);
-
-  // ============================================================
-  // HELPERS
-  // ============================================================
-  const toTitleCase = (str: string) =>
-    str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
-
-  const openSearch = (q: string) =>
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
-
-  const getFeedbackMultiplier = (feedback: FeedbackType) => {
-    if (feedback === "useful") return 1.6;
-    if (feedback === "partial") return 1.2;
-    if (feedback === "noise") return 0.6;
-    return 1.0;
-  };
-
-  const scorePhrase = (p: string): ScoredPhrase => {
-    const l = p.toLowerCase();
-
-    let base = 0;
-    const why: string[] = [];
-
-    if (l.includes("faa")) { base += 5; why.push("FAA domain relevance"); }
-    if (l.includes("airport")) { base += 4; why.push("Airport context"); }
-    if (l.includes("radar")) { base += 3; why.push("Radar evidence vector"); }
-    if (l.includes("news")) { base += 1; why.push("News coverage"); }
-
-    if (why.length === 0) why.push("General relevance");
-
-    const feedback = feedbackMap[p] || null;
-    const score = Math.round(base * getFeedbackMultiplier(feedback));
-
-    return { phrase: p, score, why, feedback };
-  };
 
   // ============================================================
   // ANALYZE
   // ============================================================
   const handleAnalyze = async ({ location, description }: any) => {
-
-    const clean = location.trim().toLowerCase();
-    const event = description.toLowerCase().includes("light")
-      ? "strange lights"
-      : "unusual activity";
-
-    let raw = [
-      `${clean} FAA ${event}`,
-      `${clean} ${event} airport`,
-      `${clean} ${event} radar`,
-      `${clean} ${event} news`
-    ];
-
-    const unique = Array.from(new Set(raw));
-    const scored = unique.map(scorePhrase).sort((a, b) => b.score - a.score);
-
-    setPhrases(scored);
 
     try {
       const res = await fetch(
@@ -136,55 +77,42 @@ export default function App() {
   };
 
   // ============================================================
-  // FEEDBACK
-  // ============================================================
-  const setFeedback = (phrase: string, value: FeedbackType) => {
-    const updated = { ...feedbackMap, [phrase]: value };
-    setFeedbackMap(updated);
-    localStorage.setItem("isees_feedback", JSON.stringify(updated));
-
-    setPhrases(prev =>
-      prev.map(p => scorePhrase(p.phrase))
-        .sort((a, b) => b.score - a.score)
-    );
-  };
-
-  // ============================================================
-  // NODE ACTION PANEL
+  // NODE ACTION PANEL (🔥 FIXED)
   // ============================================================
   const renderNodeActions = () => {
     if (!selectedNode) return null;
 
+    const actions = selectedNode?.actions;
+
     return (
       <div style={{ marginTop: 10 }}>
-        <h4>Node: {selectedNode}</h4>
+        <h4>Node: {selectedNode.label}</h4>
 
-        {selectedNode.includes("Airport") && (
+        {/* ✅ REAL BACKEND DATA */}
+        {actions?.next_steps?.length > 0 && (
           <ul>
-            <li>Request FAA radar logs</li>
-            <li>Check ADS-B flight data</li>
-            <li>File FOIA request</li>
+            {actions.next_steps.map((step: string, i: number) => (
+              <li key={i}>{step}</li>
+            ))}
           </ul>
         )}
 
-        {selectedNode.includes("Tower") && (
+        {/* ✅ CONTACTS */}
+        {actions?.contacts?.length > 0 && (
           <ul>
-            <li>Review ATC communications</li>
-            <li>Check LiveATC archives</li>
+            {actions.contacts.map((c: any, i: number) => (
+              <li key={i}>
+                {c.name} {c.email ? `- ${c.email}` : ""}
+              </li>
+            ))}
           </ul>
         )}
 
-        {selectedNode === "Local News" && (
+        {/* 🧠 SAFE FALLBACK (NO MEDFORD!) */}
+        {!actions && (
           <ul>
-            <li>Search KOBI-TV archives</li>
-            <li>Check Rogue Valley Times</li>
-          </ul>
-        )}
-
-        {selectedNode === "radar" && (
-          <ul>
-            <li>Radar anomaly queries</li>
-            <li>Signal verification</li>
+            <li>Search local sources</li>
+            <li>Check regional activity reports</li>
           </ul>
         )}
       </div>
@@ -209,7 +137,7 @@ export default function App() {
 
                 <GraphView
                   graph={graphData}
-                  onNodeClick={setSelectedNode}
+                  onNodeClick={(node: any) => setSelectedNode(node)}
                 />
 
                 {renderNodeActions()}
@@ -228,31 +156,6 @@ export default function App() {
             <ul>
               {targets.map((t, i) => <li key={i}>{t}</li>)}
             </ul>
-
-            <h3>Search Phrases</h3>
-
-            {phrases.map((p, i) => (
-              <div key={i} style={{ marginBottom: 12 }}>
-                <div
-                  onClick={() => openSearch(p.phrase)}
-                  style={{ cursor: "pointer", color: "#7dd3fc" }}
-                >
-                  🔍 {toTitleCase(p.phrase)}
-                </div>
-
-                <div style={{ fontSize: 12 }}>
-                  Score: {p.score}
-                </div>
-
-                <ul style={{ fontSize: 12 }}>
-                  {p.why.map((w, idx) => <li key={idx}>{w}</li>)}
-                </ul>
-
-                <button onClick={() => setFeedback(p.phrase, "useful")}>Useful</button>
-                <button onClick={() => setFeedback(p.phrase, "partial")}>Partial</button>
-                <button onClick={() => setFeedback(p.phrase, "noise")}>Noise</button>
-              </div>
-            ))}
           </div>
         }
       />
