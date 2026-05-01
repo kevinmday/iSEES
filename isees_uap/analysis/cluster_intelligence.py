@@ -1,10 +1,13 @@
 # ============================================================
-# cluster_intelligence.py — CLUSTER INTELLIGENCE LAYER (V4 + WHY)
+# cluster_intelligence.py — CLUSTER INTELLIGENCE LAYER (V5 + WHY + PATTERN)
 # ============================================================
 
 from math import log
 from datetime import datetime, UTC
 from typing import Dict, List, Tuple
+
+# 🔥 NEW
+from isees_uap.analysis.pattern_memory import update_pattern_memory
 
 
 # ------------------------------------------------------------
@@ -183,13 +186,15 @@ def compute_corroboration(cluster: Dict) -> float:
 # 5. ESCALATION LOGIC
 # ------------------------------------------------------------
 
-def determine_escalation(cluster: Dict, intensity: float, corroboration: float) -> Dict:
+def determine_escalation(cluster: Dict, intensity: float, corroboration: float, pattern: Dict) -> Dict:
     N = cluster.get("report_count", 0)
 
+    # 🔥 NEW: pattern-aware escalation
+    pattern_boost = pattern.get("repeat_count", 0) >= 5
+
     escalate = (
-        N >= 3 and
-        intensity >= 0.5 and
-        corroboration >= 0.4
+        (N >= 3 and intensity >= 0.5 and corroboration >= 0.4)
+        or pattern_boost
     )
 
     if not escalate:
@@ -199,9 +204,11 @@ def determine_escalation(cluster: Dict, intensity: float, corroboration: float) 
             "recommended_contacts": []
         }
 
+    reason = "pattern escalation override" if pattern_boost else "multi-source spatial-temporal convergence"
+
     return {
         "level": "regional_alert",
-        "reason": "multi-source spatial-temporal convergence",
+        "reason": reason,
         "recommended_contacts": ["ATC", "NWS", "Local Media"]
     }
 
@@ -223,20 +230,18 @@ def build_recommended_actions(escalation: Dict) -> List[str]:
 
 
 # ------------------------------------------------------------
-# 7. WHY LAYER (EXPLAINABILITY)
+# 7. WHY LAYER
 # ------------------------------------------------------------
 
-def build_why(cluster: Dict, geometry: Dict, temporal: Dict, intensity: float, corroboration: float) -> List[str]:
+def build_why(cluster: Dict, geometry: Dict, temporal: Dict, intensity: float, corroboration: float, pattern: Dict) -> List[str]:
     reasons = []
 
     N = cluster.get("report_count", 0)
     duration = temporal.get("duration_seconds", 0)
     spread = geometry.get("spread_km", 0.0)
 
-    # Report count
     reasons.append(f"cluster formed from {N} report(s)")
 
-    # Temporal
     if duration <= 10:
         reasons.append(f"reports occurred within {duration} seconds (rapid burst)")
     elif duration <= 300:
@@ -244,7 +249,6 @@ def build_why(cluster: Dict, geometry: Dict, temporal: Dict, intensity: float, c
     else:
         reasons.append(f"reports span {duration} seconds (sustained activity)")
 
-    # Spatial
     if spread == 0:
         reasons.append("zero spatial spread (identical coordinates)")
     elif spread < 1:
@@ -254,7 +258,6 @@ def build_why(cluster: Dict, geometry: Dict, temporal: Dict, intensity: float, c
     else:
         reasons.append(f"wide spatial distribution ({spread} km)")
 
-    # Corroboration
     if corroboration < 0.3:
         reasons.append("low corroboration (limited independent sources)")
     elif corroboration < 0.6:
@@ -262,13 +265,17 @@ def build_why(cluster: Dict, geometry: Dict, temporal: Dict, intensity: float, c
     else:
         reasons.append("strong corroboration across multiple sources")
 
-    # Intensity
     if intensity < 0.2:
         reasons.append(f"low intensity signal ({intensity})")
     elif intensity < 0.5:
         reasons.append(f"moderate intensity signal ({intensity})")
     else:
         reasons.append(f"high intensity signal ({intensity})")
+
+    # 🔥 NEW pattern explanation
+    rc = pattern.get("repeat_count", 0)
+    if rc > 1:
+        reasons.append(f"location has repeated {rc} times historically ({pattern.get('pattern_type')})")
 
     return reasons
 
@@ -284,11 +291,15 @@ def build_cluster_intelligence(cluster: Dict) -> Dict:
     intensity = compute_intensity(cluster, geometry, temporal)
     corroboration = compute_corroboration(cluster)
 
-    escalation = determine_escalation(cluster, intensity, corroboration)
+    # 🔥 PATTERN MEMORY
+    pattern = update_pattern_memory({
+        "cluster_center": geometry["cluster_center"]
+    })
+
+    escalation = determine_escalation(cluster, intensity, corroboration, pattern)
     actions = build_recommended_actions(escalation)
 
-    # 🔥 WHY layer
-    why = build_why(cluster, geometry, temporal, intensity, corroboration)
+    why = build_why(cluster, geometry, temporal, intensity, corroboration, pattern)
 
     return {
         "cluster_id": cluster.get("cluster_id"),
@@ -300,6 +311,7 @@ def build_cluster_intelligence(cluster: Dict) -> Dict:
         "duration_seconds": temporal["duration_seconds"],
         "intensity": intensity,
         "corroboration_score": corroboration,
+        "pattern": pattern,
         "escalation": escalation,
         "recommended_actions": actions,
         "why": why

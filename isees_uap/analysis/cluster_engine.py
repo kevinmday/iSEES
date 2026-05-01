@@ -1,5 +1,5 @@
 # ============================================================
-# cluster_engine.py — REPORT CLUSTERING ENGINE (V3 + INTEL LAYER)
+# cluster_engine.py — REPORT CLUSTERING ENGINE (V9 FINAL FIX)
 # ============================================================
 
 import os
@@ -8,8 +8,9 @@ from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, UTC
 from typing import List, Dict
 
-# 🔥 NEW — INTELLIGENCE LAYER
+# 🔥 INTELLIGENCE + EVENT LAYERS
 from isees_uap.analysis.cluster_intelligence import build_cluster_intelligence
+from isees_uap.analysis.event_inference import build_events
 
 
 # ------------------------------------------------------------
@@ -20,7 +21,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 
 DISTANCE_THRESHOLD_KM = 100
-TIME_WINDOW_SECONDS = 86400
 
 
 # ------------------------------------------------------------
@@ -48,11 +48,29 @@ def _parse_time(ts: str):
 
 
 # ------------------------------------------------------------
-# LOAD REPORTS (FULL STRUCTURE PRESERVED)
+# ADAPTIVE TIME WINDOW
+# ------------------------------------------------------------
+
+def _adaptive_time_window(dist_km: float, report_count: int) -> float:
+
+    if report_count >= 3 and dist_km < 2:
+        return 36 * 3600
+
+    if dist_km < 5:
+        return 12 * 3600
+
+    return 6 * 3600
+
+
+# ------------------------------------------------------------
+# LOAD REPORTS
 # ------------------------------------------------------------
 
 def load_reports() -> List[Dict]:
     reports = []
+
+    if not os.path.exists(LOG_DIR):
+        return reports
 
     for file in os.listdir(LOG_DIR):
         if not file.endswith(".json"):
@@ -78,50 +96,62 @@ def load_reports() -> List[Dict]:
         if not timestamp:
             continue
 
-        # 🔥 IMPORTANT: KEEP FULL REPORT STRUCTURE
         reports.append({
             "report_id": log.get("report_id"),
             "timestamp": timestamp,
             "lat": lat,
             "lon": lon,
-            "raw": log  # ← FULL ORIGINAL REPORT (critical for intelligence layer)
+            "raw": log
         })
 
     return reports
 
 
 # ------------------------------------------------------------
-# CLUSTERING LOGIC
+# BFS CLUSTERING
 # ------------------------------------------------------------
 
 def cluster_reports(reports: List[Dict]) -> List[List[Dict]]:
     clusters = []
     visited = set()
 
-    for i, r1 in enumerate(reports):
-        if r1["report_id"] in visited:
+    for r in reports:
+        if r["report_id"] in visited:
             continue
 
-        cluster = [r1]
-        visited.add(r1["report_id"])
+        cluster = []
+        queue = [r]
+        visited.add(r["report_id"])
 
-        for j, r2 in enumerate(reports):
-            if i == j or r2["report_id"] in visited:
-                continue
+        while queue:
+            current = queue.pop(0)
+            cluster.append(current)
 
-            try:
-                dist = _haversine_km(r1["lat"], r1["lon"], r2["lat"], r2["lon"])
+            for candidate in reports:
+                if candidate["report_id"] in visited:
+                    continue
 
-                t1 = _parse_time(r1["timestamp"])
-                t2 = _parse_time(r2["timestamp"])
+                try:
+                    dist = _haversine_km(
+                        current["lat"], current["lon"],
+                        candidate["lat"], candidate["lon"]
+                    )
 
-                dt = abs((t1 - t2).total_seconds())
-            except Exception:
-                continue
+                    t1 = _parse_time(current["timestamp"])
+                    t2 = _parse_time(candidate["timestamp"])
+                    dt = abs((t1 - t2).total_seconds())
 
-            if dist <= DISTANCE_THRESHOLD_KM and dt <= TIME_WINDOW_SECONDS:
-                cluster.append(r2)
-                visited.add(r2["report_id"])
+                    time_window = _adaptive_time_window(
+                        dist_km=dist,
+                        report_count=len(cluster)
+                    )
+
+                except Exception:
+                    continue
+
+                if dist <= DISTANCE_THRESHOLD_KM and dt <= time_window:
+                    visited.add(candidate["report_id"])
+                    queue.append(candidate)
 
         clusters.append(cluster)
 
@@ -129,7 +159,53 @@ def cluster_reports(reports: List[Dict]) -> List[List[Dict]]:
 
 
 # ------------------------------------------------------------
-# BUILD CLUSTER OBJECTS (PRE-INTELLIGENCE)
+# MERGE PASS
+# ------------------------------------------------------------
+
+def merge_clusters(clusters: List[List[Dict]]) -> List[List[Dict]]:
+    merged = []
+
+    while clusters:
+        base = clusters.pop(0)
+        changed = True
+
+        while changed:
+            changed = False
+
+            for other in clusters[:]:
+                try:
+                    lat1 = sum(r["lat"] for r in base) / len(base)
+                    lon1 = sum(r["lon"] for r in base) / len(base)
+
+                    lat2 = sum(r["lat"] for r in other) / len(other)
+                    lon2 = sum(r["lon"] for r in other) / len(other)
+
+                    dist = _haversine_km(lat1, lon1, lat2, lon2)
+
+                    times1 = [_parse_time(r["timestamp"]) for r in base]
+                    times2 = [_parse_time(r["timestamp"]) for r in other]
+
+                    t1_min, t1_max = min(times1), max(times1)
+                    t2_min = min(times2)
+
+                    dt = abs((t2_min - t1_max).total_seconds())
+
+                    if dist < 2 and dt <= 36 * 3600:
+                        base.extend(other)
+                        clusters.remove(other)
+                        changed = True
+                        break
+
+                except Exception:
+                    continue
+
+        merged.append(base)
+
+    return merged
+
+
+# ------------------------------------------------------------
+# BUILD CLUSTER OBJECTS
 # ------------------------------------------------------------
 
 def build_cluster_objects(clusters: List[List[Dict]]) -> List[Dict]:
@@ -143,7 +219,7 @@ def build_cluster_objects(clusters: List[List[Dict]]) -> List[Dict]:
         output.append({
             "cluster_id": f"CLUSTER-{idx:03}",
             "report_count": len(cluster),
-            "reports": full_reports,  # 🔥 FULL REPORTS (NOT JUST IDS)
+            "reports": full_reports,
             "confidence": confidence
         })
 
@@ -151,7 +227,7 @@ def build_cluster_objects(clusters: List[List[Dict]]) -> List[Dict]:
 
 
 # ------------------------------------------------------------
-# INTELLIGENCE TRANSFORMATION
+# INTELLIGENCE (🔥 FIX HERE)
 # ------------------------------------------------------------
 
 def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
@@ -160,9 +236,13 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
     for cluster in cluster_objects:
         try:
             intel = build_cluster_intelligence(cluster)
+
+            # 🔥 CRITICAL FIX: propagate reports forward
+            intel["reports"] = cluster.get("reports", [])
+
             results.append(intel)
+
         except Exception as e:
-            # 🔥 FAIL-SAFE (never break pipeline)
             results.append({
                 "cluster_id": cluster.get("cluster_id"),
                 "error": str(e),
@@ -178,19 +258,27 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
 # ENTRY POINT
 # ------------------------------------------------------------
 
-def run_cluster_engine() -> List[Dict]:
+def run_cluster_engine() -> Dict:
     reports = load_reports()
 
     if not reports:
-        return []
+        return {}
 
     clusters = cluster_reports(reports)
+    clusters = merge_clusters(clusters)
 
-    # Step 1: build cluster objects
     cluster_objects = build_cluster_objects(clusters)
+    cluster_intel = apply_cluster_intelligence(cluster_objects)
 
-    # Step 2: apply intelligence layer
-    return apply_cluster_intelligence(cluster_objects)
+    # 🔥 EVENT LAYER
+    events = build_events(cluster_intel)
+
+    print(f"[EVENTS] generated={len(events)}")
+
+    return {
+        "clusters": cluster_intel,
+        "events": events
+    }
 
 
 # ------------------------------------------------------------
@@ -200,5 +288,5 @@ def run_cluster_engine() -> List[Dict]:
 if __name__ == "__main__":
     result = run_cluster_engine()
 
-    print("\n=== CLUSTER INTELLIGENCE (REAL GEO) ===")
+    print("\n=== CLUSTER + EVENT INTELLIGENCE ===")
     print(json.dumps(result, indent=2))
