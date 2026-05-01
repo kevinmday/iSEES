@@ -1,5 +1,5 @@
 # ============================================================
-# cluster_engine.py — REPORT CLUSTERING ENGINE (V9 FINAL FIX)
+# cluster_engine.py — REPORT CLUSTERING ENGINE (V11 + ROUTING)
 # ============================================================
 
 import os
@@ -8,9 +8,11 @@ from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, UTC
 from typing import List, Dict
 
-# 🔥 INTELLIGENCE + EVENT LAYERS
+# 🔥 INTELLIGENCE + EVENT + SCORING + ROUTING
 from isees_uap.analysis.cluster_intelligence import build_cluster_intelligence
 from isees_uap.analysis.event_inference import build_events
+from isees_uap.analysis.event_scoring import score_events
+from isees_uap.analysis.escalation_router import route_events
 
 
 # ------------------------------------------------------------
@@ -227,7 +229,7 @@ def build_cluster_objects(clusters: List[List[Dict]]) -> List[Dict]:
 
 
 # ------------------------------------------------------------
-# INTELLIGENCE (🔥 FIX HERE)
+# INTELLIGENCE
 # ------------------------------------------------------------
 
 def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
@@ -237,7 +239,7 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
         try:
             intel = build_cluster_intelligence(cluster)
 
-            # 🔥 CRITICAL FIX: propagate reports forward
+            # 🔥 propagate reports forward
             intel["reports"] = cluster.get("reports", [])
 
             results.append(intel)
@@ -255,7 +257,7 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
 
 
 # ------------------------------------------------------------
-# ENTRY POINT
+# ENTRY POINT (FINAL)
 # ------------------------------------------------------------
 
 def run_cluster_engine() -> Dict:
@@ -270,8 +272,14 @@ def run_cluster_engine() -> Dict:
     cluster_objects = build_cluster_objects(clusters)
     cluster_intel = apply_cluster_intelligence(cluster_objects)
 
-    # 🔥 EVENT LAYER
+    # 🔥 EVENT INFERENCE
     events = build_events(cluster_intel)
+
+    # 🔥 EVENT SCORING
+    events = score_events(events, cluster_intel)
+
+    # 🔥 AUTO ROUTING (NEW)
+    events = route_events(events, cluster_intel)
 
     print(f"[EVENTS] generated={len(events)}")
 
