@@ -1,5 +1,5 @@
 # ============================================================
-# event_scoring.py — EVENT SCORING LAYER (FINAL STABLE)
+# event_scoring.py — EVENT SCORING LAYER (V2 — REAL SIGNAL FIX)
 # ============================================================
 
 from typing import Dict
@@ -10,140 +10,112 @@ from typing import Dict
 # ------------------------------------------------------------
 
 def score_event(event: Dict, clusters: list) -> Dict:
-    """
-    Deterministic event scoring (FINAL — burst-aware, human-delay safe)
-    """
 
     report_count = event.get("report_count", 0)
-    cluster_count = len(clusters)
+    cluster_count = event.get("cluster_count", 1)
+    duration = max(event.get("event_duration_seconds", 1), 1)
 
     # --------------------------------------------------------
-    # 1. 🔥 BURST-BASED DENSITY (CORRECT MODEL)
+    # 1. EFFECTIVE DENSITY (FIXED)
     # --------------------------------------------------------
+    # Instead of penalizing long durations, weight by clustering
 
-    best_density = 0.0
+    density = report_count / max(cluster_count, 1)
 
-    for c in clusters:
-        c_reports = len(c.get("reports", []))
-        c_duration = max(c.get("duration_seconds", 1), 1)
-
-        c_density = c_reports / c_duration
-
-        if c_density > best_density:
-            best_density = c_density
-
-    # normalize burst intensity (strong weight)
-    density_score = min(1.0, best_density * 1000)
-
+    density_score = min(1.0, density / 5.0)  # normalized to ~5 reports baseline
 
     # --------------------------------------------------------
     # 2. CORROBORATION
     # --------------------------------------------------------
 
     if clusters:
-        corr = sum(c.get("corroboration_score", 0) for c in clusters) / cluster_count
+        corr = sum(c.get("corroboration_score", 0) for c in clusters) / len(clusters)
     else:
-        corr = 0.0
-
+        corr = 0
 
     # --------------------------------------------------------
-    # 3. PATTERN MEMORY
+    # 3. EVENT PATTERN (NEW — CRITICAL)
     # --------------------------------------------------------
 
-    pattern_weight = 0.0
+    event_pattern = event.get("event_pattern", {}).get("event_pattern_type", "")
 
-    for c in clusters:
-        pattern = c.get("pattern", {}).get("pattern_type", "")
+    if event_pattern == "persistent_event":
+        pattern_score = 1.0
+    elif event_pattern == "recurring_event":
+        pattern_score = 0.8
+    elif event_pattern == "repeat_event":
+        pattern_score = 0.5
+    else:
+        pattern_score = 0.2
 
-        if pattern == "persistent_hotspot":
-            pattern_weight += 1.0
-        elif pattern == "recurring_hotspot":
-            pattern_weight += 0.7
-        elif pattern == "repeat_activity":
-            pattern_weight += 0.4
+    # --------------------------------------------------------
+    # 4. SPATIAL CONFIDENCE (NEW)
+    # --------------------------------------------------------
+
+    if clusters:
+        spreads = [c.get("spread_km", 1) for c in clusters]
+        avg_spread = sum(spreads) / len(spreads)
+
+        if avg_spread < 0.1:
+            spatial_score = 1.0
+        elif avg_spread < 1:
+            spatial_score = 0.7
         else:
-            pattern_weight += 0.1
-
-    pattern_score = pattern_weight / max(cluster_count, 1)
-
-
-    # --------------------------------------------------------
-    # 4. TEMPORAL COMPRESSION (SECONDARY NOW)
-    # --------------------------------------------------------
-
-    duration = event.get("event_duration_seconds", 1)
-
-    if duration < 60:
-        compression = 1.0
-    elif duration < 3600:
-        compression = 0.7
-    elif duration < 86400:
-        compression = 0.4
+            spatial_score = 0.4
     else:
-        compression = 0.2
-
+        spatial_score = 0.3
 
     # --------------------------------------------------------
-    # BASE SCORE (REBALANCED)
+    # 5. TEMPORAL CONFIDENCE (REWORKED)
+    # --------------------------------------------------------
+    # DO NOT punish long duration if clustering exists
+
+    if cluster_count >= 2:
+        temporal_score = 0.9
+    elif duration < 3600:
+        temporal_score = 1.0
+    elif duration < 86400:
+        temporal_score = 0.7
+    else:
+        temporal_score = 0.5
+
+    # --------------------------------------------------------
+    # FINAL SCORE
     # --------------------------------------------------------
 
-    final_score = (
-        (density_score * 0.40) +     # ↑ dominant signal
-        (corr * 0.25) +
-        (pattern_score * 0.15) +
-        (compression * 0.10)
+    final_score = round(
+        (density_score * 0.30) +
+        (corr * 0.20) +
+        (pattern_score * 0.20) +
+        (spatial_score * 0.15) +
+        (temporal_score * 0.15),
+        3
     )
 
-
     # --------------------------------------------------------
-    # 🔥 BOOSTS (REAL-WORLD SIGNAL LOGIC)
-    # --------------------------------------------------------
-
-    # multiple clusters = stronger confirmation
-    if cluster_count > 1:
-        final_score += 0.15
-
-    # strong witness count
-    if report_count >= 5:
-        final_score += 0.15
-
-    # very tight spatial cluster bonus
-    tight_clusters = [
-        c for c in clusters if c.get("spread_km", 1) < 0.1
-    ]
-    if len(tight_clusters) >= 1:
-        final_score += 0.05
-
-
-    # clamp
-    final_score = round(min(1.0, final_score), 3)
-
-
-    # --------------------------------------------------------
-    # CLASSIFICATION (TUNED)
+    # CLASSIFICATION (ADJUSTED)
     # --------------------------------------------------------
 
-    if final_score >= 0.70:
+    if final_score >= 0.7:
         priority = "HIGH"
         action = "investigate_immediately"
-    elif final_score >= 0.45:
+    elif final_score >= 0.5:
         priority = "MEDIUM"
         action = "monitor_closely"
     else:
         priority = "LOW"
         action = "log_and_watch"
 
-
     return {
         "event_score": final_score,
         "priority": priority,
         "recommended_action": action,
-
         "components": {
             "density": round(density_score, 3),
             "corroboration": round(corr, 3),
             "pattern": round(pattern_score, 3),
-            "compression": round(compression, 3),
+            "spatial": round(spatial_score, 3),
+            "temporal": round(temporal_score, 3),
             "cluster_count": cluster_count,
             "report_count": report_count
         }
@@ -155,9 +127,6 @@ def score_event(event: Dict, clusters: list) -> Dict:
 # ------------------------------------------------------------
 
 def score_events(events: list, cluster_intel: list) -> list:
-    """
-    Attach scoring to each event
-    """
 
     results = []
 
@@ -167,7 +136,9 @@ def score_events(events: list, cluster_intel: list) -> list:
             if c["cluster_id"] in event.get("clusters", [])
         ]
 
-        event["scoring"] = score_event(event, related_clusters)
+        score = score_event(event, related_clusters)
+
+        event["scoring"] = score
 
         results.append(event)
 

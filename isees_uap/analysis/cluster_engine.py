@@ -1,5 +1,5 @@
 # ============================================================
-# cluster_engine.py — REPORT CLUSTERING ENGINE (V11 + ROUTING)
+# cluster_engine.py — REPORT CLUSTERING ENGINE (V13 + EVENT MEMORY)
 # ============================================================
 
 import os
@@ -8,11 +8,13 @@ from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, UTC
 from typing import List, Dict
 
-# 🔥 INTELLIGENCE + EVENT + SCORING + ROUTING
+# 🔥 FULL PIPELINE
 from isees_uap.analysis.cluster_intelligence import build_cluster_intelligence
 from isees_uap.analysis.event_inference import build_events
+from isees_uap.analysis.event_pattern_memory import apply_event_pattern_memory
 from isees_uap.analysis.event_scoring import score_events
 from isees_uap.analysis.escalation_router import route_events
+from isees_uap.analysis.alert_engine import process_alerts
 
 
 # ------------------------------------------------------------
@@ -275,11 +277,17 @@ def run_cluster_engine() -> Dict:
     # 🔥 EVENT INFERENCE
     events = build_events(cluster_intel)
 
+    # 🔥 EVENT MEMORY (NEW)
+    events = apply_event_pattern_memory(events)
+
     # 🔥 EVENT SCORING
     events = score_events(events, cluster_intel)
 
-    # 🔥 AUTO ROUTING (NEW)
+    # 🔥 ROUTING
     events = route_events(events, cluster_intel)
+
+    # 🔥 ALERT ENGINE
+    events = process_alerts(events)
 
     print(f"[EVENTS] generated={len(events)}")
 

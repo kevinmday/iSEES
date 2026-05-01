@@ -1,21 +1,62 @@
 # ============================================================
-# escalation_router.py — AUTO ESCALATION + CONTACT ROUTING
+# escalation_router.py — AUTO ESCALATION + INTELLIGENT ROUTING (V2)
 # ============================================================
 
 from typing import Dict, List
 
 
+# ------------------------------------------------------------
+# ROUTE SINGLE EVENT
+# ------------------------------------------------------------
+
 def route_event(event: Dict, clusters: List[Dict]) -> Dict:
 
     scoring = event.get("scoring", {})
     priority = scoring.get("priority", "LOW")
+    score = scoring.get("event_score", 0)
 
-    if priority != "HIGH":
+    pattern = event.get("event_pattern", {}).get("event_pattern_type", "")
+    cluster_count = event.get("cluster_count", 1)
+
+    # --------------------------------------------------------
+    # ESCALATION LOGIC (UPGRADED)
+    # --------------------------------------------------------
+
+    escalate = False
+    level = "none"
+    reason = ""
+
+    # HARD HIGH
+    if priority == "HIGH":
+        escalate = True
+        level = "high_priority"
+        reason = "high_score"
+
+    # MEDIUM + STRUCTURE BOOST
+    elif priority == "MEDIUM":
+
+        if cluster_count >= 2 and score >= 0.55:
+            escalate = True
+            level = "structured_event"
+            reason = "multi_cluster_support"
+
+        elif pattern in ["recurring_event", "persistent_event"]:
+            escalate = True
+            level = "pattern_detected"
+            reason = "pattern_memory_trigger"
+
+    # LOW NEVER ESCALATES
+    else:
         return {
             "escalated": False,
-            "reason": "priority_not_high",
+            "level": "none",
+            "reason": "low_priority",
             "actions": []
         }
+
+    # --------------------------------------------------------
+    # COLLECT CONTACTS
+    # --------------------------------------------------------
 
     contacts = []
     seen = set()
@@ -33,12 +74,17 @@ def route_event(event: Dict, clusters: List[Dict]) -> Dict:
             for f in geo.get("facilities", []):
                 contacts.append(f)
 
+    # dedupe
     unique = []
     for c in contacts:
         key = (c.get("type"), c.get("name"))
         if key not in seen:
             seen.add(key)
             unique.append(c)
+
+    # --------------------------------------------------------
+    # BUILD ACTIONS (SMART)
+    # --------------------------------------------------------
 
     actions = []
 
@@ -51,7 +97,7 @@ def route_event(event: Dict, clusters: List[Dict]) -> Dict:
                 "target": c.get("name"),
                 "phone": c.get("contact", {}).get("phone"),
                 "priority": "PRIMARY",
-                "instruction": "Request radar logs"
+                "instruction": "Request radar logs and traffic anomalies"
             })
 
         elif ctype == "WEATHER_RADAR":
@@ -60,15 +106,34 @@ def route_event(event: Dict, clusters: List[Dict]) -> Dict:
                 "target": c.get("name"),
                 "phone": c.get("contact", {}).get("phone"),
                 "priority": "SECONDARY",
-                "instruction": "Check radar returns"
+                "instruction": "Check radar returns and atmospheric anomalies"
             })
 
+        elif ctype == "AIRPORT":
+            actions.append({
+                "type": "CONTACT_AIRPORT_OPS",
+                "target": c.get("name"),
+                "phone": c.get("contact", {}).get("phone"),
+                "priority": "SECONDARY",
+                "instruction": "Request incident or anomaly reports"
+            })
+
+    # --------------------------------------------------------
+    # FINAL ROUTING OBJECT
+    # --------------------------------------------------------
+
     return {
-        "escalated": True,
+        "escalated": escalate,
+        "level": level,
+        "reason": reason,
         "contact_count": len(actions),
         "actions": actions
     }
 
+
+# ------------------------------------------------------------
+# ROUTE ALL EVENTS
+# ------------------------------------------------------------
 
 def route_events(events: List[Dict], cluster_intel: List[Dict]) -> List[Dict]:
 
