@@ -18,6 +18,12 @@ ignition_anchor.txt
 ignition_price.txt
 
 # =========================
+# 🔥 iSEES RUNTIME STATE (DO NOT COMMIT)
+# =========================
+isees_uap/runtime/monitor_state.json
+isees_uap/memory/event_memory.json
+
+# =========================
 # Runtime logs / session artifacts
 # =========================
 logs/
