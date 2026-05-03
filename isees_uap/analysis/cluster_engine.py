@@ -1,5 +1,5 @@
 # ============================================================
-# cluster_engine.py — REPORT CLUSTERING ENGINE (V19 FINAL)
+# cluster_engine.py — REPORT CLUSTERING ENGINE (V20 HOTSPOT LIVE)
 # ============================================================
 
 import os
@@ -20,6 +20,10 @@ from isees_uap.memory.event_intelligence_store import (
     update_from_event,
     get_location_intelligence
 )
+
+# 🔥 HOTSPOT
+from isees_uap.analysis.hotspot_intelligence import compute_hotspot
+
 
 # ------------------------------------------------------------
 # CONFIG
@@ -256,7 +260,7 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
 
 
 # ------------------------------------------------------------
-# 🧠 MEMORY INTEGRATION (FINAL WORKING VERSION)
+# 🧠 MEMORY
 # ------------------------------------------------------------
 
 def apply_event_memory(events: List[Dict]) -> List[Dict]:
@@ -268,11 +272,9 @@ def apply_event_memory(events: List[Dict]) -> List[Dict]:
 
         if lat is not None and lon is not None:
 
-            # normalize (critical)
             lat_norm = round(lat, 3)
             lon_norm = round(lon, 3)
 
-            # send correct structure expected by memory system
             update_from_event({
                 "geo_context": {
                     "center": {
@@ -295,6 +297,17 @@ def apply_event_memory(events: List[Dict]) -> List[Dict]:
 
 
 # ------------------------------------------------------------
+# 🔥 HOTSPOT
+# ------------------------------------------------------------
+
+def apply_hotspot_intelligence(events: List[Dict]) -> List[Dict]:
+    for event in events:
+        memory = event.get("memory", {})
+        event["hotspot"] = compute_hotspot(memory)
+    return events
+
+
+# ------------------------------------------------------------
 # ENTRY POINT
 # ------------------------------------------------------------
 
@@ -313,6 +326,7 @@ def run_cluster_engine() -> Dict:
     events = build_events(cluster_intel)
 
     events = apply_event_memory(events)
+    events = apply_hotspot_intelligence(events)   # 🔥 NEW
     events = apply_event_pattern_memory(events)
     events = score_events(events, cluster_intel)
     events = route_events(events, cluster_intel)
