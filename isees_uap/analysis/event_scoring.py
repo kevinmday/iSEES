@@ -1,5 +1,5 @@
 # ============================================================
-# event_scoring.py — EVENT SCORING LAYER (V2 — REAL SIGNAL FIX)
+# event_scoring.py — EVENT SCORING LAYER (V3 — MEMORY BOOST)
 # ============================================================
 
 from typing import Dict
@@ -16,13 +16,11 @@ def score_event(event: Dict, clusters: list) -> Dict:
     duration = max(event.get("event_duration_seconds", 1), 1)
 
     # --------------------------------------------------------
-    # 1. EFFECTIVE DENSITY (FIXED)
+    # 1. EFFECTIVE DENSITY
     # --------------------------------------------------------
-    # Instead of penalizing long durations, weight by clustering
 
     density = report_count / max(cluster_count, 1)
-
-    density_score = min(1.0, density / 5.0)  # normalized to ~5 reports baseline
+    density_score = min(1.0, density / 5.0)
 
     # --------------------------------------------------------
     # 2. CORROBORATION
@@ -34,7 +32,7 @@ def score_event(event: Dict, clusters: list) -> Dict:
         corr = 0
 
     # --------------------------------------------------------
-    # 3. EVENT PATTERN (NEW — CRITICAL)
+    # 3. EVENT PATTERN
     # --------------------------------------------------------
 
     event_pattern = event.get("event_pattern", {}).get("event_pattern_type", "")
@@ -49,7 +47,7 @@ def score_event(event: Dict, clusters: list) -> Dict:
         pattern_score = 0.2
 
     # --------------------------------------------------------
-    # 4. SPATIAL CONFIDENCE (NEW)
+    # 4. SPATIAL CONFIDENCE
     # --------------------------------------------------------
 
     if clusters:
@@ -66,9 +64,8 @@ def score_event(event: Dict, clusters: list) -> Dict:
         spatial_score = 0.3
 
     # --------------------------------------------------------
-    # 5. TEMPORAL CONFIDENCE (REWORKED)
+    # 5. TEMPORAL CONFIDENCE
     # --------------------------------------------------------
-    # DO NOT punish long duration if clustering exists
 
     if cluster_count >= 2:
         temporal_score = 0.9
@@ -80,20 +77,36 @@ def score_event(event: Dict, clusters: list) -> Dict:
         temporal_score = 0.5
 
     # --------------------------------------------------------
-    # FINAL SCORE
+    # BASE SCORE
     # --------------------------------------------------------
 
-    final_score = round(
+    base_score = (
         (density_score * 0.30) +
         (corr * 0.20) +
         (pattern_score * 0.20) +
         (spatial_score * 0.15) +
-        (temporal_score * 0.15),
-        3
+        (temporal_score * 0.15)
     )
 
     # --------------------------------------------------------
-    # CLASSIFICATION (ADJUSTED)
+    # 🧠 MEMORY BOOST FACTOR (MBF)
+    # --------------------------------------------------------
+
+    memory = event.get("memory", {})
+    recurrence_score = memory.get("recurrence_score", 0.0)
+
+    # base multiplier
+    memory_factor = 1 + recurrence_score
+
+    # safety cap to prevent runaway amplification
+    memory_factor = min(memory_factor, 2.5)
+
+    boosted_score = base_score * memory_factor
+
+    final_score = round(boosted_score, 3)
+
+    # --------------------------------------------------------
+    # CLASSIFICATION
     # --------------------------------------------------------
 
     if final_score >= 0.7:
@@ -108,6 +121,7 @@ def score_event(event: Dict, clusters: list) -> Dict:
 
     return {
         "event_score": final_score,
+        "memory_factor": round(memory_factor, 3),
         "priority": priority,
         "recommended_action": action,
         "components": {
@@ -117,7 +131,8 @@ def score_event(event: Dict, clusters: list) -> Dict:
             "spatial": round(spatial_score, 3),
             "temporal": round(temporal_score, 3),
             "cluster_count": cluster_count,
-            "report_count": report_count
+            "report_count": report_count,
+            "base_score": round(base_score, 3)
         }
     }
 

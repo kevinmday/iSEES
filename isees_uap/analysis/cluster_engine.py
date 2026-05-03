@@ -1,5 +1,5 @@
 # ============================================================
-# cluster_engine.py — REPORT CLUSTERING ENGINE (V14 PURE ENGINE)
+# cluster_engine.py — REPORT CLUSTERING ENGINE (V19 FINAL)
 # ============================================================
 
 import os
@@ -8,15 +8,18 @@ from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, UTC
 from typing import List, Dict
 
-# 🔥 FULL PIPELINE (NO ALERTS)
+# PIPELINE
 from isees_uap.analysis.cluster_intelligence import build_cluster_intelligence
 from isees_uap.analysis.event_inference import build_events
 from isees_uap.analysis.event_pattern_memory import apply_event_pattern_memory
 from isees_uap.analysis.event_scoring import score_events
 from isees_uap.analysis.escalation_router import route_events
 
-# ⚠️ ALERT ENGINE REMOVED (CENTRALIZED IN MONITOR LOOP)
-
+# 🧠 MEMORY
+from isees_uap.memory.event_intelligence_store import (
+    update_from_event,
+    get_location_intelligence
+)
 
 # ------------------------------------------------------------
 # CONFIG
@@ -45,10 +48,8 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 def _parse_time(ts: str):
     dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
-
     return dt
 
 
@@ -190,7 +191,7 @@ def merge_clusters(clusters: List[List[Dict]]) -> List[List[Dict]]:
                     times1 = [_parse_time(r["timestamp"]) for r in base]
                     times2 = [_parse_time(r["timestamp"]) for r in other]
 
-                    t1_min, t1_max = min(times1), max(times1)
+                    t1_max = max(times1)
                     t2_min = min(times2)
 
                     dt = abs((t2_min - t1_max).total_seconds())
@@ -243,7 +244,6 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
             intel = build_cluster_intelligence(cluster)
             intel["reports"] = cluster.get("reports", [])
             results.append(intel)
-
         except Exception as e:
             results.append({
                 "cluster_id": cluster.get("cluster_id"),
@@ -252,12 +252,50 @@ def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
             })
 
     print(f"[CLUSTER_INTEL] generated={len(results)}")
-
     return results
 
 
 # ------------------------------------------------------------
-# ENTRY POINT (FINAL)
+# 🧠 MEMORY INTEGRATION (FINAL WORKING VERSION)
+# ------------------------------------------------------------
+
+def apply_event_memory(events: List[Dict]) -> List[Dict]:
+    for event in events:
+        center = event.get("event_center", {})
+
+        lat = center.get("lat")
+        lon = center.get("lon")
+
+        if lat is not None and lon is not None:
+
+            # normalize (critical)
+            lat_norm = round(lat, 3)
+            lon_norm = round(lon, 3)
+
+            # send correct structure expected by memory system
+            update_from_event({
+                "geo_context": {
+                    "center": {
+                        "lat": lat_norm,
+                        "lon": lon_norm
+                    }
+                }
+            })
+
+            event["memory"] = get_location_intelligence(lat_norm, lon_norm)
+
+        else:
+            event["memory"] = {
+                "known": False,
+                "total_events": 0,
+                "recurrence_score": 0.0
+            }
+
+    return events
+
+
+# ------------------------------------------------------------
+# ENTRY POINT
 # ------------------------------------------------------------
 
 def run_cluster_engine() -> Dict:
@@ -272,8 +310,9 @@ def run_cluster_engine() -> Dict:
     cluster_objects = build_cluster_objects(clusters)
     cluster_intel = apply_cluster_intelligence(cluster_objects)
 
-    # EVENT PIPELINE (PURE)
     events = build_events(cluster_intel)
+
+    events = apply_event_memory(events)
     events = apply_event_pattern_memory(events)
     events = score_events(events, cluster_intel)
     events = route_events(events, cluster_intel)
@@ -292,6 +331,5 @@ def run_cluster_engine() -> Dict:
 
 if __name__ == "__main__":
     result = run_cluster_engine()
-
     print("\n=== CLUSTER + EVENT INTELLIGENCE ===")
     print(json.dumps(result, indent=2))
