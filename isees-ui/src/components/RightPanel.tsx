@@ -1,8 +1,14 @@
 // ============================================================
-// src/components/RightPanel.tsx — HYBRID (RAW + SEARCH OPS)
-// FULL DROP-IN REPLACEMENT (WITH RUN TOP SEARCH)
+// src/components/RightPanel.tsx — HYBRID + CONTEXT INTEL ENGINE
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
+import { useState } from "react";
+import { buildContextualIntel } from "../intel/intel_engine";
+
+// ------------------------------------------------------------
+// TYPES
+// ------------------------------------------------------------
 type Vector = {
   phrase: string;
   score: number;
@@ -12,39 +18,58 @@ type Report = {
   raw?: any;
   gap_type?: string;
   top_vectors?: Vector[];
+
+  // 🔥 OPTIONAL EVENT CONTEXT (future wiring)
+  cluster_size?: number;
+  reportsData?: any[];
 };
 
+// ============================================================
+// COMPONENT
+// ============================================================
 export default function RightPanel({ report }: { report: Report | null }) {
+  const [selectedObject, setSelectedObject] = useState<string | null>(null);
+
   if (!report) return <div style={{ padding: 20 }}>No data</div>;
 
-  // --------------------------------------------
-  // COPY HELPER
-  // --------------------------------------------
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    console.log("COPIED:", text);
+  // ------------------------------------------------------------
+  // EVENT TYPE DERIVATION
+  // ------------------------------------------------------------
+  const deriveEventType = () => {
+    const data = report.reportsData || [];
+
+    const hasVisual = data.some((r: any) => r.type === "visual");
+    const hasSensor = data.some((r: any) => r.type === "sensor");
+
+    if (hasVisual && hasSensor) return "MULTI_SOURCE";
+    if (hasVisual) return "VISUAL_ONLY";
+    if (hasSensor) return "SENSOR_ONLY";
+
+    return "LOW_CONFIDENCE";
   };
 
-  // --------------------------------------------
-  // OPEN SEARCH (NEW - RESTORED)
-  // --------------------------------------------
+  const eventType = deriveEventType();
+  const clusterSize = report.cluster_size || 1;
+
+  // ------------------------------------------------------------
+  // COPY + SEARCH HELPERS
+  // ------------------------------------------------------------
+  const copy = (text: string) => navigator.clipboard.writeText(text);
+
   const openSearch = (text: string) => {
     const url = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 
-  // --------------------------------------------
-  // RUN TOP SEARCH (CRITICAL FIX)
-  // --------------------------------------------
   const runTopSearch = () => {
-    if (report.top_vectors && report.top_vectors.length > 0) {
+    if (report.top_vectors?.length) {
       openSearch(report.top_vectors[0].phrase);
     }
   };
 
-  // --------------------------------------------
+  // ------------------------------------------------------------
   // EXPAND SEARCH PHRASES
-  // --------------------------------------------
+  // ------------------------------------------------------------
   const expand = (phrase: string) => {
     const p = phrase.toLowerCase();
 
@@ -71,9 +96,9 @@ export default function RightPanel({ report }: { report: Report | null }) {
     ];
   };
 
-  // --------------------------------------------
+  // ------------------------------------------------------------
   // DOMAIN ROUTING
-  // --------------------------------------------
+  // ------------------------------------------------------------
   const getDomains = () => {
     if (report.gap_type?.includes("Sensor Fusion")) {
       return ["Radar Systems", "EO/IR Systems", "Data Link (CEC)"];
@@ -86,8 +111,85 @@ export default function RightPanel({ report }: { report: Report | null }) {
     return ["General OSINT", "Archives", "Unclassified Reports"];
   };
 
+  // ------------------------------------------------------------
+  // ASSET LIST (STATIC FOR NOW → DYNAMIC LATER)
+  // ------------------------------------------------------------
+  const assets = ["ATC_TOWER", "NEXRAD_RADAR", "AIRPORT_OPS"];
+
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, fontFamily: "monospace" }}>
+
+      {/* ======================================== */}
+      {/* 🔥 CONTEXT INTEL SUMMARY (NEW) */}
+      {/* ======================================== */}
+      <h3>Context Intel</h3>
+
+      <div style={{ marginBottom: 10 }}>
+        <strong>Event Type:</strong> {eventType}
+      </div>
+
+      {/* ASSET SELECT */}
+      <div style={{ marginBottom: 10 }}>
+        {assets.map((a) => (
+          <div
+            key={a}
+            onClick={() => setSelectedObject(a)}
+            style={{
+              cursor: "pointer",
+              padding: "6px 8px",
+              marginBottom: 4,
+              borderRadius: 4,
+              background:
+                selectedObject === a ? "#1f2a44" : "transparent"
+            }}
+          >
+            • {a}
+          </div>
+        ))}
+      </div>
+
+      {/* INTEL SUMMARY (ADAPTIVE) */}
+      {selectedObject && (() => {
+        const intel = buildContextualIntel(
+          selectedObject,
+          eventType,
+          clusterSize
+        );
+
+        if (!intel) return null;
+
+        return (
+          <div style={{ marginBottom: 20 }}>
+            <h4>{intel.type}</h4>
+
+            <div>
+              <strong>Role:</strong>
+              <div>{intel.role}</div>
+            </div>
+
+            <div style={{ marginTop: 6 }}>
+              <strong>Confidence:</strong>
+              <div>{intel.confidence}</div>
+            </div>
+
+            <div style={{ marginTop: 6 }}>
+              <strong>Priority:</strong>
+              <div style={{ color: "#58a6ff" }}>{intel.priority}</div>
+            </div>
+
+            <div style={{ marginTop: 6 }}>
+              <strong>Next Move:</strong>
+              <div style={{ color: "#7ee787" }}>
+                {intel.actions?.[0]}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ======================================== */}
       {/* RAW SIGNAL METRICS */}
       {/* ======================================== */}
@@ -121,80 +223,32 @@ export default function RightPanel({ report }: { report: Report | null }) {
       <div style={{ marginTop: 30 }}>
         <h3>Search Operations</h3>
 
-        {/* ✅ RUN TOP SEARCH (RESTORED) */}
-        <div style={{ marginBottom: 10 }}>
-          <button onClick={runTopSearch}>
-            Run Top Search
-          </button>
-        </div>
+        <button onClick={runTopSearch}>Run Top Search</button>
 
-        {/* TOP VECTORS */}
-        <h4>Top Vectors</h4>
-        {report.top_vectors?.length ? (
-          report.top_vectors.map((v, i) => (
-            <div
-              key={i}
-              style={{
-                padding: 8,
-                marginBottom: 6,
-                background: "#1a1a1a"
-              }}
-            >
-              <div>{v.phrase} | {v.score}</div>
+        <h4 style={{ marginTop: 10 }}>Top Vectors</h4>
+        {report.top_vectors?.map((v, i) => (
+          <div key={i} style={{ background: "#1a1a1a", padding: 8 }}>
+            <div>{v.phrase} | {v.score}</div>
 
-              <div style={{ marginTop: 5 }}>
-                <button onClick={() => copy(v.phrase)}>Copy</button>
-                <button
-                  onClick={() => openSearch(v.phrase)}
-                  style={{ marginLeft: 6 }}
-                >
-                  Open
-                </button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div>No vectors</div>
-        )}
+            <button onClick={() => copy(v.phrase)}>Copy</button>
+            <button onClick={() => openSearch(v.phrase)}>
+              Open
+            </button>
+          </div>
+        ))}
 
-        {/* EXPANDED SEARCH */}
         <h4 style={{ marginTop: 20 }}>Expanded Search</h4>
         {report.top_vectors?.flatMap((v) =>
           expand(v.phrase).map((e, i) => (
-            <div
-              key={v.phrase + i}
-              style={{
-                padding: 6,
-                marginBottom: 4,
-                background: "#111"
-              }}
-            >
-              <div>{e}</div>
-
-              <div style={{ marginTop: 4 }}>
-                <button onClick={() => copy(e)}>Copy</button>
-                <button
-                  onClick={() => openSearch(e)}
-                  style={{ marginLeft: 6 }}
-                >
-                  Open
-                </button>
-              </div>
+            <div key={i} style={{ background: "#111", padding: 6 }}>
+              {e}
             </div>
           ))
         )}
 
-        {/* DOMAINS */}
         <h4 style={{ marginTop: 20 }}>Priority Domains</h4>
         {getDomains().map((d, i) => (
-          <div
-            key={i}
-            style={{
-              padding: 6,
-              marginBottom: 4,
-              background: "#222"
-            }}
-          >
+          <div key={i} style={{ background: "#222", padding: 6 }}>
             {d}
           </div>
         ))}
