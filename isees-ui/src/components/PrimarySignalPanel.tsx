@@ -1,3 +1,8 @@
+// ============================================================
+// src/components/PrimarySignalPanel.tsx — CENTERED SIGNAL STRIP
+// FULL DROP-IN REPLACEMENT
+// ============================================================
+
 import { useRef } from "react";
 import { useSyntheticEvent } from "../dev/useSyntheticEvent";
 
@@ -9,7 +14,20 @@ export default function PrimarySignalPanel() {
   // ------------------------------------------------------------
   if (!state) {
     return (
-      <div style={{ padding: 8, color: "#888", fontFamily: "monospace" }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
+          overflow: "hidden",
+          padding: "6px 16px",
+          color: "#888",
+          fontFamily: "monospace",
+          borderBottom: "1px solid #1f2a44",
+          background: "#0b0f1a",
+          textAlign: "center"
+        }}
+      >
         loading signal...
       </div>
     );
@@ -19,18 +37,16 @@ export default function PrimarySignalPanel() {
   // TRACK CONFIDENCE TREND
   // ------------------------------------------------------------
   const prevConfidence = useRef<number | null>(null);
-
   let trendSymbol: "↑" | "↓" | "→" = "→";
 
   if (prevConfidence.current !== null) {
     if (state.confidence > prevConfidence.current) trendSymbol = "↑";
     else if (state.confidence < prevConfidence.current) trendSymbol = "↓";
   }
-
   prevConfidence.current = state.confidence;
 
   // ------------------------------------------------------------
-  // PHASE (LOW PRIORITY — PURELY DESCRIPTIVE)
+  // PHASE
   // ------------------------------------------------------------
   const getPhase = () => {
     switch (state.state) {
@@ -48,7 +64,7 @@ export default function PrimarySignalPanel() {
   };
 
   // ------------------------------------------------------------
-  // 🔥 OBSERVATION STATUS (KEY FIX)
+  // OBSERVATION STATUS
   // ------------------------------------------------------------
   const lastReportSeconds = state.elapsed ?? 0;
 
@@ -56,20 +72,21 @@ export default function PrimarySignalPanel() {
     if (lastReportSeconds < 10) {
       return "ACTIVE — CONTINUOUS REPORTING";
     }
-
     if (lastReportSeconds < 30) {
       return "RECENT REPORTS — MONITORING";
     }
-
     if (lastReportSeconds < 120) {
-      return `NO NEW REPORTS (${lastReportSeconds.toFixed(0)}s) — EVENT MAY STILL BE ACTIVE`;
+      return `NO NEW REPORTS (${lastReportSeconds.toFixed(
+        0
+      )}s) — EVENT MAY STILL BE ACTIVE`;
     }
-
-    return `NO RECENT REPORTS (${lastReportSeconds.toFixed(0)}s) — STATUS UNCERTAIN`;
+    return `NO RECENT REPORTS (${lastReportSeconds.toFixed(
+      0
+    )}s) — STATUS UNCERTAIN`;
   };
 
   // ------------------------------------------------------------
-  // DIRECTIVES (UNCHANGED LOGIC)
+  // ACTIONS
   // ------------------------------------------------------------
   const getActions = () => {
     if (trendSymbol === "↑") return "monitor | radar | correlate";
@@ -78,28 +95,39 @@ export default function PrimarySignalPanel() {
   };
 
   // ------------------------------------------------------------
-  // RENDER — COMPACT STRIP
+  // RENDER — CENTERED STRIP
   // ------------------------------------------------------------
   return (
     <div
       style={{
         width: "100%",
-        padding: "10px 20px",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
+        padding: "8px 16px",
         background: "#0b0f1a",
         color: "#e6edf3",
         borderBottom: "1px solid #1f2a44",
         fontFamily: "monospace",
-        fontSize: 14
+        fontSize: 13
       }}
     >
-      {/* LINE 1 — IDENTITY + PHASE */}
-      <div style={{ marginBottom: 4 }}>
+      {/* LINE 1 — LABEL (CENTERED) */}
+      <div style={{ marginBottom: 3, textAlign: "center" }}>
         <span style={{ color: "#7ee787" }}>PRIMARY SIGNAL</span>{" "}
         | <strong>{getPhase()}</strong>
       </div>
 
-      {/* LINE 2 — TELEMETRY */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+      {/* LINE 2 — TELEMETRY (CENTERED FLEX) */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 16,
+          justifyContent: "center", // 🔥 horizontal centering
+          textAlign: "center"       // 🔥 wrapped centering
+        }}
+      >
         <span>EVENT: {state.event_id}</span>
         <span>LOC: {state.location}</span>
         <span>
@@ -110,13 +138,13 @@ export default function PrimarySignalPanel() {
         <span>TIME: {lastReportSeconds.toFixed(0)}s</span>
       </div>
 
-      {/* 🔥 LINE 3 — OBSERVATION STATUS (NEW CORE TRUTH) */}
-      <div style={{ marginTop: 4, color: "#58a6ff" }}>
+      {/* LINE 3 — STATUS (CENTERED) */}
+      <div style={{ marginTop: 3, color: "#58a6ff", textAlign: "center" }}>
         {getObservationStatus()}
       </div>
 
-      {/* LINE 4 — ACTIONS */}
-      <div style={{ marginTop: 2, color: "#8b949e" }}>
+      {/* LINE 4 — ACTIONS (CENTERED) */}
+      <div style={{ marginTop: 2, color: "#8b949e", textAlign: "center" }}>
         ACTIONS: {getActions()}
       </div>
     </div>
