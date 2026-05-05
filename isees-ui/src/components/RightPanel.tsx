@@ -1,5 +1,5 @@
 // ============================================================
-// src/components/RightPanel.tsx — DEBUG + FORCED INTEL RENDER
+// src/components/RightPanel.tsx — GEO-AWARE INTEL (FIXED)
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -15,31 +15,82 @@ type Report = {
   raw?: any;
   top_vectors?: any[];
   gap_type?: string;
+  geo_context?: {
+    assets?: string[];
+    [key: string]: any;
+  };
 };
 
 // ============================================================
 // COMPONENT
 // ============================================================
-export default function RightPanel({ report }: { report: Report | null }) {
+export default function RightPanel({
+  report,
+  onSelectIntel
+}: {
+  report: Report | null;
+  onSelectIntel?: (intel: any) => void;
+}) {
   console.log("🧠 RIGHT PANEL REPORT:", report);
 
   const [selectedObject, setSelectedObject] = useState<string | null>(null);
 
-  // ------------------------------------------------------------
-  // 🔥 HARD FALLBACKS (GUARANTEED RENDER)
-  // ------------------------------------------------------------
-  const safeReport = report || {};
-  const clusterSize = safeReport.cluster_size || 1;
+  const clusterSize = report?.cluster_size || 1;
 
   // ------------------------------------------------------------
-  // 🔥 FORCE EVENT TYPE (NO DEPENDENCY)
+  // 🔥 REAL EVENT TYPE (fallback safe)
   // ------------------------------------------------------------
-  const eventType = "LOW_CONFIDENCE";
+  const eventType = report?.gap_type || "LOW_CONFIDENCE";
 
   // ------------------------------------------------------------
-  // 🔥 ALWAYS AVAILABLE ASSETS
+  // 🔥 GEO-AWARE ASSETS (NO MORE HARDCODE)
   // ------------------------------------------------------------
-  const assets = ["ATC_TOWER", "NEXRAD_RADAR", "AIRPORT_OPS"];
+  const assets = report?.geo_context?.assets || [];
+
+  // ------------------------------------------------------------
+  // 🔴 HARD STOP IF NO GEO CONTEXT
+  // ------------------------------------------------------------
+  if (!report?.geo_context) {
+    return (
+      <div
+        style={{
+          padding: 16,
+          fontFamily: "monospace",
+          color: "#888"
+        }}
+      >
+        <div
+          style={{
+            marginBottom: 10,
+            padding: 6,
+            background: "#111",
+            border: "1px solid #333",
+            fontSize: 12,
+            color: "#ff6b6b"
+          }}
+        >
+          RIGHT PANEL ACTIVE | report: {report ? "YES" : "NO"}
+        </div>
+
+        No geo-context available — select an event
+      </div>
+    );
+  }
+
+  // ============================================================
+  // CLICK HANDLER (BRIDGE)
+  // ============================================================
+  const handleSelect = (asset: string) => {
+    setSelectedObject(asset);
+
+    const intel = buildContextualIntel(asset, eventType, clusterSize);
+
+    console.log("⚡ INTEL OUTPUT:", intel);
+
+    if (onSelectIntel && intel) {
+      onSelectIntel(intel);
+    }
+  };
 
   // ============================================================
   // RENDER
@@ -52,7 +103,7 @@ export default function RightPanel({ report }: { report: Report | null }) {
         color: "#e6edf3"
       }}
     >
-      {/* 🔥 DEBUG HEADER (VISIBLE CONFIRMATION) */}
+      {/* DEBUG HEADER */}
       <div
         style={{
           marginBottom: 10,
@@ -66,45 +117,44 @@ export default function RightPanel({ report }: { report: Report | null }) {
         RIGHT PANEL ACTIVE | report: {report ? "YES" : "NO"}
       </div>
 
-      {/* ======================================== */}
-      {/* CONTEXT INTEL */}
-      {/* ======================================== */}
       <h3 style={{ marginBottom: 10 }}>Context Intel</h3>
 
       <div style={{ marginBottom: 10 }}>
         <strong>Event Type:</strong> {eventType}
       </div>
 
-      {/* 🔥 ASSET LIST (FORCED RENDER) */}
+      {/* 🔥 GEO-DERIVED ASSETS */}
       <div style={{ marginBottom: 14 }}>
-        {assets.map((a) => (
-          <div
-            key={a}
-            onClick={() => setSelectedObject(a)}
-            style={{
-              cursor: "pointer",
-              padding: "6px 8px",
-              marginBottom: 6,
-              borderRadius: 4,
-              border: "1px solid #222",
-              background:
-                selectedObject === a ? "#1f2a44" : "transparent"
-            }}
-          >
-            • {a}
-          </div>
-        ))}
+        {assets.length === 0 ? (
+          <div style={{ color: "#888" }}>No assets found</div>
+        ) : (
+          assets.map((a) => (
+            <div
+              key={a}
+              onClick={() => handleSelect(a)}
+              style={{
+                cursor: "pointer",
+                padding: "6px 8px",
+                marginBottom: 6,
+                borderRadius: 4,
+                border: "1px solid #222",
+                background:
+                  selectedObject === a ? "#1f2a44" : "transparent"
+              }}
+            >
+              • {a}
+            </div>
+          ))
+        )}
       </div>
 
-      {/* 🔥 INTEL OUTPUT */}
+      {/* LOCAL INTEL DISPLAY */}
       {selectedObject && (() => {
         const intel = buildContextualIntel(
           selectedObject,
           eventType,
           clusterSize
         );
-
-        console.log("⚡ INTEL OUTPUT:", intel);
 
         if (!intel) {
           return (
