@@ -2,9 +2,31 @@
 # submit_report.py — CANONICAL OBSERVATION INTAKE (LAYER 0)
 # ============================================================
 
+import os
+import json
 import uuid
+
 from datetime import datetime, UTC
 from typing import Dict, Any
+
+
+# ============================================================
+# PATHS
+# ============================================================
+
+BASE_DIR = os.path.dirname(
+    os.path.dirname(__file__)
+)
+
+LOG_DIR = os.path.join(
+    BASE_DIR,
+    "logs"
+)
+
+os.makedirs(
+    LOG_DIR,
+    exist_ok=True
+)
 
 
 # ============================================================
@@ -12,18 +34,70 @@ from typing import Dict, Any
 # ============================================================
 
 def _generate_observation_id() -> str:
+
     return (
+
         f"OBS-"
+
         f"{datetime.now(UTC).strftime('%Y%m%d')}-"
+
         f"{str(uuid.uuid4())[:8]}"
     )
+
+
+# ============================================================
+# LOG WRITER
+# ============================================================
+
+def _write_observation_log(
+    observation: Dict[str, Any]
+):
+
+    try:
+
+        obs = observation.get(
+            "observation",
+            {}
+        )
+
+        observation_id = obs.get(
+            "observation_id",
+            str(uuid.uuid4())
+        )
+
+        path = os.path.join(
+
+            LOG_DIR,
+
+            f"{observation_id}.json"
+        )
+
+        with open(
+            path,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                observation,
+                f,
+                indent=2
+            )
+
+    except Exception as e:
+
+        print(
+            f"[OBSERVATION_LOG_ERROR] {e}"
+        )
 
 
 # ============================================================
 # MAIN BUILDER
 # ============================================================
 
-def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
+def build_observation(
+    payload: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     Layer 0 Canonical Observation Builder
 
@@ -38,7 +112,9 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
     This object is immutable observational truth.
     """
 
-    observation_id = _generate_observation_id()
+    observation_id = (
+        _generate_observation_id()
+    )
 
     observation = {
 
@@ -46,6 +122,9 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
         # SCHEMA METADATA
         # ----------------------------------------------------
         "schema_version": "1.0",
+
+        "generated_utc":
+            datetime.now(UTC).isoformat(),
 
         # ----------------------------------------------------
         # ROOT OBSERVATION OBJECT
@@ -55,12 +134,14 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             # ------------------------------------------------
             # CORE IDENTITY
             # ------------------------------------------------
-            "observation_id": observation_id,
+            "observation_id":
+                observation_id,
 
-            "report_type": payload.get(
-                "report_type",
-                "ROR"
-            ),
+            "report_type":
+                payload.get(
+                    "report_type",
+                    "ROR"
+                ),
 
             # ------------------------------------------------
             # SUBMISSION METADATA
@@ -68,21 +149,27 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "submission": {
 
                 "submission_time_utc":
-                    datetime.now(UTC).isoformat(),
+
+                    datetime.now(
+                        UTC
+                    ).isoformat(),
 
                 "submission_channel":
+
                     payload.get(
                         "submission_channel",
                         "web_form"
                     ),
 
                 "client_version":
+
                     payload.get(
                         "client_version",
                         "unknown"
                     ),
 
                 "session_id":
+
                     payload.get(
                         "session_id",
                         ""
@@ -95,24 +182,28 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "observation_time": {
 
                 "time_raw":
+
                     payload.get(
                         "time_raw",
                         ""
                     ),
 
                 "timezone_raw":
+
                     payload.get(
                         "timezone_raw",
                         ""
                     ),
 
                 "time_accuracy":
+
                     payload.get(
                         "time_accuracy",
                         ""
                     ),
 
                 "duration_raw":
+
                     payload.get(
                         "duration_raw",
                         ""
@@ -125,6 +216,7 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "raw_geo": {
 
                 "location_text":
+
                     payload.get(
                         "location_text",
                         ""
@@ -137,15 +229,20 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
                     payload.get("lon"),
 
                 "altitude_raw":
-                    payload.get("altitude_raw"),
+
+                    payload.get(
+                        "altitude_raw"
+                    ),
 
                 "geo_source":
+
                     payload.get(
                         "geo_source",
                         ""
                     ),
 
                 "location_accuracy":
+
                     payload.get(
                         "location_accuracy",
                         ""
@@ -158,29 +255,34 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "observer": {
 
                 "observer_type":
+
                     payload.get(
                         "observer_type",
                         ""
                     ),
 
                 "observer_count":
+
                     payload.get(
                         "observer_count"
                     ),
 
                 "language_raw":
+
                     payload.get(
                         "language_raw",
                         ""
                     ),
 
                 "experience_level":
+
                     payload.get(
                         "experience_level",
                         ""
                     ),
 
                 "contact_permitted":
+
                     payload.get(
                         "contact_permitted",
                         False
@@ -193,24 +295,28 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "environment": {
 
                 "weather_raw":
+
                     payload.get(
                         "weather_raw",
                         ""
                     ),
 
                 "visibility_raw":
+
                     payload.get(
                         "visibility_raw",
                         ""
                     ),
 
                 "terrain_raw":
+
                     payload.get(
                         "terrain_raw",
                         ""
                     ),
 
                 "light_conditions_raw":
+
                     payload.get(
                         "light_conditions_raw",
                         ""
@@ -223,35 +329,41 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "object_description": {
 
                 "shape_raw":
+
                     payload.get(
                         "shape_raw",
                         ""
                     ),
 
                 "movement_raw":
+
                     payload.get(
                         "movement_raw",
                         ""
                     ),
 
                 "lights_raw":
+
                     payload.get(
                         "lights_raw",
                         ""
                     ),
 
                 "sound_raw":
+
                     payload.get(
                         "sound_raw",
                         ""
                     ),
 
                 "object_count_raw":
+
                     payload.get(
                         "object_count_raw"
                     ),
 
                 "additional_characteristics_raw":
+
                     payload.get(
                         "additional_characteristics_raw",
                         ""
@@ -264,12 +376,14 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "content": {
 
                 "narrative_raw":
+
                     payload.get(
                         "narrative_raw",
                         ""
                     ),
 
                 "media_raw":
+
                     payload.get(
                         "media_raw",
                         []
@@ -282,24 +396,28 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             "client_metadata": {
 
                 "device_type":
+
                     payload.get(
                         "device_type",
                         ""
                     ),
 
                 "platform":
+
                     payload.get(
                         "platform",
                         ""
                     ),
 
                 "app_language":
+
                     payload.get(
                         "app_language",
                         ""
                     ),
 
                 "network_type":
+
                     payload.get(
                         "network_type",
                         ""
@@ -317,5 +435,12 @@ def build_observation(payload: Dict[str, Any]) -> Dict[str, Any]:
             }
         }
     }
+
+    # --------------------------------------------------------
+    # PERSIST CANONICAL OBSERVATION
+    # --------------------------------------------------------
+    _write_observation_log(
+        observation
+    )
 
     return observation

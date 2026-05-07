@@ -1,166 +1,235 @@
 # ============================================================
-# cluster_engine.py — REPORT CLUSTERING ENGINE (V20 HOTSPOT LIVE)
+# cluster_engine.py — MANIFOLD CLUSTER ENGINE (V1)
 # ============================================================
 
 import os
 import json
-from math import radians, sin, cos, sqrt, atan2
+
 from datetime import datetime, UTC
 from typing import List, Dict
 
-# PIPELINE
-from isees_uap.analysis.cluster_intelligence import build_cluster_intelligence
-from isees_uap.analysis.event_inference import build_events
-from isees_uap.analysis.event_pattern_memory import apply_event_pattern_memory
-from isees_uap.analysis.event_scoring import score_events
-from isees_uap.analysis.escalation_router import route_events
+# ------------------------------------------------------------
+# NORMALIZATION
+# ------------------------------------------------------------
 
-# 🧠 MEMORY
+from isees_uap.normalization.normalize_observation import (
+    normalize_observation
+)
+
+# ------------------------------------------------------------
+# DISTANCE METRICS
+# ------------------------------------------------------------
+
+from isees_uap.analysis.distance_metrics import (
+    calculate_distance
+)
+
+# ------------------------------------------------------------
+# PIPELINE
+# ------------------------------------------------------------
+
+from isees_uap.analysis.cluster_intelligence import (
+    build_cluster_intelligence
+)
+
+from isees_uap.analysis.event_inference import (
+    build_events
+)
+
+from isees_uap.analysis.event_pattern_memory import (
+    apply_event_pattern_memory
+)
+
+from isees_uap.analysis.event_scoring import (
+    score_events
+)
+
+from isees_uap.analysis.escalation_router import (
+    route_events
+)
+
+# ------------------------------------------------------------
+# MEMORY
+# ------------------------------------------------------------
+
 from isees_uap.memory.event_intelligence_store import (
+
     update_from_event,
+
     get_location_intelligence
 )
 
-# 🔥 HOTSPOT
-from isees_uap.analysis.hotspot_intelligence import compute_hotspot
-
-
 # ------------------------------------------------------------
+# HOTSPOT
+# ------------------------------------------------------------
+
+from isees_uap.analysis.hotspot_intelligence import (
+    compute_hotspot
+)
+
+
+# ============================================================
 # CONFIG
-# ------------------------------------------------------------
+# ============================================================
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-LOG_DIR = os.path.join(BASE_DIR, "logs")
+BASE_DIR = os.path.dirname(
+    os.path.dirname(__file__)
+)
 
-DISTANCE_THRESHOLD_KM = 100
-
-
-# ------------------------------------------------------------
-# HELPERS
-# ------------------------------------------------------------
-
-def _haversine_km(lat1, lon1, lat2, lon2):
-    R = 6371.0
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-
-    a = sin(dlat / 2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    return R * c
-
-
-def _parse_time(ts: str):
-    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC)
-    return dt
-
+LOG_DIR = os.path.join(
+    BASE_DIR,
+    "logs"
+)
 
 # ------------------------------------------------------------
-# ADAPTIVE TIME WINDOW
+# MANIFOLD DISTANCE THRESHOLD
 # ------------------------------------------------------------
 
-def _adaptive_time_window(dist_km: float, report_count: int) -> float:
-
-    if report_count >= 3 and dist_km < 2:
-        return 36 * 3600
-
-    if dist_km < 5:
-        return 12 * 3600
-
-    return 6 * 3600
+CLUSTER_DISTANCE_THRESHOLD = 3.5
 
 
-# ------------------------------------------------------------
+# ============================================================
 # LOAD REPORTS
-# ------------------------------------------------------------
+# ============================================================
 
 def load_reports() -> List[Dict]:
+
     reports = []
 
     if not os.path.exists(LOG_DIR):
         return reports
 
     for file in os.listdir(LOG_DIR):
+
         if not file.endswith(".json"):
             continue
 
-        path = os.path.join(LOG_DIR, file)
+        path = os.path.join(
+            LOG_DIR,
+            file
+        )
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                log = json.load(f)
+
+            with open(
+                path,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                report = json.load(f)
+
         except Exception:
             continue
 
-        geo = log.get("geo_context", {}).get("center", {})
-
-        lat = geo.get("lat")
-        lon = geo.get("lon")
-
-        if lat is None or lon is None:
-            continue
-
-        timestamp = log.get("created_at")
-        if not timestamp:
-            continue
-
-        reports.append({
-            "report_id": log.get("report_id"),
-            "timestamp": timestamp,
-            "lat": lat,
-            "lon": lon,
-            "raw": log
-        })
+        reports.append(report)
 
     return reports
 
 
-# ------------------------------------------------------------
-# BFS CLUSTERING
-# ------------------------------------------------------------
+# ============================================================
+# NORMALIZE REPORTS
+# ============================================================
 
-def cluster_reports(reports: List[Dict]) -> List[List[Dict]]:
+def normalize_reports(
+    reports: List[Dict]
+) -> List[Dict]:
+
+    normalized_reports = []
+
+    for report in reports:
+
+        try:
+
+            normalized = normalize_observation(
+                report
+            )
+
+            normalized_reports.append(
+                normalized[
+                    "normalized_observation"
+                ]
+            )
+
+        except Exception as e:
+
+            print(
+                f"[NORMALIZATION_ERROR] {e}"
+            )
+
+    return normalized_reports
+
+
+# ============================================================
+# MANIFOLD CLUSTERING
+# ============================================================
+
+def cluster_reports(
+    reports: List[Dict]
+) -> List[List[Dict]]:
+
     clusters = []
+
     visited = set()
 
-    for r in reports:
-        if r["report_id"] in visited:
+    for idx, report in enumerate(reports):
+
+        observation_id = report.get(
+            "observation_id",
+            f"obs-{idx}"
+        )
+
+        if observation_id in visited:
             continue
 
         cluster = []
-        queue = [r]
-        visited.add(r["report_id"])
+
+        queue = [report]
+
+        visited.add(observation_id)
 
         while queue:
+
             current = queue.pop(0)
+
             cluster.append(current)
 
             for candidate in reports:
-                if candidate["report_id"] in visited:
+
+                candidate_id = candidate.get(
+                    "observation_id",
+                    ""
+                )
+
+                if candidate_id in visited:
                     continue
 
                 try:
-                    dist = _haversine_km(
-                        current["lat"], current["lon"],
-                        candidate["lat"], candidate["lon"]
+
+                    distance = calculate_distance(
+                        current,
+                        candidate
                     )
 
-                    t1 = _parse_time(current["timestamp"])
-                    t2 = _parse_time(candidate["timestamp"])
-                    dt = abs((t1 - t2).total_seconds())
-
-                    time_window = _adaptive_time_window(
-                        dist_km=dist,
-                        report_count=len(cluster)
+                    total_distance = distance.get(
+                        "total_distance",
+                        999.0
                     )
 
                 except Exception:
                     continue
 
-                if dist <= DISTANCE_THRESHOLD_KM and dt <= time_window:
-                    visited.add(candidate["report_id"])
+                # --------------------------------------------
+                # MANIFOLD PROXIMITY TEST
+                # --------------------------------------------
+                if (
+                    total_distance
+                    <=
+                    CLUSTER_DISTANCE_THRESHOLD
+                ):
+
+                    visited.add(candidate_id)
+
                     queue.append(candidate)
 
         clusters.append(cluster)
@@ -168,104 +237,155 @@ def cluster_reports(reports: List[Dict]) -> List[List[Dict]]:
     return clusters
 
 
-# ------------------------------------------------------------
-# MERGE PASS
-# ------------------------------------------------------------
-
-def merge_clusters(clusters: List[List[Dict]]) -> List[List[Dict]]:
-    merged = []
-
-    while clusters:
-        base = clusters.pop(0)
-        changed = True
-
-        while changed:
-            changed = False
-
-            for other in clusters[:]:
-                try:
-                    lat1 = sum(r["lat"] for r in base) / len(base)
-                    lon1 = sum(r["lon"] for r in base) / len(base)
-
-                    lat2 = sum(r["lat"] for r in other) / len(other)
-                    lon2 = sum(r["lon"] for r in other) / len(other)
-
-                    dist = _haversine_km(lat1, lon1, lat2, lon2)
-
-                    times1 = [_parse_time(r["timestamp"]) for r in base]
-                    times2 = [_parse_time(r["timestamp"]) for r in other]
-
-                    t1_max = max(times1)
-                    t2_min = min(times2)
-
-                    dt = abs((t2_min - t1_max).total_seconds())
-
-                    if dist < 2 and dt <= 36 * 3600:
-                        base.extend(other)
-                        clusters.remove(other)
-                        changed = True
-                        break
-
-                except Exception:
-                    continue
-
-        merged.append(base)
-
-    return merged
-
-
-# ------------------------------------------------------------
+# ============================================================
 # BUILD CLUSTER OBJECTS
-# ------------------------------------------------------------
+# ============================================================
 
-def build_cluster_objects(clusters: List[List[Dict]]) -> List[Dict]:
+def build_cluster_objects(
+    clusters: List[List[Dict]]
+) -> List[Dict]:
+
     output = []
 
-    for idx, cluster in enumerate(clusters, start=1):
-        full_reports = [r["raw"] for r in cluster]
+    for idx, cluster in enumerate(
+        clusters,
+        start=1
+    ):
 
-        confidence = round(min(1.0, len(cluster) / 5), 2)
+        # ----------------------------------------------------
+        # BASIC CONFIDENCE
+        # ----------------------------------------------------
+        confidence = round(
 
+            min(
+                1.0,
+                len(cluster) / 5
+            ),
+
+            2
+        )
+
+        # ----------------------------------------------------
+        # CLUSTER CENTER
+        # ----------------------------------------------------
+        lats = []
+        lons = []
+
+        for observation in cluster:
+
+            geo = observation.get(
+                "normalized_geo",
+                {}
+            )
+
+            lat = geo.get("resolved_lat")
+            lon = geo.get("resolved_lon")
+
+            if lat is not None:
+                lats.append(lat)
+
+            if lon is not None:
+                lons.append(lon)
+
+        cluster_center = {
+
+            "lat":
+
+                sum(lats) / len(lats)
+
+                if lats else None,
+
+            "lon":
+
+                sum(lons) / len(lons)
+
+                if lons else None
+        }
+
+        # ----------------------------------------------------
+        # BUILD OBJECT
+        # ----------------------------------------------------
         output.append({
-            "cluster_id": f"CLUSTER-{idx:03}",
-            "report_count": len(cluster),
-            "reports": full_reports,
-            "confidence": confidence
+
+            "cluster_id":
+                f"CLUSTER-{idx:03}",
+
+            "report_count":
+                len(cluster),
+
+            "cluster_center":
+                cluster_center,
+
+            "confidence":
+                confidence,
+
+            "reports":
+                cluster
         })
 
     return output
 
 
-# ------------------------------------------------------------
-# INTELLIGENCE
-# ------------------------------------------------------------
+# ============================================================
+# CLUSTER INTELLIGENCE
+# ============================================================
 
-def apply_cluster_intelligence(cluster_objects: List[Dict]) -> List[Dict]:
+def apply_cluster_intelligence(
+    cluster_objects: List[Dict]
+) -> List[Dict]:
+
     results = []
 
     for cluster in cluster_objects:
+
         try:
-            intel = build_cluster_intelligence(cluster)
-            intel["reports"] = cluster.get("reports", [])
+
+            intel = build_cluster_intelligence(
+                cluster
+            )
+
+            intel["reports"] = cluster.get(
+                "reports",
+                []
+            )
+
             results.append(intel)
+
         except Exception as e:
+
             results.append({
-                "cluster_id": cluster.get("cluster_id"),
-                "error": str(e),
-                "fallback": cluster
+
+                "cluster_id":
+                    cluster.get("cluster_id"),
+
+                "error":
+                    str(e),
+
+                "fallback":
+                    cluster
             })
 
-    print(f"[CLUSTER_INTEL] generated={len(results)}")
+    print(
+        f"[CLUSTER_INTEL] generated={len(results)}"
+    )
+
     return results
 
 
-# ------------------------------------------------------------
-# 🧠 MEMORY
-# ------------------------------------------------------------
+# ============================================================
+# EVENT MEMORY
+# ============================================================
 
-def apply_event_memory(events: List[Dict]) -> List[Dict]:
+def apply_event_memory(
+    events: List[Dict]
+) -> List[Dict]:
+
     for event in events:
-        center = event.get("event_center", {})
+
+        center = event.get(
+            "event_center",
+            {}
+        )
 
         lat = center.get("lat")
         lon = center.get("lon")
@@ -276,74 +396,168 @@ def apply_event_memory(events: List[Dict]) -> List[Dict]:
             lon_norm = round(lon, 3)
 
             update_from_event({
+
                 "geo_context": {
+
                     "center": {
+
                         "lat": lat_norm,
                         "lon": lon_norm
                     }
                 }
             })
 
-            event["memory"] = get_location_intelligence(lat_norm, lon_norm)
+            event["memory"] = (
+                get_location_intelligence(
+                    lat_norm,
+                    lon_norm
+                )
+            )
 
         else:
+
             event["memory"] = {
+
                 "known": False,
+
                 "total_events": 0,
+
                 "recurrence_score": 0.0
             }
 
     return events
 
 
-# ------------------------------------------------------------
-# 🔥 HOTSPOT
-# ------------------------------------------------------------
+# ============================================================
+# HOTSPOT INTELLIGENCE
+# ============================================================
 
-def apply_hotspot_intelligence(events: List[Dict]) -> List[Dict]:
+def apply_hotspot_intelligence(
+    events: List[Dict]
+) -> List[Dict]:
+
     for event in events:
-        memory = event.get("memory", {})
-        event["hotspot"] = compute_hotspot(memory)
+
+        memory = event.get(
+            "memory",
+            {}
+        )
+
+        event["hotspot"] = (
+            compute_hotspot(memory)
+        )
+
     return events
 
 
-# ------------------------------------------------------------
+# ============================================================
 # ENTRY POINT
-# ------------------------------------------------------------
+# ============================================================
 
 def run_cluster_engine() -> Dict:
-    reports = load_reports()
 
-    if not reports:
+    # --------------------------------------------------------
+    # LOAD RAW REPORTS
+    # --------------------------------------------------------
+    raw_reports = load_reports()
+
+    if not raw_reports:
         return {}
 
-    clusters = cluster_reports(reports)
-    clusters = merge_clusters(clusters)
+    # --------------------------------------------------------
+    # NORMALIZATION PIPELINE
+    # --------------------------------------------------------
+    normalized_reports = normalize_reports(
+        raw_reports
+    )
 
-    cluster_objects = build_cluster_objects(clusters)
-    cluster_intel = apply_cluster_intelligence(cluster_objects)
+    print(
+        f"[NORMALIZED] count={len(normalized_reports)}"
+    )
 
-    events = build_events(cluster_intel)
+    # --------------------------------------------------------
+    # MANIFOLD CLUSTERING
+    # --------------------------------------------------------
+    clusters = cluster_reports(
+        normalized_reports
+    )
 
-    events = apply_event_memory(events)
-    events = apply_hotspot_intelligence(events)   # 🔥 NEW
-    events = apply_event_pattern_memory(events)
-    events = score_events(events, cluster_intel)
-    events = route_events(events, cluster_intel)
+    print(
+        f"[CLUSTERS] generated={len(clusters)}"
+    )
 
-    print(f"[EVENTS] generated={len(events)}")
+    # --------------------------------------------------------
+    # BUILD CLUSTER OBJECTS
+    # --------------------------------------------------------
+    cluster_objects = build_cluster_objects(
+        clusters
+    )
 
+    # --------------------------------------------------------
+    # INTELLIGENCE LAYERS
+    # --------------------------------------------------------
+    cluster_intel = apply_cluster_intelligence(
+        cluster_objects
+    )
+
+    events = build_events(
+        cluster_intel
+    )
+
+    events = apply_event_memory(
+        events
+    )
+
+    events = apply_hotspot_intelligence(
+        events
+    )
+
+    events = apply_event_pattern_memory(
+        events
+    )
+
+    events = score_events(
+        events,
+        cluster_intel
+    )
+
+    events = route_events(
+        events,
+        cluster_intel
+    )
+
+    print(
+        f"[EVENTS] generated={len(events)}"
+    )
+
+    # --------------------------------------------------------
+    # FINAL OUTPUT
+    # --------------------------------------------------------
     return {
-        "clusters": cluster_intel,
-        "events": events
+
+        "clusters":
+            cluster_intel,
+
+        "events":
+            events
     }
 
 
-# ------------------------------------------------------------
+# ============================================================
 # TEST
-# ------------------------------------------------------------
+# ============================================================
 
 if __name__ == "__main__":
+
     result = run_cluster_engine()
-    print("\n=== CLUSTER + EVENT INTELLIGENCE ===")
-    print(json.dumps(result, indent=2))
+
+    print(
+        "\n=== MANIFOLD CLUSTER ENGINE ==="
+    )
+
+    print(
+        json.dumps(
+            result,
+            indent=2
+        )
+    )
