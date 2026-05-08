@@ -1,9 +1,18 @@
 // ============================================================
-// src/layout/MainLayout.tsx — OPERATOR CONSOLE SHELL (V3)
+// src/layout/MainLayout.tsx — OPERATOR CONSOLE SHELL (V5)
+// ACTIVE EVENT SYNCHRONIZATION
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
-export default function MainLayout({ left, center, right }: any) {
+import { useEventContext } from "../context/EventContext";
+
+export default function MainLayout({
+  left,
+  center,
+  right,
+}: any) {
+  const { activeEvent } = useEventContext();
+
   return (
     <div
       style={{
@@ -14,12 +23,13 @@ export default function MainLayout({ left, center, right }: any) {
         background: "#060b14",
         color: "#f8fafc",
         overflow: "hidden",
-        fontFamily: "Consolas, monospace"
+        fontFamily: "Consolas, monospace",
       }}
     >
       {/* ===================================================== */}
       {/* TOP COMMAND BAR */}
       {/* ===================================================== */}
+
       <div
         style={{
           height: 42,
@@ -31,22 +41,23 @@ export default function MainLayout({ left, center, right }: any) {
           justifyContent: "space-between",
           paddingLeft: 16,
           paddingRight: 16,
-          flexShrink: 0
+          flexShrink: 0,
         }}
       >
         {/* LEFT */}
+
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14
+            gap: 14,
           }}
         >
           <div
             style={{
               fontSize: 21,
               fontWeight: 800,
-              letterSpacing: 1
+              letterSpacing: 1,
             }}
           >
             iSEES-UAP
@@ -56,7 +67,7 @@ export default function MainLayout({ left, center, right }: any) {
             style={{
               fontSize: 13,
               color: "#94a3b8",
-              letterSpacing: 1
+              letterSpacing: 1,
             }}
           >
             Emergence Detection System
@@ -64,6 +75,7 @@ export default function MainLayout({ left, center, right }: any) {
         </div>
 
         {/* RIGHT */}
+
         <div
           style={{
             display: "flex",
@@ -71,7 +83,7 @@ export default function MainLayout({ left, center, right }: any) {
             gap: 24,
             fontSize: 11,
             textTransform: "uppercase",
-            color: "#9ca3af"
+            color: "#9ca3af",
           }}
         >
           <span>
@@ -80,7 +92,7 @@ export default function MainLayout({ left, center, right }: any) {
               style={{
                 color: "#4ade80",
                 marginLeft: 6,
-                fontWeight: 700
+                fontWeight: 700,
               }}
             >
               ACTIVE
@@ -94,7 +106,7 @@ export default function MainLayout({ left, center, right }: any) {
             <span
               style={{
                 color: "#38bdf8",
-                marginLeft: 6
+                marginLeft: 6,
               }}
             >
               ONLINE
@@ -106,6 +118,7 @@ export default function MainLayout({ left, center, right }: any) {
       {/* ===================================================== */}
       {/* PRIMARY SIGNAL STRIP */}
       {/* ===================================================== */}
+
       <div
         style={{
           height: 58,
@@ -117,7 +130,7 @@ export default function MainLayout({ left, center, right }: any) {
           justifyContent: "center",
           paddingLeft: 18,
           paddingRight: 18,
-          flexShrink: 0
+          flexShrink: 0,
         }}
       >
         <div
@@ -126,7 +139,7 @@ export default function MainLayout({ left, center, right }: any) {
             color: "#4ade80",
             fontWeight: 700,
             letterSpacing: 1,
-            textTransform: "uppercase"
+            textTransform: "uppercase",
           }}
         >
           Primary Signal | Event Acquired & Confirmed
@@ -139,51 +152,78 @@ export default function MainLayout({ left, center, right }: any) {
             gap: 26,
             flexWrap: "wrap",
             fontSize: 12,
-            color: "#d1d5db"
+            color: "#d1d5db",
           }}
         >
-          <span>EVENT: E-MEDFORD-001</span>
-          <span>CONFIDENCE: 0.82</span>
-          <span>CLUSTERS: 2</span>
-          <span>REPORTS: 4</span>
-          <span>STATUS: TRACKING</span>
-          <span>RECURRENCE: LOW</span>
+          <span>
+            EVENT:{" "}
+            {activeEvent?.id || "NO ACTIVE EVENT"}
+          </span>
+
+          <span>
+            CONFIDENCE:{" "}
+            {activeEvent?.confidence || "--"}
+          </span>
+
+          <span>
+            CLUSTERS:{" "}
+            {activeEvent?.clusters || "--"}
+          </span>
+
+          <span>
+            REPORTS:{" "}
+            {activeEvent?.reports || "--"}
+          </span>
+
+          <span>
+            STATUS:{" "}
+            {activeEvent?.escalation || "--"}
+          </span>
+
+          <span>
+            RECURRENCE:{" "}
+            {activeEvent?.recurrence || "--"}
+          </span>
         </div>
       </div>
 
       {/* ===================================================== */}
       {/* MAIN OPERATOR BODY */}
       {/* ===================================================== */}
+
       <div
         style={{
           display: "flex",
           flex: 1,
           minHeight: 0,
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         {/* ================================================= */}
         {/* LEFT PANEL — EVENT RADAR */}
         {/* ================================================= */}
+
         <div
           style={{
-            width: 300,
-            minWidth: 300,
+            width: 285,
+            minWidth: 285,
+            maxWidth: 285,
             borderRight: "1px solid #182235",
             background: "#070d18",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            flexShrink: 0
+            flexShrink: 0,
           }}
         >
           {/* HEADER */}
+
           <div
             style={{
               padding: 14,
               borderBottom: "1px solid #182235",
               background: "#0b1220",
-              flexShrink: 0
+              flexShrink: 0,
             }}
           >
             <div
@@ -191,7 +231,7 @@ export default function MainLayout({ left, center, right }: any) {
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: 1,
-                textTransform: "uppercase"
+                textTransform: "uppercase",
               }}
             >
               Event Radar
@@ -201,7 +241,7 @@ export default function MainLayout({ left, center, right }: any) {
               style={{
                 marginTop: 6,
                 fontSize: 11,
-                color: "#94a3b8"
+                color: "#94a3b8",
               }}
             >
               Live emergence monitoring
@@ -209,11 +249,12 @@ export default function MainLayout({ left, center, right }: any) {
           </div>
 
           {/* CONTENT */}
+
           <div
             style={{
               flex: 1,
               overflowY: "auto",
-              padding: 10
+              padding: 10,
             }}
           >
             {left}
@@ -223,29 +264,33 @@ export default function MainLayout({ left, center, right }: any) {
         {/* ================================================= */}
         {/* CENTER PANEL — INVESTIGATION WORKSPACE */}
         {/* ================================================= */}
+
         <div
           style={{
-            flex: 1,
+            flex: "0 1 52%",
             minWidth: 0,
+            maxWidth: "52%",
             background: "#09111f",
             overflowY: "auto",
-            overflowX: "hidden"
+            overflowX: "hidden",
+            borderRight: "1px solid #182235",
           }}
         >
           <div
             style={{
               width: "100%",
-              maxWidth: 1600,
+              maxWidth: 1320,
               margin: "0 auto",
-              padding: 18
+              padding: 18,
             }}
           >
             {/* CENTER HEADER */}
+
             <div
               style={{
                 borderBottom: "1px solid #182235",
                 paddingBottom: 12,
-                marginBottom: 18
+                marginBottom: 18,
               }}
             >
               <div
@@ -253,7 +298,7 @@ export default function MainLayout({ left, center, right }: any) {
                   fontSize: 14,
                   fontWeight: 700,
                   letterSpacing: 1,
-                  textTransform: "uppercase"
+                  textTransform: "uppercase",
                 }}
               >
                 Investigation Workspace
@@ -263,42 +308,43 @@ export default function MainLayout({ left, center, right }: any) {
                 style={{
                   marginTop: 6,
                   fontSize: 11,
-                  color: "#94a3b8"
+                  color: "#94a3b8",
                 }}
               >
-                Reconstructed event analysis and manifold reasoning
+                Reconstructed event analysis and manifold
+                reasoning
               </div>
             </div>
 
             {/* CENTER CONTENT */}
-            <div>
-              {center}
-            </div>
+
+            <div>{center}</div>
           </div>
         </div>
 
         {/* ================================================= */}
         {/* RIGHT PANEL — OPERATIONAL INTELLIGENCE */}
         {/* ================================================= */}
+
         <div
           style={{
-            width: 360,
-            minWidth: 360,
-            borderLeft: "1px solid #182235",
+            flex: "1 1 0",
+            minWidth: 390,
+            maxWidth: 460,
             background: "#070d18",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            flexShrink: 0
           }}
         >
           {/* HEADER */}
+
           <div
             style={{
               padding: 14,
               borderBottom: "1px solid #182235",
               background: "#0b1220",
-              flexShrink: 0
+              flexShrink: 0,
             }}
           >
             <div
@@ -306,7 +352,7 @@ export default function MainLayout({ left, center, right }: any) {
                 fontSize: 13,
                 fontWeight: 700,
                 letterSpacing: 1,
-                textTransform: "uppercase"
+                textTransform: "uppercase",
               }}
             >
               Operational Intelligence
@@ -316,7 +362,7 @@ export default function MainLayout({ left, center, right }: any) {
               style={{
                 marginTop: 6,
                 fontSize: 11,
-                color: "#94a3b8"
+                color: "#94a3b8",
               }}
             >
               Context-aware investigation vectors
@@ -324,11 +370,12 @@ export default function MainLayout({ left, center, right }: any) {
           </div>
 
           {/* CONTENT */}
+
           <div
             style={{
               flex: 1,
               overflowY: "auto",
-              padding: 10
+              padding: 12,
             }}
           >
             {right}
@@ -339,6 +386,7 @@ export default function MainLayout({ left, center, right }: any) {
       {/* ===================================================== */}
       {/* FOOTER STATUS STRIP */}
       {/* ===================================================== */}
+
       <div
         style={{
           height: 28,
@@ -353,20 +401,14 @@ export default function MainLayout({ left, center, right }: any) {
           fontSize: 10,
           color: "#94a3b8",
           flexShrink: 0,
-          letterSpacing: 0.5
+          letterSpacing: 0.5,
         }}
       >
-        <div>
-          VERSION: v0.9-operator-shell
-        </div>
+        <div>VERSION: v0.9-operator-shell</div>
 
-        <div>
-          SYSTEM STATE: LIVE
-        </div>
+        <div>SYSTEM STATE: LIVE</div>
 
-        <div>
-          EVENT MANIFOLD: SYNCHRONIZED
-        </div>
+        <div>EVENT MANIFOLD: SYNCHRONIZED</div>
       </div>
     </div>
   );

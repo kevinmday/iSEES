@@ -1,10 +1,24 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
-// OPERATIONAL INVESTIGATION WORKSPACE (V2 CONTEXT WIRED)
+// OPERATIONAL INVESTIGATION WORKSPACE (V4)
+// GLOBAL INVESTIGATION SURFACE STATE
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import { useEventContext } from "../context/EventContext";
+
+// ============================================================
+// INVESTIGATION SURFACES
+// ============================================================
+
+const SURFACES = [
+  "SUMMARY",
+  "COLLAPSE",
+  "CANDIDATES",
+  "CONTRADICTIONS",
+  "HOTSPOT",
+  "GEO",
+];
 
 // ============================================================
 // METRIC BOX
@@ -52,11 +66,88 @@ function MetricBox({
 }
 
 // ============================================================
+// SURFACE BUTTON
+// ============================================================
+
+function SurfaceButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: active ? "#111827" : "#08101f",
+        border: active
+          ? "1px solid #374151"
+          : "1px solid #1f2937",
+        color: active ? "#f3f4f6" : "#9ca3af",
+        padding: "8px 12px",
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 1,
+        cursor: "pointer",
+        textTransform: "uppercase",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ============================================================
+// OPERATIONAL SURFACE BLOCK
+// ============================================================
+
+function SurfaceBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid #1f2937",
+        borderRadius: 10,
+        padding: 18,
+        background: "#08101f",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          marginBottom: 18,
+        }}
+      >
+        {title}
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
 export default function InvestigationWorkspace() {
-  const { activeEvent } = useEventContext();
+  const {
+    activeEvent,
+    activeSurface,
+    setActiveSurface,
+  } = useEventContext();
 
   // ----------------------------------------------------------
   // NO ACTIVE EVENT
@@ -81,9 +172,9 @@ export default function InvestigationWorkspace() {
 
   const event = activeEvent;
 
-  // ----------------------------------------------------------
-  // ACTIVE WORKSPACE
-  // ----------------------------------------------------------
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
     <div
@@ -198,89 +289,201 @@ export default function InvestigationWorkspace() {
       </div>
 
       {/* ================================================= */}
-      {/* MANIFOLD REASONING */}
+      {/* INVESTIGATION SURFACE SELECTOR */}
       {/* ================================================= */}
 
       <div
         style={{
-          border: "1px solid #1f2937",
-          borderRadius: 10,
-          padding: 18,
-          background: "#08101f",
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
         }}
       >
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            marginBottom: 18,
-          }}
-        >
-          Manifold Reasoning
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          {event.reasoning.map((item, idx) => (
-            <div
-              key={idx}
-              style={{
-                padding: 12,
-                border: "1px solid #1f2937",
-                borderRadius: 8,
-                background: "#0b1220",
-                color: "#cbd5e1",
-                fontSize: 13,
-                lineHeight: 1.5,
-              }}
-            >
-              {item}
-            </div>
-          ))}
-        </div>
+        {SURFACES.map((surface) => (
+          <SurfaceButton
+            key={surface}
+            label={surface}
+            active={activeSurface === surface}
+            onClick={() =>
+              setActiveSurface(surface as any)
+            }
+          />
+        ))}
       </div>
 
       {/* ================================================= */}
-      {/* OBSERVATION TIMELINE */}
+      {/* SUMMARY SURFACE */}
       {/* ================================================= */}
 
-      <div
-        style={{
-          border: "1px solid #1f2937",
-          borderRadius: 10,
-          padding: 18,
-          background: "#08101f",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            marginBottom: 18,
-          }}
-        >
-          Observation Timeline
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          {event.observations.map((obs) => (
+      {activeSurface === "SUMMARY" && (
+        <>
+          <SurfaceBlock title="Manifold Reasoning">
             <div
-              key={obs.id}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {event.reasoning.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: 12,
+                    border: "1px solid #1f2937",
+                    borderRadius: 8,
+                    background: "#0b1220",
+                    color: "#cbd5e1",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </SurfaceBlock>
+
+          <SurfaceBlock title="Observation Timeline">
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {event.observations.map((obs) => (
+                <div
+                  key={obs.id}
+                  style={{
+                    border: "1px solid #1f2937",
+                    borderRadius: 8,
+                    padding: 14,
+                    background: "#0b1220",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 13,
+                      }}
+                    >
+                      {obs.id}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#9ca3af",
+                      }}
+                    >
+                      {obs.time}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#60a5fa",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {obs.location}
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#d1d5db",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {obs.summary}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SurfaceBlock>
+
+          <SurfaceBlock title="Infrastructure Context">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, 1fr)",
+                gap: 12,
+              }}
+            >
+              {event.facilities.map(
+                (facility, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      border:
+                        "1px solid #1f2937",
+                      borderRadius: 8,
+                      padding: 14,
+                      background: "#0b1220",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        marginBottom: 10,
+                      }}
+                    >
+                      {facility.name}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "#60a5fa",
+                        marginBottom: 6,
+                      }}
+                    >
+                      {facility.type}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#9ca3af",
+                      }}
+                    >
+                      Distance:{" "}
+                      {facility.distance}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </SurfaceBlock>
+        </>
+      )}
+
+      {/* ================================================= */}
+      {/* COLLAPSE SURFACE */}
+      {/* ================================================= */}
+
+      {activeSurface === "COLLAPSE" && (
+        <SurfaceBlock title="Collapse Analysis">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <div
               style={{
                 border: "1px solid #1f2937",
                 borderRadius: 8,
@@ -288,129 +491,234 @@ export default function InvestigationWorkspace() {
                 background: "#0b1220",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 13,
-                  }}
-                >
-                  {obs.id}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "#9ca3af",
-                  }}
-                >
-                  {obs.time}
-                </div>
-              </div>
-
               <div
                 style={{
                   fontSize: 12,
-                  color: "#60a5fa",
-                  marginBottom: 8,
-                }}
-              >
-                {obs.location}
-              </div>
-
-              <div
-                style={{
-                  color: "#d1d5db",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                }}
-              >
-                {obs.summary}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ================================================= */}
-      {/* INFRASTRUCTURE CONTEXT */}
-      {/* ================================================= */}
-
-      <div
-        style={{
-          border: "1px solid #1f2937",
-          borderRadius: 10,
-          padding: 18,
-          background: "#08101f",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            marginBottom: 18,
-          }}
-        >
-          Infrastructure Context
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 12,
-          }}
-        >
-          {event.facilities.map((facility, idx) => (
-            <div
-              key={idx}
-              style={{
-                border: "1px solid #1f2937",
-                borderRadius: 8,
-                padding: 14,
-                background: "#0b1220",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
                   fontWeight: 700,
                   marginBottom: 10,
+                  color: "#f3f4f6",
                 }}
               >
-                {facility.name}
+                PRIMARY FAILURE VECTOR
               </div>
 
               <div
                 style={{
-                  fontSize: 11,
-                  color: "#60a5fa",
-                  marginBottom: 6,
+                  color: "#cbd5e1",
+                  fontSize: 13,
+                  lineHeight: 1.6,
                 }}
               >
-                {facility.type}
+                Temporal mismatch between
+                observation timeline and
+                aviation reconstruction
+                envelope.
               </div>
+            </div>
 
+            <div
+              style={{
+                border: "1px solid #1f2937",
+                borderRadius: 8,
+                padding: 14,
+                background: "#0b1220",
+              }}
+            >
               <div
                 style={{
                   fontSize: 12,
-                  color: "#9ca3af",
+                  fontWeight: 700,
+                  marginBottom: 10,
+                  color: "#f3f4f6",
                 }}
               >
-                Distance: {facility.distance}
+                SECONDARY CONTRADICTION
+              </div>
+
+              <div
+                style={{
+                  color: "#cbd5e1",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                Velocity profile exceeds
+                expected civilian aviation
+                behavior.
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </SurfaceBlock>
+      )}
+
+      {/* ================================================= */}
+      {/* CANDIDATES SURFACE */}
+      {/* ================================================= */}
+
+      {activeSurface === "CANDIDATES" && (
+        <SurfaceBlock title="Candidate Ladder">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {[
+              ["COMMERCIAL AVIATION", "0.71"],
+              ["MILITARY AVIATION", "0.52"],
+              ["ATMOSPHERIC", "0.28"],
+              ["ASTRONOMICAL", "0.11"],
+            ].map(([label, score]) => (
+              <div
+                key={label}
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  border: "1px solid #1f2937",
+                  borderRadius: 8,
+                  padding: 14,
+                  background: "#0b1220",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#d1d5db",
+                  }}
+                >
+                  {label}
+                </div>
+
+                <div
+                  style={{
+                    color: "#60a5fa",
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  {score}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SurfaceBlock>
+      )}
+
+      {/* ================================================= */}
+      {/* CONTRADICTIONS SURFACE */}
+      {/* ================================================= */}
+
+      {activeSurface === "CONTRADICTIONS" && (
+        <SurfaceBlock title="Contradiction Matrix">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {[
+              "Temporal contradiction",
+              "Motion inconsistency",
+              "Observer asymmetry",
+              "Sensor divergence",
+              "Geo inconsistency",
+            ].map((item) => (
+              <div
+                key={item}
+                style={{
+                  border: "1px solid #1f2937",
+                  borderRadius: 8,
+                  padding: 14,
+                  background: "#0b1220",
+                  color: "#d1d5db",
+                  fontSize: 13,
+                }}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </SurfaceBlock>
+      )}
+
+      {/* ================================================= */}
+      {/* HOTSPOT SURFACE */}
+      {/* ================================================= */}
+
+      {activeSurface === "HOTSPOT" && (
+        <SurfaceBlock title="Hotspot Memory">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(2, 1fr)",
+              gap: 12,
+            }}
+          >
+            <MetricBox
+              label="Region Recurrence"
+              value="ACTIVE"
+            />
+
+            <MetricBox
+              label="Similar Events"
+              value="12"
+            />
+
+            <MetricBox
+              label="Last Recurrence"
+              value="18H"
+            />
+
+            <MetricBox
+              label="Memory State"
+              value="STABLE"
+            />
+          </div>
+        </SurfaceBlock>
+      )}
+
+      {/* ================================================= */}
+      {/* GEO SURFACE */}
+      {/* ================================================= */}
+
+      {activeSurface === "GEO" && (
+        <SurfaceBlock title="Geo Context">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {[
+              "KMFR Tower",
+              "KMAX NEXRAD",
+              "Airport Operations",
+              "FAA Radar Coverage",
+              "Terrain Masking Analysis",
+            ].map((item) => (
+              <div
+                key={item}
+                style={{
+                  border: "1px solid #1f2937",
+                  borderRadius: 8,
+                  padding: 14,
+                  background: "#0b1220",
+                  color: "#d1d5db",
+                  fontSize: 13,
+                }}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </SurfaceBlock>
+      )}
     </div>
   );
 }

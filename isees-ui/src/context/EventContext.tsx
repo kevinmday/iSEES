@@ -1,6 +1,7 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT
+// GLOBAL OPERATIONAL EVENT CONTEXT (V2)
+// ACTIVE EVENT + INVESTIGATION SURFACE STATE
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -49,6 +50,18 @@ export type EventData = {
 
   facilities: Facility[];
 };
+
+// ============================================================
+// INVESTIGATION SURFACES
+// ============================================================
+
+export type InvestigationSurface =
+  | "SUMMARY"
+  | "COLLAPSE"
+  | "CANDIDATES"
+  | "CONTRADICTIONS"
+  | "HOTSPOT"
+  | "GEO";
 
 // ============================================================
 // DEMO EVENT SET
@@ -198,15 +211,22 @@ type EventContextType = {
   activeEvent: EventData | null;
 
   setActiveEvent: (event: EventData) => void;
+
+  activeSurface: InvestigationSurface;
+
+  setActiveSurface: (
+    surface: InvestigationSurface
+  ) => void;
 };
 
 // ============================================================
 // CONTEXT
 // ============================================================
 
-const EventContext = createContext<EventContextType | undefined>(
-  undefined
-);
+const EventContext =
+  createContext<EventContextType | undefined>(
+    undefined
+  );
 
 // ============================================================
 // PROVIDER
@@ -217,17 +237,25 @@ export function EventProvider({
 }: {
   children: ReactNode;
 }) {
-  const [events] = useState<EventData[]>(DEMO_EVENTS);
+  const [events] =
+    useState<EventData[]>(DEMO_EVENTS);
 
   const [activeEvent, setActiveEvent] =
     useState<EventData | null>(DEMO_EVENTS[0]);
+
+  const [activeSurface, setActiveSurface] =
+    useState<InvestigationSurface>("SUMMARY");
 
   return (
     <EventContext.Provider
       value={{
         events,
+
         activeEvent,
         setActiveEvent,
+
+        activeSurface,
+        setActiveSurface,
       }}
     >
       {children}
