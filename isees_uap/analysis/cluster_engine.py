@@ -1,5 +1,6 @@
 # ============================================================
-# cluster_engine.py — MANIFOLD CLUSTER ENGINE (V1)
+# cluster_engine.py
+# MANIFOLD CLUSTER ENGINE + KOD RESIDUAL INTELLIGENCE (V2)
 # ============================================================
 
 import os
@@ -87,6 +88,14 @@ LOG_DIR = os.path.join(
 
 CLUSTER_DISTANCE_THRESHOLD = 3.5
 
+# ------------------------------------------------------------
+# KOD RESIDUAL WEIGHTING
+# ------------------------------------------------------------
+
+KOD_RESIDUAL_WEIGHT = 1.5
+
+KOD_ANOMALY_WEIGHT = 1.2
+
 
 # ============================================================
 # LOAD REPORTS
@@ -145,10 +154,24 @@ def normalize_reports(
                 report
             )
 
-            normalized_reports.append(
+            normalized_observation = (
                 normalized[
                     "normalized_observation"
                 ]
+            )
+
+            # ------------------------------------------------
+            # ATTACH KOD
+            # ------------------------------------------------
+
+            if "kod" in report:
+
+                normalized_observation["kod"] = (
+                    report["kod"]
+                )
+
+            normalized_reports.append(
+                normalized_observation
             )
 
         except Exception as e:
@@ -158,6 +181,61 @@ def normalize_reports(
             )
 
     return normalized_reports
+
+
+# ============================================================
+# KOD RESIDUAL DISTANCE
+# ============================================================
+
+def calculate_kod_distance(
+    report_a: Dict,
+    report_b: Dict
+) -> float:
+
+    """
+    Residual emergence similarity.
+
+    Lower score = stronger similarity.
+    """
+
+    kod_a = report_a.get("kod", {})
+    kod_b = report_b.get("kod", {})
+
+    pipeline_a = kod_a.get(
+        "pipeline_result",
+        {}
+    )
+
+    pipeline_b = kod_b.get(
+        "pipeline_result",
+        {}
+    )
+
+    residual_a = pipeline_a.get(
+        "residual",
+        {}
+    )
+
+    residual_b = pipeline_b.get(
+        "residual",
+        {}
+    )
+
+    strength_a = residual_a.get(
+        "residual_strength",
+        0.0
+    )
+
+    strength_b = residual_b.get(
+        "residual_strength",
+        0.0
+    )
+
+    delta = abs(
+        strength_a - strength_b
+    )
+
+    return round(delta, 3)
 
 
 # ============================================================
@@ -206,24 +284,54 @@ def cluster_reports(
 
                 try:
 
-                    distance = calculate_distance(
-                        current,
-                        candidate
+                    manifold_distance = (
+                        calculate_distance(
+                            current,
+                            candidate
+                        )
                     )
 
-                    total_distance = distance.get(
-                        "total_distance",
-                        999.0
+                    total_distance = (
+                        manifold_distance.get(
+                            "total_distance",
+                            999.0
+                        )
                     )
 
                 except Exception:
                     continue
 
                 # --------------------------------------------
+                # KOD RESIDUAL DISTANCE
+                # --------------------------------------------
+
+                kod_distance = (
+                    calculate_kod_distance(
+                        current,
+                        candidate
+                    )
+                )
+
+                # --------------------------------------------
+                # COMBINED EMERGENCE DISTANCE
+                # --------------------------------------------
+
+                emergence_distance = (
+                    total_distance
+                    +
+                    (
+                        kod_distance
+                        *
+                        KOD_RESIDUAL_WEIGHT
+                    )
+                )
+
+                # --------------------------------------------
                 # MANIFOLD PROXIMITY TEST
                 # --------------------------------------------
+
                 if (
-                    total_distance
+                    emergence_distance
                     <=
                     CLUSTER_DISTANCE_THRESHOLD
                 ):
@@ -255,6 +363,7 @@ def build_cluster_objects(
         # ----------------------------------------------------
         # BASIC CONFIDENCE
         # ----------------------------------------------------
+
         confidence = round(
 
             min(
@@ -268,8 +377,15 @@ def build_cluster_objects(
         # ----------------------------------------------------
         # CLUSTER CENTER
         # ----------------------------------------------------
+
         lats = []
         lons = []
+
+        residuals = []
+
+        anomaly_probs = []
+
+        unresolved_features = []
 
         for observation in cluster:
 
@@ -287,6 +403,52 @@ def build_cluster_objects(
             if lon is not None:
                 lons.append(lon)
 
+            # ------------------------------------------------
+            # KOD EXTRACTION
+            # ------------------------------------------------
+
+            kod = observation.get(
+                "kod",
+                {}
+            )
+
+            pipeline = kod.get(
+                "pipeline_result",
+                {}
+            )
+
+            residual = pipeline.get(
+                "residual",
+                {}
+            )
+
+            residual_strength = residual.get(
+                "residual_strength",
+                0.0
+            )
+
+            anomaly_probability = residual.get(
+                "anomaly_probability",
+                0.0
+            )
+
+            residuals.append(
+                residual_strength
+            )
+
+            anomaly_probs.append(
+                anomaly_probability
+            )
+
+            unresolved = residual.get(
+                "unresolved_features",
+                []
+            )
+
+            unresolved_features.extend(
+                unresolved
+            )
+
         cluster_center = {
 
             "lat":
@@ -303,8 +465,64 @@ def build_cluster_objects(
         }
 
         # ----------------------------------------------------
+        # EMERGENCE METRICS
+        # ----------------------------------------------------
+
+        avg_residual = round(
+
+            sum(residuals) / len(residuals),
+
+            3
+
+        ) if residuals else 0.0
+
+        avg_anomaly = round(
+
+            sum(anomaly_probs)
+            / len(anomaly_probs),
+
+            3
+
+        ) if anomaly_probs else 0.0
+
+        unique_features = list(
+            sorted(
+                set(unresolved_features)
+            )
+        )
+
+        # ----------------------------------------------------
+        # EMERGENCE WEIGHTED CONFIDENCE
+        # ----------------------------------------------------
+
+        emergence_confidence = round(
+
+            min(
+
+                1.0,
+
+                confidence
+                +
+                (
+                    avg_residual
+                    *
+                    KOD_RESIDUAL_WEIGHT
+                )
+                +
+                (
+                    avg_anomaly
+                    *
+                    KOD_ANOMALY_WEIGHT
+                )
+            ),
+
+            3
+        )
+
+        # ----------------------------------------------------
         # BUILD OBJECT
         # ----------------------------------------------------
+
         output.append({
 
             "cluster_id":
@@ -318,6 +536,24 @@ def build_cluster_objects(
 
             "confidence":
                 confidence,
+
+            # ------------------------------------------------
+            # KOD EMERGENCE
+            # ------------------------------------------------
+            "kod_emergence": {
+
+                "avg_residual_strength":
+                    avg_residual,
+
+                "avg_anomaly_probability":
+                    avg_anomaly,
+
+                "unresolved_feature_overlap":
+                    unique_features,
+
+                "emergence_confidence":
+                    emergence_confidence,
+            },
 
             "reports":
                 cluster
@@ -347,6 +583,17 @@ def apply_cluster_intelligence(
             intel["reports"] = cluster.get(
                 "reports",
                 []
+            )
+
+            # ------------------------------------------------
+            # PRESERVE KOD EMERGENCE
+            # ------------------------------------------------
+
+            intel["kod_emergence"] = (
+                cluster.get(
+                    "kod_emergence",
+                    {}
+                )
             )
 
             results.append(intel)
@@ -459,6 +706,7 @@ def run_cluster_engine() -> Dict:
     # --------------------------------------------------------
     # LOAD RAW REPORTS
     # --------------------------------------------------------
+
     raw_reports = load_reports()
 
     if not raw_reports:
@@ -467,6 +715,7 @@ def run_cluster_engine() -> Dict:
     # --------------------------------------------------------
     # NORMALIZATION PIPELINE
     # --------------------------------------------------------
+
     normalized_reports = normalize_reports(
         raw_reports
     )
@@ -478,6 +727,7 @@ def run_cluster_engine() -> Dict:
     # --------------------------------------------------------
     # MANIFOLD CLUSTERING
     # --------------------------------------------------------
+
     clusters = cluster_reports(
         normalized_reports
     )
@@ -489,6 +739,7 @@ def run_cluster_engine() -> Dict:
     # --------------------------------------------------------
     # BUILD CLUSTER OBJECTS
     # --------------------------------------------------------
+
     cluster_objects = build_cluster_objects(
         clusters
     )
@@ -496,6 +747,7 @@ def run_cluster_engine() -> Dict:
     # --------------------------------------------------------
     # INTELLIGENCE LAYERS
     # --------------------------------------------------------
+
     cluster_intel = apply_cluster_intelligence(
         cluster_objects
     )
@@ -533,6 +785,7 @@ def run_cluster_engine() -> Dict:
     # --------------------------------------------------------
     # FINAL OUTPUT
     # --------------------------------------------------------
+
     return {
 
         "clusters":
@@ -552,7 +805,7 @@ if __name__ == "__main__":
     result = run_cluster_engine()
 
     print(
-        "\n=== MANIFOLD CLUSTER ENGINE ==="
+        "\n=== MANIFOLD CLUSTER ENGINE + KOD ==="
     )
 
     print(
