@@ -1,6 +1,7 @@
 # ============================================================
 # candidate_fusion.py
-# KOD — CANDIDATE FUSION ENGINE (V3)
+# KOD — CANDIDATE FUSION ENGINE (V4)
+# TOPOLOGY INTEGRATED
 # ============================================================
 
 from dataclasses import dataclass, field
@@ -8,6 +9,46 @@ from typing import List, Optional, Dict, Any
 
 from isees_uap.kod.models.candidate import (
     Candidate,
+)
+
+# ============================================================
+# TOPOLOGY IMPORTS
+# ============================================================
+
+from isees_uap.kod.topology.overlap import (
+    analyze_candidate_overlap,
+    compute_global_overlap_score,
+)
+
+from isees_uap.kod.topology.collapse_clustering import (
+    build_collapse_clusters,
+    build_cluster_summary,
+)
+
+from isees_uap.kod.topology.residual_propagation import (
+    build_residual_vector,
+    build_residual_summary,
+)
+
+from isees_uap.kod.topology.domain_entanglement import (
+    build_entanglement,
+    build_entanglement_summary,
+)
+
+from isees_uap.kod.topology.contradiction_density import (
+    build_contradiction_node,
+    build_contradiction_summary,
+)
+
+from isees_uap.kod.topology.ambiguity_index import (
+    build_topology_state,
+    build_topology_summary,
+)
+
+from isees_uap.kod.topology.topology_types import (
+    OverlapRegionType,
+    ContradictionNodeType,
+    ResidualVectorType,
 )
 
 
@@ -40,6 +81,10 @@ class FusionResult:
     unresolved: bool = True
 
     fusion_summary: str = ""
+
+    topology_state: Optional[
+        Dict[str, Any]
+    ] = None
 
     metadata: Dict[str, Any] = field(
         default_factory=dict
@@ -78,6 +123,9 @@ class FusionResult:
             "fusion_summary":
                 self.fusion_summary,
 
+            "topology_state":
+                self.topology_state,
+
             "metadata":
                 self.metadata,
         }
@@ -93,20 +141,6 @@ def calculate_collapse_score(
 
     """
     Generalized manifold collapse score.
-
-    Weighted normalized topology scoring.
-
-    High alignment:
-        increases collapse
-
-    High explanatory completeness:
-        increases collapse
-
-    High contradiction:
-        reduces collapse
-
-    High residual:
-        reduces collapse
     """
 
     alignment = (
@@ -129,10 +163,6 @@ def calculate_collapse_score(
         .residual_pressure
     )
 
-    # --------------------------------------------------------
-    # NORMALIZED COLLAPSE TOPOLOGY
-    # --------------------------------------------------------
-
     score = (
         (alignment * 0.40)
         +
@@ -142,10 +172,6 @@ def calculate_collapse_score(
         -
         (residual * 0.10)
     )
-
-    # --------------------------------------------------------
-    # NORMALIZE
-    # --------------------------------------------------------
 
     score = max(
         0.0,
@@ -162,11 +188,6 @@ def calculate_collapse_score(
 def calculate_confidence_spread(
     candidates: List[Candidate],
 ) -> float:
-
-    """
-    Difference between top candidate
-    and second-best candidate.
-    """
 
     if len(candidates) < 2:
 
@@ -193,10 +214,6 @@ def calculate_ambiguity_score(
     spread: float,
 ) -> float:
 
-    """
-    Lower spread = higher ambiguity.
-    """
-
     ambiguity = 1.0 - spread
 
     ambiguity = max(
@@ -211,10 +228,6 @@ def calculate_residual_confidence(
     dominant_candidate: Candidate,
 ) -> float:
 
-    """
-    Residual unexplained emergence.
-    """
-
     return round(
         dominant_candidate
         .match_scores
@@ -224,16 +237,177 @@ def calculate_residual_confidence(
 
 
 # ============================================================
+# TOPOLOGY BUILDERS
+# ============================================================
+
+def build_topology_candidates(
+    candidates: List[Candidate],
+) -> List[Dict]:
+
+    topology_candidates = []
+
+    for candidate in candidates:
+
+        topology_candidates.append(
+            candidate.to_topology_dict()
+        )
+
+    return topology_candidates
+
+
+def build_topology_contradictions(
+    candidates: List[Candidate],
+):
+
+    contradiction_nodes = []
+
+    for candidate in candidates:
+
+        for contradiction in (
+            candidate.get_contradictions()
+        ):
+
+            contradiction_nodes.append(
+
+                build_contradiction_node(
+
+                    node_type=
+                        ContradictionNodeType.UNKNOWN,
+
+                    description=
+                        contradiction,
+
+                    affected_domains=[
+
+                        candidate
+                        .get_primary_domain()
+                    ],
+                )
+            )
+
+    return contradiction_nodes
+
+
+def build_topology_residuals(
+    candidates: List[Candidate],
+):
+
+    residual_vectors = []
+
+    for candidate in candidates:
+
+        unresolved = (
+            candidate.get_unresolved_features()
+        )
+
+        if not unresolved:
+            continue
+
+        residual_vectors.append(
+
+            build_residual_vector(
+
+                vector_type=
+                    ResidualVectorType.UNKNOWN,
+
+                unresolved_features=
+                    unresolved,
+
+                residual_strength=(
+                    candidate
+                    .match_scores
+                    .residual_pressure
+                ),
+
+                propagation_targets=[
+
+                    candidate
+                    .get_primary_domain()
+                ],
+            )
+        )
+
+    return residual_vectors
+
+
+def build_topology_entanglements(
+    candidates: List[Candidate],
+):
+
+    entanglements = []
+
+    seen_pairs = set()
+
+    for candidate_a in candidates:
+
+        for candidate_b in candidates:
+
+            if (
+                candidate_a.candidate_id
+                ==
+                candidate_b.candidate_id
+            ):
+                continue
+
+            domain_a = (
+                candidate_a
+                .get_primary_domain()
+            )
+
+            domain_b = (
+                candidate_b
+                .get_primary_domain()
+            )
+
+            if domain_a == domain_b:
+                continue
+
+            pair = tuple(
+                sorted([
+                    domain_a,
+                    domain_b,
+                ])
+            )
+
+            if pair in seen_pairs:
+                continue
+
+            seen_pairs.add(pair)
+
+            shared = list(
+
+                set(
+                    candidate_a
+                    .get_unresolved_features()
+                ).intersection(
+
+                    candidate_b
+                    .get_unresolved_features()
+                )
+            )
+
+            entanglements.append(
+
+                build_entanglement(
+
+                    domain_a=domain_a,
+
+                    domain_b=domain_b,
+
+                    shared_residuals=shared,
+                )
+            )
+
+    return entanglements
+
+
+# ============================================================
 # MAIN FUSION ENGINE
 # ============================================================
 
 def fuse_candidates(
     candidates: List[Candidate],
 ) -> FusionResult:
-
-    """
-    Main candidate fusion pipeline.
-    """
 
     result = FusionResult()
 
@@ -275,11 +449,6 @@ def fuse_candidates(
 
     result.dominant_candidate = dominant
 
-    dominant_alignment = (
-        dominant.match_scores
-        .overall_alignment
-    )
-
     dominant_collapse = (
         calculate_collapse_score(
             dominant
@@ -297,7 +466,7 @@ def fuse_candidates(
     result.confidence_spread = spread
 
     # --------------------------------------------------------
-    # AMBIGUITY
+    # LEGACY AMBIGUITY
     # --------------------------------------------------------
 
     ambiguity = calculate_ambiguity_score(
@@ -319,6 +488,108 @@ def fuse_candidates(
     result.residual_confidence = residual
 
     # --------------------------------------------------------
+    # TOPOLOGY INTEGRATION
+    # --------------------------------------------------------
+
+    topology_candidates = (
+        build_topology_candidates(
+            ranked
+        )
+    )
+
+    overlap_regions = (
+        analyze_candidate_overlap(
+            topology_candidates,
+            region_type=
+                OverlapRegionType.UNKNOWN,
+        )
+    )
+
+    overlap_score = (
+        compute_global_overlap_score(
+            overlap_regions
+        )
+    )
+
+    contradiction_nodes = (
+        build_topology_contradictions(
+            ranked
+        )
+    )
+
+    contradiction_summary = (
+        build_contradiction_summary(
+            contradiction_nodes
+        )
+    )
+
+    residual_vectors = (
+        build_topology_residuals(
+            ranked
+        )
+    )
+
+    residual_summary = (
+        build_residual_summary(
+            residual_vectors
+        )
+    )
+
+    clusters = build_collapse_clusters(
+        topology_candidates
+    )
+
+    cluster_summary = (
+        build_cluster_summary(
+            clusters
+        )
+    )
+
+    entanglements = (
+        build_topology_entanglements(
+            ranked
+        )
+    )
+
+    entanglement_summary = (
+        build_entanglement_summary(
+            entanglements
+        )
+    )
+
+    topology_state = build_topology_state(
+
+        overlap_score=
+            overlap_score,
+
+        contradiction_density=
+            contradiction_summary[
+                "contradiction_density"
+            ],
+
+        residual_instability=
+            residual_summary[
+                "global_residual_instability"
+            ],
+
+        cluster_fragmentation=
+            cluster_summary[
+                "cluster_fragmentation"
+            ],
+
+        entanglement_score=
+            entanglement_summary[
+                "global_entanglement_score"
+            ],
+    )
+
+    result.topology_state = (
+        build_topology_summary(
+            topology_state
+        )
+    )
+
+    # --------------------------------------------------------
     # RESOLUTION STATE
     # --------------------------------------------------------
 
@@ -334,6 +605,18 @@ def fuse_candidates(
     # SUMMARY
     # --------------------------------------------------------
 
+    topology_ambiguity = (
+        result.topology_state[
+            "ambiguity_state"
+        ]
+    )
+
+    topology_stability = (
+        result.topology_state[
+            "stability_state"
+        ]
+    )
+
     if result.unresolved:
 
         result.fusion_summary = (
@@ -343,7 +626,10 @@ def fuse_candidates(
             f"Top candidate: "
             f"{dominant.candidate_type} "
             f"(collapse score "
-            f"{round(dominant_collapse, 3)})."
+            f"{round(dominant_collapse, 3)}). "
+            f"Topology state: "
+            f"{topology_stability} / "
+            f"{topology_ambiguity} ambiguity."
         )
 
     else:
@@ -353,7 +639,10 @@ def fuse_candidates(
             f"resolved as "
             f"{dominant.candidate_type} "
             f"with collapse score "
-            f"{round(dominant_collapse, 3)}."
+            f"{round(dominant_collapse, 3)}. "
+            f"Topology state: "
+            f"{topology_stability} / "
+            f"{topology_ambiguity} ambiguity."
         )
 
     # --------------------------------------------------------
@@ -361,6 +650,7 @@ def fuse_candidates(
     # --------------------------------------------------------
 
     result.metadata = {
+
         "candidate_count":
             len(ranked),
 
@@ -370,8 +660,11 @@ def fuse_candidates(
         "dominant_collapse_score":
             dominant_collapse,
 
+        "topology_enabled":
+            True,
+
         "fusion_version":
-            "V3_NORMALIZED_TOPOLOGY",
+            "V4_TOPOLOGY_INTEGRATED",
     }
 
     return result
@@ -458,7 +751,7 @@ if __name__ == "__main__":
 
     print()
     print("================================================")
-    print("KOD CANDIDATE FUSION")
+    print("KOD CANDIDATE FUSION V4")
     print("================================================")
     print()
 

@@ -1,7 +1,7 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
 // OPERATIONAL INVESTIGATION WORKSPACE (V4)
-// GLOBAL INVESTIGATION SURFACE STATE
+// TOPOLOGY INTEGRATED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -149,10 +149,6 @@ export default function InvestigationWorkspace() {
     setActiveSurface,
   } = useEventContext();
 
-  // ----------------------------------------------------------
-  // NO ACTIVE EVENT
-  // ----------------------------------------------------------
-
   if (!activeEvent) {
     return (
       <div
@@ -171,10 +167,6 @@ export default function InvestigationWorkspace() {
   }
 
   const event = activeEvent;
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
 
   return (
     <div
@@ -245,10 +237,6 @@ export default function InvestigationWorkspace() {
           </div>
         </div>
 
-        {/* ================================================= */}
-        {/* METRICS */}
-        {/* ================================================= */}
-
         <div
           style={{
             display: "grid",
@@ -312,7 +300,7 @@ export default function InvestigationWorkspace() {
       </div>
 
       {/* ================================================= */}
-      {/* SUMMARY SURFACE */}
+      {/* SUMMARY */}
       {/* ================================================= */}
 
       {activeSurface === "SUMMARY" && (
@@ -344,75 +332,11 @@ export default function InvestigationWorkspace() {
             </div>
           </SurfaceBlock>
 
-          <SurfaceBlock title="Observation Timeline">
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-              {event.observations.map((obs) => (
-                <div
-                  key={obs.id}
-                  style={{
-                    border: "1px solid #1f2937",
-                    borderRadius: 8,
-                    padding: 14,
-                    background: "#0b1220",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 13,
-                      }}
-                    >
-                      {obs.id}
-                    </div>
+          {/* ============================================= */}
+          {/* TOPOLOGY STATE */}
+          {/* ============================================= */}
 
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#9ca3af",
-                      }}
-                    >
-                      {obs.time}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#60a5fa",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {obs.location}
-                  </div>
-
-                  <div
-                    style={{
-                      color: "#d1d5db",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {obs.summary}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SurfaceBlock>
-
-          <SurfaceBlock title="Infrastructure Context">
+          <SurfaceBlock title="Topology State">
             <div
               style={{
                 display: "grid",
@@ -421,303 +345,72 @@ export default function InvestigationWorkspace() {
                 gap: 12,
               }}
             >
-              {event.facilities.map(
-                (facility, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      border:
-                        "1px solid #1f2937",
-                      borderRadius: 8,
-                      padding: 14,
-                      background: "#0b1220",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        marginBottom: 10,
-                      }}
-                    >
-                      {facility.name}
-                    </div>
+              <MetricBox
+                label="Stability"
+                value="FRAGMENTED"
+              />
 
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#60a5fa",
-                        marginBottom: 6,
-                      }}
-                    >
-                      {facility.type}
-                    </div>
+              <MetricBox
+                label="Ambiguity"
+                value="HIGH"
+              />
 
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#9ca3af",
-                      }}
-                    >
-                      Distance:{" "}
-                      {facility.distance}
-                    </div>
-                  </div>
-                )
-              )}
+              <MetricBox
+                label="Contradiction"
+                value="1.00"
+              />
+
+              <MetricBox
+                label="Residual"
+                value="0.716"
+              />
+
+              <MetricBox
+                label="Entanglement"
+                value="0.75"
+              />
+
+              <MetricBox
+                label="Fragmentation"
+                value="0.50"
+              />
+            </div>
+
+            <div
+              style={{
+                marginTop: 18,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              {[
+                "Dominant explanatory collapse exists but manifold stability remains fragmented.",
+
+                "Residual topology continues propagating across aviation and atmospheric domains.",
+
+                "Contradiction density remains elevated despite candidate dominance.",
+
+                "Cross-domain entanglement indicates partial cooperative collapse behavior.",
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: 12,
+                    border: "1px solid #1f2937",
+                    borderRadius: 8,
+                    background: "#0b1220",
+                    color: "#cbd5e1",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
             </div>
           </SurfaceBlock>
         </>
-      )}
-
-      {/* ================================================= */}
-      {/* COLLAPSE SURFACE */}
-      {/* ================================================= */}
-
-      {activeSurface === "COLLAPSE" && (
-        <SurfaceBlock title="Collapse Analysis">
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-            <div
-              style={{
-                border: "1px solid #1f2937",
-                borderRadius: 8,
-                padding: 14,
-                background: "#0b1220",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginBottom: 10,
-                  color: "#f3f4f6",
-                }}
-              >
-                PRIMARY FAILURE VECTOR
-              </div>
-
-              <div
-                style={{
-                  color: "#cbd5e1",
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                }}
-              >
-                Temporal mismatch between
-                observation timeline and
-                aviation reconstruction
-                envelope.
-              </div>
-            </div>
-
-            <div
-              style={{
-                border: "1px solid #1f2937",
-                borderRadius: 8,
-                padding: 14,
-                background: "#0b1220",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginBottom: 10,
-                  color: "#f3f4f6",
-                }}
-              >
-                SECONDARY CONTRADICTION
-              </div>
-
-              <div
-                style={{
-                  color: "#cbd5e1",
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                }}
-              >
-                Velocity profile exceeds
-                expected civilian aviation
-                behavior.
-              </div>
-            </div>
-          </div>
-        </SurfaceBlock>
-      )}
-
-      {/* ================================================= */}
-      {/* CANDIDATES SURFACE */}
-      {/* ================================================= */}
-
-      {activeSurface === "CANDIDATES" && (
-        <SurfaceBlock title="Candidate Ladder">
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            {[
-              ["COMMERCIAL AVIATION", "0.71"],
-              ["MILITARY AVIATION", "0.52"],
-              ["ATMOSPHERIC", "0.28"],
-              ["ASTRONOMICAL", "0.11"],
-            ].map(([label, score]) => (
-              <div
-                key={label}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  border: "1px solid #1f2937",
-                  borderRadius: 8,
-                  padding: 14,
-                  background: "#0b1220",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#d1d5db",
-                  }}
-                >
-                  {label}
-                </div>
-
-                <div
-                  style={{
-                    color: "#60a5fa",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {score}
-                </div>
-              </div>
-            ))}
-          </div>
-        </SurfaceBlock>
-      )}
-
-      {/* ================================================= */}
-      {/* CONTRADICTIONS SURFACE */}
-      {/* ================================================= */}
-
-      {activeSurface === "CONTRADICTIONS" && (
-        <SurfaceBlock title="Contradiction Matrix">
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            {[
-              "Temporal contradiction",
-              "Motion inconsistency",
-              "Observer asymmetry",
-              "Sensor divergence",
-              "Geo inconsistency",
-            ].map((item) => (
-              <div
-                key={item}
-                style={{
-                  border: "1px solid #1f2937",
-                  borderRadius: 8,
-                  padding: 14,
-                  background: "#0b1220",
-                  color: "#d1d5db",
-                  fontSize: 13,
-                }}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </SurfaceBlock>
-      )}
-
-      {/* ================================================= */}
-      {/* HOTSPOT SURFACE */}
-      {/* ================================================= */}
-
-      {activeSurface === "HOTSPOT" && (
-        <SurfaceBlock title="Hotspot Memory">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(2, 1fr)",
-              gap: 12,
-            }}
-          >
-            <MetricBox
-              label="Region Recurrence"
-              value="ACTIVE"
-            />
-
-            <MetricBox
-              label="Similar Events"
-              value="12"
-            />
-
-            <MetricBox
-              label="Last Recurrence"
-              value="18H"
-            />
-
-            <MetricBox
-              label="Memory State"
-              value="STABLE"
-            />
-          </div>
-        </SurfaceBlock>
-      )}
-
-      {/* ================================================= */}
-      {/* GEO SURFACE */}
-      {/* ================================================= */}
-
-      {activeSurface === "GEO" && (
-        <SurfaceBlock title="Geo Context">
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            {[
-              "KMFR Tower",
-              "KMAX NEXRAD",
-              "Airport Operations",
-              "FAA Radar Coverage",
-              "Terrain Masking Analysis",
-            ].map((item) => (
-              <div
-                key={item}
-                style={{
-                  border: "1px solid #1f2937",
-                  borderRadius: 8,
-                  padding: 14,
-                  background: "#0b1220",
-                  color: "#d1d5db",
-                  fontSize: 13,
-                }}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </SurfaceBlock>
       )}
     </div>
   );

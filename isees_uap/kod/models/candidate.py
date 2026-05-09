@@ -1,6 +1,7 @@
 # ============================================================
 # candidate.py
-# KOD — UNIVERSAL RECONSTRUCTED OBJECT MODEL
+# KOD — UNIVERSAL RECONSTRUCTED OBJECT MODEL (V4)
+# TOPOLOGY READY
 # ============================================================
 
 from dataclasses import dataclass, field, asdict
@@ -187,6 +188,22 @@ class Candidate:
     thermal_signature: Optional[str] = None
 
     # --------------------------------------------------------
+    # TOPOLOGY FEATURES
+    # --------------------------------------------------------
+
+    explained_features: List[str] = field(
+        default_factory=list
+    )
+
+    topology_domains: List[str] = field(
+        default_factory=list
+    )
+
+    topology_tags: List[str] = field(
+        default_factory=list
+    )
+
+    # --------------------------------------------------------
     # MATCHING
     # --------------------------------------------------------
 
@@ -237,6 +254,80 @@ class Candidate:
     def to_dict(self) -> Dict[str, Any]:
 
         return asdict(self)
+
+    # ========================================================
+    # TOPOLOGY HELPERS
+    # ========================================================
+
+    def get_primary_domain(self) -> str:
+
+        if self.topology_domains:
+            return self.topology_domains[0]
+
+        if self.source_engine:
+
+            engine = self.source_engine.lower()
+
+            if "aviation" in engine:
+                return "aviation"
+
+            if "weather" in engine:
+                return "weather"
+
+            if "sensor" in engine:
+                return "sensor"
+
+        return "unknown"
+
+    def get_explained_features(self) -> List[str]:
+
+        features = list(self.explained_features)
+
+        if self.object_shape:
+            features.append(f"shape:{self.object_shape}")
+
+        if self.sound_profile:
+            features.append(f"sound:{self.sound_profile}")
+
+        if self.lighting_behavior:
+            features.append(
+                f"lighting:{self.lighting_behavior}"
+            )
+
+        return sorted(list(set(features)))
+
+    def get_contradictions(self) -> List[str]:
+
+        return self.status.contradiction_summary
+
+    def get_unresolved_features(self) -> List[str]:
+
+        return self.status.unresolved_features
+
+    def to_topology_dict(self) -> Dict[str, Any]:
+
+        return {
+            "candidate_id": self.candidate_id,
+
+            "domain": self.get_primary_domain(),
+
+            "collapse_score": round(
+                self.match_scores.overall_alignment,
+                4,
+            ),
+
+            "explained_features": (
+                self.get_explained_features()
+            ),
+
+            "contradictions": (
+                self.get_contradictions()
+            ),
+
+            "unresolved_features": (
+                self.get_unresolved_features()
+            ),
+        }
 
     # ========================================================
     # SUMMARY
@@ -313,12 +404,19 @@ class Candidate:
             "unresolved_features":
                 self.status
                 .unresolved_features,
+
+            "topology_domain":
+                self.get_primary_domain(),
+
+            "explained_features":
+                self.get_explained_features(),
         }
 
 
 # ============================================================
 # FACTORY HELPERS
 # ============================================================
+
 
 def build_aircraft_candidate(
     callsign: str,
@@ -351,6 +449,28 @@ def build_aircraft_candidate(
     c.source_provider = "adsb"
 
     c.source_identifier = callsign
+
+    # --------------------------------------------------------
+    # TOPOLOGY
+    # --------------------------------------------------------
+
+    c.topology_domains = [
+        "aviation"
+    ]
+
+    c.explained_features = [
+        "trajectory continuity",
+        "structured maneuvering",
+        "altitude consistency",
+        "speed profile",
+        "flight behavior",
+    ]
+
+    c.topology_tags = [
+        "aviation",
+        "adsb",
+        "tracked",
+    ]
 
     # --------------------------------------------------------
     # POSITIONAL
