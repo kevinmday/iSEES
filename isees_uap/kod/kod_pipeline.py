@@ -14,8 +14,12 @@ from isees_uap.kod.models.candidate import (
     Candidate,
 )
 
-from isees_uap.kod.engines.aviation_engine import (
+from isees_uap.kod.kaod.engines.aviation_engine import (
     reconstruct_aviation_candidates,
+)
+
+from isees_uap.kod.kaod.engines.weather_engine import (
+    reconstruct_weather_candidates,
 )
 
 from isees_uap.kod.fusion.candidate_fusion import (
@@ -103,6 +107,8 @@ class KODPipelineResult:
 
 def run_kod_pipeline(
     observation: ObservationContext,
+    active_engines: Optional[List[str]] = None,
+    policy: Optional[Any] = None,
 ) -> KODPipelineResult:
 
     """
@@ -119,18 +125,104 @@ def run_kod_pipeline(
     )
 
     # --------------------------------------------------------
-    # AVIATION RECONSTRUCTION
+    # DEFAULT ENGINE STATE
     # --------------------------------------------------------
 
-    aviation_candidates = (
-        reconstruct_aviation_candidates(
-            observation
-        )
-    )
+    if active_engines is None:
 
-    result.candidates.extend(
-        aviation_candidates
-    )
+        active_engines = [
+            "aviation_engine"
+        ]
+
+    # --------------------------------------------------------
+    # ENGINE EXECUTION
+    # --------------------------------------------------------
+
+    engines_run = []
+
+    # --------------------------------------------------------
+    # AVIATION ENGINE
+    # --------------------------------------------------------
+
+    if "aviation_engine" in active_engines:
+
+        aviation_candidates = (
+            reconstruct_aviation_candidates(
+                observation
+            )
+        )
+
+        result.candidates.extend(
+            aviation_candidates
+        )
+
+        engines_run.append(
+            "aviation_engine"
+        )
+
+    # --------------------------------------------------------
+    # ORBITAL ENGINE
+    # --------------------------------------------------------
+
+    if "orbital_engine" in active_engines:
+
+        # future orbital reconstruction
+        engines_run.append(
+            "orbital_engine"
+        )
+
+    # --------------------------------------------------------
+    # ASTRONOMY ENGINE
+    # --------------------------------------------------------
+
+    if "astronomy_engine" in active_engines:
+
+        # future astronomy reconstruction
+        engines_run.append(
+            "astronomy_engine"
+        )
+
+    # --------------------------------------------------------
+    # WEATHER ENGINE
+    # --------------------------------------------------------
+
+    if "weather_engine" in active_engines:
+
+        weather_candidates = (
+            reconstruct_weather_candidates(
+                observation
+            )
+        )
+
+        result.candidates.extend(
+            weather_candidates
+        )
+
+        engines_run.append(
+            "weather_engine"
+        )
+
+    # --------------------------------------------------------
+    # SENSOR ENGINE
+    # --------------------------------------------------------
+
+    if "sensor_engine" in active_engines:
+
+        # future sensor reconstruction
+        engines_run.append(
+            "sensor_engine"
+        )
+
+    # --------------------------------------------------------
+    # TERRAIN ENGINE
+    # --------------------------------------------------------
+
+    if "terrain_engine" in active_engines:
+
+        # future terrain reconstruction
+        engines_run.append(
+            "terrain_engine"
+        )
 
     # --------------------------------------------------------
     # UPDATE OBSERVATION STATE
@@ -215,20 +307,22 @@ def run_kod_pipeline(
 
     result.metadata = {
         "pipeline_version":
-            "KOD_V1",
+            "KOD_V3",
 
         "engine_count":
-            1,
+            len(engines_run),
 
-        "engines_run": [
-            "aviation_engine"
-        ],
+        "engines_run":
+            engines_run,
 
         "fusion_complete":
             result.fusion is not None,
 
         "residual_complete":
             result.residual is not None,
+
+        "active_engines":
+            active_engines,
     }
 
     # --------------------------------------------------------
@@ -291,11 +385,21 @@ if __name__ == "__main__":
     )
 
     # --------------------------------------------------------
+    # ACTIVE ENGINES
+    # --------------------------------------------------------
+
+    active_engines = [
+        "aviation_engine",
+        "weather_engine",
+    ]
+
+    # --------------------------------------------------------
     # RUN PIPELINE
     # --------------------------------------------------------
 
     result = run_kod_pipeline(
-        observation
+        observation,
+        active_engines=active_engines,
     )
 
     # --------------------------------------------------------

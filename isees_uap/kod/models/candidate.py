@@ -36,6 +36,10 @@ class MatchScores:
     How well this candidate matches the observation.
     """
 
+    # --------------------------------------------------------
+    # ALIGNMENT
+    # --------------------------------------------------------
+
     spatial_alignment: float = 0.0
     temporal_alignment: float = 0.0
 
@@ -48,6 +52,24 @@ class MatchScores:
     speed_alignment: float = 0.0
 
     overall_alignment: float = 0.0
+
+    # --------------------------------------------------------
+    # CONTRADICTION PRESSURE
+    # --------------------------------------------------------
+
+    anomaly_conflict: float = 0.0
+
+    contradiction_pressure: float = 0.0
+
+    unresolved_pressure: float = 0.0
+
+    # --------------------------------------------------------
+    # EXPLANATORY COMPLETENESS
+    # --------------------------------------------------------
+
+    explanatory_completeness: float = 0.0
+
+    residual_pressure: float = 0.0
 
 
 # ============================================================
@@ -70,6 +92,14 @@ class CandidateStatus:
     elimination_confidence: float = 0.0
 
     anomaly_conflict_score: float = 0.0
+
+    contradiction_summary: List[str] = field(
+        default_factory=list
+    )
+
+    unresolved_features: List[str] = field(
+        default_factory=list
+    )
 
 
 # ============================================================
@@ -184,21 +214,28 @@ class Candidate:
 
     explanation: Optional[str] = None
 
-    notes: List[str] = field(default_factory=list)
+    notes: List[str] = field(
+        default_factory=list
+    )
 
     # --------------------------------------------------------
     # RAW SOURCE DATA
     # --------------------------------------------------------
 
-    raw_data: Dict[str, Any] = field(default_factory=dict)
+    raw_data: Dict[str, Any] = field(
+        default_factory=dict
+    )
 
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(
+        default_factory=dict
+    )
 
     # ========================================================
     # SERIALIZATION
     # ========================================================
 
     def to_dict(self) -> Dict[str, Any]:
+
         return asdict(self)
 
     # ========================================================
@@ -206,25 +243,76 @@ class Candidate:
     # ========================================================
 
     def summary(self) -> Dict[str, Any]:
+
         return {
-            "candidate_id": self.candidate_id,
-            "candidate_type": self.candidate_type,
-            "source_engine": self.source_engine,
-            "source_provider": self.source_provider,
-            "distance_km": self.distance_km,
-            "bearing_deg": self.bearing_deg,
-            "altitude_ft": self.altitude_ft,
-            "heading_deg": self.heading_deg,
-            "speed_kts": self.speed_kts,
-            "confidence_score": self.confidence_score,
+            "candidate_id":
+                self.candidate_id,
+
+            "candidate_type":
+                self.candidate_type,
+
+            "source_engine":
+                self.source_engine,
+
+            "source_provider":
+                self.source_provider,
+
+            "distance_km":
+                self.distance_km,
+
+            "bearing_deg":
+                self.bearing_deg,
+
+            "altitude_ft":
+                self.altitude_ft,
+
+            "heading_deg":
+                self.heading_deg,
+
+            "speed_kts":
+                self.speed_kts,
+
+            "confidence_score":
+                self.confidence_score,
+
             "overall_alignment":
-                self.match_scores.overall_alignment,
+                self.match_scores
+                .overall_alignment,
+
+            "anomaly_conflict":
+                self.match_scores
+                .anomaly_conflict,
+
+            "contradiction_pressure":
+                self.match_scores
+                .contradiction_pressure,
+
+            "explanatory_completeness":
+                self.match_scores
+                .explanatory_completeness,
+
+            "residual_pressure":
+                self.match_scores
+                .residual_pressure,
+
             "likely_match":
                 self.status.likely_match,
+
             "elimination_confidence":
-                self.status.elimination_confidence,
+                self.status
+                .elimination_confidence,
+
             "anomaly_conflict_score":
-                self.status.anomaly_conflict_score,
+                self.status
+                .anomaly_conflict_score,
+
+            "contradiction_summary":
+                self.status
+                .contradiction_summary,
+
+            "unresolved_features":
+                self.status
+                .unresolved_features,
         }
 
 
@@ -246,13 +334,27 @@ def build_aircraft_candidate(
 
     c = Candidate()
 
+    # --------------------------------------------------------
+    # CLASSIFICATION
+    # --------------------------------------------------------
+
     c.candidate_type = "aircraft"
+
     c.candidate_subtype = "commercial"
 
+    # --------------------------------------------------------
+    # SOURCE
+    # --------------------------------------------------------
+
     c.source_engine = "aviation_engine"
+
     c.source_provider = "adsb"
 
     c.source_identifier = callsign
+
+    # --------------------------------------------------------
+    # POSITIONAL
+    # --------------------------------------------------------
 
     c.latitude = latitude
     c.longitude = longitude
@@ -260,14 +362,75 @@ def build_aircraft_candidate(
     c.altitude_ft = altitude_ft
 
     c.heading_deg = heading_deg
+
     c.speed_kts = speed_kts
 
+    # --------------------------------------------------------
+    # CONFIDENCE
+    # --------------------------------------------------------
+
     c.confidence_score = 0.85
+
+    # --------------------------------------------------------
+    # MATCHING
+    # --------------------------------------------------------
+
+    c.match_scores.spatial_alignment = 0.82
+
+    c.match_scores.temporal_alignment = 0.91
+
+    c.match_scores.trajectory_alignment = 0.87
+
+    c.match_scores.overall_alignment = 0.88
+
+    # --------------------------------------------------------
+    # CONTRADICTION PRESSURE
+    # --------------------------------------------------------
+
+    c.match_scores.anomaly_conflict = 0.12
+
+    c.match_scores.contradiction_pressure = 0.18
+
+    c.match_scores.explanatory_completeness = (
+        0.82
+    )
+
+    c.match_scores.residual_pressure = 0.18
+
+    # --------------------------------------------------------
+    # STATUS
+    # --------------------------------------------------------
+
+    c.status.likely_match = True
+
+    c.status.unresolved = False
+
+    c.status.elimination_confidence = 0.89
+
+    c.status.anomaly_conflict_score = (
+        0.12
+    )
+
+    # --------------------------------------------------------
+    # EXPLANATION
+    # --------------------------------------------------------
 
     c.explanation = (
         f"ADS-B tracked aircraft detected "
         f"({callsign})"
     )
+
+    # --------------------------------------------------------
+    # CONTRADICTIONS
+    # --------------------------------------------------------
+
+    c.status.contradiction_summary = [
+        "silent_behavior_unresolved",
+    ]
+
+    c.status.unresolved_features = [
+        "instant_vertical_acceleration",
+    ]
 
     return c
 
@@ -289,17 +452,6 @@ if __name__ == "__main__":
 
     candidate.distance_km = 6.4
     candidate.bearing_deg = 211
-
-    candidate.match_scores.spatial_alignment = 0.82
-    candidate.match_scores.temporal_alignment = 0.91
-    candidate.match_scores.trajectory_alignment = 0.87
-
-    candidate.match_scores.overall_alignment = 0.88
-
-    candidate.status.likely_match = True
-    candidate.status.unresolved = False
-
-    candidate.status.elimination_confidence = 0.89
 
     print()
     print("================================================")

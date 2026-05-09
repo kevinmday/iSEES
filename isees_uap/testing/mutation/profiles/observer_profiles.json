@@ -1,0 +1,101 @@
+{
+  "pilot": {
+    "confidence_bias": 0.92,
+    "technical_accuracy": 0.95,
+    "semantic_style": "aviation",
+    "location_precision": "high",
+    "timing_precision": "high",
+    "spoof_susceptibility": 0.15,
+    "verbosity": "moderate"
+  },
+
+  "air_traffic_controller": {
+    "confidence_bias": 0.95,
+    "technical_accuracy": 0.97,
+    "semantic_style": "radar_operational",
+    "location_precision": "high",
+    "timing_precision": "high",
+    "spoof_susceptibility": 0.08,
+    "verbosity": "high"
+  },
+
+  "civilian_observer": {
+    "confidence_bias": 0.65,
+    "technical_accuracy": 0.45,
+    "semantic_style": "casual",
+    "location_precision": "medium",
+    "timing_precision": "medium",
+    "spoof_susceptibility": 0.55,
+    "verbosity": "variable"
+  },
+
+  "astronomy_hobbyist": {
+    "confidence_bias": 0.82,
+    "technical_accuracy": 0.78,
+    "semantic_style": "astronomy",
+    "location_precision": "high",
+    "timing_precision": "medium",
+    "spoof_susceptibility": 0.22,
+    "verbosity": "high"
+  },
+
+  "law_enforcement": {
+    "confidence_bias": 0.88,
+    "technical_accuracy": 0.72,
+    "semantic_style": "incident_report",
+    "location_precision": "high",
+    "timing_precision": "high",
+    "spoof_susceptibility": 0.18,
+    "verbosity": "moderate"
+  },
+
+  "highway_driver": {
+    "confidence_bias": 0.58,
+    "technical_accuracy": 0.30,
+    "semantic_style": "moving_observer",
+    "location_precision": "low",
+    "timing_precision": "medium",
+    "spoof_susceptibility": 0.60,
+    "verbosity": "low"
+  },
+
+  "military_observer": {
+    "confidence_bias": 0.94,
+    "technical_accuracy": 0.96,
+    "semantic_style": "tactical_operational",
+    "location_precision": "high",
+    "timing_precision": "high",
+    "spoof_susceptibility": 0.10,
+    "verbosity": "moderate"
+  },
+
+  "casual_witness": {
+    "confidence_bias": 0.52,
+    "technical_accuracy": 0.25,
+    "semantic_style": "informal",
+    "location_precision": "low",
+    "timing_precision": "low",
+    "spoof_susceptibility": 0.72,
+    "verbosity": "variable"
+  },
+
+  "sensationalist": {
+    "confidence_bias": 0.98,
+    "technical_accuracy": 0.18,
+    "semantic_style": "dramatic",
+    "location_precision": "low",
+    "timing_precision": "low",
+    "spoof_susceptibility": 0.95,
+    "verbosity": "high"
+  },
+
+  "low_confidence_observer": {
+    "confidence_bias": 0.34,
+    "technical_accuracy": 0.40,
+    "semantic_style": "uncertain",
+    "location_precision": "medium",
+    "timing_precision": "low",
+    "spoof_susceptibility": 0.48,
+    "verbosity": "low"
+  }
+}

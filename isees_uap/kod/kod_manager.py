@@ -1,10 +1,10 @@
 # ============================================================
 # kod_manager.py
-# KOD — EXECUTION GOVERNANCE LAYER (V1)
+# KOD — EXECUTION GOVERNANCE LAYER (V3)
 # ============================================================
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Callable, Any, Optional
+from typing import Dict, List, Any, Optional
 
 from isees_uap.kod.models.observation_context import (
     ObservationContext,
@@ -216,13 +216,39 @@ class KODManager:
             )
         )
 
+        # ----------------------------------------------------
+        # WEATHER ENGINE ENABLED
+        # ----------------------------------------------------
+
         self.register_engine(
             EngineRegistration(
                 name="weather_engine",
-                enabled=False,
+                enabled=True,
                 priority=4,
                 description=(
                     "Atmospheric and weather analysis"
+                ),
+            )
+        )
+
+        self.register_engine(
+            EngineRegistration(
+                name="sensor_engine",
+                enabled=False,
+                priority=5,
+                description=(
+                    "Sensor artifact analysis"
+                ),
+            )
+        )
+
+        self.register_engine(
+            EngineRegistration(
+                name="terrain_engine",
+                enabled=False,
+                priority=6,
+                description=(
+                    "Terrain and occlusion analysis"
                 ),
             )
         )
@@ -282,6 +308,28 @@ class KODManager:
                 "weather_engine"
             )
 
+        if (
+            policy.enable_sensor
+            and self.engine_registry[
+                "sensor_engine"
+            ].enabled
+        ):
+
+            engines.append(
+                "sensor_engine"
+            )
+
+        if (
+            policy.enable_terrain
+            and self.engine_registry[
+                "terrain_engine"
+            ].enabled
+        ):
+
+            engines.append(
+                "terrain_engine"
+            )
+
         return engines
 
     # ========================================================
@@ -324,7 +372,9 @@ class KODManager:
 
             pipeline_result = (
                 run_kod_pipeline(
-                    observation
+                    observation,
+                    active_engines=active_engines,
+                    policy=policy,
                 )
             )
 
@@ -437,6 +487,7 @@ if __name__ == "__main__":
     policy.mode = "deep_analysis"
 
     policy.enable_aviation = True
+    policy.enable_weather = True
 
     # --------------------------------------------------------
     # EXECUTION

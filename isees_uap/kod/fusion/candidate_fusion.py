@@ -1,9 +1,9 @@
 # ============================================================
 # candidate_fusion.py
-# KOD — CANDIDATE FUSION ENGINE (V1)
+# KOD — CANDIDATE FUSION ENGINE (V3)
 # ============================================================
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 
 from isees_uap.kod.models.candidate import (
@@ -21,9 +21,13 @@ class FusionResult:
     Final fused interpretation of all candidates.
     """
 
-    dominant_candidate: Optional[Candidate] = None
+    dominant_candidate: Optional[
+        Candidate
+    ] = None
 
-    ranked_candidates: List[Candidate] = field(
+    ranked_candidates: List[
+        Candidate
+    ] = field(
         default_factory=list
     )
 
@@ -54,7 +58,10 @@ class FusionResult:
                 else None,
 
             "ranked_candidates":
-                [c.summary() for c in self.ranked_candidates],
+                [
+                    c.summary()
+                    for c in self.ranked_candidates
+                ],
 
             "ambiguity_score":
                 self.ambiguity_score,
@@ -77,6 +84,78 @@ class FusionResult:
 
 
 # ============================================================
+# COLLAPSE SCORING
+# ============================================================
+
+def calculate_collapse_score(
+    candidate: Candidate,
+) -> float:
+
+    """
+    Generalized manifold collapse score.
+
+    Weighted normalized topology scoring.
+
+    High alignment:
+        increases collapse
+
+    High explanatory completeness:
+        increases collapse
+
+    High contradiction:
+        reduces collapse
+
+    High residual:
+        reduces collapse
+    """
+
+    alignment = (
+        candidate.match_scores
+        .overall_alignment
+    )
+
+    completeness = (
+        candidate.match_scores
+        .explanatory_completeness
+    )
+
+    contradiction = (
+        candidate.match_scores
+        .contradiction_pressure
+    )
+
+    residual = (
+        candidate.match_scores
+        .residual_pressure
+    )
+
+    # --------------------------------------------------------
+    # NORMALIZED COLLAPSE TOPOLOGY
+    # --------------------------------------------------------
+
+    score = (
+        (alignment * 0.40)
+        +
+        (completeness * 0.35)
+        -
+        (contradiction * 0.15)
+        -
+        (residual * 0.10)
+    )
+
+    # --------------------------------------------------------
+    # NORMALIZE
+    # --------------------------------------------------------
+
+    score = max(
+        0.0,
+        min(1.0, score),
+    )
+
+    return round(score, 3)
+
+
+# ============================================================
 # HELPERS
 # ============================================================
 
@@ -90,11 +169,20 @@ def calculate_confidence_spread(
     """
 
     if len(candidates) < 2:
+
         return 1.0
 
-    top = candidates[0].match_scores.overall_alignment
+    top = (
+        calculate_collapse_score(
+            candidates[0]
+        )
+    )
 
-    second = candidates[1].match_scores.overall_alignment
+    second = (
+        calculate_collapse_score(
+            candidates[1]
+        )
+    )
 
     spread = abs(top - second)
 
@@ -111,30 +199,28 @@ def calculate_ambiguity_score(
 
     ambiguity = 1.0 - spread
 
-    ambiguity = max(0.0, min(1.0, ambiguity))
+    ambiguity = max(
+        0.0,
+        min(1.0, ambiguity),
+    )
 
     return round(ambiguity, 3)
 
 
 def calculate_residual_confidence(
-    dominant_alignment: float,
+    dominant_candidate: Candidate,
 ) -> float:
 
     """
     Residual unexplained emergence.
-
-    High candidate alignment:
-        low residual emergence
-
-    Low candidate alignment:
-        high residual emergence
     """
 
-    residual = 1.0 - dominant_alignment
-
-    residual = max(0.0, min(1.0, residual))
-
-    return round(residual, 3)
+    return round(
+        dominant_candidate
+        .match_scores
+        .residual_pressure,
+        3,
+    )
 
 
 # ============================================================
@@ -160,7 +246,8 @@ def fuse_candidates(
         result.unresolved = True
 
         result.fusion_summary = (
-            "No reconstruction candidates available."
+            "No reconstruction candidates "
+            "available."
         )
 
         result.residual_confidence = 1.0
@@ -168,13 +255,13 @@ def fuse_candidates(
         return result
 
     # --------------------------------------------------------
-    # SORT
+    # SORT BY COLLAPSE SCORE
     # --------------------------------------------------------
 
     ranked = sorted(
         candidates,
         key=lambda c:
-        c.match_scores.overall_alignment,
+        calculate_collapse_score(c),
         reverse=True,
     )
 
@@ -189,7 +276,14 @@ def fuse_candidates(
     result.dominant_candidate = dominant
 
     dominant_alignment = (
-        dominant.match_scores.overall_alignment
+        dominant.match_scores
+        .overall_alignment
+    )
+
+    dominant_collapse = (
+        calculate_collapse_score(
+            dominant
+        )
     )
 
     # --------------------------------------------------------
@@ -216,8 +310,10 @@ def fuse_candidates(
     # RESIDUAL EMERGENCE
     # --------------------------------------------------------
 
-    residual = calculate_residual_confidence(
-        dominant_alignment
+    residual = (
+        calculate_residual_confidence(
+            dominant
+        )
     )
 
     result.residual_confidence = residual
@@ -226,7 +322,7 @@ def fuse_candidates(
     # RESOLUTION STATE
     # --------------------------------------------------------
 
-    if dominant_alignment >= 0.80:
+    if dominant_collapse >= 0.50:
 
         result.unresolved = False
 
@@ -241,21 +337,23 @@ def fuse_candidates(
     if result.unresolved:
 
         result.fusion_summary = (
-            f"No dominant deterministic explanation "
-            f"fully resolved the observation. "
+            f"No dominant deterministic "
+            f"collapse fully resolved the "
+            f"observation. "
             f"Top candidate: "
             f"{dominant.candidate_type} "
-            f"({round(dominant_alignment * 100, 1)}%)."
+            f"(collapse score "
+            f"{round(dominant_collapse, 3)})."
         )
 
     else:
 
         result.fusion_summary = (
-            f"Dominant candidate resolved as "
+            f"Dominant manifold collapse "
+            f"resolved as "
             f"{dominant.candidate_type} "
-            f"with "
-            f"{round(dominant_alignment * 100, 1)}% "
-            f"alignment confidence."
+            f"with collapse score "
+            f"{round(dominant_collapse, 3)}."
         )
 
     # --------------------------------------------------------
@@ -263,9 +361,17 @@ def fuse_candidates(
     # --------------------------------------------------------
 
     result.metadata = {
-        "candidate_count": len(ranked),
+        "candidate_count":
+            len(ranked),
+
         "dominant_candidate_id":
             dominant.candidate_id,
+
+        "dominant_collapse_score":
+            dominant_collapse,
+
+        "fusion_version":
+            "V3_NORMALIZED_TOPOLOGY",
     }
 
     return result
@@ -283,8 +389,12 @@ if __name__ == "__main__":
         ObservationContext,
     )
 
-    from isees_uap.kod.engines.aviation_engine import (
+    from isees_uap.kod.kaod.engines.aviation_engine import (
         reconstruct_aviation_candidates,
+    )
+
+    from isees_uap.kod.kaod.engines.weather_engine import (
+        reconstruct_weather_candidates,
     )
 
     # --------------------------------------------------------
@@ -296,15 +406,42 @@ if __name__ == "__main__":
     observation.geo.latitude = 42.374
     observation.geo.longitude = -122.871
 
-    observation.estimated_altitude_ft = 30000
-    observation.estimated_speed_kts = 420
+    observation.object_shape = (
+        "bright_white_light"
+    )
+
+    observation.sound_description = (
+        "silent"
+    )
+
+    observation.movement_description = (
+        "instant vertical maneuvering"
+    )
+
+    observation.estimated_altitude_ft = (
+        30000
+    )
+
+    observation.estimated_speed_kts = (
+        420
+    )
 
     # --------------------------------------------------------
     # GENERATE CANDIDATES
     # --------------------------------------------------------
 
-    candidates = reconstruct_aviation_candidates(
-        observation
+    candidates = []
+
+    candidates.extend(
+        reconstruct_aviation_candidates(
+            observation
+        )
+    )
+
+    candidates.extend(
+        reconstruct_weather_candidates(
+            observation
+        )
     )
 
     # --------------------------------------------------------
