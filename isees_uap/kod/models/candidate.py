@@ -1,7 +1,7 @@
 # ============================================================
 # candidate.py
-# KOD — UNIVERSAL RECONSTRUCTED OBJECT MODEL (V4)
-# TOPOLOGY READY
+# KOD — UNIVERSAL RECONSTRUCTED OBJECT MODEL (V5)
+# TOPOLOGY MANIFOLD EXPANDED
 # ============================================================
 
 from dataclasses import dataclass, field, asdict
@@ -284,17 +284,23 @@ class Candidate:
         features = list(self.explained_features)
 
         if self.object_shape:
-            features.append(f"shape:{self.object_shape}")
+            features.append(
+                f"shape:{self.object_shape}"
+            )
 
         if self.sound_profile:
-            features.append(f"sound:{self.sound_profile}")
+            features.append(
+                f"sound:{self.sound_profile}"
+            )
 
         if self.lighting_behavior:
             features.append(
                 f"lighting:{self.lighting_behavior}"
             )
 
-        return sorted(list(set(features)))
+        return sorted(
+            list(set(features))
+        )
 
     def get_contradictions(self) -> List[str]:
 
@@ -304,29 +310,242 @@ class Candidate:
 
         return self.status.unresolved_features
 
+    # ========================================================
+    # TOPOLOGY EMISSION
+    # ========================================================
+
     def to_topology_dict(self) -> Dict[str, Any]:
 
         return {
-            "candidate_id": self.candidate_id,
 
-            "domain": self.get_primary_domain(),
+            # ------------------------------------------------
+            # CORE IDENTITY
+            # ------------------------------------------------
 
-            "collapse_score": round(
-                self.match_scores.overall_alignment,
-                4,
-            ),
+            "candidate_id":
+                self.candidate_id,
 
-            "explained_features": (
-                self.get_explained_features()
-            ),
+            "candidate_type":
+                self.candidate_type,
 
-            "contradictions": (
-                self.get_contradictions()
-            ),
+            "candidate_subtype":
+                self.candidate_subtype,
 
-            "unresolved_features": (
-                self.get_unresolved_features()
-            ),
+            "domain":
+                self.get_primary_domain(),
+
+            "topology_domains":
+                self.topology_domains,
+
+            "topology_tags":
+                self.topology_tags,
+
+            # ------------------------------------------------
+            # COLLAPSE GEOMETRY
+            # ------------------------------------------------
+
+            "collapse_score":
+                round(
+                    self.match_scores
+                    .overall_alignment,
+                    4,
+                ),
+
+            "confidence_score":
+                round(
+                    self.confidence_score,
+                    4,
+                ),
+
+            "elimination_confidence":
+                round(
+                    self.status
+                    .elimination_confidence,
+                    4,
+                ),
+
+            # ------------------------------------------------
+            # ALIGNMENT VECTOR
+            # ------------------------------------------------
+
+            "alignment_vector": {
+
+                "spatial":
+                    round(
+                        self.match_scores
+                        .spatial_alignment,
+                        4,
+                    ),
+
+                "temporal":
+                    round(
+                        self.match_scores
+                        .temporal_alignment,
+                        4,
+                    ),
+
+                "trajectory":
+                    round(
+                        self.match_scores
+                        .trajectory_alignment,
+                        4,
+                    ),
+
+                "behavior":
+                    round(
+                        self.match_scores
+                        .behavior_alignment,
+                        4,
+                    ),
+
+                "brightness":
+                    round(
+                        self.match_scores
+                        .brightness_alignment,
+                        4,
+                    ),
+
+                "altitude":
+                    round(
+                        self.match_scores
+                        .altitude_alignment,
+                        4,
+                    ),
+
+                "speed":
+                    round(
+                        self.match_scores
+                        .speed_alignment,
+                        4,
+                    ),
+            },
+
+            # ------------------------------------------------
+            # PRESSURE VECTOR
+            # ------------------------------------------------
+
+            "pressure_vector": {
+
+                "contradiction":
+                    round(
+                        self.match_scores
+                        .contradiction_pressure,
+                        4,
+                    ),
+
+                "residual":
+                    round(
+                        self.match_scores
+                        .residual_pressure,
+                        4,
+                    ),
+
+                "unresolved":
+                    round(
+                        self.match_scores
+                        .unresolved_pressure,
+                        4,
+                    ),
+
+                "anomaly_conflict":
+                    round(
+                        self.match_scores
+                        .anomaly_conflict,
+                        4,
+                    ),
+            },
+
+            # ------------------------------------------------
+            # STATE GEOMETRY
+            # ------------------------------------------------
+
+            "unresolved":
+                self.status.unresolved,
+
+            "likely_match":
+                self.status.likely_match,
+
+            "partial_match":
+                self.status.partial_match,
+
+            "rejected":
+                self.status.rejected,
+
+            # ------------------------------------------------
+            # MANIFOLD FEATURES
+            # ------------------------------------------------
+
+            "explained_features":
+                self.get_explained_features(),
+
+            "contradictions":
+                self.get_contradictions(),
+
+            "unresolved_features":
+                self.get_unresolved_features(),
+
+            # ------------------------------------------------
+            # MOTION GEOMETRY
+            # ------------------------------------------------
+
+            "motion_geometry": {
+
+                "heading_deg":
+                    self.heading_deg,
+
+                "speed_kts":
+                    self.speed_kts,
+
+                "vertical_rate_fpm":
+                    self.vertical_rate_fpm,
+
+                "trajectory_points":
+                    len(self.trajectory),
+            },
+
+            # ------------------------------------------------
+            # POSITIONAL GEOMETRY
+            # ------------------------------------------------
+
+            "position_geometry": {
+
+                "latitude":
+                    self.latitude,
+
+                "longitude":
+                    self.longitude,
+
+                "altitude_ft":
+                    self.altitude_ft,
+
+                "distance_km":
+                    self.distance_km,
+
+                "bearing_deg":
+                    self.bearing_deg,
+            },
+
+            # ------------------------------------------------
+            # PHYSICAL GEOMETRY
+            # ------------------------------------------------
+
+            "physical_geometry": {
+
+                "object_shape":
+                    self.object_shape,
+
+                "lighting_behavior":
+                    self.lighting_behavior,
+
+                "sound_profile":
+                    self.sound_profile,
+
+                "thermal_signature":
+                    self.thermal_signature,
+
+                "brightness":
+                    self.brightness,
+            },
         }
 
     # ========================================================
@@ -416,7 +635,6 @@ class Candidate:
 # ============================================================
 # FACTORY HELPERS
 # ============================================================
-
 
 def build_aircraft_candidate(
     callsign: str,

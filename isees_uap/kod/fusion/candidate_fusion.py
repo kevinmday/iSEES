@@ -1,7 +1,7 @@
 # ============================================================
 # candidate_fusion.py
-# KOD — CANDIDATE FUSION ENGINE (V4)
-# TOPOLOGY INTEGRATED
+# KOD — CANDIDATE FUSION ENGINE (V5)
+# TOPOLOGY OBSERVABILITY ENABLED
 # ============================================================
 
 from dataclasses import dataclass, field
@@ -90,6 +90,17 @@ class FusionResult:
         default_factory=dict
     )
 
+    # --------------------------------------------------------
+    # TOPOLOGY OBSERVABILITY
+    # --------------------------------------------------------
+
+    topology_observability: Dict[
+        str,
+        Any
+    ] = field(
+        default_factory=dict
+    )
+
     # ========================================================
     # SERIALIZATION
     # ========================================================
@@ -97,6 +108,7 @@ class FusionResult:
     def to_dict(self) -> Dict[str, Any]:
 
         return {
+
             "dominant_candidate":
                 self.dominant_candidate.summary()
                 if self.dominant_candidate
@@ -125,6 +137,9 @@ class FusionResult:
 
             "topology_state":
                 self.topology_state,
+
+            "topology_observability":
+                self.topology_observability,
 
             "metadata":
                 self.metadata,
@@ -590,6 +605,44 @@ def fuse_candidates(
     )
 
     # --------------------------------------------------------
+    # TOPOLOGY OBSERVABILITY
+    # --------------------------------------------------------
+
+    result.topology_observability = {
+
+        "topology_candidates":
+            topology_candidates,
+
+        "overlap_regions": [
+
+            {
+                "shared_features":
+                    region.shared_features,
+
+                "overlap_score":
+                    region.overlap_score,
+
+                "contributing_candidates":
+                    region.contributing_candidates,
+            }
+
+            for region in overlap_regions
+        ],
+
+        "contradiction_nodes":
+            contradiction_summary,
+
+        "residual_vectors":
+            residual_summary,
+
+        "collapse_clusters":
+            cluster_summary,
+
+        "entanglements":
+            entanglement_summary,
+    }
+
+    # --------------------------------------------------------
     # RESOLUTION STATE
     # --------------------------------------------------------
 
@@ -663,8 +716,11 @@ def fuse_candidates(
         "topology_enabled":
             True,
 
+        "topology_observability":
+            True,
+
         "fusion_version":
-            "V4_TOPOLOGY_INTEGRATED",
+            "V5_TOPOLOGY_OBSERVABILITY",
     }
 
     return result
@@ -751,7 +807,7 @@ if __name__ == "__main__":
 
     print()
     print("================================================")
-    print("KOD CANDIDATE FUSION V4")
+    print("KOD CANDIDATE FUSION V5")
     print("================================================")
     print()
 
