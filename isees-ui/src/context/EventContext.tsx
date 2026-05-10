@@ -1,7 +1,7 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT (V3)
-// TOPOLOGY ENABLED
+// GLOBAL OPERATIONAL EVENT CONTEXT (V4)
+// TOPOLOGY OBSERVABILITY ENABLED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -34,6 +34,7 @@ export type Facility = {
 // ============================================================
 
 export type TopologyState = {
+
   stability_state: string;
 
   ambiguity_state: string;
@@ -48,10 +49,56 @@ export type TopologyState = {
 };
 
 // ============================================================
+// TOPOLOGY OBSERVABILITY
+// ============================================================
+
+export type OverlapRegion = {
+
+  overlap_score: number;
+
+  contributing_candidates: string[];
+
+  shared_features: string[];
+};
+
+export type EntanglementData = {
+
+  global_entanglement_score: number;
+
+  high_entanglement_domains: string[][];
+};
+
+export type ResidualVectorData = {
+
+  global_residual_instability: number;
+
+  high_instability_domains: string[];
+};
+
+export type CollapseClusterData = {
+
+  cluster_fragmentation: number;
+
+  cluster_types: string[];
+};
+
+export type TopologyObservability = {
+
+  overlap_regions: OverlapRegion[];
+
+  entanglements: EntanglementData;
+
+  residual_vectors: ResidualVectorData;
+
+  collapse_clusters: CollapseClusterData;
+};
+
+// ============================================================
 // EVENT DATA
 // ============================================================
 
 export type EventData = {
+
   id: string;
 
   location: string;
@@ -79,6 +126,9 @@ export type EventData = {
   facilities: Facility[];
 
   topology: TopologyState;
+
+  topology_observability:
+    TopologyObservability;
 };
 
 // ============================================================
@@ -87,6 +137,10 @@ export type EventData = {
 
 export type InvestigationSurface =
   | "SUMMARY"
+  | "OVERLAP"
+  | "ENTANGLEMENT"
+  | "RESIDUAL"
+  | "CLUSTERS"
   | "COLLAPSE"
   | "CANDIDATES"
   | "CONTRADICTIONS"
@@ -162,6 +216,78 @@ export const DEMO_EVENTS: EventData[] = [
 
       cluster_fragmentation:
         0.50,
+    },
+
+    // ------------------------------------------------------
+    // TOPOLOGY OBSERVABILITY
+    // ------------------------------------------------------
+
+    topology_observability: {
+
+      overlap_regions: [
+
+        {
+          overlap_score: 1.0,
+
+          contributing_candidates: [
+            "CAND-AVIATION-1",
+            "CAND-AVIATION-2",
+          ],
+
+          shared_features: [
+            "trajectory continuity",
+            "structured maneuvering",
+            "speed profile",
+          ],
+        },
+
+        {
+          overlap_score: 0.42,
+
+          contributing_candidates: [
+            "CAND-AVIATION-2",
+            "CAND-WEATHER-1",
+          ],
+
+          shared_features: [
+            "altitude consistency",
+            "silent behavior",
+          ],
+        },
+      ],
+
+      entanglements: {
+
+        global_entanglement_score:
+          0.75,
+
+        high_entanglement_domains: [
+
+          ["aviation", "weather"],
+        ],
+      },
+
+      residual_vectors: {
+
+        global_residual_instability:
+          0.716,
+
+        high_instability_domains: [
+          "weather",
+          "aviation",
+        ],
+      },
+
+      collapse_clusters: {
+
+        cluster_fragmentation:
+          0.5,
+
+        cluster_types: [
+          "aviation",
+          "weather",
+        ],
+      },
     },
 
     // ------------------------------------------------------
@@ -310,6 +436,63 @@ export const DEMO_EVENTS: EventData[] = [
 
       cluster_fragmentation:
         0.21,
+    },
+
+    // ------------------------------------------------------
+    // TOPOLOGY OBSERVABILITY
+    // ------------------------------------------------------
+
+    topology_observability: {
+
+      overlap_regions: [
+
+        {
+          overlap_score: 0.81,
+
+          contributing_candidates: [
+            "CAND-NAVAL-1",
+            "CAND-RADAR-1",
+          ],
+
+          shared_features: [
+            "persistent object continuity",
+            "geo-spatial convergence",
+            "multi-sensor correlation",
+          ],
+        },
+      ],
+
+      entanglements: {
+
+        global_entanglement_score:
+          0.44,
+
+        high_entanglement_domains: [
+
+          ["naval", "radar"],
+        ],
+      },
+
+      residual_vectors: {
+
+        global_residual_instability:
+          0.48,
+
+        high_instability_domains: [
+          "radar",
+        ],
+      },
+
+      collapse_clusters: {
+
+        cluster_fragmentation:
+          0.21,
+
+        cluster_types: [
+          "naval",
+          "radar",
+        ],
+      },
     },
 
     // ------------------------------------------------------

@@ -1,7 +1,7 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
-// OPERATIONAL INVESTIGATION WORKSPACE (V5)
-// LIVE TOPOLOGY ENABLED
+// OPERATIONAL INVESTIGATION WORKSPACE (V6)
+// TOPOLOGY INTERACTION ENABLED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -13,6 +13,10 @@ import { useEventContext } from "../context/EventContext";
 
 const SURFACES = [
   "SUMMARY",
+  "OVERLAP",
+  "ENTANGLEMENT",
+  "RESIDUAL",
+  "CLUSTERS",
   "COLLAPSE",
   "CANDIDATES",
   "CONTRADICTIONS",
@@ -152,6 +156,51 @@ function SurfaceBlock({
 }
 
 // ============================================================
+// DETAIL ROW
+// ============================================================
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "10px 0",
+        borderBottom: "1px solid #172033",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          color: "#6b7280",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontSize: 13,
+          color: "#d1d5db",
+          fontWeight: 600,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
@@ -193,7 +242,26 @@ export default function InvestigationWorkspace() {
   const event = activeEvent;
 
   const topology =
-    event.topology;
+    event.topology || {};
+
+  const observability =
+    event.topology_observability || {};
+
+  // ==========================================================
+  // SAFE DATA
+  // ==========================================================
+
+  const overlapRegions =
+    observability.overlap_regions || [];
+
+  const entanglements =
+    observability.entanglements || {};
+
+  const residualVectors =
+    observability.residual_vectors || {};
+
+  const collapseClusters =
+    observability.collapse_clusters || {};
 
   // ==========================================================
   // TOPOLOGY INTERPRETATION
@@ -201,13 +269,13 @@ export default function InvestigationWorkspace() {
 
   const topologyInterpretation = [
 
-    `Manifold stability currently classified as ${topology.stability_state.toLowerCase()}.`,
+    `Manifold stability currently classified as ${topology.stability_state?.toLowerCase() || "unknown"}.`,
 
-    `Ambiguity state remains ${topology.ambiguity_state.toLowerCase()} during active collapse evaluation.`,
+    `Ambiguity state remains ${topology.ambiguity_state?.toLowerCase() || "unknown"} during active collapse evaluation.`,
 
-    `Residual instability propagation measured at ${topology.residual_instability}.`,
+    `Residual instability propagation measured at ${topology.residual_instability || 0}.`,
 
-    `Cross-domain entanglement currently estimated at ${topology.entanglement_score}.`,
+    `Cross-domain entanglement currently estimated at ${topology.entanglement_score || 0}.`,
   ];
 
   // ==========================================================
@@ -375,10 +443,6 @@ export default function InvestigationWorkspace() {
 
         <>
 
-          {/* =========================================== */}
-          {/* MANIFOLD REASONING */}
-          {/* =========================================== */}
-
           <SurfaceBlock title="Manifold Reasoning">
 
             <div
@@ -389,7 +453,7 @@ export default function InvestigationWorkspace() {
               }}
             >
 
-              {event.reasoning.map((item, idx) => (
+              {event.reasoning.map((item: string, idx: number) => (
 
                 <div
                   key={idx}
@@ -412,10 +476,6 @@ export default function InvestigationWorkspace() {
 
           </SurfaceBlock>
 
-          {/* =========================================== */}
-          {/* TOPOLOGY STATE */}
-          {/* =========================================== */}
-
           <SurfaceBlock title="Topology State">
 
             <div
@@ -430,50 +490,46 @@ export default function InvestigationWorkspace() {
               <MetricBox
                 label="Stability"
                 value={
-                  topology.stability_state
+                  topology.stability_state || "UNKNOWN"
                 }
               />
 
               <MetricBox
                 label="Ambiguity"
                 value={
-                  topology.ambiguity_state
+                  topology.ambiguity_state || "UNKNOWN"
                 }
               />
 
               <MetricBox
                 label="Contradiction"
                 value={
-                  topology.contradiction_density
+                  topology.contradiction_density || 0
                 }
               />
 
               <MetricBox
                 label="Residual"
                 value={
-                  topology.residual_instability
+                  topology.residual_instability || 0
                 }
               />
 
               <MetricBox
                 label="Entanglement"
                 value={
-                  topology.entanglement_score
+                  topology.entanglement_score || 0
                 }
               />
 
               <MetricBox
                 label="Fragmentation"
                 value={
-                  topology.cluster_fragmentation
+                  topology.cluster_fragmentation || 0
                 }
               />
 
             </div>
-
-            {/* ======================================= */}
-            {/* INTERPRETATION */}
-            {/* ======================================= */}
 
             <div
               style={{
@@ -511,6 +567,318 @@ export default function InvestigationWorkspace() {
           </SurfaceBlock>
 
         </>
+
+      )}
+
+      {/* ================================================= */}
+      {/* OVERLAP */}
+      {/* ================================================= */}
+
+      {activeSurface === "OVERLAP" && (
+
+        <SurfaceBlock title="Overlap Regions">
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+
+            {overlapRegions.length === 0 && (
+
+              <div
+                style={{
+                  color: "#9ca3af",
+                  fontSize: 13,
+                }}
+              >
+                No overlap regions available
+              </div>
+
+            )}
+
+            {overlapRegions.map((region: any, idx: number) => (
+
+              <div
+                key={idx}
+                style={{
+                  border: "1px solid #1f2937",
+                  borderRadius: 8,
+                  padding: 14,
+                  background: "#0b1220",
+                }}
+              >
+
+                <DetailRow
+                  label="Overlap Score"
+                  value={region.overlap_score}
+                />
+
+                <DetailRow
+                  label="Candidates"
+                  value={region.contributing_candidates?.join(" ↔ ")}
+                />
+
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 12,
+                    color: "#6b7280",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 10,
+                  }}
+                >
+                  Shared Features
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
+
+                  {(region.shared_features || []).map(
+                    (feature: string, fidx: number) => (
+
+                      <div
+                        key={fidx}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 999,
+                          border: "1px solid #1f2937",
+                          background: "#08101f",
+                          fontSize: 12,
+                          color: "#d1d5db",
+                        }}
+                      >
+                        {feature}
+                      </div>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        </SurfaceBlock>
+
+      )}
+
+      {/* ================================================= */}
+      {/* ENTANGLEMENT */}
+      {/* ================================================= */}
+
+      {activeSurface === "ENTANGLEMENT" && (
+
+        <SurfaceBlock title="Cross-Domain Entanglement">
+
+          <DetailRow
+            label="Global Entanglement"
+            value={
+              entanglements.global_entanglement_score || 0
+            }
+          />
+
+          <div
+            style={{
+              marginTop: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+
+            {(entanglements.high_entanglement_domains || []).map(
+              (pair: any, idx: number) => (
+
+                <div
+                  key={idx}
+                  style={{
+                    border: "1px solid #1f2937",
+                    borderRadius: 8,
+                    padding: 14,
+                    background: "#0b1220",
+                  }}
+                >
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#d1d5db",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {pair[0]} ↔ {pair[1]}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      color: "#9ca3af",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Cross-domain manifold coupling remains active between these collapse basins.
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        </SurfaceBlock>
+
+      )}
+
+      {/* ================================================= */}
+      {/* RESIDUAL */}
+      {/* ================================================= */}
+
+      {activeSurface === "RESIDUAL" && (
+
+        <SurfaceBlock title="Residual Propagation">
+
+          <DetailRow
+            label="Residual Instability"
+            value={
+              residualVectors.global_residual_instability || 0
+            }
+          />
+
+          <div
+            style={{
+              marginTop: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+
+            {(residualVectors.high_instability_domains || []).map(
+              (domain: string, idx: number) => (
+
+                <div
+                  key={idx}
+                  style={{
+                    border: "1px solid #1f2937",
+                    borderRadius: 8,
+                    padding: 14,
+                    background: "#0b1220",
+                  }}
+                >
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#d1d5db",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {domain}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#9ca3af",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Persistent unresolved manifold pressure remains active inside this domain.
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        </SurfaceBlock>
+
+      )}
+
+      {/* ================================================= */}
+      {/* CLUSTERS */}
+      {/* ================================================= */}
+
+      {activeSurface === "CLUSTERS" && (
+
+        <SurfaceBlock title="Collapse Clusters">
+
+          <DetailRow
+            label="Fragmentation"
+            value={
+              collapseClusters.cluster_fragmentation || 0
+            }
+          />
+
+          <div
+            style={{
+              marginTop: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+
+            {(collapseClusters.cluster_types || []).map(
+              (cluster: string, idx: number) => (
+
+                <div
+                  key={idx}
+                  style={{
+                    border: "1px solid #1f2937",
+                    borderRadius: 8,
+                    padding: 14,
+                    background: "#0b1220",
+                  }}
+                >
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#d1d5db",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {cluster}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#9ca3af",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Independent collapse basin detected inside active manifold reconstruction.
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        </SurfaceBlock>
 
       )}
 
