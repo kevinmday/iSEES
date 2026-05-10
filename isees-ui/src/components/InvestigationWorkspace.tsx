@@ -1,7 +1,7 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
-// OPERATIONAL INVESTIGATION WORKSPACE (V4)
-// TOPOLOGY INTEGRATED
+// OPERATIONAL INVESTIGATION WORKSPACE (V5)
+// LIVE TOPOLOGY ENABLED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -82,17 +82,30 @@ function SurfaceButton({
     <button
       onClick={onClick}
       style={{
-        background: active ? "#111827" : "#08101f",
+        background: active
+          ? "#111827"
+          : "#08101f",
+
         border: active
           ? "1px solid #374151"
           : "1px solid #1f2937",
-        color: active ? "#f3f4f6" : "#9ca3af",
+
+        color: active
+          ? "#f3f4f6"
+          : "#9ca3af",
+
         padding: "8px 12px",
+
         borderRadius: 6,
+
         fontSize: 11,
+
         fontWeight: 700,
+
         letterSpacing: 1,
+
         cursor: "pointer",
+
         textTransform: "uppercase",
       }}
     >
@@ -102,7 +115,7 @@ function SurfaceButton({
 }
 
 // ============================================================
-// OPERATIONAL SURFACE BLOCK
+// SURFACE BLOCK
 // ============================================================
 
 function SurfaceBlock({
@@ -143,14 +156,25 @@ function SurfaceBlock({
 // ============================================================
 
 export default function InvestigationWorkspace() {
+
   const {
+
     activeEvent,
+
     activeSurface,
+
     setActiveSurface,
+
   } = useEventContext();
 
+  // ==========================================================
+  // NO EVENT
+  // ==========================================================
+
   if (!activeEvent) {
+
     return (
+
       <div
         style={{
           display: "flex",
@@ -168,7 +192,30 @@ export default function InvestigationWorkspace() {
 
   const event = activeEvent;
 
+  const topology =
+    event.topology;
+
+  // ==========================================================
+  // TOPOLOGY INTERPRETATION
+  // ==========================================================
+
+  const topologyInterpretation = [
+
+    `Manifold stability currently classified as ${topology.stability_state.toLowerCase()}.`,
+
+    `Ambiguity state remains ${topology.ambiguity_state.toLowerCase()} during active collapse evaluation.`,
+
+    `Residual instability propagation measured at ${topology.residual_instability}.`,
+
+    `Cross-domain entanglement currently estimated at ${topology.entanglement_score}.`,
+  ];
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
+
     <div
       style={{
         display: "flex",
@@ -176,6 +223,7 @@ export default function InvestigationWorkspace() {
         gap: 18,
       }}
     >
+
       {/* ================================================= */}
       {/* ACTIVE EVENT HEADER */}
       {/* ================================================= */}
@@ -188,6 +236,7 @@ export default function InvestigationWorkspace() {
           background: "#08101f",
         }}
       >
+
         <div
           style={{
             display: "flex",
@@ -196,7 +245,9 @@ export default function InvestigationWorkspace() {
             marginBottom: 14,
           }}
         >
+
           <div>
+
             <div
               style={{
                 fontSize: 24,
@@ -216,6 +267,7 @@ export default function InvestigationWorkspace() {
             >
               {event.location}
             </div>
+
           </div>
 
           <div
@@ -224,10 +276,12 @@ export default function InvestigationWorkspace() {
               borderRadius: 999,
               background: "#0f172a",
               border: "1px solid #1f2937",
+
               color:
                 event.escalation === "HIGH"
                   ? "#f87171"
                   : "#86efac",
+
               fontSize: 12,
               fontWeight: 700,
               letterSpacing: 1,
@@ -235,15 +289,22 @@ export default function InvestigationWorkspace() {
           >
             {event.escalation}
           </div>
+
         </div>
+
+        {/* ============================================= */}
+        {/* METRICS */}
+        {/* ============================================= */}
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(6, 1fr)",
+            gridTemplateColumns:
+              "repeat(6, 1fr)",
             gap: 12,
           }}
         >
+
           <MetricBox
             label="Confidence"
             value={event.confidence}
@@ -273,11 +334,12 @@ export default function InvestigationWorkspace() {
             label="Trend"
             value={event.trend}
           />
+
         </div>
       </div>
 
       {/* ================================================= */}
-      {/* INVESTIGATION SURFACE SELECTOR */}
+      {/* SURFACE SELECTOR */}
       {/* ================================================= */}
 
       <div
@@ -287,16 +349,22 @@ export default function InvestigationWorkspace() {
           flexWrap: "wrap",
         }}
       >
+
         {SURFACES.map((surface) => (
+
           <SurfaceButton
             key={surface}
             label={surface}
-            active={activeSurface === surface}
+            active={
+              activeSurface === surface
+            }
             onClick={() =>
               setActiveSurface(surface as any)
             }
           />
+
         ))}
+
       </div>
 
       {/* ================================================= */}
@@ -304,8 +372,15 @@ export default function InvestigationWorkspace() {
       {/* ================================================= */}
 
       {activeSurface === "SUMMARY" && (
+
         <>
+
+          {/* =========================================== */}
+          {/* MANIFOLD REASONING */}
+          {/* =========================================== */}
+
           <SurfaceBlock title="Manifold Reasoning">
+
             <div
               style={{
                 display: "flex",
@@ -313,7 +388,9 @@ export default function InvestigationWorkspace() {
                 gap: 12,
               }}
             >
+
               {event.reasoning.map((item, idx) => (
+
                 <div
                   key={idx}
                   style={{
@@ -328,15 +405,19 @@ export default function InvestigationWorkspace() {
                 >
                   {item}
                 </div>
+
               ))}
+
             </div>
+
           </SurfaceBlock>
 
-          {/* ============================================= */}
+          {/* =========================================== */}
           {/* TOPOLOGY STATE */}
-          {/* ============================================= */}
+          {/* =========================================== */}
 
           <SurfaceBlock title="Topology State">
+
             <div
               style={{
                 display: "grid",
@@ -345,36 +426,54 @@ export default function InvestigationWorkspace() {
                 gap: 12,
               }}
             >
+
               <MetricBox
                 label="Stability"
-                value="FRAGMENTED"
+                value={
+                  topology.stability_state
+                }
               />
 
               <MetricBox
                 label="Ambiguity"
-                value="HIGH"
+                value={
+                  topology.ambiguity_state
+                }
               />
 
               <MetricBox
                 label="Contradiction"
-                value="1.00"
+                value={
+                  topology.contradiction_density
+                }
               />
 
               <MetricBox
                 label="Residual"
-                value="0.716"
+                value={
+                  topology.residual_instability
+                }
               />
 
               <MetricBox
                 label="Entanglement"
-                value="0.75"
+                value={
+                  topology.entanglement_score
+                }
               />
 
               <MetricBox
                 label="Fragmentation"
-                value="0.50"
+                value={
+                  topology.cluster_fragmentation
+                }
               />
+
             </div>
+
+            {/* ======================================= */}
+            {/* INTERPRETATION */}
+            {/* ======================================= */}
 
             <div
               style={{
@@ -384,34 +483,37 @@ export default function InvestigationWorkspace() {
                 gap: 10,
               }}
             >
-              {[
-                "Dominant explanatory collapse exists but manifold stability remains fragmented.",
 
-                "Residual topology continues propagating across aviation and atmospheric domains.",
+              {topologyInterpretation.map(
+                (item, idx) => (
 
-                "Contradiction density remains elevated despite candidate dominance.",
+                  <div
+                    key={idx}
+                    style={{
+                      padding: 12,
+                      border:
+                        "1px solid #1f2937",
+                      borderRadius: 8,
+                      background: "#0b1220",
+                      color: "#cbd5e1",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {item}
+                  </div>
 
-                "Cross-domain entanglement indicates partial cooperative collapse behavior.",
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: 12,
-                    border: "1px solid #1f2937",
-                    borderRadius: 8,
-                    background: "#0b1220",
-                    color: "#cbd5e1",
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {item}
-                </div>
-              ))}
+                )
+              )}
+
             </div>
+
           </SurfaceBlock>
+
         </>
+
       )}
+
     </div>
   );
 }

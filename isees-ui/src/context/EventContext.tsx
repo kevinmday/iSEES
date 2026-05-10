@@ -1,7 +1,7 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT (V2)
-// ACTIVE EVENT + INVESTIGATION SURFACE STATE
+// GLOBAL OPERATIONAL EVENT CONTEXT (V3)
+// TOPOLOGY ENABLED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -29,17 +29,45 @@ export type Facility = {
   distance: string;
 };
 
+// ============================================================
+// TOPOLOGY STATE
+// ============================================================
+
+export type TopologyState = {
+  stability_state: string;
+
+  ambiguity_state: string;
+
+  contradiction_density: number;
+
+  residual_instability: number;
+
+  entanglement_score: number;
+
+  cluster_fragmentation: number;
+};
+
+// ============================================================
+// EVENT DATA
+// ============================================================
+
 export type EventData = {
   id: string;
+
   location: string;
 
   confidence: number;
+
   reports: number;
+
   clusters: number;
 
   duration: string;
+
   escalation: string;
+
   recurrence: string;
+
   trend: string;
 
   active: boolean;
@@ -49,6 +77,8 @@ export type EventData = {
   observations: Observation[];
 
   facilities: Facility[];
+
+  topology: TopologyState;
 };
 
 // ============================================================
@@ -64,137 +94,272 @@ export type InvestigationSurface =
   | "GEO";
 
 // ============================================================
-// DEMO EVENT SET
+// DEMO EVENTS
 // ============================================================
 
 export const DEMO_EVENTS: EventData[] = [
+
+  // ========================================================
+  // MEDFORD EVENT
+  // ========================================================
+
   {
     id: "E-MEDFORD-001",
+
     location: "Medford, OR",
 
     confidence: 0.82,
+
     reports: 4,
+
     clusters: 2,
 
     duration: "36m",
+
     escalation: "TRACKING",
+
     recurrence: "LOW",
+
     trend: "STABLE",
 
     active: true,
 
+    // ------------------------------------------------------
+    // REASONING
+    // ------------------------------------------------------
+
     reasoning: [
+
       "Semantic convergence detected across independent observers",
+
       "Temporal compression indicates synchronized observation window",
+
       "Spatial manifold overlap exceeds emergence threshold",
+
       "Infrastructure density sufficient for investigation vectors",
     ],
 
+    // ------------------------------------------------------
+    // TOPOLOGY
+    // ------------------------------------------------------
+
+    topology: {
+
+      stability_state:
+        "FRAGMENTED",
+
+      ambiguity_state:
+        "HIGH",
+
+      contradiction_density:
+        1.0,
+
+      residual_instability:
+        0.716,
+
+      entanglement_score:
+        0.75,
+
+      cluster_fragmentation:
+        0.50,
+    },
+
+    // ------------------------------------------------------
+    // OBSERVATIONS
+    // ------------------------------------------------------
+
     observations: [
+
       {
         id: "OBS-1001",
+
         time: "21:04 UTC",
+
         location: "North Medford",
+
         summary:
           "Stationary luminous object with rapid directional shift",
       },
 
       {
         id: "OBS-1002",
+
         time: "21:08 UTC",
+
         location: "Central Point",
+
         summary:
           "Triangular formation observed moving silently",
       },
 
       {
         id: "OBS-1003",
+
         time: "21:12 UTC",
+
         location: "Jacksonville",
+
         summary:
           "Bright object accelerating beyond visible range",
       },
 
       {
         id: "OBS-1004",
+
         time: "21:16 UTC",
+
         location: "East Medford",
+
         summary:
           "Repeated hovering behavior with intermittent luminosity",
       },
     ],
 
+    // ------------------------------------------------------
+    // FACILITIES
+    // ------------------------------------------------------
+
     facilities: [
+
       {
         name: "Medford ATC Tower",
+
         type: "ATC",
+
         distance: "4.1km",
       },
 
       {
         name: "Rogue Valley Intl Airport",
+
         type: "AIRPORT OPS",
+
         distance: "5.2km",
       },
 
       {
         name: "KMAX NEXRAD",
+
         type: "RADAR",
+
         distance: "41km",
       },
     ],
   },
 
+  // ========================================================
+  // PACIFIC EVENT
+  // ========================================================
+
   {
     id: "E-PACIFIC-004",
+
     location: "Pacific Sector",
 
     confidence: 0.91,
+
     reports: 7,
+
     clusters: 1,
 
     duration: "42m",
+
     escalation: "HIGH",
+
     recurrence: "SIGNATURE DETECTED",
+
     trend: "STABLE",
 
     active: true,
 
+    // ------------------------------------------------------
+    // REASONING
+    // ------------------------------------------------------
+
     reasoning: [
+
       "Multi-observer semantic resonance detected",
+
       "Behavioral convergence suggests persistent object continuity",
+
       "Geo-spatial density stabilized rapidly",
+
       "Historical recurrence similarity identified",
     ],
 
+    // ------------------------------------------------------
+    // TOPOLOGY
+    // ------------------------------------------------------
+
+    topology: {
+
+      stability_state:
+        "UNSTABLE",
+
+      ambiguity_state:
+        "MODERATE",
+
+      contradiction_density:
+        0.62,
+
+      residual_instability:
+        0.48,
+
+      entanglement_score:
+        0.44,
+
+      cluster_fragmentation:
+        0.21,
+    },
+
+    // ------------------------------------------------------
+    // OBSERVATIONS
+    // ------------------------------------------------------
+
     observations: [
+
       {
         id: "OBS-2001",
+
         time: "04:11 UTC",
+
         location: "Pacific Corridor",
+
         summary:
           "Fast-moving luminous object with abrupt stop",
       },
 
       {
         id: "OBS-2002",
+
         time: "04:14 UTC",
+
         location: "Marine Observation Zone",
+
         summary:
           "Object observed accelerating without visible propulsion",
       },
     ],
 
+    // ------------------------------------------------------
+    // FACILITIES
+    // ------------------------------------------------------
+
     facilities: [
+
       {
         name: "Pacific Radar Grid",
+
         type: "RADAR",
+
         distance: "12km",
       },
 
       {
         name: "Naval Monitoring Node",
+
         type: "MIL OPS",
+
         distance: "18km",
       },
     ],
@@ -206,13 +371,17 @@ export const DEMO_EVENTS: EventData[] = [
 // ============================================================
 
 type EventContextType = {
+
   events: EventData[];
 
   activeEvent: EventData | null;
 
-  setActiveEvent: (event: EventData) => void;
+  setActiveEvent: (
+    event: EventData
+  ) => void;
 
-  activeSurface: InvestigationSurface;
+  activeSurface:
+    InvestigationSurface;
 
   setActiveSurface: (
     surface: InvestigationSurface
@@ -224,9 +393,9 @@ type EventContextType = {
 // ============================================================
 
 const EventContext =
-  createContext<EventContextType | undefined>(
-    undefined
-  );
+  createContext<
+    EventContextType | undefined
+  >(undefined);
 
 // ============================================================
 // PROVIDER
@@ -237,24 +406,41 @@ export function EventProvider({
 }: {
   children: ReactNode;
 }) {
+
   const [events] =
-    useState<EventData[]>(DEMO_EVENTS);
+    useState<EventData[]>(
+      DEMO_EVENTS
+    );
 
-  const [activeEvent, setActiveEvent] =
-    useState<EventData | null>(DEMO_EVENTS[0]);
+  const [
+    activeEvent,
+    setActiveEvent,
+  ] =
+    useState<EventData | null>(
+      DEMO_EVENTS[0]
+    );
 
-  const [activeSurface, setActiveSurface] =
-    useState<InvestigationSurface>("SUMMARY");
+  const [
+    activeSurface,
+    setActiveSurface,
+  ] =
+    useState<InvestigationSurface>(
+      "SUMMARY"
+    );
 
   return (
+
     <EventContext.Provider
       value={{
+
         events,
 
         activeEvent,
+
         setActiveEvent,
 
         activeSurface,
+
         setActiveSurface,
       }}
     >
@@ -268,9 +454,12 @@ export function EventProvider({
 // ============================================================
 
 export function useEventContext() {
-  const context = useContext(EventContext);
+
+  const context =
+    useContext(EventContext);
 
   if (!context) {
+
     throw new Error(
       "useEventContext must be used inside EventProvider"
     );

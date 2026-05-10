@@ -387,6 +387,22 @@ def build_cluster_objects(
 
         unresolved_features = []
 
+        # ----------------------------------------------------
+        # TOPOLOGY AGGREGATION
+        # ----------------------------------------------------
+
+        topology_stability = []
+
+        topology_ambiguity = []
+
+        topology_contradiction_density = []
+
+        topology_residual_instability = []
+
+        topology_entanglement = []
+
+        topology_fragmentation = []
+
         for observation in cluster:
 
             geo = observation.get(
@@ -422,6 +438,24 @@ def build_cluster_objects(
                 {}
             )
 
+            # ------------------------------------------------
+            # TOPOLOGY EXTRACTION
+            # ------------------------------------------------
+
+            fusion = pipeline.get(
+                "fusion",
+                {}
+            )
+
+            topology = fusion.get(
+                "topology_state",
+                {}
+            )
+
+            # ------------------------------------------------
+            # RESIDUALS
+            # ------------------------------------------------
+
             residual_strength = residual.get(
                 "residual_strength",
                 0.0
@@ -447,6 +481,58 @@ def build_cluster_objects(
 
             unresolved_features.extend(
                 unresolved
+            )
+
+            # ------------------------------------------------
+            # TOPOLOGY STATE
+            # ------------------------------------------------
+
+            topology_stability.append(
+
+                topology.get(
+                    "stability",
+                    0.0
+                )
+            )
+
+            topology_ambiguity.append(
+
+                topology.get(
+                    "ambiguity",
+                    0.0
+                )
+            )
+
+            topology_contradiction_density.append(
+
+                topology.get(
+                    "contradiction_density",
+                    0.0
+                )
+            )
+
+            topology_residual_instability.append(
+
+                topology.get(
+                    "residual_instability",
+                    0.0
+                )
+            )
+
+            topology_entanglement.append(
+
+                topology.get(
+                    "entanglement",
+                    0.0
+                )
+            )
+
+            topology_fragmentation.append(
+
+                topology.get(
+                    "fragmentation",
+                    0.0
+                )
             )
 
         cluster_center = {
@@ -490,6 +576,64 @@ def build_cluster_objects(
                 set(unresolved_features)
             )
         )
+
+        # ----------------------------------------------------
+        # TOPOLOGY METRICS
+        # ----------------------------------------------------
+
+        avg_stability = round(
+
+            sum(topology_stability)
+            / len(topology_stability),
+
+            3
+
+        ) if topology_stability else 0.0
+
+        avg_ambiguity = round(
+
+            sum(topology_ambiguity)
+            / len(topology_ambiguity),
+
+            3
+
+        ) if topology_ambiguity else 0.0
+
+        avg_contradiction_density = round(
+
+            sum(topology_contradiction_density)
+            / len(topology_contradiction_density),
+
+            3
+
+        ) if topology_contradiction_density else 0.0
+
+        avg_residual_instability = round(
+
+            sum(topology_residual_instability)
+            / len(topology_residual_instability),
+
+            3
+
+        ) if topology_residual_instability else 0.0
+
+        avg_entanglement = round(
+
+            sum(topology_entanglement)
+            / len(topology_entanglement),
+
+            3
+
+        ) if topology_entanglement else 0.0
+
+        avg_fragmentation = round(
+
+            sum(topology_fragmentation)
+            / len(topology_fragmentation),
+
+            3
+
+        ) if topology_fragmentation else 0.0
 
         # ----------------------------------------------------
         # EMERGENCE WEIGHTED CONFIDENCE
@@ -540,6 +684,7 @@ def build_cluster_objects(
             # ------------------------------------------------
             # KOD EMERGENCE
             # ------------------------------------------------
+
             "kod_emergence": {
 
                 "avg_residual_strength":
@@ -553,6 +698,31 @@ def build_cluster_objects(
 
                 "emergence_confidence":
                     emergence_confidence,
+            },
+
+            # ------------------------------------------------
+            # KOD TOPOLOGY
+            # ------------------------------------------------
+
+            "kod_topology": {
+
+                "avg_stability":
+                    avg_stability,
+
+                "avg_ambiguity":
+                    avg_ambiguity,
+
+                "avg_contradiction_density":
+                    avg_contradiction_density,
+
+                "avg_residual_instability":
+                    avg_residual_instability,
+
+                "avg_entanglement":
+                    avg_entanglement,
+
+                "avg_fragmentation":
+                    avg_fragmentation
             },
 
             "reports":
@@ -592,6 +762,17 @@ def apply_cluster_intelligence(
             intel["kod_emergence"] = (
                 cluster.get(
                     "kod_emergence",
+                    {}
+                )
+            )
+
+            # ------------------------------------------------
+            # PRESERVE KOD TOPOLOGY
+            # ------------------------------------------------
+
+            intel["kod_topology"] = (
+                cluster.get(
+                    "kod_topology",
                     {}
                 )
             )
