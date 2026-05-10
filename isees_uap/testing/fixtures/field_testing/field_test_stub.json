@@ -1,0 +1,5 @@
+{
+  "fixture_name": "field_test_stub",
+  "trust_domain": "field_testing",
+  "observer_mode": "remote_tester"
+}

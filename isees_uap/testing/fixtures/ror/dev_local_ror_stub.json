@@ -1,0 +1,5 @@
+{
+  "fixture_name": "dev_local_ror_stub",
+  "trust_domain": "internal_dev",
+  "observer_mode": "tester"
+}

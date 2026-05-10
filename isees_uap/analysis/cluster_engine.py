@@ -1,6 +1,6 @@
 # ============================================================
 # cluster_engine.py
-# MANIFOLD CLUSTER ENGINE + KOD RESIDUAL INTELLIGENCE (V2)
+# MANIFOLD CLUSTER ENGINE + KOD RESIDUAL INTELLIGENCE (V3)
 # ============================================================
 
 import os
@@ -403,6 +403,24 @@ def build_cluster_objects(
 
         topology_fragmentation = []
 
+        # ----------------------------------------------------
+        # PROVENANCE AGGREGATION
+        # ----------------------------------------------------
+
+        trust_domains = set()
+
+        observer_ids = set()
+
+        synthetic_present = False
+
+        replay_present = False
+
+        fixture_present = False
+
+        environments = set()
+
+        observer_modes = set()
+
         for observation in cluster:
 
             geo = observation.get(
@@ -418,6 +436,69 @@ def build_cluster_objects(
 
             if lon is not None:
                 lons.append(lon)
+
+            # ------------------------------------------------
+            # PROVENANCE EXTRACTION
+            # ------------------------------------------------
+
+            provenance = observation.get(
+                "provenance",
+                {}
+            )
+
+            trust_domain = provenance.get(
+                "trust_domain"
+            )
+
+            observer_id = provenance.get(
+                "observer_id"
+            )
+
+            environment_name = provenance.get(
+                "environment"
+            )
+
+            observer_mode = provenance.get(
+                "observer_mode"
+            )
+
+            if trust_domain:
+                trust_domains.add(
+                    trust_domain
+                )
+
+            if observer_id:
+                observer_ids.add(
+                    observer_id
+                )
+
+            if environment_name:
+                environments.add(
+                    environment_name
+                )
+
+            if observer_mode:
+                observer_modes.add(
+                    observer_mode
+                )
+
+            if provenance.get(
+                "synthetic",
+                False
+            ):
+                synthetic_present = True
+
+            if provenance.get(
+                "replay",
+                False
+            ):
+                replay_present = True
+
+            if provenance.get(
+                "fixture",
+                False
+            ):
+                fixture_present = True
 
             # ------------------------------------------------
             # KOD EXTRACTION
@@ -664,6 +745,45 @@ def build_cluster_objects(
         )
 
         # ----------------------------------------------------
+        # PROVENANCE SUMMARY
+        # ----------------------------------------------------
+
+        provenance_summary = {
+
+            "trust_domains":
+                sorted(
+                    list(trust_domains)
+                ),
+
+            "observer_ids":
+                sorted(
+                    list(observer_ids)
+                ),
+
+            "environments":
+                sorted(
+                    list(environments)
+                ),
+
+            "observer_modes":
+                sorted(
+                    list(observer_modes)
+                ),
+
+            "mixed_domain_cluster":
+                len(trust_domains) > 1,
+
+            "synthetic_present":
+                synthetic_present,
+
+            "fixture_present":
+                fixture_present,
+
+            "replay_present":
+                replay_present
+        }
+
+        # ----------------------------------------------------
         # BUILD OBJECT
         # ----------------------------------------------------
 
@@ -725,6 +845,13 @@ def build_cluster_objects(
                     avg_fragmentation
             },
 
+            # ------------------------------------------------
+            # PROVENANCE VISIBILITY
+            # ------------------------------------------------
+
+            "provenance_summary":
+                provenance_summary,
+
             "reports":
                 cluster
         })
@@ -773,6 +900,17 @@ def apply_cluster_intelligence(
             intel["kod_topology"] = (
                 cluster.get(
                     "kod_topology",
+                    {}
+                )
+            )
+
+            # ------------------------------------------------
+            # PRESERVE PROVENANCE
+            # ------------------------------------------------
+
+            intel["provenance_summary"] = (
+                cluster.get(
+                    "provenance_summary",
                     {}
                 )
             )

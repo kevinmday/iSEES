@@ -69,13 +69,18 @@ def normalize_observation(
     # --------------------------------------------------------
     # IMMUTABLE COPY SAFETY
     # --------------------------------------------------------
+
     source = deepcopy(canonical_observation)
 
-    observation = source.get("observation", {})
+    observation = source.get(
+        "observation",
+        {}
+    )
 
     # --------------------------------------------------------
     # CORE IDS
     # --------------------------------------------------------
+
     observation_id = observation.get(
         "observation_id",
         ""
@@ -84,6 +89,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # RAW SOURCE FIELDS
     # --------------------------------------------------------
+
     observation_time = observation.get(
         "observation_time",
         {}
@@ -96,6 +102,11 @@ def normalize_observation(
 
     observer = observation.get(
         "observer",
+        {}
+    )
+
+    provenance = observation.get(
+        "provenance",
         {}
     )
 
@@ -117,6 +128,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # TEMPORAL NORMALIZATION
     # --------------------------------------------------------
+
     normalized_time = normalize_time(
         observation_time
     )
@@ -124,6 +136,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # GEO NORMALIZATION
     # --------------------------------------------------------
+
     normalized_geo = normalize_geo(
         raw_geo
     )
@@ -131,6 +144,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # LANGUAGE NORMALIZATION
     # --------------------------------------------------------
+
     normalized_language = normalize_language(
         observer,
         content
@@ -139,6 +153,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # NARRATIVE NORMALIZATION
     # --------------------------------------------------------
+
     normalized_content = {
 
         "narrative_raw":
@@ -171,6 +186,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # SEMANTIC PREPROCESSING
     # --------------------------------------------------------
+
     semantic_data = preprocess_semantics(
         normalized_content
     )
@@ -178,6 +194,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # TOKEN GENERATION
     # --------------------------------------------------------
+
     token_data = generate_tokens(
         semantic_data
     )
@@ -185,6 +202,7 @@ def normalize_observation(
     # --------------------------------------------------------
     # VECTOR GENERATION
     # --------------------------------------------------------
+
     vector_data = generate_vectors(
         token_data
     )
@@ -192,11 +210,13 @@ def normalize_observation(
     # --------------------------------------------------------
     # BUILD NORMALIZED OBJECT
     # --------------------------------------------------------
+
     normalized = {
 
         # ----------------------------------------------------
         # METADATA
         # ----------------------------------------------------
+
         "schema_version": "1.0",
 
         "normalization_version": "1.0",
@@ -207,12 +227,15 @@ def normalize_observation(
         # ----------------------------------------------------
         # ROOT OBJECT
         # ----------------------------------------------------
+
         "normalized_observation": {
 
             # ------------------------------------------------
             # LINEAGE
             # ------------------------------------------------
-            "observation_id": observation_id,
+
+            "observation_id":
+                observation_id,
 
             "source_schema_version":
                 source.get(
@@ -221,50 +244,65 @@ def normalize_observation(
                 ),
 
             # ------------------------------------------------
+            # PROVENANCE
+            # ------------------------------------------------
+
+            "provenance":
+                provenance,
+
+            # ------------------------------------------------
             # TEMPORAL NORMALIZATION
             # ------------------------------------------------
+
             "normalized_time":
                 normalized_time,
 
             # ------------------------------------------------
             # GEO NORMALIZATION
             # ------------------------------------------------
+
             "normalized_geo":
                 normalized_geo,
 
             # ------------------------------------------------
             # LANGUAGE NORMALIZATION
             # ------------------------------------------------
+
             "language":
                 normalized_language,
 
             # ------------------------------------------------
             # NORMALIZED CONTENT
             # ------------------------------------------------
+
             "normalized_content":
                 normalized_content,
 
             # ------------------------------------------------
             # SEMANTIC PREPROCESSING
             # ------------------------------------------------
+
             "semantic_preprocessing":
                 semantic_data,
 
             # ------------------------------------------------
             # TOKEN DATA
             # ------------------------------------------------
+
             "token_data":
                 token_data,
 
             # ------------------------------------------------
             # VECTOR DATA
             # ------------------------------------------------
+
             "vector_data":
                 vector_data,
 
             # ------------------------------------------------
             # OBJECT FEATURE PREP
             # ------------------------------------------------
+
             "normalized_features": {
 
                 "shape":
@@ -295,6 +333,7 @@ def normalize_observation(
             # ------------------------------------------------
             # ENVIRONMENT PREP
             # ------------------------------------------------
+
             "normalized_environment": {
 
                 "weather":
@@ -325,6 +364,7 @@ def normalize_observation(
             # ------------------------------------------------
             # PIPELINE FLAGS
             # ------------------------------------------------
+
             "pipeline_state": {
 
                 "geo_resolved":

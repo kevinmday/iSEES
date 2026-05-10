@@ -1,0 +1,5 @@
+{
+  "fixture_name": "replay_stub",
+  "trust_domain": "replay_validation",
+  "replay": true
+}

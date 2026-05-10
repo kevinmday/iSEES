@@ -1,6 +1,6 @@
 # ============================================================
 # submit_report.py
-# CANONICAL OBSERVATION INTAKE + KOD INTEGRATION (V2)
+# CANONICAL OBSERVATION INTAKE + KOD INTEGRATION (V3)
 # ============================================================
 
 import os
@@ -188,6 +188,71 @@ def _build_kod_observation_context(
         or "civilian"
     )
 
+    # --------------------------------------------------------
+    # PROVENANCE
+    # --------------------------------------------------------
+
+    observation.provenance.environment = (
+        payload.get(
+            "environment",
+            "development"
+        )
+    )
+
+    observation.provenance.trust_domain = (
+        payload.get(
+            "trust_domain",
+            "internal_dev"
+        )
+    )
+
+    observation.provenance.observer_mode = (
+        payload.get(
+            "observer_mode",
+            "tester"
+        )
+    )
+
+    observation.provenance.synthetic = (
+        payload.get(
+            "synthetic",
+            False
+        )
+    )
+
+    observation.provenance.fixture = (
+        payload.get(
+            "fixture",
+            False
+        )
+    )
+
+    observation.provenance.replay = (
+        payload.get(
+            "replay",
+            False
+        )
+    )
+
+    observation.provenance.ingestion_channel = (
+        payload.get(
+            "submission_channel",
+            "web_form"
+        )
+    )
+
+    observation.provenance.observer_id = (
+        payload.get(
+            "observer_id"
+        )
+    )
+
+    observation.provenance.session_id = (
+        payload.get(
+            "session_id"
+        )
+    )
+
     return observation
 
 
@@ -220,7 +285,7 @@ def build_observation(
         # ----------------------------------------------------
         # SCHEMA METADATA
         # ----------------------------------------------------
-        "schema_version": "2.0",
+        "schema_version": "3.0",
 
         "generated_utc":
             datetime.now(UTC).isoformat(),
@@ -385,6 +450,66 @@ def build_observation(
                     payload.get(
                         "contact_permitted",
                         False
+                    )
+            },
+
+            # ------------------------------------------------
+            # PROVENANCE
+            # ------------------------------------------------
+            "provenance": {
+
+                "environment":
+
+                    payload.get(
+                        "environment",
+                        "development"
+                    ),
+
+                "trust_domain":
+
+                    payload.get(
+                        "trust_domain",
+                        "internal_dev"
+                    ),
+
+                "observer_mode":
+
+                    payload.get(
+                        "observer_mode",
+                        "tester"
+                    ),
+
+                "synthetic":
+
+                    payload.get(
+                        "synthetic",
+                        False
+                    ),
+
+                "fixture":
+
+                    payload.get(
+                        "fixture",
+                        False
+                    ),
+
+                "replay":
+
+                    payload.get(
+                        "replay",
+                        False
+                    ),
+
+                "observer_id":
+
+                    payload.get(
+                        "observer_id"
+                    ),
+
+                "session_id":
+
+                    payload.get(
+                        "session_id"
                     )
             },
 
@@ -635,6 +760,31 @@ if __name__ == "__main__":
 
         "estimated_speed_kts":
             420,
+
+        # ----------------------------------------------------
+        # PROVENANCE TESTING
+        # ----------------------------------------------------
+
+        "environment":
+            "development",
+
+        "trust_domain":
+            "internal_dev",
+
+        "observer_mode":
+            "tester",
+
+        "synthetic":
+            False,
+
+        "fixture":
+            False,
+
+        "replay":
+            False,
+
+        "observer_id":
+            "DEV-001",
     }
 
     result = build_observation(

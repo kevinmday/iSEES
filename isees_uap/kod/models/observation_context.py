@@ -93,6 +93,32 @@ class GeoContext:
 
 
 # ============================================================
+# PROVENANCE CONTEXT
+# ============================================================
+
+@dataclass
+class ProvenanceContext:
+
+    environment: str = "development"
+
+    trust_domain: str = "internal_dev"
+
+    observer_mode: str = "tester"
+
+    synthetic: bool = False
+
+    fixture: bool = False
+
+    replay: bool = False
+
+    ingestion_channel: Optional[str] = None
+
+    observer_id: Optional[str] = None
+
+    session_id: Optional[str] = None
+
+
+# ============================================================
 # OBSERVATION CONTEXT
 # ============================================================
 
@@ -151,6 +177,14 @@ class ObservationContext:
     # --------------------------------------------------------
 
     sensor: SensorContext = field(default_factory=SensorContext)
+
+    # --------------------------------------------------------
+    # PROVENANCE
+    # --------------------------------------------------------
+
+    provenance: ProvenanceContext = field(
+        default_factory=ProvenanceContext
+    )
 
     # --------------------------------------------------------
     # RAW OBSERVATION
@@ -239,6 +273,10 @@ class ObservationContext:
             "candidate_count": self.candidate_count,
             "residual_score": self.residual_score,
             "kod_complete": self.kod_complete,
+            "trust_domain": self.provenance.trust_domain,
+            "observer_mode": self.provenance.observer_mode,
+            "synthetic": self.provenance.synthetic,
+            "replay": self.provenance.replay,
         }
 
 
