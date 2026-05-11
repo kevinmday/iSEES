@@ -1,5 +1,5 @@
 // ============================================================
-// vite.config.ts — DEV PROXY (CRITICAL FOR API BRIDGE)
+// vite.config.ts — DEV PROXY (FIXED ROUTE COLLISION)
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -12,10 +12,12 @@ export default defineConfig({
 
   server: {
     proxy: {
+
       // --------------------------------------------------------
-      // 🔥 REPORT ENDPOINT (CRITICAL)
+      // 🔥 API REPORT ENDPOINT
+      // (frontend /report route now safe)
       // --------------------------------------------------------
-      '/report': {
+      '/api/report': {
         target: 'http://localhost:8001',
         changeOrigin: true,
       },
