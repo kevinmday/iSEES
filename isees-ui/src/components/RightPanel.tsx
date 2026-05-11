@@ -1,11 +1,9 @@
 // ============================================================
 // src/components/RightPanel.tsx
-// CONTEXT-DRIVEN OPERATIONAL INTELLIGENCE (V5)
-// SURFACE-AWARE ADAPTIVE NODE COGNITION
+// CONTEXT-DRIVEN OPERATIONAL INTELLIGENCE (V7)
+// SCHEMA HARDENED + ENRICHED NODE INTELLIGENCE
 // FULL DROP-IN REPLACEMENT
 // ============================================================
-
-import { useState } from "react";
 
 import { useEventContext } from "../context/EventContext";
 
@@ -20,7 +18,9 @@ import { objectRegistry } from "../intel/object_registry";
 function resolveNodeType(
   assetName: string
 ): string {
-  const lower = assetName.toLowerCase();
+
+  const lower =
+    assetName.toLowerCase();
 
   if (
     lower.includes("tower")
@@ -55,24 +55,34 @@ function resolveNodeType(
 // ============================================================
 
 export default function RightPanel() {
+
   const {
+
     activeEvent,
+
     activeSurface,
+
+    selectedOperationalNode,
+
+    setSelectedOperationalNode,
+
   } = useEventContext();
 
-  const [selectedObject, setSelectedObject] =
-    useState<string | null>(null);
-
-  // ----------------------------------------------------------
+  // ==========================================================
   // NO ACTIVE EVENT
-  // ----------------------------------------------------------
+  // ==========================================================
 
   if (!activeEvent) {
+
     return (
+
       <div
         style={{
           padding: 16,
-          fontFamily: "Consolas, monospace",
+
+          fontFamily:
+            "Consolas, monospace",
+
           color: "#94a3b8",
         }}
       >
@@ -81,9 +91,9 @@ export default function RightPanel() {
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // CONTEXT
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const clusterSize =
     activeEvent.clusters || 1;
@@ -93,7 +103,7 @@ export default function RightPanel() {
 
   const assets =
     activeEvent.facilities?.map(
-      (f) => f.name
+      (f: any) => f.name
     ) || [];
 
   // ==========================================================
@@ -103,7 +113,16 @@ export default function RightPanel() {
   const handleSelect = (
     asset: string
   ) => {
-    setSelectedObject(asset);
+
+    const nodeType =
+      resolveNodeType(asset);
+
+    setSelectedOperationalNode({
+
+      name: asset,
+
+      type: nodeType,
+    });
   };
 
   // ==========================================================
@@ -111,20 +130,21 @@ export default function RightPanel() {
   // ==========================================================
 
   const selectedIntel =
-    selectedObject
+    selectedOperationalNode
       ? buildContextualIntel(
-          selectedObject,
+
+          selectedOperationalNode.name,
+
           eventType,
+
           clusterSize
         )
       : null;
 
   const selectedNode =
-    selectedObject
+    selectedOperationalNode
       ? objectRegistry[
-          resolveNodeType(
-            selectedObject
-          )
+          selectedOperationalNode.type
         ]
       : null;
 
@@ -136,6 +156,7 @@ export default function RightPanel() {
     string,
     string
   > = {
+
     SUMMARY:
       "Operational Intelligence",
 
@@ -160,9 +181,11 @@ export default function RightPanel() {
   // ==========================================================
 
   return (
+
     <div
       style={{
         padding: 14,
+
         fontFamily:
           "Consolas, monospace",
 
@@ -170,20 +193,25 @@ export default function RightPanel() {
 
         display: "flex",
 
-        flexDirection: "column",
+        flexDirection:
+          "column",
 
         gap: 16,
       }}
     >
-      {/* =================================================== */}
+
+      {/* ================================================= */}
       {/* ACTIVE EVENT */}
-      {/* =================================================== */}
+      {/* ================================================= */}
 
       <Panel title="Active Event">
+
         <div
           style={{
             fontSize: 18,
+
             fontWeight: 700,
+
             marginBottom: 8,
           }}
         >
@@ -193,7 +221,9 @@ export default function RightPanel() {
         <div
           style={{
             fontSize: 12,
+
             color: "#60a5fa",
+
             marginBottom: 6,
           }}
         >
@@ -203,6 +233,7 @@ export default function RightPanel() {
         <div
           style={{
             fontSize: 12,
+
             color:
               activeEvent.escalation ===
               "HIGH"
@@ -213,11 +244,12 @@ export default function RightPanel() {
           Escalation:{" "}
           {activeEvent.escalation}
         </div>
+
       </Panel>
 
-      {/* =================================================== */}
+      {/* ================================================= */}
       {/* SURFACE PANEL */}
-      {/* =================================================== */}
+      {/* ================================================= */}
 
       <Panel
         title={
@@ -226,71 +258,98 @@ export default function RightPanel() {
           ]
         }
       >
+
         {activeSurface ===
           "SUMMARY" && (
+
           <div
             style={{
               display: "flex",
+
               flexDirection:
                 "column",
 
               gap: 8,
             }}
           >
-            {assets.map((asset) => (
-              <div
-                key={asset}
-                onClick={() =>
-                  handleSelect(asset)
-                }
-                style={{
-                  cursor: "pointer",
 
-                  border:
-                    selectedObject ===
-                    asset
-                      ? "1px solid #38bdf8"
-                      : "1px solid #1f2937",
+            {assets.map(
+              (
+                asset: string
+              ) => {
 
-                  background:
-                    selectedObject ===
-                    asset
-                      ? "#132238"
-                      : "#08101d",
+                const selected =
+                  selectedOperationalNode?.name ===
+                  asset;
 
-                  borderRadius: 6,
+                return (
 
-                  padding: 10,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    marginBottom: 4,
-                  }}
-                >
-                  {asset}
-                </div>
+                  <div
+                    key={asset}
 
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "#94a3b8",
-                  }}
-                >
-                  Click for operational
-                  intelligence
-                </div>
-              </div>
-            ))}
+                    onClick={() =>
+                      handleSelect(asset)
+                    }
+
+                    style={{
+
+                      cursor: "pointer",
+
+                      border:
+                        selected
+                          ? "1px solid #38bdf8"
+                          : "1px solid #1f2937",
+
+                      background:
+                        selected
+                          ? "#132238"
+                          : "#08101d",
+
+                      borderRadius: 6,
+
+                      padding: 10,
+
+                      transition:
+                        "all 0.15s ease",
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        fontSize: 13,
+
+                        fontWeight: 700,
+
+                        marginBottom: 4,
+                      }}
+                    >
+                      {asset}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+
+                        color: "#94a3b8",
+                      }}
+                    >
+                      Click for operational intelligence
+                    </div>
+
+                  </div>
+                );
+              }
+            )}
+
           </div>
         )}
 
         {activeSurface !==
           "SUMMARY" && (
+
           <IntelStack
             rows={[
+
               [
                 "Surface",
                 activeSurface,
@@ -308,25 +367,31 @@ export default function RightPanel() {
             ]}
           />
         )}
+
       </Panel>
 
-      {/* =================================================== */}
+      {/* ================================================= */}
       {/* FOCUSED NODE INTELLIGENCE */}
-      {/* =================================================== */}
+      {/* ================================================= */}
 
       {selectedIntel &&
-        selectedNode && (
+        selectedNode &&
+        selectedOperationalNode && (
+
           <Panel
             title={`Focused Node Intelligence — ${activeSurface}`}
           >
+
             <div
               style={{
                 fontSize: 18,
+
                 fontWeight: 700,
+
                 marginBottom: 16,
               }}
             >
-              {selectedObject}
+              {selectedOperationalNode.name}
             </div>
 
             {/* =========================================== */}
@@ -335,7 +400,9 @@ export default function RightPanel() {
 
             {activeSurface ===
               "SUMMARY" && (
+
               <>
+
                 <IntelRow
                   label="Node Type"
                   value={
@@ -357,6 +424,63 @@ export default function RightPanel() {
                   }
                 />
 
+                {/* ===================================== */}
+                {/* CONTACTS */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Contacts" />
+
+                <IntelStack
+                  rows={[
+
+                    [
+                      "Facility ID",
+                      selectedNode.contacts?.facility_id ||
+                        "Unknown",
+                    ],
+
+                    [
+                      "Ops Phone",
+                      selectedNode.contacts?.ops_phone ||
+                        "Unknown",
+                    ],
+
+                    [
+                      "Tower Frequency",
+                      selectedNode.contacts?.tower_frequency ||
+                        "Unknown",
+                    ],
+
+                    [
+                      "Coordination",
+                      selectedNode.contacts?.coordination_line ||
+                        "Unknown",
+                    ],
+
+                    [
+                      "Reporting Chain",
+                      selectedNode.contacts?.reporting_chain ||
+                        "Unknown",
+                    ],
+                  ]}
+                />
+
+                {/* ===================================== */}
+                {/* SENSOR STACK */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Sensor Stack" />
+
+                <SensorStack
+                  stack={
+                    selectedNode.sensor_stack
+                  }
+                />
+
+                {/* ===================================== */}
+                {/* CAPABILITIES */}
+                {/* ===================================== */}
+
                 <SectionTitle title="Capabilities" />
 
                 <BulletList
@@ -365,13 +489,66 @@ export default function RightPanel() {
                   }
                 />
 
-                <SectionTitle title="Recommended Actions" />
+                {/* ===================================== */}
+                {/* LIMITATIONS */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Limitations" />
 
                 <BulletList
                   items={
-                    selectedNode.recommended_actions
+                    selectedNode.limitations
                   }
                 />
+
+                {/* ===================================== */}
+                {/* BLIND SPOTS */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Blind Spots" />
+
+                <BulletList
+                  items={
+                    selectedNode.blind_spots
+                  }
+                />
+
+                {/* ===================================== */}
+                {/* INVESTIGATIVE VALUE */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Investigative Value" />
+
+                <BulletList
+                  items={
+                    selectedNode.investigative_value
+                  }
+                />
+
+                {/* ===================================== */}
+                {/* RECORD RETENTION */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Record Retention" />
+
+                <BulletList
+                  items={
+                    selectedNode.record_retention
+                  }
+                />
+
+                {/* ===================================== */}
+                {/* OPERATIONAL NOTES */}
+                {/* ===================================== */}
+
+                <SectionTitle title="Operational Notes" />
+
+                <BulletList
+                  items={
+                    selectedNode.operational_notes
+                  }
+                />
+
               </>
             )}
 
@@ -381,7 +558,9 @@ export default function RightPanel() {
 
             {activeSurface ===
               "COLLAPSE" && (
+
               <>
+
                 <IntelRow
                   label="Collapse Relevance"
                   value="Node failed full contextual resolution"
@@ -402,6 +581,7 @@ export default function RightPanel() {
                     selectedNode.limitations
                   }
                 />
+
               </>
             )}
 
@@ -411,7 +591,9 @@ export default function RightPanel() {
 
             {activeSurface ===
               "CANDIDATES" && (
+
               <>
+
                 <IntelRow
                   label="Candidate Support"
                   value="Partial candidate alignment detected"
@@ -432,6 +614,7 @@ export default function RightPanel() {
                     selectedNode.capabilities
                   }
                 />
+
               </>
             )}
 
@@ -441,7 +624,9 @@ export default function RightPanel() {
 
             {activeSurface ===
               "CONTRADICTIONS" && (
+
               <>
+
                 <IntelRow
                   label="Contradiction State"
                   value="Sensor divergence present"
@@ -462,6 +647,7 @@ export default function RightPanel() {
                     selectedNode.operational_notes
                   }
                 />
+
               </>
             )}
 
@@ -471,7 +657,9 @@ export default function RightPanel() {
 
             {activeSurface ===
               "HOTSPOT" && (
+
               <>
+
                 <IntelRow
                   label="Recurrence Relevance"
                   value="Persistent regional infrastructure overlap"
@@ -492,6 +680,7 @@ export default function RightPanel() {
                     selectedNode.operational_notes
                   }
                 />
+
               </>
             )}
 
@@ -501,7 +690,9 @@ export default function RightPanel() {
 
             {activeSurface ===
               "GEO" && (
+
               <>
+
                 <IntelRow
                   label="Infrastructure Relevance"
                   value="Geo-spatial investigative node"
@@ -522,10 +713,13 @@ export default function RightPanel() {
                     selectedNode.limitations
                   }
                 />
+
               </>
             )}
+
           </Panel>
         )}
+
     </div>
   );
 }
@@ -541,9 +735,12 @@ function Panel({
   title: string;
   children: React.ReactNode;
 }) {
+
   return (
+
     <div
       style={{
+
         border:
           "1px solid #1f2937",
 
@@ -554,6 +751,7 @@ function Panel({
         background: "#0b1220",
       }}
     >
+
       <div
         style={{
           fontSize: 11,
@@ -572,6 +770,7 @@ function Panel({
       </div>
 
       {children}
+
     </div>
   );
 }
@@ -585,20 +784,137 @@ function SectionTitle({
 }: {
   title: string;
 }) {
+
   return (
+
     <div
       style={{
         marginTop: 18,
+
         marginBottom: 10,
+
         fontSize: 11,
+
         color: "#60a5fa",
+
         textTransform:
           "uppercase",
+
         letterSpacing: 1,
+
         fontWeight: 700,
       }}
     >
       {title}
+    </div>
+  );
+}
+
+// ============================================================
+// SENSOR STACK
+// ============================================================
+
+function SensorStack({
+  stack,
+}: {
+  stack?: any[];
+}) {
+
+  if (!stack || stack.length === 0) {
+
+    return (
+
+      <div
+        style={{
+          fontSize: 12,
+
+          color: "#64748b",
+
+          fontStyle: "italic",
+        }}
+      >
+        No sensor intelligence available
+      </div>
+    );
+  }
+
+  return (
+
+    <div
+      style={{
+        display: "flex",
+
+        flexDirection:
+          "column",
+
+        gap: 10,
+      }}
+    >
+
+      {stack.map(
+        (
+          sensor,
+          idx
+        ) => (
+
+          <div
+            key={idx}
+
+            style={{
+
+              border:
+                "1px solid #1f2937",
+
+              borderRadius: 6,
+
+              padding: 10,
+
+              background:
+                "#08101d",
+            }}
+          >
+
+            <div
+              style={{
+                fontWeight: 700,
+
+                marginBottom: 6,
+
+                fontSize: 13,
+              }}
+            >
+              {sensor.name}
+            </div>
+
+            <IntelStack
+              rows={[
+
+                [
+                  "Type",
+                  sensor.type,
+                ],
+
+                [
+                  "Range",
+                  sensor.range,
+                ],
+
+                [
+                  "Refresh",
+                  sensor.refresh_rate,
+                ],
+
+                [
+                  "Notes",
+                  sensor.notes,
+                ],
+              ]}
+            />
+
+          </div>
+        )
+      )}
+
     </div>
   );
 }
@@ -610,25 +926,54 @@ function SectionTitle({
 function BulletList({
   items,
 }: {
-  items: string[];
+  items?: string[];
 }) {
+
+  if (!items || items.length === 0) {
+
+    return (
+
+      <div
+        style={{
+          fontSize: 12,
+
+          color: "#64748b",
+
+          fontStyle: "italic",
+        }}
+      >
+        No operational intelligence available
+      </div>
+    );
+  }
+
   return (
+
     <div
       style={{
         display: "flex",
+
         flexDirection:
           "column",
+
         gap: 8,
       }}
     >
+
       {items.map((item, idx) => (
+
         <div
           key={idx}
+
           style={{
             fontSize: 12,
+
             color: "#d1d5db",
+
             lineHeight: 1.5,
+
             paddingLeft: 10,
+
             borderLeft:
               "2px solid #1f2937",
           }}
@@ -636,6 +981,7 @@ function BulletList({
           {item}
         </div>
       ))}
+
     </div>
   );
 }
@@ -649,24 +995,33 @@ function IntelStack({
 }: {
   rows: [string, string][];
 }) {
+
   return (
+
     <div
       style={{
         display: "flex",
+
         flexDirection:
           "column",
+
         gap: 12,
       }}
     >
+
       {rows.map(
         ([label, value]) => (
+
           <IntelRow
             key={label}
+
             label={label}
+
             value={value}
           />
         )
       )}
+
     </div>
   );
 }
@@ -682,7 +1037,9 @@ function IntelRow({
   label: string;
   value: any;
 }) {
+
   return (
+
     <div
       style={{
         paddingBottom: 10,
@@ -691,6 +1048,7 @@ function IntelRow({
           "1px solid #182235",
       }}
     >
+
       <div
         style={{
           fontSize: 10,
@@ -711,12 +1069,15 @@ function IntelRow({
       <div
         style={{
           fontSize: 13,
+
           color: "#e5e7eb",
+
           lineHeight: 1.5,
         }}
       >
         {String(value)}
       </div>
+
     </div>
   );
 }
