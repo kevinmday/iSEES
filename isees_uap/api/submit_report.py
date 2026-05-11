@@ -1,6 +1,8 @@
 # ============================================================
 # submit_report.py
-# CANONICAL OBSERVATION INTAKE + KOD INTEGRATION (V3)
+# CANONICAL OBSERVATION INTAKE + KOD INTEGRATION (V4)
+# build_report CONTRACT RESTORED
+# FULL DROP-IN REPLACEMENT
 # ============================================================
 
 import os
@@ -18,7 +20,6 @@ from isees_uap.kod.kod_manager import (
     KODManager,
     KODExecutionPolicy,
 )
-
 
 # ============================================================
 # PATHS
@@ -38,13 +39,11 @@ os.makedirs(
     exist_ok=True
 )
 
-
 # ============================================================
 # GLOBAL KOD MANAGER
 # ============================================================
 
 KOD_MANAGER = KODManager()
-
 
 # ============================================================
 # ID GENERATION
@@ -60,7 +59,6 @@ def _generate_observation_id() -> str:
 
         f"{str(uuid.uuid4())[:8]}"
     )
-
 
 # ============================================================
 # LOG WRITER
@@ -107,7 +105,6 @@ def _write_observation_log(
             f"[OBSERVATION_LOG_ERROR] {e}"
         )
 
-
 # ============================================================
 # KOD OBSERVATION BUILDER
 # ============================================================
@@ -115,7 +112,6 @@ def _write_observation_log(
 def _build_kod_observation_context(
     payload: Dict[str, Any]
 ) -> ObservationContext:
-
     """
     Convert canonical intake payload into
     KOD observation context.
@@ -255,7 +251,6 @@ def _build_kod_observation_context(
 
     return observation
 
-
 # ============================================================
 # MAIN BUILDER
 # ============================================================
@@ -277,39 +272,138 @@ def build_observation(
     )
 
     # ========================================================
+    # NORMALIZE PUBLIC INTAKE PAYLOAD
+    # ========================================================
+
+    normalized_payload = {
+
+        # ----------------------------------------------------
+        # ROOT
+        # ----------------------------------------------------
+
+        "report_type":
+            payload.get(
+                "report_type",
+                "ROR"
+            ),
+
+        "submission_channel":
+            "web_form",
+
+        # ----------------------------------------------------
+        # LOCATION
+        # ----------------------------------------------------
+
+        "location_text":
+            payload.get(
+                "location",
+                ""
+            ),
+
+        # ----------------------------------------------------
+        # TIME
+        # ----------------------------------------------------
+
+        "time_raw":
+            (
+                payload.get(
+                    "event",
+                    {}
+                ).get(
+                    "time_local",
+                    ""
+                )
+            ),
+
+        "duration_raw":
+            str(
+                payload.get(
+                    "event",
+                    {}
+                ).get(
+                    "duration_seconds",
+                    ""
+                )
+            ),
+
+        # ----------------------------------------------------
+        # ENVIRONMENT
+        # ----------------------------------------------------
+
+        "weather_raw":
+            (
+                payload.get(
+                    "environment",
+                    {}
+                ).get(
+                    "notes",
+                    ""
+                )
+            ),
+
+        # ----------------------------------------------------
+        # NARRATIVE
+        # ----------------------------------------------------
+
+        "narrative_raw":
+            payload.get(
+                "description",
+                ""
+            ),
+
+        # ----------------------------------------------------
+        # PROVENANCE
+        # ----------------------------------------------------
+
+        "environment":
+            "development",
+
+        "trust_domain":
+            "public_ror",
+
+        "observer_mode":
+            "civilian_submission",
+
+        "synthetic":
+            False,
+
+        "fixture":
+            False,
+
+        "replay":
+            False,
+    }
+
+    # ========================================================
     # CANONICAL OBSERVATION
     # ========================================================
 
     observation = {
 
-        # ----------------------------------------------------
-        # SCHEMA METADATA
-        # ----------------------------------------------------
-        "schema_version": "3.0",
+        "schema_version": "4.0",
 
         "generated_utc":
             datetime.now(UTC).isoformat(),
 
-        # ----------------------------------------------------
-        # ROOT OBSERVATION OBJECT
-        # ----------------------------------------------------
         "observation": {
 
             # ------------------------------------------------
-            # CORE IDENTITY
+            # CORE
             # ------------------------------------------------
+
             "observation_id":
                 observation_id,
 
             "report_type":
-                payload.get(
+                normalized_payload.get(
                     "report_type",
                     "ROR"
                 ),
 
             # ------------------------------------------------
-            # SUBMISSION METADATA
+            # SUBMISSION
             # ------------------------------------------------
+
             "submission": {
 
                 "submission_time_utc":
@@ -320,276 +414,57 @@ def build_observation(
 
                 "submission_channel":
 
-                    payload.get(
+                    normalized_payload.get(
                         "submission_channel",
                         "web_form"
                     ),
-
-                "client_version":
-
-                    payload.get(
-                        "client_version",
-                        "unknown"
-                    ),
-
-                "session_id":
-
-                    payload.get(
-                        "session_id",
-                        ""
-                    )
             },
 
             # ------------------------------------------------
-            # OBSERVATION TIME
+            # TIME
             # ------------------------------------------------
+
             "observation_time": {
 
                 "time_raw":
 
-                    payload.get(
+                    normalized_payload.get(
                         "time_raw",
-                        ""
-                    ),
-
-                "timezone_raw":
-
-                    payload.get(
-                        "timezone_raw",
-                        ""
-                    ),
-
-                "time_accuracy":
-
-                    payload.get(
-                        "time_accuracy",
                         ""
                     ),
 
                 "duration_raw":
 
-                    payload.get(
+                    normalized_payload.get(
                         "duration_raw",
                         ""
-                    )
+                    ),
             },
 
             # ------------------------------------------------
-            # RAW GEO
+            # GEO
             # ------------------------------------------------
+
             "raw_geo": {
 
                 "location_text":
 
-                    payload.get(
+                    normalized_payload.get(
                         "location_text",
                         ""
-                    ),
-
-                "lat":
-                    payload.get("lat"),
-
-                "lon":
-                    payload.get("lon"),
-
-                "altitude_raw":
-
-                    payload.get(
-                        "altitude_raw"
-                    ),
-
-                "geo_source":
-
-                    payload.get(
-                        "geo_source",
-                        ""
-                    ),
-
-                "location_accuracy":
-
-                    payload.get(
-                        "location_accuracy",
-                        ""
-                    )
-            },
-
-            # ------------------------------------------------
-            # OBSERVER
-            # ------------------------------------------------
-            "observer": {
-
-                "observer_type":
-
-                    payload.get(
-                        "observer_type",
-                        ""
-                    ),
-
-                "observer_count":
-
-                    payload.get(
-                        "observer_count"
-                    ),
-
-                "language_raw":
-
-                    payload.get(
-                        "language_raw",
-                        ""
-                    ),
-
-                "experience_level":
-
-                    payload.get(
-                        "experience_level",
-                        ""
-                    ),
-
-                "contact_permitted":
-
-                    payload.get(
-                        "contact_permitted",
-                        False
-                    )
-            },
-
-            # ------------------------------------------------
-            # PROVENANCE
-            # ------------------------------------------------
-            "provenance": {
-
-                "environment":
-
-                    payload.get(
-                        "environment",
-                        "development"
-                    ),
-
-                "trust_domain":
-
-                    payload.get(
-                        "trust_domain",
-                        "internal_dev"
-                    ),
-
-                "observer_mode":
-
-                    payload.get(
-                        "observer_mode",
-                        "tester"
-                    ),
-
-                "synthetic":
-
-                    payload.get(
-                        "synthetic",
-                        False
-                    ),
-
-                "fixture":
-
-                    payload.get(
-                        "fixture",
-                        False
-                    ),
-
-                "replay":
-
-                    payload.get(
-                        "replay",
-                        False
-                    ),
-
-                "observer_id":
-
-                    payload.get(
-                        "observer_id"
-                    ),
-
-                "session_id":
-
-                    payload.get(
-                        "session_id"
                     )
             },
 
             # ------------------------------------------------
             # ENVIRONMENT
             # ------------------------------------------------
+
             "environment": {
 
                 "weather_raw":
 
-                    payload.get(
+                    normalized_payload.get(
                         "weather_raw",
-                        ""
-                    ),
-
-                "visibility_raw":
-
-                    payload.get(
-                        "visibility_raw",
-                        ""
-                    ),
-
-                "terrain_raw":
-
-                    payload.get(
-                        "terrain_raw",
-                        ""
-                    ),
-
-                "light_conditions_raw":
-
-                    payload.get(
-                        "light_conditions_raw",
-                        ""
-                    )
-            },
-
-            # ------------------------------------------------
-            # OBJECT DESCRIPTION
-            # ------------------------------------------------
-            "object_description": {
-
-                "shape_raw":
-
-                    payload.get(
-                        "shape_raw",
-                        ""
-                    ),
-
-                "movement_raw":
-
-                    payload.get(
-                        "movement_raw",
-                        ""
-                    ),
-
-                "lights_raw":
-
-                    payload.get(
-                        "lights_raw",
-                        ""
-                    ),
-
-                "sound_raw":
-
-                    payload.get(
-                        "sound_raw",
-                        ""
-                    ),
-
-                "object_count_raw":
-
-                    payload.get(
-                        "object_count_raw"
-                    ),
-
-                "additional_characteristics_raw":
-
-                    payload.get(
-                        "additional_characteristics_raw",
                         ""
                     )
             },
@@ -597,65 +472,64 @@ def build_observation(
             # ------------------------------------------------
             # CONTENT
             # ------------------------------------------------
+
             "content": {
 
                 "narrative_raw":
 
-                    payload.get(
+                    normalized_payload.get(
                         "narrative_raw",
                         ""
-                    ),
-
-                "media_raw":
-
-                    payload.get(
-                        "media_raw",
-                        []
                     )
             },
 
             # ------------------------------------------------
-            # CLIENT METADATA
+            # PROVENANCE
             # ------------------------------------------------
-            "client_metadata": {
 
-                "device_type":
+            "provenance": {
 
-                    payload.get(
-                        "device_type",
-                        ""
+                "environment":
+
+                    normalized_payload.get(
+                        "environment",
+                        "development"
                     ),
 
-                "platform":
+                "trust_domain":
 
-                    payload.get(
-                        "platform",
-                        ""
+                    normalized_payload.get(
+                        "trust_domain",
+                        "internal_dev"
                     ),
 
-                "app_language":
+                "observer_mode":
 
-                    payload.get(
-                        "app_language",
-                        ""
+                    normalized_payload.get(
+                        "observer_mode",
+                        "tester"
                     ),
 
-                "network_type":
+                "synthetic":
 
-                    payload.get(
-                        "network_type",
-                        ""
+                    normalized_payload.get(
+                        "synthetic",
+                        False
+                    ),
+
+                "fixture":
+
+                    normalized_payload.get(
+                        "fixture",
+                        False
+                    ),
+
+                "replay":
+
+                    normalized_payload.get(
+                        "replay",
+                        False
                     )
-            },
-
-            # ------------------------------------------------
-            # INTEGRITY PLACEHOLDERS
-            # ------------------------------------------------
-            "integrity": {
-
-                "hash": "",
-
-                "signature": ""
             }
         }
     }
@@ -668,7 +542,7 @@ def build_observation(
 
         kod_observation = (
             _build_kod_observation_context(
-                payload
+                normalized_payload
             )
         )
 
@@ -698,7 +572,7 @@ def build_observation(
         )
 
     # ========================================================
-    # PERSIST CANONICAL OBSERVATION
+    # PERSIST
     # ========================================================
 
     _write_observation_log(
@@ -707,96 +581,15 @@ def build_observation(
 
     return observation
 
-
 # ============================================================
-# TEST HARNESS
+# 🔥 RESTORE OLD CONTRACT
+# REQUIRED FOR API IMPORT COMPATIBILITY
 # ============================================================
 
-if __name__ == "__main__":
+def build_report(
+    payload: Dict[str, Any]
+) -> Dict[str, Any]:
 
-    from pprint import pprint
-
-    payload = {
-
-        "report_type":
-            "ROR",
-
-        "submission_channel":
-            "web_form",
-
-        "location_text":
-            "Medford Oregon",
-
-        "lat":
-            42.374,
-
-        "lon":
-            -122.871,
-
-        "observer_type":
-            "civilian",
-
-        "shape_raw":
-            "bright_white_light",
-
-        "movement_raw":
-            "instant vertical maneuvering",
-
-        "lights_raw":
-            "bright white",
-
-        "sound_raw":
-            "silent",
-
-        "narrative_raw":
-            (
-                "Bright white object moved "
-                "instantly across the sky "
-                "with no sound."
-            ),
-
-        "estimated_altitude_ft":
-            30000,
-
-        "estimated_speed_kts":
-            420,
-
-        # ----------------------------------------------------
-        # PROVENANCE TESTING
-        # ----------------------------------------------------
-
-        "environment":
-            "development",
-
-        "trust_domain":
-            "internal_dev",
-
-        "observer_mode":
-            "tester",
-
-        "synthetic":
-            False,
-
-        "fixture":
-            False,
-
-        "replay":
-            False,
-
-        "observer_id":
-            "DEV-001",
-    }
-
-    result = build_observation(
+    return build_observation(
         payload
     )
-
-    print()
-    print("================================================")
-    print("CANONICAL OBSERVATION + KOD")
-    print("================================================")
-    print()
-
-    pprint(result)
-
-    print()
