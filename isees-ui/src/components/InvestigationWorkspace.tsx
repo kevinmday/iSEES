@@ -1,11 +1,14 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
-// OPERATIONAL INVESTIGATION WORKSPACE (V6)
-// TOPOLOGY INTERACTION ENABLED
+// OPERATIONAL INVESTIGATION WORKSPACE (V7)
+// PROCEDURAL COGNITION ENABLED
+// INVESTIGATION VECTOR GENERATION ACTIVE
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import { useEventContext } from "../context/EventContext";
+
+import { objectRegistry } from "../intel/object_registry";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -35,7 +38,9 @@ function MetricBox({
   label: string;
   value: string | number;
 }) {
+
   return (
+
     <div
       style={{
         border: "1px solid #1f2937",
@@ -44,6 +49,7 @@ function MetricBox({
         background: "#08101f",
       }}
     >
+
       <div
         style={{
           fontSize: 10,
@@ -65,6 +71,7 @@ function MetricBox({
       >
         {value}
       </div>
+
     </div>
   );
 }
@@ -82,7 +89,9 @@ function SurfaceButton({
   active: boolean;
   onClick: () => void;
 }) {
+
   return (
+
     <button
       onClick={onClick}
       style={{
@@ -129,7 +138,9 @@ function SurfaceBlock({
   title: string;
   children: React.ReactNode;
 }) {
+
   return (
+
     <div
       style={{
         border: "1px solid #1f2937",
@@ -138,6 +149,7 @@ function SurfaceBlock({
         background: "#08101f",
       }}
     >
+
       <div
         style={{
           fontSize: 13,
@@ -151,6 +163,7 @@ function SurfaceBlock({
       </div>
 
       {children}
+
     </div>
   );
 }
@@ -166,7 +179,9 @@ function DetailRow({
   label: string;
   value: string | number;
 }) {
+
   return (
+
     <div
       style={{
         display: "flex",
@@ -176,6 +191,7 @@ function DetailRow({
         borderBottom: "1px solid #172033",
       }}
     >
+
       <div
         style={{
           fontSize: 12,
@@ -196,8 +212,214 @@ function DetailRow({
       >
         {value}
       </div>
+
     </div>
   );
+}
+
+// ============================================================
+// VECTOR BUILDER
+// ============================================================
+
+function buildInvestigationVectors({
+  surface,
+  node,
+  topology,
+}: {
+  surface: string;
+  node: any;
+  topology: any;
+}) {
+
+  const vectors: string[] = [];
+
+  if (!node) {
+
+    return [
+      "Select an operational node to begin procedural investigation reasoning.",
+    ];
+  }
+
+  // ==========================================================
+  // SUMMARY
+  // ==========================================================
+
+  if (surface === "SUMMARY") {
+
+    vectors.push(
+      "Pull operational logs during synchronized observation window."
+    );
+
+    vectors.push(
+      "Cross-reference pilot communications with manifold overlap timing."
+    );
+
+    vectors.push(
+      "Validate whether sensor coverage aligns with reported emergence geometry."
+    );
+
+    vectors.push(
+      "Correlate tower observations against regional radar coordination."
+    );
+  }
+
+  // ==========================================================
+  // CONTRADICTIONS
+  // ==========================================================
+
+  if (surface === "CONTRADICTIONS") {
+
+    (node.contradiction_vectors || []).forEach(
+      (v: string) => vectors.push(v)
+    );
+
+    vectors.push(
+      "Investigate divergence between visual confirmation and sensor correlation."
+    );
+
+    vectors.push(
+      "Evaluate transponder absence against topology instability propagation."
+    );
+  }
+
+  // ==========================================================
+  // COLLAPSE
+  // ==========================================================
+
+  if (surface === "COLLAPSE") {
+
+    (node.collapse_failure_modes || []).forEach(
+      (v: string) => vectors.push(v)
+    );
+
+    vectors.push(
+      "Assess terrain masking against radar horizon geometry."
+    );
+
+    vectors.push(
+      "Evaluate low-RCS collapse pathways against sensor refresh intervals."
+    );
+
+    vectors.push(
+      `Residual instability currently measured at ${topology.residual_instability || 0}.`
+    );
+  }
+
+  // ==========================================================
+  // HOTSPOT
+  // ==========================================================
+
+  if (surface === "HOTSPOT") {
+
+    vectors.push(
+      "Compare current emergence geometry against historical recurrence zones."
+    );
+
+    vectors.push(
+      "Cross-reference infrastructure overlap with prior hotspot memory."
+    );
+
+    vectors.push(
+      "Evaluate whether regional node convergence indicates persistent manifold recurrence."
+    );
+  }
+
+  // ==========================================================
+  // GEO
+  // ==========================================================
+
+  if (surface === "GEO") {
+
+    (node.geo_constraints || []).forEach(
+      (v: string) => vectors.push(v)
+    );
+
+    vectors.push(
+      "Evaluate terrain geometry against observational visibility windows."
+    );
+
+    vectors.push(
+      "Assess infrastructure placement relative to manifold propagation pathways."
+    );
+  }
+
+  // ==========================================================
+  // CANDIDATES
+  // ==========================================================
+
+  if (surface === "CANDIDATES") {
+
+    (node.observation_vectors || []).forEach(
+      (v: string) => vectors.push(v)
+    );
+
+    vectors.push(
+      "Evaluate candidate alignment against operational sensor capabilities."
+    );
+
+    vectors.push(
+      "Cross-check candidate consistency against contradiction density."
+    );
+  }
+
+  // ==========================================================
+  // ENTANGLEMENT
+  // ==========================================================
+
+  if (surface === "ENTANGLEMENT") {
+
+    vectors.push(
+      "Investigate cross-domain coupling between active collapse basins."
+    );
+
+    vectors.push(
+      "Determine whether sensor observations exhibit synchronized manifold interaction."
+    );
+
+    vectors.push(
+      `Global entanglement currently estimated at ${topology.entanglement_score || 0}.`
+    );
+  }
+
+  // ==========================================================
+  // RESIDUAL
+  // ==========================================================
+
+  if (surface === "RESIDUAL") {
+
+    vectors.push(
+      "Trace unresolved manifold pressure propagation across infrastructure nodes."
+    );
+
+    vectors.push(
+      "Evaluate whether residual instability persists across independent observers."
+    );
+
+    vectors.push(
+      `Residual propagation currently measured at ${topology.residual_instability || 0}.`
+    );
+  }
+
+  // ==========================================================
+  // CLUSTERS
+  // ==========================================================
+
+  if (surface === "CLUSTERS") {
+
+    vectors.push(
+      "Evaluate fragmentation between independent collapse basins."
+    );
+
+    vectors.push(
+      "Determine whether cluster separation reflects true topology divergence."
+    );
+
+    vectors.push(
+      `Cluster fragmentation currently estimated at ${topology.cluster_fragmentation || 0}.`
+    );
+  }
+
+  return vectors;
 }
 
 // ============================================================
@@ -213,6 +435,8 @@ export default function InvestigationWorkspace() {
     activeSurface,
 
     setActiveSurface,
+
+    selectedOperationalNode,
 
   } = useEventContext();
 
@@ -247,10 +471,6 @@ export default function InvestigationWorkspace() {
   const observability =
     event.topology_observability || {};
 
-  // ==========================================================
-  // SAFE DATA
-  // ==========================================================
-
   const overlapRegions =
     observability.overlap_regions || [];
 
@@ -262,6 +482,33 @@ export default function InvestigationWorkspace() {
 
   const collapseClusters =
     observability.collapse_clusters || {};
+
+  // ==========================================================
+  // SELECTED NODE
+  // ==========================================================
+
+  const selectedNode =
+    selectedOperationalNode
+      ? objectRegistry[
+          selectedOperationalNode.type
+        ]
+      : null;
+
+  // ==========================================================
+  // INVESTIGATION VECTORS
+  // ==========================================================
+
+  const investigationVectors =
+    buildInvestigationVectors({
+
+      surface:
+        activeSurface,
+
+      node:
+        selectedNode,
+
+      topology,
+    });
 
   // ==========================================================
   // TOPOLOGY INTERPRETATION
@@ -360,10 +607,6 @@ export default function InvestigationWorkspace() {
 
         </div>
 
-        {/* ============================================= */}
-        {/* METRICS */}
-        {/* ============================================= */}
-
         <div
           style={{
             display: "grid",
@@ -404,6 +647,7 @@ export default function InvestigationWorkspace() {
           />
 
         </div>
+
       </div>
 
       {/* ================================================= */}
@@ -475,6 +719,10 @@ export default function InvestigationWorkspace() {
             </div>
 
           </SurfaceBlock>
+
+          {/* ============================================= */}
+          {/* TOPOLOGY STATE */}
+          {/* ============================================= */}
 
           <SurfaceBlock title="Topology State">
 
@@ -566,6 +814,48 @@ export default function InvestigationWorkspace() {
 
           </SurfaceBlock>
 
+          {/* ============================================= */}
+          {/* INVESTIGATION VECTORS */}
+          {/* ============================================= */}
+
+          <SurfaceBlock title="Investigation Vectors">
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+
+              {investigationVectors.map(
+                (vector, idx) => (
+
+                  <div
+                    key={idx}
+                    style={{
+                      padding: 14,
+                      border:
+                        "1px solid #1f2937",
+                      borderRadius: 8,
+                      background: "#0b1220",
+                      color: "#d1d5db",
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      borderLeft:
+                        "3px solid #2563eb",
+                    }}
+                  >
+                    {vector}
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          </SurfaceBlock>
+
         </>
 
       )}
@@ -621,260 +911,9 @@ export default function InvestigationWorkspace() {
                   value={region.contributing_candidates?.join(" ↔ ")}
                 />
 
-                <div
-                  style={{
-                    marginTop: 12,
-                    fontSize: 12,
-                    color: "#6b7280",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    marginBottom: 10,
-                  }}
-                >
-                  Shared Features
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 8,
-                  }}
-                >
-
-                  {(region.shared_features || []).map(
-                    (feature: string, fidx: number) => (
-
-                      <div
-                        key={fidx}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 999,
-                          border: "1px solid #1f2937",
-                          background: "#08101f",
-                          fontSize: 12,
-                          color: "#d1d5db",
-                        }}
-                      >
-                        {feature}
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
               </div>
 
             ))}
-
-          </div>
-
-        </SurfaceBlock>
-
-      )}
-
-      {/* ================================================= */}
-      {/* ENTANGLEMENT */}
-      {/* ================================================= */}
-
-      {activeSurface === "ENTANGLEMENT" && (
-
-        <SurfaceBlock title="Cross-Domain Entanglement">
-
-          <DetailRow
-            label="Global Entanglement"
-            value={
-              entanglements.global_entanglement_score || 0
-            }
-          />
-
-          <div
-            style={{
-              marginTop: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-
-            {(entanglements.high_entanglement_domains || []).map(
-              (pair: any, idx: number) => (
-
-                <div
-                  key={idx}
-                  style={{
-                    border: "1px solid #1f2937",
-                    borderRadius: 8,
-                    padding: 14,
-                    background: "#0b1220",
-                  }}
-                >
-
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "#d1d5db",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    {pair[0]} ↔ {pair[1]}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 10,
-                      color: "#9ca3af",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Cross-domain manifold coupling remains active between these collapse basins.
-                  </div>
-
-                </div>
-
-              )
-            )}
-
-          </div>
-
-        </SurfaceBlock>
-
-      )}
-
-      {/* ================================================= */}
-      {/* RESIDUAL */}
-      {/* ================================================= */}
-
-      {activeSurface === "RESIDUAL" && (
-
-        <SurfaceBlock title="Residual Propagation">
-
-          <DetailRow
-            label="Residual Instability"
-            value={
-              residualVectors.global_residual_instability || 0
-            }
-          />
-
-          <div
-            style={{
-              marginTop: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-
-            {(residualVectors.high_instability_domains || []).map(
-              (domain: string, idx: number) => (
-
-                <div
-                  key={idx}
-                  style={{
-                    border: "1px solid #1f2937",
-                    borderRadius: 8,
-                    padding: 14,
-                    background: "#0b1220",
-                  }}
-                >
-
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "#d1d5db",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {domain}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "#9ca3af",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Persistent unresolved manifold pressure remains active inside this domain.
-                  </div>
-
-                </div>
-
-              )
-            )}
-
-          </div>
-
-        </SurfaceBlock>
-
-      )}
-
-      {/* ================================================= */}
-      {/* CLUSTERS */}
-      {/* ================================================= */}
-
-      {activeSurface === "CLUSTERS" && (
-
-        <SurfaceBlock title="Collapse Clusters">
-
-          <DetailRow
-            label="Fragmentation"
-            value={
-              collapseClusters.cluster_fragmentation || 0
-            }
-          />
-
-          <div
-            style={{
-              marginTop: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-
-            {(collapseClusters.cluster_types || []).map(
-              (cluster: string, idx: number) => (
-
-                <div
-                  key={idx}
-                  style={{
-                    border: "1px solid #1f2937",
-                    borderRadius: 8,
-                    padding: 14,
-                    background: "#0b1220",
-                  }}
-                >
-
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "#d1d5db",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {cluster}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "#9ca3af",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Independent collapse basin detected inside active manifold reconstruction.
-                  </div>
-
-                </div>
-
-              )
-            )}
 
           </div>
 
