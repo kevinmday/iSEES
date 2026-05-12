@@ -1,6 +1,7 @@
 # ============================================================
 # cluster_engine.py
 # MANIFOLD CLUSTER ENGINE + OBSERVABILITY MANIFOLD INTEGRATION
+# V7.2 — GEOMETRY CONTINUITY RESTORATION
 # ============================================================
 
 import os
@@ -315,12 +316,6 @@ def calculate_kod_distance(
     report_b: Dict
 ) -> float:
 
-    """
-    Residual emergence similarity.
-
-    Lower score = stronger similarity.
-    """
-
     kod_a = report_a.get("kod", {})
     kod_b = report_b.get("kod", {})
 
@@ -424,20 +419,12 @@ def cluster_reports(
                 except Exception:
                     continue
 
-                # --------------------------------------------
-                # KOD RESIDUAL DISTANCE
-                # --------------------------------------------
-
                 kod_distance = (
                     calculate_kod_distance(
                         current,
                         candidate
                     )
                 )
-
-                # --------------------------------------------
-                # COMBINED EMERGENCE DISTANCE
-                # --------------------------------------------
 
                 emergence_distance = (
                     total_distance
@@ -448,10 +435,6 @@ def cluster_reports(
                         KOD_RESIDUAL_WEIGHT
                     )
                 )
-
-                # --------------------------------------------
-                # MANIFOLD PROXIMITY TEST
-                # --------------------------------------------
 
                 if (
                     emergence_distance
@@ -483,10 +466,6 @@ def build_cluster_objects(
         start=1
     ):
 
-        # ----------------------------------------------------
-        # BASIC CONFIDENCE
-        # ----------------------------------------------------
-
         confidence = round(
 
             min(
@@ -498,11 +477,15 @@ def build_cluster_objects(
         )
 
         # ----------------------------------------------------
-        # CLUSTER CENTER
+        # GEO AGGREGATION
         # ----------------------------------------------------
 
         lats = []
         lons = []
+
+        # ----------------------------------------------------
+        # KOD
+        # ----------------------------------------------------
 
         residuals = []
 
@@ -525,7 +508,7 @@ def build_cluster_objects(
         observability_field_ids = []
 
         # ----------------------------------------------------
-        # TOPOLOGY AGGREGATION
+        # TOPOLOGY
         # ----------------------------------------------------
 
         topology_stability = []
@@ -541,7 +524,7 @@ def build_cluster_objects(
         topology_fragmentation = []
 
         # ----------------------------------------------------
-        # PROVENANCE AGGREGATION
+        # PROVENANCE
         # ----------------------------------------------------
 
         trust_domains = set()
@@ -557,6 +540,10 @@ def build_cluster_objects(
         environments = set()
 
         observer_modes = set()
+
+        # ----------------------------------------------------
+        # LOOP
+        # ----------------------------------------------------
 
         for observation in cluster:
 
@@ -575,7 +562,7 @@ def build_cluster_objects(
                 lons.append(lon)
 
             # ------------------------------------------------
-            # OBSERVABILITY EXTRACTION
+            # OBSERVABILITY
             # ------------------------------------------------
 
             observability = observation.get(
@@ -629,7 +616,7 @@ def build_cluster_objects(
                 )
 
             # ------------------------------------------------
-            # PROVENANCE EXTRACTION
+            # PROVENANCE
             # ------------------------------------------------
 
             provenance = observation.get(
@@ -692,7 +679,7 @@ def build_cluster_objects(
                 fixture_present = True
 
             # ------------------------------------------------
-            # KOD EXTRACTION
+            # KOD
             # ------------------------------------------------
 
             kod = observation.get(
@@ -710,10 +697,6 @@ def build_cluster_objects(
                 {}
             )
 
-            # ------------------------------------------------
-            # TOPOLOGY EXTRACTION
-            # ------------------------------------------------
-
             fusion = pipeline.get(
                 "fusion",
                 {}
@@ -723,10 +706,6 @@ def build_cluster_objects(
                 "topology_state",
                 {}
             )
-
-            # ------------------------------------------------
-            # RESIDUALS
-            # ------------------------------------------------
 
             residual_strength = residual.get(
                 "residual_strength",
@@ -754,10 +733,6 @@ def build_cluster_objects(
             unresolved_features.extend(
                 unresolved
             )
-
-            # ------------------------------------------------
-            # TOPOLOGY STATE
-            # ------------------------------------------------
 
             topology_stability.append(
 
@@ -807,50 +782,33 @@ def build_cluster_objects(
                 )
             )
 
+        # ----------------------------------------------------
+        # GEOMETRY
+        # ----------------------------------------------------
+
         cluster_center = {
 
             "lat":
 
-                sum(lats) / len(lats)
+                round(
+                    sum(lats) / len(lats),
+                    6
+                )
 
                 if lats else None,
 
             "lon":
 
-                sum(lons) / len(lons)
+                round(
+                    sum(lons) / len(lons),
+                    6
+                )
 
                 if lons else None
         }
 
         # ----------------------------------------------------
-        # EMERGENCE METRICS
-        # ----------------------------------------------------
-
-        avg_residual = round(
-
-            sum(residuals) / len(residuals),
-
-            3
-
-        ) if residuals else 0.0
-
-        avg_anomaly = round(
-
-            sum(anomaly_probs)
-            / len(anomaly_probs),
-
-            3
-
-        ) if anomaly_probs else 0.0
-
-        unique_features = list(
-            sorted(
-                set(unresolved_features)
-            )
-        )
-
-        # ----------------------------------------------------
-        # OBSERVABILITY METRICS
+        # OBSERVABILITY
         # ----------------------------------------------------
 
         avg_observability = round(
@@ -890,7 +848,59 @@ def build_cluster_objects(
         ) if observability_confidence else 0.0
 
         # ----------------------------------------------------
-        # TOPOLOGY METRICS
+        # EMERGENCE
+        # ----------------------------------------------------
+
+        avg_residual = round(
+
+            sum(residuals)
+            / len(residuals),
+
+            3
+
+        ) if residuals else 0.0
+
+        avg_anomaly = round(
+
+            sum(anomaly_probs)
+            / len(anomaly_probs),
+
+            3
+
+        ) if anomaly_probs else 0.0
+
+        unique_features = list(
+            sorted(
+                set(unresolved_features)
+            )
+        )
+
+        emergence_confidence = round(
+
+            min(
+
+                1.0,
+
+                confidence
+                +
+                (
+                    avg_residual
+                    *
+                    KOD_RESIDUAL_WEIGHT
+                )
+                +
+                (
+                    avg_anomaly
+                    *
+                    KOD_ANOMALY_WEIGHT
+                )
+            ),
+
+            3
+        )
+
+        # ----------------------------------------------------
+        # TOPOLOGY
         # ----------------------------------------------------
 
         avg_stability = round(
@@ -948,35 +958,7 @@ def build_cluster_objects(
         ) if topology_fragmentation else 0.0
 
         # ----------------------------------------------------
-        # EMERGENCE WEIGHTED CONFIDENCE
-        # ----------------------------------------------------
-
-        emergence_confidence = round(
-
-            min(
-
-                1.0,
-
-                confidence
-                +
-                (
-                    avg_residual
-                    *
-                    KOD_RESIDUAL_WEIGHT
-                )
-                +
-                (
-                    avg_anomaly
-                    *
-                    KOD_ANOMALY_WEIGHT
-                )
-            ),
-
-            3
-        )
-
-        # ----------------------------------------------------
-        # PROVENANCE SUMMARY
+        # PROVENANCE
         # ----------------------------------------------------
 
         provenance_summary = {
@@ -1110,11 +1092,15 @@ def build_cluster_objects(
             },
 
             # ------------------------------------------------
-            # PROVENANCE VISIBILITY
+            # PROVENANCE
             # ------------------------------------------------
 
             "provenance_summary":
                 provenance_summary,
+
+            # ------------------------------------------------
+            # REPORTS
+            # ------------------------------------------------
 
             "reports":
                 cluster
@@ -1141,13 +1127,71 @@ def apply_cluster_intelligence(
                 cluster
             )
 
+            # ------------------------------------------------
+            # RESTORE GEOMETRY CONTINUITY
+            # ------------------------------------------------
+
+            intel["cluster_center"] = (
+
+                intel.get(
+                    "cluster_center"
+                )
+
+                or
+
+                cluster.get(
+                    "cluster_center",
+                    {}
+                )
+            )
+
+            intel["spread_km"] = (
+
+                intel.get(
+                    "spread_km"
+                )
+
+                or 0.0
+            )
+
+            intel["bounding_radius_km"] = (
+
+                intel.get(
+                    "bounding_radius_km"
+                )
+
+                or 0.0
+            )
+
+            intel["duration_seconds"] = (
+
+                intel.get(
+                    "duration_seconds"
+                )
+
+                or 0
+            )
+
+            intel["corroboration_score"] = (
+
+                intel.get(
+                    "corroboration_score"
+                )
+
+                or 0.0
+            )
+
+            # ------------------------------------------------
+            # REPORTS
+            # ------------------------------------------------
+
             intel["reports"] = cluster.get(
                 "reports",
                 []
             )
 
             # ------------------------------------------------
-            # PRESERVE OBSERVABILITY
+            # OBSERVABILITY
             # ------------------------------------------------
 
             intel["observability"] = (
@@ -1158,7 +1202,7 @@ def apply_cluster_intelligence(
             )
 
             # ------------------------------------------------
-            # PRESERVE KOD EMERGENCE
+            # KOD EMERGENCE
             # ------------------------------------------------
 
             intel["kod_emergence"] = (
@@ -1169,7 +1213,7 @@ def apply_cluster_intelligence(
             )
 
             # ------------------------------------------------
-            # PRESERVE KOD TOPOLOGY
+            # KOD TOPOLOGY
             # ------------------------------------------------
 
             intel["kod_topology"] = (
@@ -1180,7 +1224,7 @@ def apply_cluster_intelligence(
             )
 
             # ------------------------------------------------
-            # PRESERVE PROVENANCE
+            # PROVENANCE
             # ------------------------------------------------
 
             intel["provenance_summary"] = (
@@ -1297,18 +1341,10 @@ def apply_hotspot_intelligence(
 
 def run_cluster_engine() -> Dict:
 
-    # --------------------------------------------------------
-    # LOAD RAW REPORTS
-    # --------------------------------------------------------
-
     raw_reports = load_reports()
 
     if not raw_reports:
         return {}
-
-    # --------------------------------------------------------
-    # NORMALIZATION PIPELINE
-    # --------------------------------------------------------
 
     normalized_reports = normalize_reports(
         raw_reports
@@ -1318,10 +1354,6 @@ def run_cluster_engine() -> Dict:
         f"[NORMALIZED] count={len(normalized_reports)}"
     )
 
-    # --------------------------------------------------------
-    # MANIFOLD CLUSTERING
-    # --------------------------------------------------------
-
     clusters = cluster_reports(
         normalized_reports
     )
@@ -1330,17 +1362,9 @@ def run_cluster_engine() -> Dict:
         f"[CLUSTERS] generated={len(clusters)}"
     )
 
-    # --------------------------------------------------------
-    # BUILD CLUSTER OBJECTS
-    # --------------------------------------------------------
-
     cluster_objects = build_cluster_objects(
         clusters
     )
-
-    # --------------------------------------------------------
-    # INTELLIGENCE LAYERS
-    # --------------------------------------------------------
 
     cluster_intel = apply_cluster_intelligence(
         cluster_objects
@@ -1375,10 +1399,6 @@ def run_cluster_engine() -> Dict:
     print(
         f"[EVENTS] generated={len(events)}"
     )
-
-    # --------------------------------------------------------
-    # FINAL OUTPUT
-    # --------------------------------------------------------
 
     return {
 
