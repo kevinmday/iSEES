@@ -1,6 +1,6 @@
 # ============================================================
 # cluster_engine.py
-# MANIFOLD CLUSTER ENGINE + KOD RESIDUAL INTELLIGENCE (V3)
+# MANIFOLD CLUSTER ENGINE + OBSERVABILITY MANIFOLD INTEGRATION
 # ============================================================
 
 import os
@@ -47,6 +47,19 @@ from isees_uap.analysis.event_scoring import (
 
 from isees_uap.analysis.escalation_router import (
     route_events
+)
+
+# ------------------------------------------------------------
+# OBSERVABILITY
+# ------------------------------------------------------------
+
+from isees_uap.observability.observability_models import (
+    ObservabilityContext
+)
+
+from isees_uap.observability.observability_engine import (
+    resolve_observability,
+    compute_normalized_emergence,
 )
 
 # ------------------------------------------------------------
@@ -137,6 +150,106 @@ def load_reports() -> List[Dict]:
 
 
 # ============================================================
+# OBSERVABILITY ATTACHMENT
+# ============================================================
+
+def attach_observability(
+    observation: Dict
+) -> Dict:
+
+    try:
+
+        geo = observation.get(
+            "normalized_geo",
+            {}
+        )
+
+        lat = geo.get(
+            "resolved_lat"
+        )
+
+        lon = geo.get(
+            "resolved_lon"
+        )
+
+        if (
+            lat is None
+            or
+            lon is None
+        ):
+
+            return observation
+
+        timestamp_utc = observation.get(
+            "timestamp_utc"
+        )
+
+        context = ObservabilityContext(
+
+            latitude=lat,
+
+            longitude=lon,
+
+            timestamp_utc=
+                timestamp_utc
+        )
+
+        field = resolve_observability(
+            context
+        )
+
+        emergence = (
+            compute_normalized_emergence(
+
+                report_density=1.0,
+
+                context=context
+            )
+        )
+
+        normalization = emergence.get(
+            "normalization",
+            {}
+        )
+
+        observation[
+            "observability"
+        ] = {
+
+            "field_id":
+                field.field_id,
+
+            "snapshot":
+                field.summary(),
+
+            "normalized_emergence":
+                normalization.get(
+                    "normalized_emergence",
+                    0.0
+                ),
+
+            "observability_score":
+                field.observability_score,
+
+            "observer_probability":
+                field.observer_probability,
+
+            "confidence":
+                field.confidence
+        }
+
+        return observation
+
+    except Exception as e:
+
+        print(
+            f"[OBSERVABILITY_ATTACH_ERROR] {e}"
+        )
+
+        return observation
+
+
+# ============================================================
 # NORMALIZE REPORTS
 # ============================================================
 
@@ -169,6 +282,16 @@ def normalize_reports(
                 normalized_observation["kod"] = (
                     report["kod"]
                 )
+
+            # ------------------------------------------------
+            # ATTACH OBSERVABILITY
+            # ------------------------------------------------
+
+            normalized_observation = (
+                attach_observability(
+                    normalized_observation
+                )
+            )
 
             normalized_reports.append(
                 normalized_observation
@@ -388,6 +511,20 @@ def build_cluster_objects(
         unresolved_features = []
 
         # ----------------------------------------------------
+        # OBSERVABILITY
+        # ----------------------------------------------------
+
+        observability_scores = []
+
+        observer_probabilities = []
+
+        normalized_emergence_values = []
+
+        observability_confidence = []
+
+        observability_field_ids = []
+
+        # ----------------------------------------------------
         # TOPOLOGY AGGREGATION
         # ----------------------------------------------------
 
@@ -436,6 +573,60 @@ def build_cluster_objects(
 
             if lon is not None:
                 lons.append(lon)
+
+            # ------------------------------------------------
+            # OBSERVABILITY EXTRACTION
+            # ------------------------------------------------
+
+            observability = observation.get(
+                "observability",
+                {}
+            )
+
+            obs_score = observability.get(
+                "observability_score"
+            )
+
+            obs_probability = observability.get(
+                "observer_probability"
+            )
+
+            obs_emergence = observability.get(
+                "normalized_emergence"
+            )
+
+            obs_confidence = observability.get(
+                "confidence"
+            )
+
+            field_id = observability.get(
+                "field_id"
+            )
+
+            if obs_score is not None:
+                observability_scores.append(
+                    obs_score
+                )
+
+            if obs_probability is not None:
+                observer_probabilities.append(
+                    obs_probability
+                )
+
+            if obs_emergence is not None:
+                normalized_emergence_values.append(
+                    obs_emergence
+                )
+
+            if obs_confidence is not None:
+                observability_confidence.append(
+                    obs_confidence
+                )
+
+            if field_id:
+                observability_field_ids.append(
+                    field_id
+                )
 
             # ------------------------------------------------
             # PROVENANCE EXTRACTION
@@ -659,6 +850,46 @@ def build_cluster_objects(
         )
 
         # ----------------------------------------------------
+        # OBSERVABILITY METRICS
+        # ----------------------------------------------------
+
+        avg_observability = round(
+
+            sum(observability_scores)
+            / len(observability_scores),
+
+            3
+
+        ) if observability_scores else 0.0
+
+        avg_observer_probability = round(
+
+            sum(observer_probabilities)
+            / len(observer_probabilities),
+
+            3
+
+        ) if observer_probabilities else 0.0
+
+        avg_normalized_emergence = round(
+
+            sum(normalized_emergence_values)
+            / len(normalized_emergence_values),
+
+            3
+
+        ) if normalized_emergence_values else 0.0
+
+        avg_observability_confidence = round(
+
+            sum(observability_confidence)
+            / len(observability_confidence),
+
+            3
+
+        ) if observability_confidence else 0.0
+
+        # ----------------------------------------------------
         # TOPOLOGY METRICS
         # ----------------------------------------------------
 
@@ -802,6 +1033,39 @@ def build_cluster_objects(
                 confidence,
 
             # ------------------------------------------------
+            # OBSERVABILITY
+            # ------------------------------------------------
+
+            "observability": {
+
+                "avg_observability_score":
+                    avg_observability,
+
+                "avg_observer_probability":
+                    avg_observer_probability,
+
+                "avg_normalized_emergence":
+                    avg_normalized_emergence,
+
+                "avg_observability_confidence":
+                    avg_observability_confidence,
+
+                "field_ids":
+                    sorted(
+                        list(
+                            set(
+                                observability_field_ids
+                            )
+                        )
+                    ),
+
+                "observability_attached":
+                    len(
+                        observability_field_ids
+                    ) > 0,
+            },
+
+            # ------------------------------------------------
             # KOD EMERGENCE
             # ------------------------------------------------
 
@@ -880,6 +1144,17 @@ def apply_cluster_intelligence(
             intel["reports"] = cluster.get(
                 "reports",
                 []
+            )
+
+            # ------------------------------------------------
+            # PRESERVE OBSERVABILITY
+            # ------------------------------------------------
+
+            intel["observability"] = (
+                cluster.get(
+                    "observability",
+                    {}
+                )
             )
 
             # ------------------------------------------------
@@ -1124,7 +1399,7 @@ if __name__ == "__main__":
     result = run_cluster_engine()
 
     print(
-        "\n=== MANIFOLD CLUSTER ENGINE + KOD ==="
+        "\n=== MANIFOLD CLUSTER ENGINE + OBSERVABILITY ==="
     )
 
     print(
