@@ -1,7 +1,8 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT (V5)
+// GLOBAL OPERATIONAL EVENT CONTEXT (V6)
 // GLOBAL OPERATIONAL NODE COGNITION ENABLED
+// NARRATIVE INTELLIGENCE ENABLED
 // TS STRICT MODE FIXED
 // CLEAN FULL DROP-IN REPLACEMENT
 // ============================================================
@@ -31,6 +32,21 @@ export type Facility = {
   name: string;
   type: string;
   distance: string;
+};
+
+// ============================================================
+// NARRATIVE INTELLIGENCE
+// ============================================================
+
+export type NarrativeData = {
+  observer_id: string;
+  location: string;
+  semantic_match: number;
+  time_offset: string;
+  confidence: number;
+  certainty: string;
+  text: string;
+  traits: string[];
 };
 
 // ============================================================
@@ -93,11 +109,19 @@ export type EventData = {
   recurrence: string;
   trend: string;
   active: boolean;
+
   reasoning: string[];
+
+  narratives?: NarrativeData[];
+
   observations: Observation[];
+
   facilities: Facility[];
+
   topology: TopologyState;
-  topology_observability: TopologyObservability;
+
+  topology_observability:
+    TopologyObservability;
 };
 
 // ============================================================
@@ -106,6 +130,7 @@ export type EventData = {
 
 export type InvestigationSurface =
   | "SUMMARY"
+  | "NARRATIVES"
   | "OVERLAP"
   | "ENTANGLEMENT"
   | "RESIDUAL"
@@ -152,6 +177,7 @@ export const DEMO_EVENTS: EventData[] = [
     active: true,
 
     reasoning: [
+
       "Semantic convergence detected across independent observers",
 
       "Temporal compression indicates synchronized observation window",
@@ -161,7 +187,83 @@ export const DEMO_EVENTS: EventData[] = [
       "Infrastructure density sufficient for investigation vectors",
     ],
 
+    narratives: [
+
+      {
+        observer_id: "OBS-A1",
+
+        location: "North Medford",
+
+        semantic_match: 0.91,
+
+        time_offset: "00m",
+
+        confidence: 0.87,
+
+        certainty: "HIGH",
+
+        text:
+          "Observed a silent luminous object maintaining stationary position before accelerating rapidly westward.",
+
+        traits: [
+          "silent",
+          "stationary",
+          "rapid acceleration",
+          "luminous",
+        ],
+      },
+
+      {
+        observer_id: "OBS-B2",
+
+        location: "Central Medford",
+
+        semantic_match: 0.84,
+
+        time_offset: "+02m",
+
+        confidence: 0.81,
+
+        certainty: "MEDIUM",
+
+        text:
+          "Witnessed a bright object hovering motionless before abruptly changing direction without visible propulsion.",
+
+        traits: [
+          "hovering",
+          "silent",
+          "directional shift",
+          "bright object",
+        ],
+      },
+
+      {
+        observer_id: "OBS-C7",
+
+        location: "East Medford",
+
+        semantic_match: 0.79,
+
+        time_offset: "+03m",
+
+        confidence: 0.78,
+
+        certainty: "MEDIUM",
+
+        text:
+          "A bright object remained fixed overhead before instantly disappearing without sound or visible transition.",
+
+        traits: [
+          "instant disappearance",
+          "silent",
+          "stationary",
+          "bright object",
+        ],
+      },
+    ],
+
     topology: {
+
       stability_state: "FRAGMENTED",
 
       ambiguity_state: "HIGH",
@@ -176,7 +278,9 @@ export const DEMO_EVENTS: EventData[] = [
     },
 
     topology_observability: {
+
       overlap_regions: [
+
         {
           overlap_score: 1.0,
 
@@ -194,6 +298,7 @@ export const DEMO_EVENTS: EventData[] = [
       ],
 
       entanglements: {
+
         global_entanglement_score: 0.75,
 
         high_entanglement_domains: [
@@ -202,6 +307,7 @@ export const DEMO_EVENTS: EventData[] = [
       },
 
       residual_vectors: {
+
         global_residual_instability: 0.716,
 
         high_instability_domains: [
@@ -211,6 +317,7 @@ export const DEMO_EVENTS: EventData[] = [
       },
 
       collapse_clusters: {
+
         cluster_fragmentation: 0.5,
 
         cluster_types: [
@@ -221,6 +328,7 @@ export const DEMO_EVENTS: EventData[] = [
     },
 
     observations: [
+
       {
         id: "OBS-1001",
 
@@ -234,6 +342,7 @@ export const DEMO_EVENTS: EventData[] = [
     ],
 
     facilities: [
+
       {
         name: "Medford ATC Tower",
 
@@ -266,15 +375,18 @@ export const DEMO_EVENTS: EventData[] = [
 // ============================================================
 
 type EventContextType = {
+
   events: EventData[];
 
-  activeEvent: EventData | null;
+  activeEvent:
+    EventData | null;
 
   setActiveEvent: (
     event: EventData
   ) => void;
 
-  activeSurface: InvestigationSurface;
+  activeSurface:
+    InvestigationSurface;
 
   setActiveSurface: (
     surface: InvestigationSurface
@@ -337,8 +449,10 @@ export function EventProvider({
     );
 
   return (
+
     <EventContext.Provider
       value={{
+
         events,
 
         activeEvent,
