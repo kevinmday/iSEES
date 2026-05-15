@@ -1,7 +1,7 @@
 # ============================================================
 # cluster_engine.py
-# MANIFOLD CLUSTER ENGINE + OBSERVABILITY MANIFOLD INTEGRATION
-# V7.2 — GEOMETRY CONTINUITY RESTORATION
+# MANIFOLD CLUSTER ENGINE + OBSERVABILITY + EMERGENCE ONTOLOGY
+# V8.0 — TOPOLOGY-AWARE OBSERVATION INTEGRATION
 # ============================================================
 
 import os
@@ -61,6 +61,18 @@ from isees_uap.observability.observability_models import (
 from isees_uap.observability.observability_engine import (
     resolve_observability,
     compute_normalized_emergence,
+)
+
+# ------------------------------------------------------------
+# EMERGENCE ONTOLOGY
+# ------------------------------------------------------------
+
+from isees_uap.emergence.attribute_extractor import (
+    extract_attributes
+)
+
+from isees_uap.emergence.signature_engine import (
+    build_signature
 )
 
 # ------------------------------------------------------------
@@ -251,6 +263,102 @@ def attach_observability(
 
 
 # ============================================================
+# EMERGENCE ONTOLOGY ATTACHMENT
+# ============================================================
+
+def attach_emergence(
+    observation: Dict
+) -> Dict:
+
+    try:
+
+        text_fragments = []
+
+        narrative = observation.get(
+            "narrative"
+        )
+
+        if narrative:
+            text_fragments.append(
+                str(narrative)
+            )
+
+        summary = observation.get(
+            "summary"
+        )
+
+        if summary:
+            text_fragments.append(
+                str(summary)
+            )
+
+        description = observation.get(
+            "description"
+        )
+
+        if description:
+            text_fragments.append(
+                str(description)
+            )
+
+        combined_text = " ".join(
+            text_fragments
+        ).strip()
+
+        if not combined_text:
+
+            observation["emergence"] = {
+
+                "attributes": [],
+
+                "signature": {}
+            }
+
+            return observation
+
+        attributes = extract_attributes(
+            combined_text
+        )
+
+        signature = build_signature(
+            attributes
+        )
+
+        signature["attributes"] = (
+            attributes
+        )
+
+        observation["emergence"] = {
+
+            "attribute_count":
+                len(attributes),
+
+            "attributes":
+                attributes,
+
+            "signature":
+                signature
+        }
+
+        return observation
+
+    except Exception as e:
+
+        print(
+            f"[EMERGENCE_ATTACH_ERROR] {e}"
+        )
+
+        observation["emergence"] = {
+
+            "attributes": [],
+
+            "signature": {}
+        }
+
+        return observation
+
+
+# ============================================================
 # NORMALIZE REPORTS
 # ============================================================
 
@@ -290,6 +398,16 @@ def normalize_reports(
 
             normalized_observation = (
                 attach_observability(
+                    normalized_observation
+                )
+            )
+
+            # ------------------------------------------------
+            # ATTACH EMERGENCE ONTOLOGY
+            # ------------------------------------------------
+
+            normalized_observation = (
+                attach_emergence(
                     normalized_observation
                 )
             )
@@ -508,6 +626,20 @@ def build_cluster_objects(
         observability_field_ids = []
 
         # ----------------------------------------------------
+        # EMERGENCE ONTOLOGY
+        # ----------------------------------------------------
+
+        emergence_attribute_ids = []
+
+        emergence_signature_hashes = []
+
+        emergence_uniqueness = []
+
+        emergence_rarity = []
+
+        emergence_specificity = []
+
+        # ----------------------------------------------------
         # TOPOLOGY
         # ----------------------------------------------------
 
@@ -560,6 +692,76 @@ def build_cluster_objects(
 
             if lon is not None:
                 lons.append(lon)
+
+            # ------------------------------------------------
+            # EMERGENCE ONTOLOGY
+            # ------------------------------------------------
+
+            emergence = observation.get(
+                "emergence",
+                {}
+            )
+
+            attributes = emergence.get(
+                "attributes",
+                []
+            )
+
+            signature = emergence.get(
+                "signature",
+                {}
+            )
+
+            for attribute in attributes:
+
+                attribute_id = attribute.get(
+                    "attribute_id"
+                )
+
+                if attribute_id:
+                    emergence_attribute_ids.append(
+                        attribute_id
+                    )
+
+            signature_hash = signature.get(
+                "signature_hash"
+            )
+
+            if signature_hash:
+
+                emergence_signature_hashes.append(
+                    signature_hash
+                )
+
+            uniqueness = signature.get(
+                "signature_uniqueness"
+            )
+
+            if uniqueness is not None:
+
+                emergence_uniqueness.append(
+                    uniqueness
+                )
+
+            rarity = signature.get(
+                "signature_rarity"
+            )
+
+            if rarity is not None:
+
+                emergence_rarity.append(
+                    rarity
+                )
+
+            specificity = signature.get(
+                "signature_specificity"
+            )
+
+            if specificity is not None:
+
+                emergence_specificity.append(
+                    specificity
+                )
 
             # ------------------------------------------------
             # OBSERVABILITY
@@ -848,6 +1050,45 @@ def build_cluster_objects(
         ) if observability_confidence else 0.0
 
         # ----------------------------------------------------
+        # EMERGENCE ONTOLOGY
+        # ----------------------------------------------------
+
+        shared_attributes = sorted(
+            list(
+                set(
+                    emergence_attribute_ids
+                )
+            )
+        )
+
+        avg_signature_uniqueness = round(
+
+            sum(emergence_uniqueness)
+            / len(emergence_uniqueness),
+
+            3
+
+        ) if emergence_uniqueness else 0.0
+
+        avg_signature_rarity = round(
+
+            sum(emergence_rarity)
+            / len(emergence_rarity),
+
+            3
+
+        ) if emergence_rarity else 0.0
+
+        avg_signature_specificity = round(
+
+            sum(emergence_specificity)
+            / len(emergence_specificity),
+
+            3
+
+        ) if emergence_specificity else 0.0
+
+        # ----------------------------------------------------
         # EMERGENCE
         # ----------------------------------------------------
 
@@ -1015,6 +1256,37 @@ def build_cluster_objects(
                 confidence,
 
             # ------------------------------------------------
+            # EMERGENCE ONTOLOGY
+            # ------------------------------------------------
+
+            "emergence": {
+
+                "shared_attributes":
+                    shared_attributes,
+
+                "attribute_count":
+                    len(shared_attributes),
+
+                "signature_hashes":
+                    sorted(
+                        list(
+                            set(
+                                emergence_signature_hashes
+                            )
+                        )
+                    ),
+
+                "avg_signature_uniqueness":
+                    avg_signature_uniqueness,
+
+                "avg_signature_rarity":
+                    avg_signature_rarity,
+
+                "avg_signature_specificity":
+                    avg_signature_specificity
+            },
+
+            # ------------------------------------------------
             # OBSERVABILITY
             # ------------------------------------------------
 
@@ -1127,10 +1399,6 @@ def apply_cluster_intelligence(
                 cluster
             )
 
-            # ------------------------------------------------
-            # RESTORE GEOMETRY CONTINUITY
-            # ------------------------------------------------
-
             intel["cluster_center"] = (
 
                 intel.get(
@@ -1181,18 +1449,10 @@ def apply_cluster_intelligence(
                 or 0.0
             )
 
-            # ------------------------------------------------
-            # REPORTS
-            # ------------------------------------------------
-
             intel["reports"] = cluster.get(
                 "reports",
                 []
             )
-
-            # ------------------------------------------------
-            # OBSERVABILITY
-            # ------------------------------------------------
 
             intel["observability"] = (
                 cluster.get(
@@ -1201,9 +1461,12 @@ def apply_cluster_intelligence(
                 )
             )
 
-            # ------------------------------------------------
-            # KOD EMERGENCE
-            # ------------------------------------------------
+            intel["emergence"] = (
+                cluster.get(
+                    "emergence",
+                    {}
+                )
+            )
 
             intel["kod_emergence"] = (
                 cluster.get(
@@ -1212,20 +1475,12 @@ def apply_cluster_intelligence(
                 )
             )
 
-            # ------------------------------------------------
-            # KOD TOPOLOGY
-            # ------------------------------------------------
-
             intel["kod_topology"] = (
                 cluster.get(
                     "kod_topology",
                     {}
                 )
             )
-
-            # ------------------------------------------------
-            # PROVENANCE
-            # ------------------------------------------------
 
             intel["provenance_summary"] = (
                 cluster.get(
@@ -1419,7 +1674,7 @@ if __name__ == "__main__":
     result = run_cluster_engine()
 
     print(
-        "\n=== MANIFOLD CLUSTER ENGINE + OBSERVABILITY ==="
+        "\n=== MANIFOLD CLUSTER ENGINE + OBSERVABILITY + EMERGENCE ==="
     )
 
     print(
