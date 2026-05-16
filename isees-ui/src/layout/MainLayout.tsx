@@ -1,8 +1,10 @@
 // ============================================================
-// src/layout/MainLayout.tsx — OPERATOR CONSOLE SHELL (V5)
-// ACTIVE EVENT SYNCHRONIZATION
+// src/layout/MainLayout.tsx — OPERATOR CONSOLE SHELL (V6)
+// SYSTEM BRIEFING LINK ADDED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
+
+import { Link } from "react-router-dom";
 
 import { useEventContext } from "../context/EventContext";
 
@@ -86,6 +88,18 @@ export default function MainLayout({
             color: "#9ca3af",
           }}
         >
+          <Link
+            to="/briefing"
+            style={{
+              color: "#7dd3fc",
+              textDecoration: "none",
+              fontWeight: 700,
+              letterSpacing: 1,
+            }}
+          >
+            SYSTEM BRIEFING
+          </Link>
+
           <span>
             STATUS:
             <span

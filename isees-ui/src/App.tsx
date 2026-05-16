@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — OPERATOR CONSOLE BRIDGE (V3 CONTEXT WIRED)
+// src/App.tsx — OPERATOR CONSOLE BRIDGE (V4 BRIEFING ROUTED)
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -12,8 +12,10 @@ import EventRadar from "./components/EventRadar";
 import InvestigationWorkspace from "./components/InvestigationWorkspace";
 
 import PublicIntake from "./pages/PublicIntake";
+import SystemBriefing from "./pages/SystemBriefing";
 
 import { EventProvider } from "./context/EventContext";
+
 
 // ============================================================
 // OPERATOR UI
@@ -33,6 +35,7 @@ function OperatorUI() {
   );
 }
 
+
 // ============================================================
 // ROOT APP
 // ============================================================
@@ -40,15 +43,36 @@ function OperatorUI() {
 export default function App() {
   return (
     <Routes>
+
+      {/* ========================================= */}
+      {/* PUBLIC OBSERVER INTAKE                   */}
+      {/* ========================================= */}
+
       <Route
         path="/report"
         element={<PublicIntake />}
       />
 
+
+      {/* ========================================= */}
+      {/* SYSTEM BRIEFING                          */}
+      {/* ========================================= */}
+
+      <Route
+        path="/briefing"
+        element={<SystemBriefing />}
+      />
+
+
+      {/* ========================================= */}
+      {/* OPERATOR CONSOLE                         */}
+      {/* ========================================= */}
+
       <Route
         path="/*"
         element={<OperatorUI />}
       />
+
     </Routes>
   );
 }
