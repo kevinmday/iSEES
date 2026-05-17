@@ -1,0 +1,16 @@
+{
+  "event_id": "UAP-TICTAC-2004",
+  "event_name": "Tic Tac Event",
+  "classification": "military_sensor_emergence",
+  "initial_timestamp": "2004-11-14T00:00:00Z",
+  "location": {},
+  "observer_topology": {},
+  "observability_profile": {},
+  "semantic_signature": {},
+  "infrastructure_context": {},
+  "sensor_domains": [],
+  "contradiction_load": {},
+  "topology_state": {},
+  "temporal_layers": [],
+  "replay_metadata": {}
+}

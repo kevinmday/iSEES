@@ -1,0 +1,16 @@
+{
+  "event_id": "UAP-YUCCA-0001",
+  "event_name": "Yucca Event",
+  "classification": "sparse_observability_emergence",
+  "initial_timestamp": "",
+  "location": {},
+  "observer_topology": {},
+  "observability_profile": {},
+  "semantic_signature": {},
+  "infrastructure_context": {},
+  "sensor_domains": [],
+  "contradiction_load": {},
+  "topology_state": {},
+  "temporal_layers": [],
+  "replay_metadata": {}
+}
