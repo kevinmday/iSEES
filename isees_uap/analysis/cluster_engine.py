@@ -626,6 +626,18 @@ def build_cluster_objects(
         observability_field_ids = []
 
         # ----------------------------------------------------
+        # EPISTEMIC LINEAGE
+        # ----------------------------------------------------
+
+        infrastructure_epochs = []
+
+        authority_states = []
+
+        epistemic_states = []
+
+        reconstruction_modes = []
+
+        # ----------------------------------------------------
         # EMERGENCE ONTOLOGY
         # ----------------------------------------------------
 
@@ -792,6 +804,27 @@ def build_cluster_objects(
                 "field_id"
             )
 
+            snapshot = observability.get(
+                "snapshot",
+                {}
+            )
+
+            infrastructure_epoch = snapshot.get(
+                "infrastructure_epoch"
+            )
+
+            authority_state = snapshot.get(
+                "authority_state"
+            )
+
+            epistemic_state = snapshot.get(
+                "epistemic_state"
+            )
+
+            reconstruction_mode = snapshot.get(
+                "reconstruction_mode"
+            )
+
             if obs_score is not None:
                 observability_scores.append(
                     obs_score
@@ -815,6 +848,26 @@ def build_cluster_objects(
             if field_id:
                 observability_field_ids.append(
                     field_id
+                )
+
+            if infrastructure_epoch:
+                infrastructure_epochs.append(
+                    infrastructure_epoch
+                )
+
+            if authority_state:
+                authority_states.append(
+                    authority_state
+                )
+
+            if epistemic_state:
+                epistemic_states.append(
+                    epistemic_state
+                )
+
+            if reconstruction_mode:
+                reconstruction_modes.append(
+                    reconstruction_mode
                 )
 
             # ------------------------------------------------
@@ -1291,6 +1344,59 @@ def build_cluster_objects(
             # ------------------------------------------------
 
             "observability": {
+
+                "epistemic_lineage": {
+
+                    "infrastructure_epochs":
+                        sorted(
+                            list(
+                                set(
+                                    infrastructure_epochs
+                                )
+                            )
+                        ),
+
+                    "authority_states":
+                        sorted(
+                            list(
+                                set(
+                                    authority_states
+                                )
+                            )
+                        ),
+
+                    "epistemic_states":
+                        sorted(
+                            list(
+                                set(
+                                    epistemic_states
+                                )
+                            )
+                        ),
+
+                    "reconstruction_modes":
+                        sorted(
+                            list(
+                                set(
+                                    reconstruction_modes
+                                )
+                            )
+                        ),
+
+                    "cross_epoch_present":
+                        len(
+                            set(
+                                infrastructure_epochs
+                            )
+                        ) > 1,
+
+                    "mixed_authority_present":
+                        len(
+                            set(
+                                authority_states
+                            )
+                        ) > 1,
+                },
 
                 "avg_observability_score":
                     avg_observability,

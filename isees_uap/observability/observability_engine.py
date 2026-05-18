@@ -141,6 +141,36 @@ def build_observability_field(
     )
 
     # --------------------------------------------------------
+    # RECONSTRUCTION LINEAGE
+    # --------------------------------------------------------
+
+    field.reconstruction_profile = (
+        context.reconstruction_profile
+    )
+
+    field.temporal_state.timestamp_utc = (
+        field.timestamp_utc
+    )
+
+    field.temporal_state.infrastructure_epoch = (
+
+        context.reconstruction_profile
+        .infrastructure_epoch
+    )
+
+    field.temporal_state.authority_state = (
+
+        context.reconstruction_profile
+        .authority_state
+    )
+
+    field.temporal_state.epistemic_state = (
+
+        context.reconstruction_profile
+        .epistemic_state
+    )
+
+    # --------------------------------------------------------
     # POPULATION
     # --------------------------------------------------------
 
@@ -427,6 +457,26 @@ def build_observability_snapshot(
 
         "confidence":
             field.confidence,
+
+        "infrastructure_epoch":
+            field.temporal_state
+            .infrastructure_epoch
+            .value,
+
+        "authority_state":
+            field.temporal_state
+            .authority_state
+            .value,
+
+        "epistemic_state":
+            field.temporal_state
+            .epistemic_state
+            .value,
+
+        "reconstruction_mode":
+            field.reconstruction_profile
+            .reconstruction_mode
+            .value,
     }
 
 

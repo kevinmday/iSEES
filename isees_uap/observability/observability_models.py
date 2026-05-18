@@ -9,6 +9,19 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, UTC
 import uuid
 
+from isees_uap.observability.observability_types import (
+
+    InfrastructureEpoch,
+
+    AuthorityState,
+
+    ReconstructionMode,
+
+    ConservationConstraint,
+
+    EpistemicState,
+)
+
 
 # ============================================================
 # OBSERVABILITY COMPONENT
@@ -40,6 +53,139 @@ class ObservabilityComponent:
     # ========================================================
     # SERIALIZATION
     # ========================================================
+
+    def to_dict(self) -> Dict[str, Any]:
+
+        return asdict(self)
+
+
+# ============================================================
+# CONSTRAINT PROFILE
+# ============================================================
+
+@dataclass
+class ConstraintProfile:
+    """
+    Immutable manifold conservation profile.
+
+    Defines which dimensions of reality are
+    preserved during reconstruction and
+    topology comparison.
+    """
+
+    preserve_spatial: bool = True
+
+    preserve_temporal: bool = True
+
+    preserve_epoch: bool = True
+
+    preserve_authority_state: bool = True
+
+    preserve_observability_field: bool = True
+
+    preserve_infrastructure_maturity: bool = True
+
+    preserve_sensor_capability: bool = True
+
+    preserve_reporting_survivability: bool = True
+
+    preserve_archival_persistence: bool = True
+
+    constraints: List[
+        ConservationConstraint
+    ] = field(
+        default_factory=list
+    )
+
+    metadata: Dict[str, Any] = field(
+        default_factory=dict
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+
+        return asdict(self)
+
+
+# ============================================================
+# RECONSTRUCTION PROFILE
+# ============================================================
+
+@dataclass
+class ReconstructionProfile:
+    """
+    Canonical replay reconstruction profile.
+
+    Defines how the backend reconstructs
+    epistemic topology and manifold comparison.
+    """
+
+    reconstruction_mode: ReconstructionMode = (
+        ReconstructionMode.STRICT_HISTORICAL
+    )
+
+    epistemic_state: EpistemicState = (
+        EpistemicState.PERIOD_CORRECT
+    )
+
+    infrastructure_epoch: InfrastructureEpoch = (
+        InfrastructureEpoch.MODERN_SENSOR_FUSION
+    )
+
+    authority_state: AuthorityState = (
+        AuthorityState.UNKNOWN
+    )
+
+    constraint_profile: ConstraintProfile = field(
+        default_factory=ConstraintProfile
+    )
+
+    replay_safe: bool = True
+
+    immutable_lineage: bool = True
+
+    metadata: Dict[str, Any] = field(
+        default_factory=dict
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+
+        return asdict(self)
+
+
+# ============================================================
+# TEMPORAL OBSERVABILITY STATE
+# ============================================================
+
+@dataclass
+class TemporalObservabilityState:
+    """
+    Historical observability state snapshot.
+
+    Represents period-correct infrastructure
+    and authority conditions at a spacetime node.
+    """
+
+    timestamp_utc: Optional[str] = None
+
+    infrastructure_epoch: InfrastructureEpoch = (
+        InfrastructureEpoch.MODERN_SENSOR_FUSION
+    )
+
+    authority_state: AuthorityState = (
+        AuthorityState.UNKNOWN
+    )
+
+    epistemic_state: EpistemicState = (
+        EpistemicState.PERIOD_CORRECT
+    )
+
+    historically_constrained: bool = True
+
+    replay_layer: str = "T0"
+
+    metadata: Dict[str, Any] = field(
+        default_factory=dict
+    )
 
     def to_dict(self) -> Dict[str, Any]:
 
@@ -86,6 +232,18 @@ class ObservabilityField:
     altitude_m: Optional[float] = None
 
     timestamp_utc: Optional[str] = None
+
+    # --------------------------------------------------------
+    # TEMPORAL EPISTEMIC STATE
+    # --------------------------------------------------------
+
+    temporal_state: TemporalObservabilityState = field(
+        default_factory=TemporalObservabilityState
+    )
+
+    reconstruction_profile: ReconstructionProfile = field(
+        default_factory=ReconstructionProfile
+    )
 
     # --------------------------------------------------------
     # CORE COMPONENTS
@@ -247,6 +405,30 @@ class ObservabilityField:
 
             "stale":
                 self.stale,
+
+            "infrastructure_epoch":
+                self.temporal_state
+                .infrastructure_epoch
+                .value,
+
+            "authority_state":
+                self.temporal_state
+                .authority_state
+                .value,
+
+            "epistemic_state":
+                self.temporal_state
+                .epistemic_state
+                .value,
+
+            "replay_layer":
+                self.temporal_state
+                .replay_layer,
+
+            "reconstruction_mode":
+                self.reconstruction_profile
+                .reconstruction_mode
+                .value,
         }
 
 
@@ -279,6 +461,14 @@ class ObservabilitySnapshot:
     confidence: float = 0.5
 
     stale: bool = False
+
+    temporal_state: Optional[
+        TemporalObservabilityState
+    ] = None
+
+    reconstruction_profile: Optional[
+        ReconstructionProfile
+    ] = None
 
     metadata: Dict[str, Any] = field(
         default_factory=dict
@@ -322,6 +512,10 @@ class ObservabilityContext:
 
     high_precision: bool = False
 
+    reconstruction_profile: ReconstructionProfile = field(
+        default_factory=ReconstructionProfile
+    )
+
     metadata: Dict[str, Any] = field(
         default_factory=dict
     )
@@ -358,4 +552,3 @@ if __name__ == "__main__":
     print(field_model.summary())
 
     print()
-

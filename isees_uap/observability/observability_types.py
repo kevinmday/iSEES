@@ -253,3 +253,151 @@ class ObservabilityEngineMode(str, Enum):
 
     SYNTHETIC = "synthetic"
 
+
+# ============================================================
+# OBSERVABILITY EPISTEMIC TYPES
+# ============================================================
+
+class InfrastructureEpoch(str, Enum):
+
+    PRE_RADAR = "pre_radar"
+
+    EARLY_RADAR = "early_radar"
+
+    COLD_WAR = "cold_war"
+
+    PRE_DIGITAL = "pre_digital"
+
+    EARLY_DIGITAL = "early_digital"
+
+    NETWORKED = "networked"
+
+    SATELLITE_AWARE = "satellite_aware"
+
+    MODERN_SENSOR_FUSION = (
+        "modern_sensor_fusion"
+    )
+
+    AI_ASSISTED = "ai_assisted"
+
+
+# ============================================================
+# AUTHORITY STATE
+# ============================================================
+
+class AuthorityState(str, Enum):
+
+    CIVILIAN_LIMITED = (
+        "civilian_limited"
+    )
+
+    CIVILIAN_OPEN = (
+        "civilian_open"
+    )
+
+    MILITARY_RESTRICTED = (
+        "military_restricted"
+    )
+
+    MILITARY_ACTIVE = (
+        "military_active"
+    )
+
+    JOINT_OPERATIONAL = (
+        "joint_operational"
+    )
+
+    DENIED_ENVIRONMENT = (
+        "denied_environment"
+    )
+
+    UNKNOWN = "unknown"
+
+
+# ============================================================
+# EPISTEMIC STATE
+# ============================================================
+
+class EpistemicState(str, Enum):
+
+    HISTORICALLY_CONSTRAINED = (
+        "historically_constrained"
+    )
+
+    PERIOD_CORRECT = (
+        "period_correct"
+    )
+
+    MODERN_REINTERPRETATION = (
+        "modern_reinterpretation"
+    )
+
+    CROSS_EPOCH_NORMALIZED = (
+        "cross_epoch_normalized"
+    )
+
+    EXPERIMENTAL = "experimental"
+
+
+# ============================================================
+# RECONSTRUCTION MODES
+# ============================================================
+
+class ReconstructionMode(str, Enum):
+
+    STRICT_HISTORICAL = (
+        "strict_historical"
+    )
+
+    NORMALIZED_EPOCH = (
+        "normalized_epoch"
+    )
+
+    CROSS_EPOCH_ENTANGLEMENT = (
+        "cross_epoch_entanglement"
+    )
+
+    RAW_EMERGENCE = (
+        "raw_emergence"
+    )
+
+    EXPERIMENTAL = (
+        "experimental"
+    )
+
+
+# ============================================================
+# MANIFOLD CONSERVATION CONSTRAINTS
+# ============================================================
+
+class ConservationConstraint(str, Enum):
+
+    SPATIAL = "spatial"
+
+    TEMPORAL = "temporal"
+
+    EPOCH = "epoch"
+
+    AUTHORITY_STATE = (
+        "authority_state"
+    )
+
+    OBSERVABILITY_FIELD = (
+        "observability_field"
+    )
+
+    INFRASTRUCTURE_MATURITY = (
+        "infrastructure_maturity"
+    )
+
+    SENSOR_CAPABILITY = (
+        "sensor_capability"
+    )
+
+    REPORTING_SURVIVABILITY = (
+        "reporting_survivability"
+    )
+
+    ARCHIVAL_PERSISTENCE = (
+        "archival_persistence"
+    )
