@@ -1,9 +1,8 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT (V6)
-// GLOBAL OPERATIONAL NODE COGNITION ENABLED
-// NARRATIVE INTELLIGENCE ENABLED
-// TS STRICT MODE FIXED
+// GLOBAL OPERATIONAL EVENT CONTEXT (V7)
+// CANONICAL EVENT HYDRATION ENABLED
+// MULTI-EVENT MANIFOLD FOUNDATION ENABLED
 // CLEAN FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -16,6 +15,11 @@ import {
 import type {
   ReactNode,
 } from "react";
+
+import {
+  adaptCanonicalEvents,
+  type CanonicalReplayEvent,
+} from "../adapters/canonicalEventAdapter";
 
 // ============================================================
 // TYPES
@@ -151,59 +155,41 @@ export type OperationalNode = {
 };
 
 // ============================================================
-// DEMO EVENTS
+// CANONICAL REPLAY EVENTS
 // ============================================================
 
-export const DEMO_EVENTS: EventData[] = [
+const CANONICAL_EVENTS:
+  CanonicalReplayEvent[] = [
+
+  // =========================================================
+  // MEDFORD
+  // =========================================================
+
   {
-    id: "E-MEDFORD-001",
+    event_id:
+      "E-MEDFORD-001",
 
-    location: "Medford, OR",
+    event_name:
+      "Medford Emergence",
 
-    confidence: 0.82,
+    classification:
+      "urban_observability_event",
 
-    reports: 4,
+    core_event: {
 
-    clusters: 2,
+      location: {
+        city: "Medford",
+        state: "OR",
+      },
 
-    duration: "36m",
+      observability_profile: {
+        confidence: 0.82,
+        reports: 4,
+        clusters: 2,
+        duration_minutes: 36,
+      },
 
-    escalation: "TRACKING",
-
-    recurrence: "LOW",
-
-    trend: "STABLE",
-
-    active: true,
-
-    reasoning: [
-
-      "Semantic convergence detected across independent observers",
-
-      "Temporal compression indicates synchronized observation window",
-
-      "Spatial manifold overlap exceeds emergence threshold",
-
-      "Infrastructure density sufficient for investigation vectors",
-    ],
-
-    narratives: [
-
-      {
-        observer_id: "OBS-A1",
-
-        location: "North Medford",
-
-        semantic_match: 0.91,
-
-        time_offset: "00m",
-
-        confidence: 0.87,
-
-        certainty: "HIGH",
-
-        text:
-          "Observed a silent luminous object maintaining stationary position before accelerating rapidly westward.",
+      semantic_signature: {
 
         traits: [
           "silent",
@@ -211,164 +197,306 @@ export const DEMO_EVENTS: EventData[] = [
           "rapid acceleration",
           "luminous",
         ],
-      },
 
-      {
-        observer_id: "OBS-B2",
+        narratives: [
 
-        location: "Central Medford",
+          "Observed a silent luminous object maintaining stationary position before accelerating rapidly westward.",
 
-        semantic_match: 0.84,
-
-        time_offset: "+02m",
-
-        confidence: 0.81,
-
-        certainty: "MEDIUM",
-
-        text:
           "Witnessed a bright object hovering motionless before abruptly changing direction without visible propulsion.",
 
-        traits: [
-          "hovering",
-          "silent",
-          "directional shift",
-          "bright object",
-        ],
-      },
-
-      {
-        observer_id: "OBS-C7",
-
-        location: "East Medford",
-
-        semantic_match: 0.79,
-
-        time_offset: "+03m",
-
-        confidence: 0.78,
-
-        certainty: "MEDIUM",
-
-        text:
           "A bright object remained fixed overhead before instantly disappearing without sound or visible transition.",
-
-        traits: [
-          "instant disappearance",
-          "silent",
-          "stationary",
-          "bright object",
         ],
       },
-    ],
+
+      infrastructure_context: {
+
+        facilities: [
+
+          {
+            name:
+              "Medford ATC Tower",
+
+            type:
+              "ATC",
+
+            distance:
+              "4.1km",
+          },
+
+          {
+            name:
+              "Rogue Valley Intl Airport",
+
+            type:
+              "AIRPORT OPS",
+
+            distance:
+              "5.2km",
+          },
+
+          {
+            name:
+              "KMAX NEXRAD",
+
+            type:
+              "RADAR",
+
+            distance:
+              "41km",
+          },
+        ],
+      },
+    },
 
     topology: {
 
-      stability_state: "FRAGMENTED",
+      topology_state: {
 
-      ambiguity_state: "HIGH",
+        stability_state:
+          "FRAGMENTED",
 
-      contradiction_density: 1.0,
+        ambiguity_state:
+          "HIGH",
 
-      residual_instability: 0.716,
+        contradiction_density:
+          1.0,
 
-      entanglement_score: 0.75,
+        residual_instability:
+          0.716,
 
-      cluster_fragmentation: 0.5,
-    },
+        entanglement_score:
+          0.75,
 
-    topology_observability: {
-
-      overlap_regions: [
-
-        {
-          overlap_score: 1.0,
-
-          contributing_candidates: [
-            "CAND-AVIATION-1",
-            "CAND-AVIATION-2",
-          ],
-
-          shared_features: [
-            "trajectory continuity",
-            "structured maneuvering",
-            "speed profile",
-          ],
-        },
-      ],
-
-      entanglements: {
-
-        global_entanglement_score: 0.75,
-
-        high_entanglement_domains: [
-          ["aviation", "weather"],
-        ],
-      },
-
-      residual_vectors: {
-
-        global_residual_instability: 0.716,
-
-        high_instability_domains: [
-          "weather",
-          "aviation",
-        ],
-      },
-
-      collapse_clusters: {
-
-        cluster_fragmentation: 0.5,
-
-        cluster_types: [
-          "aviation",
-          "weather",
-        ],
+        cluster_fragmentation:
+          0.5,
       },
     },
+  },
 
-    observations: [
+  // =========================================================
+  // TIC TAC
+  // =========================================================
 
-      {
-        id: "OBS-1001",
+  {
+    event_id:
+      "E-TICTAC-2004",
 
-        time: "21:04 UTC",
+    event_name:
+      "Nimitz Tic Tac Encounter",
 
-        location: "North Medford",
+    classification:
+      "multi_sensor_naval_event",
 
-        summary:
-          "Stationary luminous object with rapid directional shift",
-      },
-    ],
+    core_event: {
 
-    facilities: [
-
-      {
-        name: "Medford ATC Tower",
-
-        type: "ATC",
-
-        distance: "4.1km",
+      location: {
+        city: "Pacific Sector",
+        state: "CA",
       },
 
-      {
-        name: "Rogue Valley Intl Airport",
-
-        type: "AIRPORT OPS",
-
-        distance: "5.2km",
+      observability_profile: {
+        confidence: 0.94,
+        reports: 7,
+        clusters: 5,
+        duration_minutes: 85,
       },
 
-      {
-        name: "KMAX NEXRAD",
+      semantic_signature: {
 
-        type: "RADAR",
+        traits: [
+          "multi-sensor",
+          "instant acceleration",
+          "naval radar",
+          "structured maneuvering",
+          "non-ballistic movement",
+        ],
 
-        distance: "41km",
+        narratives: [
+
+          "Naval radar operators tracked anomalous descending objects demonstrating abrupt directional shifts and rapid acceleration.",
+
+          "Visual intercept confirmed smooth white tic tac shaped object exhibiting controlled movement without visible propulsion.",
+
+          "Objects appeared to anticipate aircraft vectoring and reposition before pilot arrival.",
+        ],
       },
-    ],
+
+      infrastructure_context: {
+
+        facilities: [
+
+          {
+            name:
+              "USS Princeton",
+
+            type:
+              "AEGIS RADAR",
+
+            distance:
+              "0km",
+          },
+
+          {
+            name:
+              "USS Nimitz Carrier Group",
+
+            type:
+              "NAVAL STRIKE GROUP",
+
+            distance:
+              "3km",
+          },
+
+          {
+            name:
+              "E2 Hawkeye Sensor Grid",
+
+            type:
+              "AIRBORNE SENSOR",
+
+            distance:
+              "12km",
+          },
+        ],
+      },
+    },
+
+    topology: {
+
+      topology_state: {
+
+        stability_state:
+          "UNSTABLE",
+
+        ambiguity_state:
+          "MODERATE",
+
+        contradiction_density:
+          0.42,
+
+        residual_instability:
+          0.31,
+
+        entanglement_score:
+          0.92,
+
+        cluster_fragmentation:
+          0.18,
+      },
+    },
+  },
+
+  // =========================================================
+  // YUCCA
+  // =========================================================
+
+  {
+    event_id:
+      "E-YUCCA-002",
+
+    event_name:
+      "Yucca Valley Emergence",
+
+    classification:
+      "remote_desert_event",
+
+    core_event: {
+
+      location: {
+        city: "Yucca Valley",
+        state: "CA",
+      },
+
+      observability_profile: {
+        confidence: 0.71,
+        reports: 3,
+        clusters: 2,
+        duration_minutes: 24,
+      },
+
+      semantic_signature: {
+
+        traits: [
+          "desert emergence",
+          "orbital movement",
+          "silent",
+          "formation behavior",
+        ],
+
+        narratives: [
+
+          "Witnesses observed multiple luminous spheres maneuvering silently across the desert horizon in coordinated patterns.",
+
+          "Objects maintained geometric spacing before abruptly dispersing at high speed.",
+
+          "No aircraft sound or conventional lighting signatures were detected during the event.",
+        ],
+      },
+
+      infrastructure_context: {
+
+        facilities: [
+
+          {
+            name:
+              "Twentynine Palms Airspace",
+
+            type:
+              "MILITARY AIRSPACE",
+
+            distance:
+              "21km",
+          },
+
+          {
+            name:
+              "Joshua Tree Observation Corridor",
+
+            type:
+              "VISUAL OBSERVATION REGION",
+
+            distance:
+              "8km",
+          },
+        ],
+      },
+    },
+
+    topology: {
+
+      topology_state: {
+
+        stability_state:
+          "PARTIAL",
+
+        ambiguity_state:
+          "MODERATE",
+
+        contradiction_density:
+          0.58,
+
+        residual_instability:
+          0.44,
+
+        entanglement_score:
+          0.63,
+
+        cluster_fragmentation:
+          0.39,
+      },
+    },
   },
 ];
+
+// ============================================================
+// HYDRATED EVENTS
+// ============================================================
+
+export const DEMO_EVENTS:
+  EventData[] =
+    adaptCanonicalEvents(
+      CANONICAL_EVENTS
+    );
 
 // ============================================================
 // CONTEXT TYPE

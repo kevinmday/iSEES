@@ -1,13 +1,15 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
-// OPERATIONAL INVESTIGATION WORKSPACE (V8)
+// OPERATIONAL INVESTIGATION WORKSPACE (V9)
 // PROCEDURAL COGNITION ENABLED
 // NARRATIVE INTELLIGENCE ENABLED
+// SURFACE STATE ENGINE ENABLED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import { useEventContext } from "../context/EventContext";
 import { objectRegistry } from "../intel/object_registry";
+import SurfaceState from "./SurfaceState";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -805,183 +807,21 @@ export default function InvestigationWorkspace() {
 
             {(event.narratives || []).length === 0 && (
 
-              <div
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 13,
-                }}
-              >
-                No observer narratives available
-              </div>
+              <SurfaceState
+                title="Narrative Surface State"
+                state="SPARSE"
+                density="LOW"
+                topology="DISCONNECTED"
+                pressure="MINIMAL"
+                integrity="VERIFIED"
+                glyph="NONE"
+                explanation={[
+                  "No observer narratives currently attached to active manifold reconstruction.",
+                  "Semantic convergence density remains below narrative activation threshold.",
+                  "Additional observer testimony required for higher-order narrative synthesis.",
+                ]}
+              />
 
-            )}
-
-            {(event.narratives || []).map(
-              (narrative: any, idx: number) => (
-
-                <div
-                  key={idx}
-                  style={{
-                    border: "1px solid #1f2937",
-                    borderRadius: 10,
-                    padding: 18,
-                    background: "#0b1220",
-                  }}
-                >
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 14,
-                    }}
-                  >
-
-                    <div>
-
-                      <div
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 700,
-                          color: "#f3f4f6",
-                        }}
-                      >
-                        {narrative.observer_id}
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop: 4,
-                          fontSize: 12,
-                          color: "#9ca3af",
-                        }}
-                      >
-                        {narrative.location}
-                      </div>
-
-                    </div>
-
-                    <div
-                      style={{
-                        textAlign: "right",
-                      }}
-                    >
-
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "#6b7280",
-                          textTransform: "uppercase",
-                          letterSpacing: 1,
-                        }}
-                      >
-                        Semantic Match
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop: 4,
-                          fontSize: 18,
-                          fontWeight: 700,
-                          color: "#86efac",
-                        }}
-                      >
-                        {narrative.semantic_match}
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 10,
-                      marginBottom: 18,
-                    }}
-                  >
-
-                    <MetricBox
-                      label="Time Offset"
-                      value={narrative.time_offset}
-                    />
-
-                    <MetricBox
-                      label="Confidence"
-                      value={narrative.confidence}
-                    />
-
-                    <MetricBox
-                      label="Certainty"
-                      value={narrative.certainty}
-                    />
-
-                  </div>
-
-                  <div
-                    style={{
-                      padding: 16,
-                      border: "1px solid #1f2937",
-                      borderRadius: 8,
-                      background: "#09111d",
-                      color: "#d1d5db",
-                      lineHeight: 1.7,
-                      fontSize: 14,
-                      marginBottom: 18,
-                      fontStyle: "italic",
-                    }}
-                  >
-                    "{narrative.text}"
-                  </div>
-
-                  <div
-                    style={{
-                      marginBottom: 10,
-                      fontSize: 12,
-                      color: "#60a5fa",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    Convergence Traits
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 10,
-                    }}
-                  >
-
-                    {(narrative.traits || []).map(
-                      (trait: string, traitIdx: number) => (
-
-                        <div
-                          key={traitIdx}
-                          style={{
-                            padding: "8px 12px",
-                            borderRadius: 999,
-                            border: "1px solid #1f2937",
-                            background: "#08101f",
-                            color: "#cbd5e1",
-                            fontSize: 12,
-                          }}
-                        >
-                          {trait}
-                        </div>
-
-                      )
-                    )}
-
-                  </div>
-
-                </div>
-
-              )
             )}
 
           </div>
@@ -1008,14 +848,20 @@ export default function InvestigationWorkspace() {
 
             {overlapRegions.length === 0 && (
 
-              <div
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 13,
-                }}
-              >
-                No overlap regions available
-              </div>
+              <SurfaceState
+                title="Overlap Surface State"
+                state="SPARSE"
+                density="LOW"
+                topology="DISCONNECTED"
+                pressure="MINIMAL"
+                integrity="VERIFIED"
+                glyph="OVERLAP"
+                explanation={[
+                  "No statistically significant overlap manifold regions detected.",
+                  "Observer geometry currently lacks synchronized spatial convergence.",
+                  "Spatial overlap activation threshold has not been reached.",
+                ]}
+              />
 
             )}
 
