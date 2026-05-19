@@ -1,6 +1,7 @@
 # ============================================================
 # iSEES UAP API — CORE ENDPOINTS
 # LIVE INGESTION + REPORT BRIDGE ENABLED
+# LIVE CLUSTER PROPAGATION ENABLED
 # FULL DROP-IN REPLACEMENT
 # ============================================================
 
@@ -166,12 +167,55 @@ def submit_report(payload: Dict):
         "gap_type": "INITIAL_INGEST",
     }
 
+    # --------------------------------------------------------
+    # LIVE CLUSTER INSERTION
+    # --------------------------------------------------------
+
+    live_cluster = {
+
+        "event_id": report_id,
+
+        "cluster_size": 1,
+
+        "reports": [report],
+
+        "reportsData": [report],
+
+        "top_vectors": [],
+
+        "gap_type": "LIVE_ROR",
+
+        "location": report.get(
+            "location",
+            "UNKNOWN"
+        ),
+
+        "confidence": 0.72,
+
+        "reports_count": 1,
+
+        "active": True,
+    }
+
+    # --------------------------------------------------------
+    # INSERT AT TOP OF ACTIVE RADAR
+    # --------------------------------------------------------
+
+    clusters_store.insert(
+        0,
+        live_cluster
+    )
+
     return {
         "status": "report_ingested",
 
         "report_id": report_id,
 
         "report": report,
+
+        "live_cluster_inserted": True,
+
+        "cluster_count": len(clusters_store),
     }
 
 # ============================================================

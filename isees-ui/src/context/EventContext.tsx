@@ -1,15 +1,15 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT (V7)
-// CANONICAL EVENT HYDRATION ENABLED
-// MULTI-EVENT MANIFOLD FOUNDATION ENABLED
-// CLEAN FULL DROP-IN REPLACEMENT
+// GLOBAL OPERATIONAL EVENT CONTEXT (V9)
+// LIVE EVENT PRIORITY + OP INTEL RESET FIX
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import {
   createContext,
   useContext,
   useState,
+  useEffect,
 } from "react";
 
 import type {
@@ -18,7 +18,9 @@ import type {
 
 import {
   adaptCanonicalEvents,
+  adaptLiveCluster,
   type CanonicalReplayEvent,
+  type LiveCluster,
 } from "../adapters/canonicalEventAdapter";
 
 // ============================================================
@@ -38,10 +40,6 @@ export type Facility = {
   distance: string;
 };
 
-// ============================================================
-// NARRATIVE INTELLIGENCE
-// ============================================================
-
 export type NarrativeData = {
   observer_id: string;
   location: string;
@@ -51,11 +49,23 @@ export type NarrativeData = {
   certainty: string;
   text: string;
   traits: string[];
-};
 
-// ============================================================
-// TOPOLOGY STATE
-// ============================================================
+  raw_field_note?: string;
+
+  normalized_observation?: string[];
+
+  semantic_pressure?: string;
+
+  certainty_markers?: number;
+
+  hesitation_markers?: number;
+
+  perceptual_stability?: string;
+
+  physics_conflict?: string;
+
+  entanglement_links?: string[];
+};
 
 export type TopologyState = {
   stability_state: string;
@@ -65,10 +75,6 @@ export type TopologyState = {
   entanglement_score: number;
   cluster_fragmentation: number;
 };
-
-// ============================================================
-// TOPOLOGY OBSERVABILITY
-// ============================================================
 
 export type OverlapRegion = {
   overlap_score: number;
@@ -93,14 +99,13 @@ export type CollapseClusterData = {
 
 export type TopologyObservability = {
   overlap_regions: OverlapRegion[];
+
   entanglements: EntanglementData;
+
   residual_vectors: ResidualVectorData;
+
   collapse_clusters: CollapseClusterData;
 };
-
-// ============================================================
-// EVENT DATA
-// ============================================================
 
 export type EventData = {
   id: string;
@@ -128,10 +133,6 @@ export type EventData = {
     TopologyObservability;
 };
 
-// ============================================================
-// INVESTIGATION SURFACES
-// ============================================================
-
 export type InvestigationSurface =
   | "SUMMARY"
   | "NARRATIVES"
@@ -145,10 +146,6 @@ export type InvestigationSurface =
   | "HOTSPOT"
   | "GEO";
 
-// ============================================================
-// GLOBAL OPERATIONAL NODE
-// ============================================================
-
 export type OperationalNode = {
   name: string;
   type: string;
@@ -160,10 +157,6 @@ export type OperationalNode = {
 
 const CANONICAL_EVENTS:
   CanonicalReplayEvent[] = [
-
-  // =========================================================
-  // MEDFORD
-  // =========================================================
 
   {
     event_id:
@@ -272,10 +265,6 @@ const CANONICAL_EVENTS:
       },
     },
   },
-
-  // =========================================================
-  // TIC TAC
-  // =========================================================
 
   {
     event_id:
@@ -386,10 +375,6 @@ const CANONICAL_EVENTS:
     },
   },
 
-  // =========================================================
-  // YUCCA
-  // =========================================================
-
   {
     event_id:
       "E-YUCCA-002",
@@ -489,7 +474,7 @@ const CANONICAL_EVENTS:
 ];
 
 // ============================================================
-// HYDRATED EVENTS
+// DEMO EVENTS
 // ============================================================
 
 export const DEMO_EVENTS:
@@ -547,14 +532,17 @@ export function EventProvider({
   children: ReactNode;
 }) {
 
-  const [events] =
+  const [
+    events,
+    setEvents,
+  ] =
     useState<EventData[]>(
       DEMO_EVENTS
     );
 
   const [
     activeEvent,
-    setActiveEvent,
+    internalSetActiveEvent,
   ] =
     useState<EventData | null>(
       DEMO_EVENTS[0]
@@ -575,6 +563,111 @@ export function EventProvider({
     useState<OperationalNode | null>(
       null
     );
+
+  // =========================================================
+  // ACTIVE EVENT WRAPPER
+  // =========================================================
+
+  function setActiveEvent(
+    event: EventData
+  ) {
+
+    internalSetActiveEvent(
+      event
+    );
+
+    // --------------------------------------------
+    // RESET STALE OPERATIONAL INTEL
+    // --------------------------------------------
+
+    setSelectedOperationalNode(
+      null
+    );
+  }
+
+  // =========================================================
+  // LIVE CLUSTER HYDRATION
+  // =========================================================
+
+  useEffect(() => {
+
+    async function hydrateLiveEvents() {
+
+      try {
+
+        const response =
+          await fetch(
+            "http://localhost:8001/clusters"
+          );
+
+        const liveClusters:
+          LiveCluster[] =
+            await response.json();
+
+        if (
+          !Array.isArray(
+            liveClusters
+          )
+        ) {
+          return;
+        }
+
+        const liveEvents =
+          liveClusters.map(
+            adaptLiveCluster
+          );
+
+        // ----------------------------------------
+        // LIVE EVENTS OVERRIDE DEMO EVENTS
+        // ----------------------------------------
+
+        if (
+          liveEvents.length > 0
+        ) {
+
+          setEvents(
+            liveEvents
+          );
+
+          internalSetActiveEvent(
+            liveEvents[0]
+          );
+
+          setSelectedOperationalNode(
+            null
+          );
+
+        } else {
+
+          setEvents(
+            DEMO_EVENTS
+          );
+
+          internalSetActiveEvent(
+            DEMO_EVENTS[0]
+          );
+        }
+
+      } catch (err) {
+
+        console.error(
+          "LIVE HYDRATION FAILED",
+          err
+        );
+
+        setEvents(
+          DEMO_EVENTS
+        );
+
+        internalSetActiveEvent(
+          DEMO_EVENTS[0]
+        );
+      }
+    }
+
+    hydrateLiveEvents();
+
+  }, []);
 
   return (
 
