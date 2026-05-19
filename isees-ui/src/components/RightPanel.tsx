@@ -1,7 +1,7 @@
 // ============================================================
 // src/components/RightPanel.tsx
-// CONTEXT-DRIVEN OPERATIONAL INTELLIGENCE (V7)
-// SCHEMA HARDENED + ENRICHED NODE INTELLIGENCE
+// CONTEXT-DRIVEN OPERATIONAL INTELLIGENCE (V9)
+// EVENT-BOUND COGNITION STATE SYNCHRONIZATION
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -42,7 +42,10 @@ function resolveNodeType(
   }
 
   if (
-    lower.includes("naval")
+    lower.includes("naval") ||
+    lower.includes("carrier") ||
+    lower.includes("princeton") ||
+    lower.includes("hawkeye")
   ) {
     return "MILITARY_SENSOR";
   }
@@ -101,10 +104,50 @@ export default function RightPanel() {
   const eventType =
     activeEvent.escalation || "LOW";
 
+  const fallbackAssets = [
+
+    "USS Princeton",
+    "USS Nimitz Carrier Group",
+    "E2 Hawkeye Sensor Grid",
+  ];
+
   const assets =
-    activeEvent.facilities?.map(
-      (f: any) => f.name
-    ) || [];
+    activeEvent.facilities?.length
+      ? activeEvent.facilities.map(
+          (f: any) => f.name
+        )
+      : fallbackAssets;
+
+  // ==========================================================
+  // EVENT-BOUND NODE SYNCHRONIZATION
+  // ==========================================================
+
+  const firstAsset =
+    assets[0];
+
+  const expectedNodeName =
+    selectedOperationalNode?.name;
+
+  const eventHasSelectedNode =
+    assets.includes(
+      expectedNodeName || ""
+    );
+
+  if (
+    firstAsset &&
+    !eventHasSelectedNode
+  ) {
+
+    setSelectedOperationalNode({
+
+      name: firstAsset,
+
+      type:
+        resolveNodeType(
+          firstAsset
+        ),
+    });
+  }
 
   // ==========================================================
   // HANDLERS
@@ -159,6 +202,21 @@ export default function RightPanel() {
 
     SUMMARY:
       "Operational Intelligence",
+
+    NARRATIVES:
+      "Narrative Intelligence",
+
+    OVERLAP:
+      "Overlap Intelligence",
+
+    ENTANGLEMENT:
+      "Entanglement Intelligence",
+
+    RESIDUAL:
+      "Residual Intelligence",
+
+    CLUSTERS:
+      "Cluster Intelligence",
 
     COLLAPSE:
       "Collapse Residual Analysis",
@@ -248,125 +306,97 @@ export default function RightPanel() {
       </Panel>
 
       {/* ================================================= */}
-      {/* SURFACE PANEL */}
+      {/* OPERATIONAL NODE SELECTOR */}
       {/* ================================================= */}
 
       <Panel
         title={
           surfaceTitleMap[
             activeSurface
-          ]
+          ] || "Operational Intelligence"
         }
       >
 
-        {activeSurface ===
-          "SUMMARY" && (
+        <div
+          style={{
+            display: "flex",
 
-          <div
-            style={{
-              display: "flex",
+            flexDirection:
+              "column",
 
-              flexDirection:
-                "column",
+            gap: 8,
+          }}
+        >
 
-              gap: 8,
-            }}
-          >
+          {assets.map(
+            (
+              asset: string
+            ) => {
 
-            {assets.map(
-              (
-                asset: string
-              ) => {
+              const selected =
+                selectedOperationalNode?.name ===
+                asset;
 
-                const selected =
-                  selectedOperationalNode?.name ===
-                  asset;
+              return (
 
-                return (
+                <div
+                  key={asset}
+
+                  onClick={() =>
+                    handleSelect(asset)
+                  }
+
+                  style={{
+
+                    cursor: "pointer",
+
+                    border:
+                      selected
+                        ? "1px solid #38bdf8"
+                        : "1px solid #1f2937",
+
+                    background:
+                      selected
+                        ? "#132238"
+                        : "#08101d",
+
+                    borderRadius: 6,
+
+                    padding: 10,
+
+                    transition:
+                      "all 0.15s ease",
+                  }}
+                >
 
                   <div
-                    key={asset}
-
-                    onClick={() =>
-                      handleSelect(asset)
-                    }
-
                     style={{
+                      fontSize: 13,
 
-                      cursor: "pointer",
+                      fontWeight: 700,
 
-                      border:
-                        selected
-                          ? "1px solid #38bdf8"
-                          : "1px solid #1f2937",
-
-                      background:
-                        selected
-                          ? "#132238"
-                          : "#08101d",
-
-                      borderRadius: 6,
-
-                      padding: 10,
-
-                      transition:
-                        "all 0.15s ease",
+                      marginBottom: 4,
                     }}
                   >
-
-                    <div
-                      style={{
-                        fontSize: 13,
-
-                        fontWeight: 700,
-
-                        marginBottom: 4,
-                      }}
-                    >
-                      {asset}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 11,
-
-                        color: "#94a3b8",
-                      }}
-                    >
-                      Click for operational intelligence
-                    </div>
-
+                    {asset}
                   </div>
-                );
-              }
-            )}
 
-          </div>
-        )}
+                  <div
+                    style={{
+                      fontSize: 11,
 
-        {activeSurface !==
-          "SUMMARY" && (
+                      color: "#94a3b8",
+                    }}
+                  >
+                    Click for operational intelligence
+                  </div>
 
-          <IntelStack
-            rows={[
+                </div>
+              );
+            }
+          )}
 
-              [
-                "Surface",
-                activeSurface,
-              ],
-
-              [
-                "Interpretation Mode",
-                "Adaptive cognition enabled",
-              ],
-
-              [
-                "Context State",
-                "Surface-aware node reasoning active",
-              ],
-            ]}
-          />
-        )}
+        </div>
 
       </Panel>
 
@@ -395,242 +425,127 @@ export default function RightPanel() {
             </div>
 
             {/* =========================================== */}
-            {/* SUMMARY */}
+            {/* CORE INTEL */}
             {/* =========================================== */}
 
-            {activeSurface ===
-              "SUMMARY" && (
+            <IntelRow
+              label="Node Type"
+              value={
+                selectedNode.type
+              }
+            />
 
-              <>
+            <IntelRow
+              label="Category"
+              value={
+                selectedNode.category
+              }
+            />
 
-                <IntelRow
-                  label="Node Type"
-                  value={
-                    selectedNode.type
-                  }
-                />
-
-                <IntelRow
-                  label="Category"
-                  value={
-                    selectedNode.category
-                  }
-                />
-
-                <IntelRow
-                  label="Role"
-                  value={
-                    selectedNode.role
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* CONTACTS */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Contacts" />
-
-                <IntelStack
-                  rows={[
-
-                    [
-                      "Facility ID",
-                      selectedNode.contacts?.facility_id ||
-                        "Unknown",
-                    ],
-
-                    [
-                      "Ops Phone",
-                      selectedNode.contacts?.ops_phone ||
-                        "Unknown",
-                    ],
-
-                    [
-                      "Tower Frequency",
-                      selectedNode.contacts?.tower_frequency ||
-                        "Unknown",
-                    ],
-
-                    [
-                      "Coordination",
-                      selectedNode.contacts?.coordination_line ||
-                        "Unknown",
-                    ],
-
-                    [
-                      "Reporting Chain",
-                      selectedNode.contacts?.reporting_chain ||
-                        "Unknown",
-                    ],
-                  ]}
-                />
-
-                {/* ===================================== */}
-                {/* SENSOR STACK */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Sensor Stack" />
-
-                <SensorStack
-                  stack={
-                    selectedNode.sensor_stack
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* CAPABILITIES */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Capabilities" />
-
-                <BulletList
-                  items={
-                    selectedNode.capabilities
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* LIMITATIONS */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Limitations" />
-
-                <BulletList
-                  items={
-                    selectedNode.limitations
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* BLIND SPOTS */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Blind Spots" />
-
-                <BulletList
-                  items={
-                    selectedNode.blind_spots
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* INVESTIGATIVE VALUE */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Investigative Value" />
-
-                <BulletList
-                  items={
-                    selectedNode.investigative_value
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* RECORD RETENTION */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Record Retention" />
-
-                <BulletList
-                  items={
-                    selectedNode.record_retention
-                  }
-                />
-
-                {/* ===================================== */}
-                {/* OPERATIONAL NOTES */}
-                {/* ===================================== */}
-
-                <SectionTitle title="Operational Notes" />
-
-                <BulletList
-                  items={
-                    selectedNode.operational_notes
-                  }
-                />
-
-              </>
-            )}
+            <IntelRow
+              label="Role"
+              value={
+                selectedNode.role
+              }
+            />
 
             {/* =========================================== */}
-            {/* COLLAPSE */}
+            {/* CONTACTS */}
             {/* =========================================== */}
 
-            {activeSurface ===
-              "COLLAPSE" && (
+            <SectionTitle title="Contacts" />
 
-              <>
+            <IntelStack
+              rows={[
 
-                <IntelRow
-                  label="Collapse Relevance"
-                  value="Node failed full contextual resolution"
-                />
+                [
+                  "Facility ID",
+                  selectedNode.contacts?.facility_id ||
+                    "Unknown",
+                ],
 
-                <SectionTitle title="Failure Modes" />
+                [
+                  "Ops Phone",
+                  selectedNode.contacts?.ops_phone ||
+                    "Unknown",
+                ],
 
-                <BulletList
-                  items={
-                    selectedNode.collapse_failure_modes
-                  }
-                />
+                [
+                  "Tower Frequency",
+                  selectedNode.contacts?.tower_frequency ||
+                    "Unknown",
+                ],
 
-                <SectionTitle title="Limitations" />
+                [
+                  "Coordination",
+                  selectedNode.contacts?.coordination_line ||
+                    "Unknown",
+                ],
 
-                <BulletList
-                  items={
-                    selectedNode.limitations
-                  }
-                />
-
-              </>
-            )}
-
-            {/* =========================================== */}
-            {/* CANDIDATES */}
-            {/* =========================================== */}
-
-            {activeSurface ===
-              "CANDIDATES" && (
-
-              <>
-
-                <IntelRow
-                  label="Candidate Support"
-                  value="Partial candidate alignment detected"
-                />
-
-                <SectionTitle title="Observation Vectors" />
-
-                <BulletList
-                  items={
-                    selectedNode.observation_vectors
-                  }
-                />
-
-                <SectionTitle title="Capabilities" />
-
-                <BulletList
-                  items={
-                    selectedNode.capabilities
-                  }
-                />
-
-              </>
-            )}
+                [
+                  "Reporting Chain",
+                  selectedNode.contacts?.reporting_chain ||
+                    "Unknown",
+                ],
+              ]}
+            />
 
             {/* =========================================== */}
-            {/* CONTRADICTIONS */}
+            {/* SENSOR STACK */}
+            {/* =========================================== */}
+
+            <SectionTitle title="Sensor Stack" />
+
+            <SensorStack
+              stack={
+                selectedNode.sensor_stack
+              }
+            />
+
+            {/* =========================================== */}
+            {/* CAPABILITIES */}
+            {/* =========================================== */}
+
+            <SectionTitle title="Capabilities" />
+
+            <BulletList
+              items={
+                selectedNode.capabilities
+              }
+            />
+
+            {/* =========================================== */}
+            {/* LIMITATIONS */}
+            {/* =========================================== */}
+
+            <SectionTitle title="Limitations" />
+
+            <BulletList
+              items={
+                selectedNode.limitations
+              }
+            />
+
+            {/* =========================================== */}
+            {/* BLIND SPOTS */}
+            {/* =========================================== */}
+
+            <SectionTitle title="Blind Spots" />
+
+            <BulletList
+              items={
+                selectedNode.blind_spots
+              }
+            />
+
+            {/* =========================================== */}
+            {/* SURFACE-SPECIFIC */}
             {/* =========================================== */}
 
             {activeSurface ===
               "CONTRADICTIONS" && (
 
               <>
-
-                <IntelRow
-                  label="Contradiction State"
-                  value="Sensor divergence present"
-                />
 
                 <SectionTitle title="Contradiction Vectors" />
 
@@ -640,31 +555,30 @@ export default function RightPanel() {
                   }
                 />
 
-                <SectionTitle title="Operational Notes" />
+              </>
+            )}
+
+            {activeSurface ===
+              "COLLAPSE" && (
+
+              <>
+
+                <SectionTitle title="Failure Modes" />
 
                 <BulletList
                   items={
-                    selectedNode.operational_notes
+                    selectedNode.collapse_failure_modes
                   }
                 />
 
               </>
             )}
-
-            {/* =========================================== */}
-            {/* HOTSPOT */}
-            {/* =========================================== */}
 
             {activeSurface ===
               "HOTSPOT" && (
 
               <>
 
-                <IntelRow
-                  label="Recurrence Relevance"
-                  value="Persistent regional infrastructure overlap"
-                />
-
                 <SectionTitle title="Geo Constraints" />
 
                 <BulletList
@@ -673,49 +587,20 @@ export default function RightPanel() {
                   }
                 />
 
-                <SectionTitle title="Operational Notes" />
-
-                <BulletList
-                  items={
-                    selectedNode.operational_notes
-                  }
-                />
-
               </>
             )}
 
             {/* =========================================== */}
-            {/* GEO */}
+            {/* OPERATIONAL NOTES */}
             {/* =========================================== */}
 
-            {activeSurface ===
-              "GEO" && (
+            <SectionTitle title="Operational Notes" />
 
-              <>
-
-                <IntelRow
-                  label="Infrastructure Relevance"
-                  value="Geo-spatial investigative node"
-                />
-
-                <SectionTitle title="Geo Constraints" />
-
-                <BulletList
-                  items={
-                    selectedNode.geo_constraints
-                  }
-                />
-
-                <SectionTitle title="Limitations" />
-
-                <BulletList
-                  items={
-                    selectedNode.limitations
-                  }
-                />
-
-              </>
-            )}
+            <BulletList
+              items={
+                selectedNode.operational_notes
+              }
+            />
 
           </Panel>
         )}

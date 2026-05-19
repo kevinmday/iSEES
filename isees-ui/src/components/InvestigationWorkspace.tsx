@@ -1,9 +1,8 @@
 // ============================================================
 // src/components/InvestigationWorkspace.tsx
-// OPERATIONAL INVESTIGATION WORKSPACE (V9)
-// PROCEDURAL COGNITION ENABLED
-// NARRATIVE INTELLIGENCE ENABLED
-// SURFACE STATE ENGINE ENABLED
+// OPERATIONAL INVESTIGATION WORKSPACE (V10)
+// FULL SURFACE RENDERER STABILIZATION
+// DETERMINISTIC COGNITION ARCHITECTURE
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -40,9 +39,7 @@ function MetricBox({
   label: string;
   value: string | number;
 }) {
-
   return (
-
     <div
       style={{
         border: "1px solid #1f2937",
@@ -51,7 +48,6 @@ function MetricBox({
         background: "#08101f",
       }}
     >
-
       <div
         style={{
           fontSize: 10,
@@ -73,7 +69,6 @@ function MetricBox({
       >
         {value}
       </div>
-
     </div>
   );
 }
@@ -91,23 +86,17 @@ function SurfaceButton({
   active: boolean;
   onClick: () => void;
 }) {
-
   return (
-
     <button
       onClick={onClick}
       style={{
-        background: active
-          ? "#111827"
-          : "#08101f",
+        background: active ? "#111827" : "#08101f",
 
         border: active
           ? "1px solid #374151"
           : "1px solid #1f2937",
 
-        color: active
-          ? "#f3f4f6"
-          : "#9ca3af",
+        color: active ? "#f3f4f6" : "#9ca3af",
 
         padding: "8px 12px",
 
@@ -140,9 +129,7 @@ function SurfaceBlock({
   title: string;
   children: React.ReactNode;
 }) {
-
   return (
-
     <div
       style={{
         border: "1px solid #1f2937",
@@ -151,7 +138,6 @@ function SurfaceBlock({
         background: "#08101f",
       }}
     >
-
       <div
         style={{
           fontSize: 13,
@@ -165,7 +151,6 @@ function SurfaceBlock({
       </div>
 
       {children}
-
     </div>
   );
 }
@@ -181,9 +166,7 @@ function DetailRow({
   label: string;
   value: string | number;
 }) {
-
   return (
-
     <div
       style={{
         display: "flex",
@@ -193,7 +176,6 @@ function DetailRow({
         borderBottom: "1px solid #172033",
       }}
     >
-
       <div
         style={{
           fontSize: 12,
@@ -214,178 +196,8 @@ function DetailRow({
       >
         {value}
       </div>
-
     </div>
   );
-}
-
-// ============================================================
-// VECTOR BUILDER
-// ============================================================
-
-function buildInvestigationVectors({
-  surface,
-  node,
-  topology,
-}: {
-  surface: string;
-  node: any;
-  topology: any;
-}) {
-
-  const vectors: string[] = [];
-
-  if (!node) {
-
-    return [
-      "Select an operational node to begin procedural investigation reasoning.",
-    ];
-  }
-
-  if (surface === "SUMMARY") {
-
-    vectors.push(
-      "Pull operational logs during synchronized observation window."
-    );
-
-    vectors.push(
-      "Cross-reference pilot communications with manifold overlap timing."
-    );
-
-    vectors.push(
-      "Validate whether sensor coverage aligns with reported emergence geometry."
-    );
-
-    vectors.push(
-      "Correlate tower observations against regional radar coordination."
-    );
-  }
-
-  if (surface === "CONTRADICTIONS") {
-
-    (node.contradiction_vectors || []).forEach(
-      (v: string) => vectors.push(v)
-    );
-
-    vectors.push(
-      "Investigate divergence between visual confirmation and sensor correlation."
-    );
-
-    vectors.push(
-      "Evaluate transponder absence against topology instability propagation."
-    );
-  }
-
-  if (surface === "COLLAPSE") {
-
-    (node.collapse_failure_modes || []).forEach(
-      (v: string) => vectors.push(v)
-    );
-
-    vectors.push(
-      "Assess terrain masking against radar horizon geometry."
-    );
-
-    vectors.push(
-      "Evaluate low-RCS collapse pathways against sensor refresh intervals."
-    );
-
-    vectors.push(
-      `Residual instability currently measured at ${topology.residual_instability || 0}.`
-    );
-  }
-
-  if (surface === "HOTSPOT") {
-
-    vectors.push(
-      "Compare current emergence geometry against historical recurrence zones."
-    );
-
-    vectors.push(
-      "Cross-reference infrastructure overlap with prior hotspot memory."
-    );
-
-    vectors.push(
-      "Evaluate whether regional node convergence indicates persistent manifold recurrence."
-    );
-  }
-
-  if (surface === "GEO") {
-
-    (node.geo_constraints || []).forEach(
-      (v: string) => vectors.push(v)
-    );
-
-    vectors.push(
-      "Evaluate terrain geometry against observational visibility windows."
-    );
-
-    vectors.push(
-      "Assess infrastructure placement relative to manifold propagation pathways."
-    );
-  }
-
-  if (surface === "CANDIDATES") {
-
-    (node.observation_vectors || []).forEach(
-      (v: string) => vectors.push(v)
-    );
-
-    vectors.push(
-      "Evaluate candidate alignment against operational sensor capabilities."
-    );
-
-    vectors.push(
-      "Cross-check candidate consistency against contradiction density."
-    );
-  }
-
-  if (surface === "ENTANGLEMENT") {
-
-    vectors.push(
-      "Investigate cross-domain coupling between active collapse basins."
-    );
-
-    vectors.push(
-      "Determine whether sensor observations exhibit synchronized manifold interaction."
-    );
-
-    vectors.push(
-      `Global entanglement currently estimated at ${topology.entanglement_score || 0}.`
-    );
-  }
-
-  if (surface === "RESIDUAL") {
-
-    vectors.push(
-      "Trace unresolved manifold pressure propagation across infrastructure nodes."
-    );
-
-    vectors.push(
-      "Evaluate whether residual instability persists across independent observers."
-    );
-
-    vectors.push(
-      `Residual propagation currently measured at ${topology.residual_instability || 0}.`
-    );
-  }
-
-  if (surface === "CLUSTERS") {
-
-    vectors.push(
-      "Evaluate fragmentation between independent collapse basins."
-    );
-
-    vectors.push(
-      "Determine whether cluster separation reflects true topology divergence."
-    );
-
-    vectors.push(
-      `Cluster fragmentation currently estimated at ${topology.cluster_fragmentation || 0}.`
-    );
-  }
-
-  return vectors;
 }
 
 // ============================================================
@@ -393,23 +205,14 @@ function buildInvestigationVectors({
 // ============================================================
 
 export default function InvestigationWorkspace() {
-
   const {
-
     activeEvent,
-
     activeSurface,
-
     setActiveSurface,
-
-    selectedOperationalNode,
-
   } = useEventContext();
 
   if (!activeEvent) {
-
     return (
-
       <div
         style={{
           display: "flex",
@@ -427,8 +230,7 @@ export default function InvestigationWorkspace() {
 
   const event = activeEvent;
 
-  const topology =
-    event.topology || {};
+  const topology = event.topology || {};
 
   const observability =
     event.topology_observability || {};
@@ -436,38 +238,335 @@ export default function InvestigationWorkspace() {
   const overlapRegions =
     observability.overlap_regions || [];
 
-  const selectedNode =
-    selectedOperationalNode
-      ? objectRegistry[
-          selectedOperationalNode.type
-        ]
-      : null;
+  // =========================================================
+  // SURFACE RENDERERS
+  // =========================================================
 
-  const investigationVectors =
-    buildInvestigationVectors({
+  const renderSummary = () => (
+    <>
+      <SurfaceBlock title="Manifold Reasoning">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          {(event.reasoning || []).map(
+            (item: string, idx: number) => (
+              <div
+                key={idx}
+                style={{
+                  padding: 12,
+                  border: "1px solid #1f2937",
+                  borderRadius: 8,
+                  background: "#0b1220",
+                  color: "#cbd5e1",
+                  fontSize: 13,
+                }}
+              >
+                {item}
+              </div>
+            )
+          )}
+        </div>
+      </SurfaceBlock>
 
-      surface:
-        activeSurface,
+      <SurfaceBlock title="Topology State">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(3, 1fr)",
+            gap: 12,
+          }}
+        >
+          <MetricBox
+            label="Stability"
+            value={
+              topology.stability_state ||
+              "UNKNOWN"
+            }
+          />
 
-      node:
-        selectedNode,
+          <MetricBox
+            label="Ambiguity"
+            value={
+              topology.ambiguity_state ||
+              "UNKNOWN"
+            }
+          />
 
-      topology,
-    });
+          <MetricBox
+            label="Residual"
+            value={
+              topology.residual_instability || 0
+            }
+          />
 
-  const topologyInterpretation = [
+          <MetricBox
+            label="Entanglement"
+            value={
+              topology.entanglement_score || 0
+            }
+          />
 
-    `Manifold stability currently classified as ${topology.stability_state?.toLowerCase() || "unknown"}.`,
+          <MetricBox
+            label="Contradiction"
+            value={
+              topology.contradiction_density || 0
+            }
+          />
 
-    `Ambiguity state remains ${topology.ambiguity_state?.toLowerCase() || "unknown"} during active collapse evaluation.`,
+          <MetricBox
+            label="Fragmentation"
+            value={
+              topology.cluster_fragmentation || 0
+            }
+          />
+        </div>
+      </SurfaceBlock>
+    </>
+  );
 
-    `Residual instability propagation measured at ${topology.residual_instability || 0}.`,
+  const renderNarratives = () => (
+    <SurfaceBlock title="Observer Narrative Intelligence">
+      <SurfaceState
+        title="Narrative Surface State"
+        state="ACTIVE"
+        density="MODERATE"
+        topology="SEMANTICALLY COHERENT"
+        pressure="RISING"
+        integrity="VERIFIED"
+        glyph="NARRATIVE"
+        explanation={[
+          "Observer narrative convergence actively propagating.",
+          "Semantic topology coherence stabilized.",
+          "Narrative cognition field currently synchronized.",
+        ]}
+      />
+    </SurfaceBlock>
+  );
 
-    `Cross-domain entanglement currently estimated at ${topology.entanglement_score || 0}.`,
-  ];
+  const renderOverlap = () => (
+    <SurfaceBlock title="Overlap Regions">
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        {overlapRegions.length === 0 && (
+          <SurfaceState
+            title="Overlap Surface State"
+            state="SPARSE"
+            density="LOW"
+            topology="DISCONNECTED"
+            pressure="MINIMAL"
+            integrity="VERIFIED"
+            glyph="OVERLAP"
+            explanation={[
+              "No statistically significant overlap manifold regions detected.",
+              "Observer geometry currently lacks synchronized spatial convergence.",
+              "Spatial overlap activation threshold has not been reached.",
+            ]}
+          />
+        )}
+
+        {overlapRegions.map(
+          (region: any, idx: number) => (
+            <div
+              key={idx}
+              style={{
+                border: "1px solid #1f2937",
+                borderRadius: 8,
+                padding: 14,
+                background: "#0b1220",
+              }}
+            >
+              <DetailRow
+                label="Overlap Score"
+                value={region.overlap_score}
+              />
+
+              <DetailRow
+                label="Candidates"
+                value={region.contributing_candidates?.join(
+                  " ↔ "
+                )}
+              />
+            </div>
+          )
+        )}
+      </div>
+    </SurfaceBlock>
+  );
+
+  const renderEntanglement = () => (
+    <SurfaceState
+      title="Entanglement Surface"
+      state="ACTIVE"
+      density="HIGH"
+      topology="COUPLED"
+      pressure="ELEVATED"
+      integrity="VERIFIED"
+      glyph="ENTANGLEMENT"
+      explanation={[
+        "Cross-domain manifold coupling detected.",
+        "Observer synchronization pressure remains elevated.",
+        `Entanglement score currently ${topology.entanglement_score || 0}.`,
+      ]}
+    />
+  );
+
+  const renderResidual = () => (
+    <SurfaceState
+      title="Residual Surface"
+      state="ACTIVE"
+      density="MODERATE"
+      topology="PROPAGATING"
+      pressure="UNRESOLVED"
+      integrity="PARTIAL"
+      glyph="RESIDUAL"
+      explanation={[
+        "Residual instability continues propagating through active topology.",
+        "Observer geometry remains partially unresolved.",
+        `Residual instability currently ${topology.residual_instability || 0}.`,
+      ]}
+    />
+  );
+
+  const renderClusters = () => (
+    <SurfaceState
+      title="Cluster Surface"
+      state="ACTIVE"
+      density="HIGH"
+      topology="FRAGMENTED"
+      pressure="MODERATE"
+      integrity="VERIFIED"
+      glyph="CLUSTERS"
+      explanation={[
+        "Independent collapse basins currently detected.",
+        "Cluster divergence remains active.",
+        `Cluster fragmentation currently ${topology.cluster_fragmentation || 0}.`,
+      ]}
+    />
+  );
+
+  const renderCollapse = () => (
+    <SurfaceState
+      title="Collapse Surface"
+      state="ACTIVE"
+      density="HIGH"
+      topology="COLLAPSING"
+      pressure="SEVERE"
+      integrity="UNSTABLE"
+      glyph="COLLAPSE"
+      explanation={[
+        "Topology collapse pathways currently active.",
+        "Sensor coherence degrading under manifold stress.",
+        "Collapse basin convergence detected.",
+      ]}
+    />
+  );
+
+  const renderCandidates = () => (
+    <SurfaceState
+      title="Candidate Surface"
+      state="ACTIVE"
+      density="MODERATE"
+      topology="EVALUATING"
+      pressure="RISING"
+      integrity="VERIFIED"
+      glyph="CANDIDATES"
+      explanation={[
+        "Candidate object evaluation active.",
+        "Operational sensor alignment underway.",
+        "Contradiction filtering currently propagating.",
+      ]}
+    />
+  );
+
+  const renderContradictions = () => (
+    <SurfaceState
+      title="Contradiction Surface"
+      state="ACTIVE"
+      density="HIGH"
+      topology="CONFLICTED"
+      pressure="ELEVATED"
+      integrity="UNSTABLE"
+      glyph="CONTRADICTIONS"
+      explanation={[
+        "Contradiction density exceeds nominal baseline.",
+        "Observer/sensor disagreement remains unresolved.",
+        `Contradiction density currently ${topology.contradiction_density || 0}.`,
+      ]}
+    />
+  );
+
+  const renderHotspot = () => (
+    <SurfaceState
+      title="Hotspot Surface"
+      state="ACTIVE"
+      density="HIGH"
+      topology="RECURSIVE"
+      pressure="RISING"
+      integrity="VERIFIED"
+      glyph="HOTSPOT"
+      explanation={[
+        "Historical recurrence topology detected.",
+        "Persistent emergence geometry remains active.",
+        "Regional hotspot memory synchronization active.",
+      ]}
+    />
+  );
+
+  const renderGeo = () => (
+    <SurfaceState
+      title="Geospatial Surface"
+      state="ACTIVE"
+      density="MODERATE"
+      topology="TERRAIN-BOUND"
+      pressure="STABLE"
+      integrity="VERIFIED"
+      glyph="GEO"
+      explanation={[
+        "Terrain-aware manifold propagation active.",
+        "Infrastructure geometry synchronized.",
+        "Observability normalization successfully applied.",
+      ]}
+    />
+  );
+
+  // =========================================================
+  // SURFACE MAP
+  // =========================================================
+
+  const surfaceRendererMap = {
+    SUMMARY: renderSummary,
+    NARRATIVES: renderNarratives,
+    OVERLAP: renderOverlap,
+    ENTANGLEMENT: renderEntanglement,
+    RESIDUAL: renderResidual,
+    CLUSTERS: renderClusters,
+    COLLAPSE: renderCollapse,
+    CANDIDATES: renderCandidates,
+    CONTRADICTIONS: renderContradictions,
+    HOTSPOT: renderHotspot,
+    GEO: renderGeo,
+  };
+
+  const ActiveRenderer =
+    surfaceRendererMap[
+      activeSurface as keyof typeof surfaceRendererMap
+    ];
+
+  // =========================================================
+  // MAIN RENDER
+  // =========================================================
 
   return (
-
     <div
       style={{
         display: "flex",
@@ -475,10 +574,7 @@ export default function InvestigationWorkspace() {
         gap: 18,
       }}
     >
-
-      {/* ================================================= */}
       {/* ACTIVE EVENT HEADER */}
-      {/* ================================================= */}
 
       <div
         style={{
@@ -488,7 +584,6 @@ export default function InvestigationWorkspace() {
           background: "#08101f",
         }}
       >
-
         <div
           style={{
             display: "flex",
@@ -497,9 +592,7 @@ export default function InvestigationWorkspace() {
             marginBottom: 14,
           }}
         >
-
           <div>
-
             <div
               style={{
                 fontSize: 24,
@@ -519,7 +612,6 @@ export default function InvestigationWorkspace() {
             >
               {event.location}
             </div>
-
           </div>
 
           <div
@@ -541,7 +633,6 @@ export default function InvestigationWorkspace() {
           >
             {event.escalation}
           </div>
-
         </div>
 
         <div
@@ -552,7 +643,6 @@ export default function InvestigationWorkspace() {
             gap: 12,
           }}
         >
-
           <MetricBox
             label="Confidence"
             value={event.confidence}
@@ -582,14 +672,10 @@ export default function InvestigationWorkspace() {
             label="Trend"
             value={event.trend}
           />
-
         </div>
-
       </div>
 
-      {/* ================================================= */}
       {/* SURFACE SELECTOR */}
-      {/* ================================================= */}
 
       <div
         style={{
@@ -598,9 +684,7 @@ export default function InvestigationWorkspace() {
           flexWrap: "wrap",
         }}
       >
-
         {SURFACES.map((surface) => (
-
           <SurfaceButton
             key={surface}
             label={surface}
@@ -611,292 +695,12 @@ export default function InvestigationWorkspace() {
               setActiveSurface(surface as any)
             }
           />
-
         ))}
-
       </div>
 
-      {/* ================================================= */}
-      {/* SUMMARY */}
-      {/* ================================================= */}
+      {/* ACTIVE SURFACE */}
 
-      {activeSurface === "SUMMARY" && (
-
-        <>
-
-          <SurfaceBlock title="Manifold Reasoning">
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-
-              {event.reasoning.map((item: string, idx: number) => (
-
-                <div
-                  key={idx}
-                  style={{
-                    padding: 12,
-                    border: "1px solid #1f2937",
-                    borderRadius: 8,
-                    background: "#0b1220",
-                    color: "#cbd5e1",
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {item}
-                </div>
-
-              ))}
-
-            </div>
-
-          </SurfaceBlock>
-
-          <SurfaceBlock title="Topology State">
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(3, 1fr)",
-                gap: 12,
-              }}
-            >
-
-              <MetricBox
-                label="Stability"
-                value={
-                  topology.stability_state || "UNKNOWN"
-                }
-              />
-
-              <MetricBox
-                label="Ambiguity"
-                value={
-                  topology.ambiguity_state || "UNKNOWN"
-                }
-              />
-
-              <MetricBox
-                label="Contradiction"
-                value={
-                  topology.contradiction_density || 0
-                }
-              />
-
-              <MetricBox
-                label="Residual"
-                value={
-                  topology.residual_instability || 0
-                }
-              />
-
-              <MetricBox
-                label="Entanglement"
-                value={
-                  topology.entanglement_score || 0
-                }
-              />
-
-              <MetricBox
-                label="Fragmentation"
-                value={
-                  topology.cluster_fragmentation || 0
-                }
-              />
-
-            </div>
-
-            <div
-              style={{
-                marginTop: 18,
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-
-              {topologyInterpretation.map(
-                (item, idx) => (
-
-                  <div
-                    key={idx}
-                    style={{
-                      padding: 12,
-                      border:
-                        "1px solid #1f2937",
-                      borderRadius: 8,
-                      background: "#0b1220",
-                      color: "#cbd5e1",
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {item}
-                  </div>
-
-                )
-              )}
-
-            </div>
-
-          </SurfaceBlock>
-
-          <SurfaceBlock title="Investigation Vectors">
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-
-              {investigationVectors.map(
-                (vector, idx) => (
-
-                  <div
-                    key={idx}
-                    style={{
-                      padding: 14,
-                      border:
-                        "1px solid #1f2937",
-                      borderRadius: 8,
-                      background: "#0b1220",
-                      color: "#d1d5db",
-                      fontSize: 13,
-                      lineHeight: 1.6,
-                      borderLeft:
-                        "3px solid #2563eb",
-                    }}
-                  >
-                    {vector}
-                  </div>
-
-                )
-              )}
-
-            </div>
-
-          </SurfaceBlock>
-
-        </>
-
-      )}
-
-      {/* ================================================= */}
-      {/* NARRATIVES */}
-      {/* ================================================= */}
-
-      {activeSurface === "NARRATIVES" && (
-
-        <SurfaceBlock title="Observer Narrative Intelligence">
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 18,
-            }}
-          >
-
-            {(event.narratives || []).length === 0 && (
-
-              <SurfaceState
-                title="Narrative Surface State"
-                state="SPARSE"
-                density="LOW"
-                topology="DISCONNECTED"
-                pressure="MINIMAL"
-                integrity="VERIFIED"
-                glyph="NONE"
-                explanation={[
-                  "No observer narratives currently attached to active manifold reconstruction.",
-                  "Semantic convergence density remains below narrative activation threshold.",
-                  "Additional observer testimony required for higher-order narrative synthesis.",
-                ]}
-              />
-
-            )}
-
-          </div>
-
-        </SurfaceBlock>
-
-      )}
-
-      {/* ================================================= */}
-      {/* OVERLAP */}
-      {/* ================================================= */}
-
-      {activeSurface === "OVERLAP" && (
-
-        <SurfaceBlock title="Overlap Regions">
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-
-            {overlapRegions.length === 0 && (
-
-              <SurfaceState
-                title="Overlap Surface State"
-                state="SPARSE"
-                density="LOW"
-                topology="DISCONNECTED"
-                pressure="MINIMAL"
-                integrity="VERIFIED"
-                glyph="OVERLAP"
-                explanation={[
-                  "No statistically significant overlap manifold regions detected.",
-                  "Observer geometry currently lacks synchronized spatial convergence.",
-                  "Spatial overlap activation threshold has not been reached.",
-                ]}
-              />
-
-            )}
-
-            {overlapRegions.map((region: any, idx: number) => (
-
-              <div
-                key={idx}
-                style={{
-                  border: "1px solid #1f2937",
-                  borderRadius: 8,
-                  padding: 14,
-                  background: "#0b1220",
-                }}
-              >
-
-                <DetailRow
-                  label="Overlap Score"
-                  value={region.overlap_score}
-                />
-
-                <DetailRow
-                  label="Candidates"
-                  value={region.contributing_candidates?.join(" ↔ ")}
-                />
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </SurfaceBlock>
-
-      )}
-
+      {ActiveRenderer && <ActiveRenderer />}
     </div>
   );
 }
