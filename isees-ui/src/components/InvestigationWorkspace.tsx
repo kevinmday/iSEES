@@ -7,7 +7,6 @@
 // ============================================================
 
 import { useEventContext } from "../context/EventContext";
-import { objectRegistry } from "../intel/object_registry";
 import SurfaceState from "./SurfaceState";
 
 // ============================================================

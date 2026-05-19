@@ -1,7 +1,7 @@
 // ============================================================
 // src/components/SurfaceState.tsx
-// UNIVERSAL SURFACE STATE ENGINE (V1)
-// EPISTEMIC COGNITION SURFACE
+// UNIVERSAL SURFACE STATE ENGINE (V2)
+// EXPANDED GLYPH CONTRACT
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -32,7 +32,18 @@ interface SurfaceStateProps {
 
   explanation?: string[];
 
-  glyph?: "OVERLAP" | "ENTANGLEMENT" | "RESIDUAL" | "CONTRADICTIONS" | "HOTSPOT" | "NONE";
+  glyph?:
+    | "OVERLAP"
+    | "ENTANGLEMENT"
+    | "RESIDUAL"
+    | "CONTRADICTIONS"
+    | "HOTSPOT"
+    | "NARRATIVE"
+    | "CLUSTERS"
+    | "COLLAPSE"
+    | "CANDIDATES"
+    | "GEO"
+    | "NONE";
 }
 
 // ============================================================
@@ -291,6 +302,149 @@ function TopologyGlyph({
 
       )}
 
+      {/* ================================================= */}
+      {/* NARRATIVE */}
+      {/* ================================================= */}
+
+      {glyph === "NARRATIVE" && (
+
+        <>
+          {[...Array(4)].map((_, idx) => (
+
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                width: 40,
+                height: 12,
+                borderRadius: 4,
+                background: "#172554",
+                top: `${18 + idx * 16}px`,
+                left: `${50 + idx * 20}px`,
+              }}
+            />
+
+          ))}
+        </>
+
+      )}
+
+      {/* ================================================= */}
+      {/* CLUSTERS */}
+      {/* ================================================= */}
+
+      {glyph === "CLUSTERS" && (
+
+        <>
+
+          {[...Array(3)].map((_, idx) => (
+
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: "#1e293b",
+                top: `${22 + idx * 18}px`,
+                left: `${60 + idx * 48}px`,
+              }}
+            />
+
+          ))}
+
+        </>
+
+      )}
+
+      {/* ================================================= */}
+      {/* COLLAPSE */}
+      {/* ================================================= */}
+
+      {glyph === "COLLAPSE" && (
+
+        <>
+          {[...Array(6)].map((_, idx) => (
+
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                width: `${140 - idx * 18}px`,
+                height: 1,
+                background: "#7f1d1d",
+                top: `${18 + idx * 10}px`,
+                left: `${45 + idx * 8}px`,
+                opacity: 0.7,
+              }}
+            />
+
+          ))}
+        </>
+
+      )}
+
+      {/* ================================================= */}
+      {/* CANDIDATES */}
+      {/* ================================================= */}
+
+      {glyph === "CANDIDATES" && (
+
+        <>
+          {[...Array(4)].map((_, idx) => (
+
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                width: 14,
+                height: 14,
+                borderRadius: "50%",
+                border: "1px solid #334155",
+                top: `${24 + (idx % 2) * 28}px`,
+                left: `${70 + idx * 32}px`,
+              }}
+            />
+
+          ))}
+        </>
+
+      )}
+
+      {/* ================================================= */}
+      {/* GEO */}
+      {/* ================================================= */}
+
+      {glyph === "GEO" && (
+
+        <>
+          <div
+            style={{
+              position: "absolute",
+              width: 160,
+              height: 1,
+              background: "#1e293b",
+              top: 42,
+              left: 30,
+            }}
+          />
+
+          <div
+            style={{
+              position: "absolute",
+              width: 1,
+              height: 60,
+              background: "#1e293b",
+              top: 15,
+              left: 110,
+            }}
+          />
+
+        </>
+
+      )}
+
     </div>
   );
 }
@@ -336,10 +490,6 @@ export default function SurfaceState({
       }}
     >
 
-      {/* ================================================= */}
-      {/* HEADER */}
-      {/* ================================================= */}
-
       <div
         style={{
           display: "flex",
@@ -376,10 +526,6 @@ export default function SurfaceState({
         </div>
 
       </div>
-
-      {/* ================================================= */}
-      {/* DIAGNOSTICS */}
-      {/* ================================================= */}
 
       <div
         style={{
@@ -434,15 +580,7 @@ export default function SurfaceState({
 
       </div>
 
-      {/* ================================================= */}
-      {/* GLYPH */}
-      {/* ================================================= */}
-
       <TopologyGlyph glyph={glyph} />
-
-      {/* ================================================= */}
-      {/* EXPLANATION */}
-      {/* ================================================= */}
 
       <div
         style={{
