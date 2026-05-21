@@ -5,6 +5,7 @@
 // LIVE LOCATION PROPAGATION FIXED
 // OPERATIONAL INTEL SYNCHRONIZATION READY
 // LIVE FACILITY HYDRATION ENABLED
+// BACKEND REASONING CONTRACT READY
 // FULL DROP-IN FILE
 // ============================================================
 
@@ -91,6 +92,8 @@ export type LiveCluster = {
   confidence?: number;
 
   cluster_size?: number;
+
+  reasoning?: string[];
 
   operational_intelligence?: {
 
@@ -721,14 +724,15 @@ export function adaptLiveCluster(
 
     active: true,
 
-    reasoning: [
+    reasoning:
+      cluster.reasoning ?? [
 
-      "Live ROR/EOR ingestion active",
+        "Live ROR/EOR ingestion active",
 
-      "Operational cognition propagation active",
+        "Operational cognition propagation active",
 
-      "Live topology hydration enabled",
-    ],
+        "Live topology hydration enabled",
+      ],
 
     narratives,
 

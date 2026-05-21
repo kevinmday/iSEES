@@ -1,6 +1,7 @@
 // ============================================================
 // src/context/EventContext.tsx
-// GLOBAL OPERATIONAL EVENT CONTEXT (V9)
+// GLOBAL OPERATIONAL EVENT CONTEXT (V10)
+// OPERATOR MODE FOUNDATION INTEGRATED
 // LIVE EVENT PRIORITY + OP INTEL RESET FIX
 // FULL DROP-IN REPLACEMENT
 // ============================================================
@@ -150,6 +151,17 @@ export type OperationalNode = {
   name: string;
   type: string;
 };
+
+// ============================================================
+// OPERATOR MODES
+// ============================================================
+
+export type OperatorMode =
+  | "REPLAY"
+  | "LIVE"
+  | "TRAINING"
+  | "VALIDATION"
+  | "ENTANGLEMENT";
 
 // ============================================================
 // CANONICAL REPLAY EVENTS
@@ -489,6 +501,13 @@ export const DEMO_EVENTS:
 
 type EventContextType = {
 
+  operatorMode:
+    OperatorMode;
+
+  setOperatorMode: (
+    mode: OperatorMode
+  ) => void;
+
   events: EventData[];
 
   activeEvent:
@@ -531,6 +550,14 @@ export function EventProvider({
 }: {
   children: ReactNode;
 }) {
+
+  const [
+    operatorMode,
+    setOperatorMode,
+  ] =
+    useState<OperatorMode>(
+      "REPLAY"
+    );
 
   const [
     events,
@@ -625,6 +652,10 @@ export function EventProvider({
           liveEvents.length > 0
         ) {
 
+          setOperatorMode(
+            "LIVE"
+          );
+
           setEvents(
             liveEvents
           );
@@ -638,6 +669,10 @@ export function EventProvider({
           );
 
         } else {
+
+          setOperatorMode(
+            "REPLAY"
+          );
 
           setEvents(
             DEMO_EVENTS
@@ -653,6 +688,10 @@ export function EventProvider({
         console.error(
           "LIVE HYDRATION FAILED",
           err
+        );
+
+        setOperatorMode(
+          "REPLAY"
         );
 
         setEvents(
@@ -673,6 +712,10 @@ export function EventProvider({
 
     <EventContext.Provider
       value={{
+
+        operatorMode,
+
+        setOperatorMode,
 
         events,
 

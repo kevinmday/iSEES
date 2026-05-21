@@ -1,5 +1,6 @@
 // ============================================================
-// src/layout/MainLayout.tsx — OPERATOR CONSOLE SHELL (V6)
+// src/layout/MainLayout.tsx — OPERATOR CONSOLE SHELL (V7)
+// EPISTEMIC OPERATOR MODE SURFACE INTEGRATED
 // SYSTEM BRIEFING LINK ADDED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
@@ -13,7 +14,11 @@ export default function MainLayout({
   center,
   right,
 }: any) {
-  const { activeEvent } = useEventContext();
+
+  const {
+    activeEvent,
+    operatorMode,
+  } = useEventContext();
 
   return (
     <div
@@ -113,7 +118,9 @@ export default function MainLayout({
             </span>
           </span>
 
-          <span>MODE: LIVE ANALYSIS</span>
+          <span>
+            MODE: {operatorMode} ANALYSIS
+          </span>
 
           <span>
             MANIFOLD:
@@ -420,9 +427,13 @@ export default function MainLayout({
       >
         <div>VERSION: v0.9-operator-shell</div>
 
-        <div>SYSTEM STATE: LIVE</div>
+        <div>
+          SYSTEM STATE: {operatorMode}
+        </div>
 
-        <div>EVENT MANIFOLD: SYNCHRONIZED</div>
+        <div>
+          EVENT MANIFOLD: SYNCHRONIZED
+        </div>
       </div>
     </div>
   );
