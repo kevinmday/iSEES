@@ -140,4 +140,5 @@ isees-ui/.env
 # HUGGING FACE / DEPLOYMENT ARTIFACTS
 # ============================================================
 
-*.hf_cache
+*.hf_cacheui_tree.txt
+test_run.txt
