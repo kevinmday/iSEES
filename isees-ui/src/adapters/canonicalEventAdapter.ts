@@ -4,6 +4,7 @@
 // LIVE CLUSTER IDENTITY PROPAGATION FIXED
 // LIVE LOCATION PROPAGATION FIXED
 // OPERATIONAL INTEL SYNCHRONIZATION READY
+// LIVE FACILITY HYDRATION ENABLED
 // FULL DROP-IN FILE
 // ============================================================
 
@@ -90,6 +91,21 @@ export type LiveCluster = {
   confidence?: number;
 
   cluster_size?: number;
+
+  operational_intelligence?: {
+
+    facilities?: Array<{
+      name?: string;
+      type?: string;
+      distance?: string;
+    }>;
+
+    recommended_actions?: string[];
+
+    investigation_vectors?: string[];
+
+    domain_inference?: string[];
+  };
 
   raw?: {
     event_id?: string;
@@ -718,7 +734,21 @@ export function adaptLiveCluster(
 
     observations,
 
-    facilities: [],
+    facilities:
+      (
+        cluster.operational_intelligence
+          ?.facilities ?? []
+      ).map((facility) => ({
+
+        name:
+          facility.name ?? "Unknown Facility",
+
+        type:
+          facility.type ?? "UNKNOWN",
+
+        distance:
+          facility.distance ?? "N/A",
+      })),
 
     topology: {
 

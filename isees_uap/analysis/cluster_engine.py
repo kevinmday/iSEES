@@ -1,7 +1,7 @@
 # ============================================================
 # cluster_engine.py
 # MANIFOLD CLUSTER ENGINE + OBSERVABILITY + EMERGENCE ONTOLOGY
-# V8.0 — TOPOLOGY-AWARE OBSERVATION INTEGRATION
+# V8.2 — LIVE OPERATIONAL ENRICHMENT INTEGRATION
 # ============================================================
 
 import os
@@ -16,6 +16,14 @@ from typing import List, Dict
 
 from isees_uap.normalization.normalize_observation import (
     normalize_observation
+)
+
+# ------------------------------------------------------------
+# OPERATIONAL ENRICHMENT
+# ------------------------------------------------------------
+
+from isees_uap.intelligence.operational_enrichment import (
+    enrich_operational_intelligence
 )
 
 # ------------------------------------------------------------
@@ -412,6 +420,16 @@ def normalize_reports(
                 )
             )
 
+            # ------------------------------------------------
+            # ATTACH OPERATIONAL INTELLIGENCE
+            # ------------------------------------------------
+
+            normalized_observation = (
+                enrich_operational_intelligence(
+                    normalized_observation
+                )
+            )
+
             normalized_reports.append(
                 normalized_observation
             )
@@ -668,6 +686,18 @@ def build_cluster_objects(
         topology_fragmentation = []
 
         # ----------------------------------------------------
+        # OPERATIONAL INTELLIGENCE
+        # ----------------------------------------------------
+
+        resolved_facilities = []
+
+        resolved_domains = []
+
+        recommended_actions = []
+
+        investigation_vectors = []
+
+        # ----------------------------------------------------
         # PROVENANCE
         # ----------------------------------------------------
 
@@ -704,6 +734,47 @@ def build_cluster_objects(
 
             if lon is not None:
                 lons.append(lon)
+
+            # ------------------------------------------------
+            # OPERATIONAL INTELLIGENCE
+            # ------------------------------------------------
+
+            operational = observation.get(
+                "operational_intelligence",
+                {}
+            )
+
+            resolved_facilities.extend(
+
+                operational.get(
+                    "facilities",
+                    []
+                )
+            )
+
+            resolved_domains.extend(
+
+                operational.get(
+                    "domains",
+                    []
+                )
+            )
+
+            recommended_actions.extend(
+
+                operational.get(
+                    "recommended_actions",
+                    []
+                )
+            )
+
+            investigation_vectors.extend(
+
+                operational.get(
+                    "investigation_vectors",
+                    []
+                )
+            )
 
             # ------------------------------------------------
             # EMERGENCE ONTOLOGY
@@ -1063,6 +1134,54 @@ def build_cluster_objects(
         }
 
         # ----------------------------------------------------
+        # OPERATIONAL INTELLIGENCE
+        # ----------------------------------------------------
+
+        unique_facilities = sorted(
+
+            list(
+
+                {
+                    json.dumps(
+                        facility,
+                        sort_keys=True
+                    ): facility
+
+                    for facility in resolved_facilities
+                }.values()
+            ),
+
+            key=lambda x: x.get(
+                "name",
+                ""
+            )
+        )
+
+        unique_domains = sorted(
+            list(
+                set(
+                    resolved_domains
+                )
+            )
+        )
+
+        unique_actions = sorted(
+            list(
+                set(
+                    recommended_actions
+                )
+            )
+        )
+
+        unique_vectors = sorted(
+            list(
+                set(
+                    investigation_vectors
+                )
+            )
+        )
+
+        # ----------------------------------------------------
         # OBSERVABILITY
         # ----------------------------------------------------
 
@@ -1307,6 +1426,28 @@ def build_cluster_objects(
 
             "confidence":
                 confidence,
+
+            # ------------------------------------------------
+            # OPERATIONAL INTELLIGENCE
+            # ------------------------------------------------
+
+            "operational_intelligence": {
+
+                "facilities":
+                    unique_facilities,
+
+                "domains":
+                    unique_domains,
+
+                "recommended_actions":
+                    unique_actions,
+
+                "investigation_vectors":
+                    unique_vectors,
+
+                "operationally_resolved":
+                    len(unique_facilities) > 0
+            },
 
             # ------------------------------------------------
             # EMERGENCE ONTOLOGY
@@ -1595,6 +1736,13 @@ def apply_cluster_intelligence(
                 )
             )
 
+            intel["operational_intelligence"] = (
+                cluster.get(
+                    "operational_intelligence",
+                    {}
+                )
+            )
+
             results.append(intel)
 
         except Exception as e:
@@ -1789,3 +1937,4 @@ if __name__ == "__main__":
             indent=2
         )
     )
+
