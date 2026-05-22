@@ -12,7 +12,3 @@ pinned: false
 Emergence Detection System
 
 iSEES-UAP is a deterministic operational cognition architecture for analyzing anomalous emergence events across space, time, observability, and semantic topology.
-
-Development status:
-
-Active experimental operational cognition platform under continuous architectural evolution.
