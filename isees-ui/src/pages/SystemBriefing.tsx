@@ -123,6 +123,62 @@ export default function SystemBriefing() {
         </Section>
 
         {/* ------------------------------------------------- */}
+        {/* EPISTEMIC SOVEREIGNTY */}
+        {/* ------------------------------------------------- */}
+
+        <Section title="EPISTEMIC SOVEREIGNTY">
+          <p>
+            iSEES is account-driven.
+          </p>
+
+          <p>
+            Each researcher, team, or institution
+            operates inside an isolated cognition
+            domain with independent:
+          </p>
+
+          <BulletList
+            items={[
+              "replay timelines",
+              "ontology evolution",
+              "topology propagation",
+              "contradiction states",
+              "research lineage",
+              "event interpretation history",
+            ]}
+          />
+
+          <p>
+            No cognition domain silently inherits
+            epistemic state from another domain.
+          </p>
+
+          <p>
+            Researchers retain ownership of their own
+            epistemic space.
+          </p>
+
+          <p>
+            Ideas, findings, and artifacts may be
+            intentionally shared outside the system
+            through deliberate human collaboration,
+            but one researcher cannot silently regress,
+            contaminate, or mutate another
+            researcher&apos;s cognition environment.
+          </p>
+
+          <p>
+            Shared cognition is treated as an explicit
+            epistemic tradeoff — never accidental
+            platform behavior.
+          </p>
+
+          <CodeBlock>
+            deterministic replay sovereignty
+          </CodeBlock>
+        </Section>
+
+        {/* ------------------------------------------------- */}
         {/* OBSERVABILITY */}
         {/* ------------------------------------------------- */}
 
@@ -376,210 +432,6 @@ export default function SystemBriefing() {
             must exist for the observations
             to remain internally consistent
           </CodeBlock>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* EMERGENCE FIELD MATHEMATICS */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="EMERGENCE FIELD MATHEMATICS">
-          <p>
-            As reports propagate across the event-space
-            manifold, emergence behavior begins
-            exhibiting structured weighting patterns
-            across semantic, observational, and
-            infrastructural topology surfaces.
-          </p>
-
-          <p>
-            Inside iSEES these structures are modeled
-            as intention-weighted emergence fields.
-          </p>
-
-          <p>
-            A simplified conceptual form is:
-          </p>
-
-          <CodeBlock>
-            F_intention = I + S + f(FF)
-          </CodeBlock>
-
-          <p>
-            Where:
-          </p>
-
-          <BulletList
-            items={[
-              "I = directional intention polarity",
-              "S = scale propagation factor",
-              "f(FF) = interaction weighting across force domains",
-            ]}
-          />
-
-          <p>
-            The objective is not metaphysical
-            classification.
-          </p>
-
-          <p>
-            The objective is modeling how emergence
-            structures propagate, reinforce, collapse,
-            or converge across constrained topology
-            surfaces.
-          </p>
-
-          <p>
-            As manifold node density increases,
-            localized emergence may begin exhibiting
-            coherent topology resonance across
-            apparently unrelated observations.
-          </p>
-
-          <p>
-            This allows iSEES to evaluate whether
-            distributed observations may represent
-            components of a larger structured emergence
-            field rather than isolated observational
-            noise.
-          </p>
-
-          <p>
-            The system therefore attempts to model not
-            merely isolated reports, but the behavior
-            of emergence itself as it propagates
-            through constrained temporospatial
-            cognition geometry.
-          </p>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* DETERMINISTIC */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="DETERMINISTIC VS PROBABILISTIC">
-          <p>
-            Most modern AI systems operate
-            probabilistically.
-          </p>
-
-          <p>
-            iSEES instead attempts deterministic
-            reconstruction of constrained reality
-            surfaces using:
-          </p>
-
-          <BulletList
-            items={[
-              "observability normalization",
-              "known-object deconfliction",
-              "semantic convergence",
-              "topology propagation",
-              "temporal correlation",
-              "infrastructure-aware reasoning",
-            ]}
-          />
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* IMMUTABILITY */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="IMMUTABLE EPISTEMIC ARCHITECTURE">
-          <p>
-            Historical cognition inside iSEES remains
-            immutable.
-          </p>
-
-          <p>
-            Most investigative systems overwrite prior
-            interpretation with newer information.
-          </p>
-
-          <p>
-            iSEES preserves:
-          </p>
-
-          <BulletList
-            items={[
-              "what the system believed",
-              "when it believed it",
-              "why cognition changed",
-              "how contradiction propagated",
-              "how ambiguity evolved",
-              "which systems participated",
-            ]}
-          />
-
-          <p>
-            through append-only epistemic lineage.
-          </p>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* REPLAY */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="LIVE MODE VS REPLAY MODE">
-          <p>
-            Replay in iSEES is not event playback.
-          </p>
-
-          <p>
-            Replay reconstructs:
-          </p>
-
-          <CodeBlock>
-            historical knowability
-          </CodeBlock>
-
-          <p>
-            at each moment in time.
-          </p>
-
-          <p>
-            Replay attempts to preserve:
-          </p>
-
-          <BulletList
-            items={[
-              "ambiguity",
-              "contradictions",
-              "partial observability",
-              "incomplete topology",
-            ]}
-          />
-
-          <p>
-            without contaminating earlier cognition
-            with future knowledge.
-          </p>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* STATUS */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="CURRENT STATUS">
-          <p>
-            The platform is currently under active
-            engineering development.
-          </p>
-
-          <p>
-            Active architecture includes:
-          </p>
-
-          <BulletList
-            items={[
-              "observability normalization",
-              "topology propagation",
-              "known-object deconfliction",
-              "semantic convergence",
-              "immutable epistemic lineage",
-              "temporal cognition replay infrastructure",
-              "operator intelligence systems",
-            ]}
-          />
         </Section>
       </div>
     </div>
