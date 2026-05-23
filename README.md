@@ -4,11 +4,6 @@ emoji: 🛸
 colorFrom: blue
 colorTo: indigo
 sdk: static
+app_file: index.html
 pinned: false
 ---
-
-# iSEES-UAP
-
-Emergence Detection System
-
-iSEES-UAP is a deterministic operational cognition architecture for analyzing anomalous emergence events across space, time, observability, and semantic topology.
