@@ -1,0 +1,12 @@
+{
+  "artifact_type": "ARCHITECTURAL_INVARIANTS",
+  "artifact_version": "0.1",
+
+  "invariants": [
+    {
+      "name": "",
+      "description": "",
+      "violation_risk": ""
+    }
+  ]
+}

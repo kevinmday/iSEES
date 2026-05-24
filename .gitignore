@@ -142,3 +142,6 @@ isees-ui/.env
 
 *.hf_cacheui_tree.txt
 test_run.txt
+
+# Epistemic continuity runtime artifacts
+isees_uap/epistemic/handover_states/

@@ -1,0 +1,20 @@
+{
+  "artifact_type": "DISCOVERY_ARTIFACT",
+  "artifact_version": "0.1",
+
+  "discovery_id": "",
+
+  "classification": "",
+
+  "summary": "",
+
+  "implications": [],
+
+  "stabilized_truths": [],
+
+  "danger_zones": [],
+
+  "phase_discovered": "",
+
+  "status": "ACTIVE"
+}
