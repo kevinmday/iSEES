@@ -28,6 +28,11 @@ from datetime import datetime, UTC
 from enum import Enum
 from typing import Dict, List, Optional
 
+from isees_uap.intelligence.artifacts.artifact_registry import (
+    ArtifactRegistry,
+    artifact_registry,
+)
+
 
 # ============================================================
 # COGNITION DOMAIN
@@ -126,6 +131,20 @@ class ContaminationState:
 @dataclass
 class ArtifactSurface:
 
+    """
+    Runtime artifact cognition surface.
+
+    Represents:
+    externally attached cognition artifacts
+    exposed to runtime investigation state.
+
+    IMPORTANT:
+    This layer does NOT determine truth.
+
+    Artifact surfaces are:
+    contextual cognition augmentation layers.
+    """
+
     active_sources: List[str] = field(
         default_factory=list
     )
@@ -143,6 +162,24 @@ class ArtifactSurface:
     )
 
     dynamic_fetch_enabled: bool = True
+
+    registry: ArtifactRegistry = field(
+        default_factory=lambda: artifact_registry
+    )
+
+    artifact_collections: List[str] = field(
+        default_factory=list
+    )
+
+    runtime_attachment_enabled: bool = True
+
+    replay_attachment_enabled: bool = True
+
+    topology_attachment_enabled: bool = False
+
+    provenance_enforcement: bool = True
+
+    authority_isolation_enabled: bool = True
 
 
 # ============================================================
