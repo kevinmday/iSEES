@@ -112,6 +112,15 @@ export type TopologyObservability = {
   collapse_clusters: CollapseClusterData;
 };
 
+export type OperationalIntelligence = {
+
+  recommended_actions: string[];
+
+  investigation_vectors: string[];
+
+  domain_inference: string[];
+};
+
 export type EventData = {
   id: string;
   location: string;
