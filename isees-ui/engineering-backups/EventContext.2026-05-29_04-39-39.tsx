@@ -607,10 +607,6 @@ export function EventProvider({
       event
     );
 
-    setTopology(
-      event.topology
-    );
-
     // --------------------------------------------
     // RESET STALE OPERATIONAL INTEL
     // --------------------------------------------

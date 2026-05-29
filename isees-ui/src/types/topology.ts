@@ -1,15 +1,24 @@
 // ============================================================
 // topology.ts
 // IMMUTABLE TOPOLOGY SNAPSHOT CONTRACT
-//
-// Preserves:
-// - ambiguity
-// - fragmentation
-// - contradiction density
-// - residual instability
-// - entanglement
 // ============================================================
 
 export interface TopologySnapshot {
+
+  stability_state?: string;
+
+  ambiguity_state?: string;
+
+  ambiguity_score?: number;
+
+  contradiction_density?: number;
+
+  residual_instability?: number;
+
+  entanglement_score?: number;
+
+  cluster_fragmentation?: number;
+
+  topology_weight?: number;
 
 }
