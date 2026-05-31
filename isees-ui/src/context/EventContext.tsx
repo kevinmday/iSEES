@@ -141,6 +141,9 @@ export type EventData = {
 
   facilities: Facility[];
 
+  operational_intelligence?:
+    OperationalIntelligence;
+
   topology: TopologyState;
 
   topology_observability:
