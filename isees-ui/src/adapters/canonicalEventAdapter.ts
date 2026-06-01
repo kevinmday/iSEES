@@ -724,6 +724,9 @@ export function adaptLiveCluster(
 
     active: true,
 
+operational_intelligence:
+  cluster.operational_intelligence,
+
     reasoning:
       cluster.reasoning ?? [
 

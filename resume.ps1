@@ -1,119 +1,90 @@
 # ============================================
-# iSEES SESSION RESUME
-# EPISTEMIC CONTINUITY RESTORATION
+# iSEES CONTINUITY REHYDRATION
 # ============================================
-
-Write-Host ""
-Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " iSEES SESSION RESUME" -ForegroundColor Yellow
-Write-Host "============================================" -ForegroundColor Cyan
-Write-Host ""
 
 Set-Location "C:\dev\IntentionalTradingSystem"
 
-Write-Host "[1/6] Root workspace loaded." -ForegroundColor Green
+$path =
+"C:\dev\IntentionalTradingSystem\isees_uap\epistemic\handover_states"
+
+$latest =
+Get-ChildItem `
+    $path `
+    -Filter "HANDOFF_*.json" `
+    -ErrorAction SilentlyContinue |
+Sort-Object LastWriteTime -Descending |
+Select-Object -First 1
+
+if (-not $latest) {
+
+    Write-Host ""
+    Write-Host "============================================" -ForegroundColor Red
+    Write-Host " NO HANDOFF FOUND" -ForegroundColor Yellow
+    Write-Host "============================================" -ForegroundColor Red
+    Write-Host ""
+
+    exit
+}
+
+$state =
+    Get-Content `
+        $latest.FullName `
+        -Raw |
+    ConvertFrom-Json
 
 Write-Host ""
-Write-Host "ACTIVE PROJECTS:"
-Write-Host "----------------"
-Write-Host "• iSEES-UAP"
-Write-Host "• KOD / KAOD"
-Write-Host "• Observability Normalization"
-Write-Host "• Epistemic Continuity Architecture"
-Write-Host "• Artifact Manifold Infrastructure"
-Write-Host "• Topology-Responsive Retrieval"
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host " iSEES CONTINUITY REHYDRATION" -ForegroundColor Yellow
+Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-Write-Host "LAST STABILIZED SESSION:"
-Write-Host "------------------------"
-Write-Host "PHASE: TOPOLOGY-RESPONSIVE RETRIEVAL ACTIVATION"
+Write-Host "Latest Handoff:" -ForegroundColor Green
+Write-Host $latest.Name
 Write-Host ""
 
-Write-Host "PRIMARY OBJECTIVE:"
-Write-Host "------------------"
-Write-Host "Connect live topology pressure to deterministic"
-Write-Host "retrieval vector synthesis and artifact manifold traversal."
+Write-Host "Timestamp:" -ForegroundColor Green
+Write-Host $state.timestamp
 Write-Host ""
 
-Write-Host "CURRENT ARCHITECTURAL PRIORITIES:"
-Write-Host "---------------------------------"
-Write-Host "1. Topology pressure propagation"
-Write-Host "2. Retrieval vector synthesis activation"
-Write-Host "3. Artifact manifold orchestration"
-Write-Host "4. Runtime cognition augmentation"
-Write-Host "5. Cross-temporal topology resonance"
-Write-Host "6. Authority-preserving artifact retrieval"
+Write-Host "System Mode:" -ForegroundColor Green
+Write-Host $state.system_mode
 Write-Host ""
 
-Write-Host "MAJOR STABILIZED SUBSYSTEMS:"
-Write-Host "----------------------------"
-Write-Host "• artifact_types.py"
-Write-Host "• artifact_contracts.py"
-Write-Host "• artifact_registry.py"
-Write-Host "• retrieval_vectors.py"
-Write-Host "• notebooklm_adapter.py"
-Write-Host "• artifact_orchestrator.py"
-Write-Host "• topology_vector_synthesizer.py"
+Write-Host "Replay Posture:" -ForegroundColor Green
+Write-Host $state.replay_posture
 Write-Host ""
 
-Write-Host "CRITICAL ARCHITECTURAL DISCOVERY:"
-Write-Host "---------------------------------"
-Write-Host "Topology itself is becoming retrieval language."
-Write-Host ""
-Write-Host "The system now evolves toward:"
-Write-Host ""
-Write-Host "topology instability"
-Write-Host "→ retrieval pressure"
-Write-Host "→ vector synthesis"
-Write-Host "→ manifold traversal"
-Write-Host "→ cognition augmentation"
+Write-Host "Active Branch:" -ForegroundColor Green
+Write-Host $state.git_state.active_branch
 Write-Host ""
 
-Write-Host "KNOWN ACTIVE FRONTEND:"
+Write-Host "Recent Commits:" -ForegroundColor Green
+Write-Host "---------------"
+
+foreach ($commit in $state.git_state.recent_commits) {
+
+    Write-Host $commit
+}
+
+Write-Host ""
+
+Write-Host "Operator Notes:" -ForegroundColor Green
+Write-Host "---------------"
+Write-Host $state.operator_notes
+Write-Host ""
+
+Write-Host "Recent Modified Files:" -ForegroundColor Green
 Write-Host "----------------------"
-Write-Host "C:\dev\IntentionalTradingSystem\isees-ui"
+
+foreach ($file in $state.recent_modified_files) {
+
+    Write-Host $file
+}
+
 Write-Host ""
 
-Write-Host "KNOWN ACTIVE BACKEND:"
-Write-Host "---------------------"
-Write-Host "C:\dev\IntentionalTradingSystem\isees_uap"
-Write-Host ""
-
-Write-Host "COMMON DEV PORTS:"
-Write-Host "-----------------"
-Write-Host "Frontend: 5173 / 5174"
-Write-Host "Backend : 8001"
-Write-Host ""
-
-Write-Host "SUGGESTED NEXT ACTION:"
-Write-Host "----------------------"
-Write-Host "Inspect live topology propagation surfaces and connect"
-Write-Host "runtime cognition pressure into TopologyVectorSynthesizer."
-Write-Host ""
-
-Write-Host "PRIMARY INSPECTION TARGETS:"
-Write-Host "---------------------------"
-Write-Host "• event_inference.py"
-Write-Host "• cluster_intelligence.py"
-Write-Host "• pattern_memory.py"
-Write-Host "• topology propagation layers"
-Write-Host "• EventContext authority surfaces"
-Write-Host ""
-
-Write-Host "OPTIONAL COMMANDS:"
-Write-Host "------------------"
-Write-Host "Frontend:"
-Write-Host "cd C:\dev\IntentionalTradingSystem\isees-ui"
-Write-Host "npm run dev"
-Write-Host ""
-Write-Host "Backend:"
-Write-Host "cd C:\dev\IntentionalTradingSystem"
-Write-Host "uvicorn isees_uap.api:app --reload --reload-dir isees_uap --port 8001"
-Write-Host ""
-
-Write-Host "CANONICAL CONTINUITY PIPELINE:"
-Write-Host "------------------------------"
-Write-Host "powershell -ExecutionPolicy Bypass -File .\scripts\checkpoint_and_deploy.ps1"
+Write-Host "Repository Root:" -ForegroundColor Green
+Write-Host $state.repo_root
 Write-Host ""
 
 Write-Host "============================================" -ForegroundColor Cyan
