@@ -28,9 +28,6 @@ import {
   setTopology,
 } from "../state/epistemic/topologyStore";
 
-import {
-  NIMITZ_2004,
-} from "../canonical";
 
 // ============================================================
 // TYPES
@@ -118,11 +115,11 @@ export type TopologyObservability = {
 
 export type OperationalIntelligence = {
 
-  recommended_actions: string[];
+  recommended_actions?: string[];
 
-  investigation_vectors: string[];
+  investigation_vectors?: string[];
 
-  domain_inference: string[];
+  domain_inference?: string[];
 };
 
 export type EventData = {
