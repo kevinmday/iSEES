@@ -23,55 +23,108 @@ import type {
 // ============================================================
 
 export type CanonicalReplayEvent = {
+
   event_id: string;
+
   event_name: string;
+
   classification: string;
 
+  // ----------------------------------------------------------
+  // OPERATIONAL INTELLIGENCE
+  // ----------------------------------------------------------
+
+  operational_intelligence?: {
+
+    recommended_actions?: string[];
+
+    investigation_vectors?: string[];
+
+    domain_inference?: string[];
+  };
+
+  // ----------------------------------------------------------
+  // EPISTEMIC STATE
+  // ----------------------------------------------------------
+
   epistemic_state?: {
+
     current_layer?: number;
+
     total_layers?: number;
   };
 
+  // ----------------------------------------------------------
+  // CORE EVENT
+  // ----------------------------------------------------------
+
   core_event?: {
+
     location?: {
+
       city?: string;
+
       state?: string;
+
       lat?: number;
+
       lon?: number;
     };
 
     observability_profile?: {
+
       confidence?: number;
+
       reports?: number;
+
       clusters?: number;
+
       duration_minutes?: number;
     };
 
     semantic_signature?: {
+
       traits?: string[];
+
       narratives?: string[];
     };
 
     infrastructure_context?: {
+
       facilities?: Array<{
+
         name: string;
+
         type: string;
+
         distance: string;
       }>;
     };
   };
 
+  // ----------------------------------------------------------
+  // TOPOLOGY
+  // ----------------------------------------------------------
+
   topology?: {
+
     contradiction_load?: {
+
       contradiction_density?: number;
     };
 
     topology_state?: {
+
       stability_state?: string;
+
       ambiguity_state?: string;
+
       contradiction_density?: number;
+
       residual_instability?: number;
+
       entanglement_score?: number;
+
       cluster_fragmentation?: number;
     };
   };
@@ -529,7 +582,10 @@ export function adaptCanonicalEvent(
           ? "FALLING"
           : "STABLE",
 
-    active: true,
+       active: true,
+
+    operational_intelligence:
+      event.operational_intelligence,
 
     reasoning: [
 
@@ -723,6 +779,9 @@ export function adaptLiveCluster(
     trend: "RISING",
 
     active: true,
+
+operational_intelligence:
+  cluster.operational_intelligence,
 
     reasoning:
       cluster.reasoning ?? [

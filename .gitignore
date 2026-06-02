@@ -32,6 +32,16 @@ isees_uap/runtime/monitor_state.json
 isees_uap/memory/event_memory.json
 
 # ============================================================
+# iSEES COGNITIVE CONTINUITY ARTIFACTS
+# DO NOT COMMIT
+# ============================================================
+
+brainstorm.json
+
+isees_uap/epistemic/cognition_states/
+isees_uap/epistemic/handover_states/
+
+# ============================================================
 # RUNTIME LOGS / SESSION ARTIFACTS
 # ============================================================
 
@@ -140,5 +150,6 @@ isees-ui/.env
 # HUGGING FACE / DEPLOYMENT ARTIFACTS
 # ============================================================
 
-*.hf_cacheui_tree.txt
+*.hf_cache
+ui_tree.txt
 test_run.txt

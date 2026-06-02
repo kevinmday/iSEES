@@ -61,8 +61,9 @@ export default function SystemBriefing() {
         >
           Deterministic operational cognition architecture
           for anomalous event reconstruction, observability
-          normalization, topology propagation, and immutable
-          epistemic lineage preservation.
+          normalization, topology propagation, account-driven
+          epistemic sovereignty, and immutable lineage
+          preservation.
         </div>
 
         <div
@@ -123,58 +124,88 @@ export default function SystemBriefing() {
         </Section>
 
         {/* ------------------------------------------------- */}
-        {/* EPISTEMIC SOVEREIGNTY */}
+        {/* ACCOUNT-DRIVEN TOPOLOGY */}
         {/* ------------------------------------------------- */}
 
-        <Section title="EPISTEMIC SOVEREIGNTY">
+        <Section title="ACCOUNT-DRIVEN TOPOLOGY">
           <p>
-            iSEES is account-driven.
+            iSEES is fundamentally account-driven.
           </p>
 
           <p>
-            Each researcher, team, or institution
-            operates inside an isolated cognition
-            domain with independent:
+            The platform distinguishes between:
           </p>
 
           <BulletList
             items={[
-              "replay timelines",
-              "ontology evolution",
-              "topology propagation",
-              "contradiction states",
-              "research lineage",
-              "event interpretation history",
+              "shared artifacts",
+              "shared reports",
+              "shared observability geometry",
+              "shared manifold structures",
             ]}
           />
 
           <p>
-            No cognition domain silently inherits
-            epistemic state from another domain.
+            and:
+          </p>
+
+          <BulletList
+            items={[
+              "account-owned topology metadata",
+              "research overlays",
+              "interpretation lineage",
+              "semantic attachments",
+              "investigation state",
+              "replay cognition",
+            ]}
+          />
+
+          <p>
+            Shared artifacts remain immutable and
+            epistemically neutral.
           </p>
 
           <p>
-            Researchers retain ownership of their own
-            epistemic space.
+            Researchers do not silently mutate the
+            cognition surfaces of other researchers.
           </p>
 
           <p>
-            Ideas, findings, and artifacts may be
-            intentionally shared outside the system
-            through deliberate human collaboration,
-            but one researcher cannot silently regress,
-            contaminate, or mutate another
-            researcher&apos;s cognition environment.
+            Instead, each operator or institution
+            maintains sovereign topology overlays
+            attached to shared emergence structures.
           </p>
 
           <p>
-            Shared cognition is treated as an explicit
-            epistemic tradeoff — never accidental
-            platform behavior.
+            This allows multiple researchers to study
+            the same event while preserving independent:
+          </p>
+
+          <BulletList
+            items={[
+              "interpretation history",
+              "contradiction tracking",
+              "ontology evolution",
+              "semantic weighting",
+              "replay lineage",
+              "investigative reasoning",
+            ]}
+          />
+
+          <p>
+            inside isolated cognition domains.
+          </p>
+
+          <p>
+            iSEES therefore treats shared cognition as
+            an explicit human-mediated operation rather
+            than accidental platform behavior.
           </p>
 
           <CodeBlock>
-            deterministic replay sovereignty
+            shared artifacts
+
+            account-owned topology metadata
           </CodeBlock>
         </Section>
 
@@ -248,264 +279,6 @@ export default function SystemBriefing() {
             at that location
             at that moment in time
           </CodeBlock>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* RECONSTRUCTION */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="EVENT MANIFOLD RECONSTRUCTION">
-          <p>
-            An observer report inside iSEES is not
-            treated as a completed truth claim.
-          </p>
-
-          <p>
-            It is treated as a partial epistemic
-            projection embedded inside a constrained
-            event-space manifold.
-          </p>
-
-          <p>
-            Each report initially represents an
-            incomplete coordinate projection across
-            multiple simultaneous geometries:
-          </p>
-
-          <BulletList
-            items={[
-              "space",
-              "time",
-              "observability",
-              "semantic structure",
-              "infrastructure topology",
-              "behavioral topology",
-            ]}
-          />
-
-          <p>
-            The system then attempts to reconstruct:
-          </p>
-
-          <CodeBlock>
-            what reality should have looked like
-          </CodeBlock>
-
-          <p>
-            at that coordinate surface.
-          </p>
-
-          <p>
-            A report describing:
-          </p>
-
-          <CodeBlock>
-            four luminous objects
-            moving silently
-            at low altitude
-            near an airport
-            during low cloud cover
-          </CodeBlock>
-
-          <p>
-            is not interpreted merely as narrative
-            text.
-          </p>
-
-          <p>
-            The report becomes a manifold constraint
-            object.
-          </p>
-
-          <p>
-            The system then begins evaluating:
-          </p>
-
-          <BulletList
-            items={[
-              "aviation geometry",
-              "radar opportunity",
-              "terrain masking",
-              "weather structure",
-              "observer visibility",
-              "known-object probability",
-              "infrastructure proximity",
-              "semantic convergence",
-            ]}
-          />
-
-          <p>
-            simultaneously.
-          </p>
-
-          <p>
-            The objective is not merely classification.
-          </p>
-
-          <p>
-            The objective is constraint reconstruction.
-          </p>
-
-          <p>
-            As additional reports enter the manifold,
-            the system evaluates whether apparently
-            unrelated observations may actually
-            represent intersecting topology structures
-            across shared semantic or observability
-            surfaces.
-          </p>
-
-          <p>
-            Two geographically distant reports may
-            therefore become linked not because they
-            share keywords, but because they occupy
-            mathematically compatible topology states
-            across the event-space manifold.
-          </p>
-
-          <p>
-            This allows the system to identify
-            emergence structures that conventional
-            report databases may treat as unrelated
-            noise.
-          </p>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* INTENTION THEORY */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="INTENTION THEORY MATHEMATICS">
-          <p>
-            iSEES extends beyond conventional anomaly
-            analysis by incorporating intention-field
-            topology into event reconstruction.
-          </p>
-
-          <p>
-            The system models emergence not simply as
-            isolated observation, but as structured
-            perturbation across a temporospatial
-            cognition manifold.
-          </p>
-
-          <p>
-            Reports become node projections embedded
-            across:
-          </p>
-
-          <BulletList
-            items={[
-              "space-time geometry",
-              "observer topology",
-              "semantic convergence",
-              "behavioral resonance",
-              "infrastructure interaction",
-              "emergence propagation",
-            ]}
-          />
-
-          <p>
-            Rather than treating observations as
-            disconnected narratives, the system
-            attempts to determine whether hidden
-            topology structures may exist beneath
-            apparently unrelated reports.
-          </p>
-
-          <p>
-            This allows iSEES to evaluate whether
-            emergence structures propagate through
-            shared manifold geometry even when direct
-            observational overlap does not initially
-            exist.
-          </p>
-
-          <p>
-            The system therefore attempts to model:
-          </p>
-
-          <CodeBlock>
-            not merely what was observed
-
-            but what hidden topology structures
-            must exist for the observations
-            to remain internally consistent
-          </CodeBlock>
-        </Section>
-
-        {/* ------------------------------------------------- */}
-        {/* EMERGENCE FIELD MATHEMATICS */}
-        {/* ------------------------------------------------- */}
-
-        <Section title="EMERGENCE FIELD MATHEMATICS">
-          <p>
-            As reports propagate across the event-space
-            manifold, emergence behavior begins
-            exhibiting structured weighting patterns
-            across semantic, observational, and
-            infrastructural topology surfaces.
-          </p>
-
-          <p>
-            Inside iSEES these structures are modeled
-            as intention-weighted emergence fields.
-          </p>
-
-          <p>
-            A simplified conceptual form is:
-          </p>
-
-          <CodeBlock>
-            F_intention = I + S + f(FF)
-          </CodeBlock>
-
-          <p>
-            Where:
-          </p>
-
-          <BulletList
-            items={[
-              "I = directional intention polarity",
-              "S = scale propagation factor",
-              "f(FF) = interaction weighting across force domains",
-            ]}
-          />
-
-          <p>
-            The objective is not metaphysical
-            classification.
-          </p>
-
-          <p>
-            The objective is modeling how emergence
-            structures propagate, reinforce, collapse,
-            or converge across constrained topology
-            surfaces.
-          </p>
-
-          <p>
-            As manifold node density increases,
-            localized emergence may begin exhibiting
-            coherent topology resonance across
-            apparently unrelated observations.
-          </p>
-
-          <p>
-            This allows iSEES to evaluate whether
-            distributed observations may represent
-            components of a larger structured emergence
-            field rather than isolated observational
-            noise.
-          </p>
-
-          <p>
-            The system therefore attempts to model not
-            merely isolated reports, but the behavior
-            of emergence itself as it propagates
-            through constrained temporospatial
-            cognition geometry.
-          </p>
         </Section>
 
         {/* ------------------------------------------------- */}
@@ -634,6 +407,7 @@ export default function SystemBriefing() {
               "immutable epistemic lineage",
               "temporal cognition replay infrastructure",
               "operator intelligence systems",
+              "account-driven topology overlays",
             ]}
           />
         </Section>

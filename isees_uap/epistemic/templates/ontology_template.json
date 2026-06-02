@@ -1,0 +1,14 @@
+{
+  "artifact_type": "ONTOLOGY_SNAPSHOT",
+  "artifact_version": "0.1",
+
+  "ontology_domains": [],
+
+  "canonical_truths": [],
+
+  "authority_model": {},
+
+  "protected_invariants": [],
+
+  "notes": ""
+}
