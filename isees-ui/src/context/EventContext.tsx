@@ -28,6 +28,10 @@ import {
   setTopology,
 } from "../state/epistemic/topologyStore";
 
+import {
+  NIMITZ_2004,
+} from "../canonical";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -196,6 +200,40 @@ const CANONICAL_EVENTS:
     classification:
       "urban_observability_event",
 
+operational_intelligence: {
+
+  recommended_actions: [
+
+    "Review airport radar coverage",
+
+    "Correlate civilian witness reports",
+
+    "Check weather and atmospheric conditions",
+
+    "Assess recurrence patterns in regional reports",
+  ],
+
+  investigation_vectors: [
+
+    "Regional observability analysis",
+
+    "Civilian witness correlation",
+
+    "Airport infrastructure topology",
+
+    "Environmental anomaly screening",
+  ],
+
+  domain_inference: [
+
+    "CIVILIAN",
+
+    "AIRPORT",
+
+    "OBSERVABILITY",
+  ],
+},
+
     core_event: {
 
       location: {
@@ -303,6 +341,40 @@ const CANONICAL_EVENTS:
 
     classification:
       "multi_sensor_naval_event",
+
+    operational_intelligence: {
+
+      recommended_actions: [
+
+        "Review USS Princeton SPY-1 radar tracks",
+
+        "Correlate E2 Hawkeye sensor observations",
+
+        "Compare pilot observations against radar detections",
+
+        "Assess recurrence signatures across carrier group assets",
+      ],
+
+      investigation_vectors: [
+
+        "Multi-sensor correlation analysis",
+
+        "Carrier strike group observability topology",
+
+        "Object anticipation behavior",
+
+        "Cross-domain maneuver characterization",
+      ],
+
+      domain_inference: [
+
+        "NAVAL",
+
+        "MULTI-SENSOR",
+
+        "AIR INTERCEPT",
+      ],
+    },
 
     core_event: {
 
