@@ -231,7 +231,7 @@ git commit `
 Write-Host ""
 Write-Host "[10/10] Publishing to Hugging Face..."
 
-git push origin main
+git push origin main --force-with-lease
 
 if ($LASTEXITCODE -ne 0) {
 Write-Host "ERROR: HF push failed."
