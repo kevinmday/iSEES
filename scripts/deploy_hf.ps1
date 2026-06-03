@@ -176,9 +176,11 @@ $_.Name -ne ".git" `
 Write-Host ""
 Write-Host "[7/10] Hydrating HF deployment repository..."
 
-Copy-Item `    -Path "$DIST\*"`
--Destination $HF_ROOT `    -Recurse`
--Force
+Copy-Item `
+    -Path "$DIST\*" `
+    -Destination $HF_ROOT `
+    -Recurse `
+    -Force
 
 # ---------------------------------------------------------
 
