@@ -748,144 +748,309 @@ activeSurface as keyof typeof surfaceRendererMap
 ];
 
   // =========================================================
-  // MAIN RENDER
-  // =========================================================
+// MAIN RENDER
+// =========================================================
 
-  return (
+return (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 18,
+    }}
+  >
+    {/* ACTIVE EVENT HEADER */}
+
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 18,
+        border: "1px solid #1f2937",
+        borderRadius: 10,
+        padding: 18,
+        background: "#08101f",
       }}
     >
-      {/* ACTIVE EVENT HEADER */}
-
       <div
         style={{
-          border: "1px solid #1f2937",
-          borderRadius: 10,
-          padding: 18,
-          background: "#08101f",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 14,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 24,
-                fontWeight: 800,
-                letterSpacing: 1,
-              }}
-            >
-              {event.id}
-            </div>
-
-            <div
-              style={{
-                marginTop: 6,
-                color: "#9ca3af",
-                fontSize: 13,
-              }}
-            >
-              {event.location}
-            </div>
+        <div>
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              letterSpacing: 1,
+            }}
+          >
+            {event.id}
           </div>
 
           <div
             style={{
-              padding: "8px 14px",
-              borderRadius: 999,
-              background: "#0f172a",
-              border: "1px solid #1f2937",
-
-              color:
-                event.escalation === "HIGH"
-                  ? "#f87171"
-                  : "#86efac",
-
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: 1,
+              marginTop: 6,
+              color: "#9ca3af",
+              fontSize: 13,
             }}
           >
-            {event.escalation}
+            {event.location}
           </div>
         </div>
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(6, 1fr)",
-            gap: 12,
+            padding: "8px 14px",
+            borderRadius: 999,
+            background: "#0f172a",
+            border: "1px solid #1f2937",
+
+            color:
+              event.escalation === "HIGH"
+                ? "#f87171"
+                : "#86efac",
+
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: 1,
           }}
         >
-          <MetricBox
-            label="Confidence"
-            value={event.confidence}
-          />
-
-          <MetricBox
-            label="Reports"
-            value={event.reports}
-          />
-
-          <MetricBox
-            label="Clusters"
-            value={event.clusters}
-          />
-
-          <MetricBox
-            label="Duration"
-            value={event.duration}
-          />
-
-          <MetricBox
-            label="Recurrence"
-            value={event.recurrence}
-          />
-
-          <MetricBox
-            label="Trend"
-            value={event.trend}
-          />
+          {event.escalation}
         </div>
       </div>
 
-      {/* SURFACE SELECTOR */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(6, 1fr)",
+          gap: 12,
+        }}
+      >
+        <MetricBox
+          label="Confidence"
+          value={event.confidence}
+        />
+
+        <MetricBox
+          label="Reports"
+          value={event.reports}
+        />
+
+        <MetricBox
+          label="Clusters"
+          value={event.clusters}
+        />
+
+        <MetricBox
+          label="Duration"
+          value={event.duration}
+        />
+
+        <MetricBox
+          label="Recurrence"
+          value={event.recurrence}
+        />
+
+        <MetricBox
+          label="Trend"
+          value={event.trend}
+        />
+      </div>
+    </div>
+
+    {/* EVENT INTELLIGENCE SUMMARY */}
+
+    <div
+      style={{
+        border: "1px solid #1f2937",
+        borderRadius: 10,
+        padding: 18,
+        background: "#08101f",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          marginBottom: 16,
+        }}
+      >
+        Event Intelligence Summary
+      </div>
 
       <div
         style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 14,
         }}
       >
-        {SURFACES.map((surface) => (
-          <SurfaceButton
-            key={surface}
-            label={surface}
-            active={
-              activeSurface === surface
-            }
-            onClick={() =>
-              setActiveSurface(surface as any)
-            }
-          />
-        ))}
+        <SurfaceBlock title="What Happened">
+          <div
+            style={{
+              fontSize: 13,
+              color: "#cbd5e1",
+              lineHeight: 1.6,
+            }}
+          >
+            {(event.reasoning?.[0]) ||
+              "No event summary available."}
+          </div>
+        </SurfaceBlock>
+
+       <SurfaceBlock title="What It Means">
+  <div
+    style={{
+      fontSize: 13,
+      color: "#cbd5e1",
+      lineHeight: 1.6,
+    }}
+  >
+    Escalation: {event.escalation}
+  </div>
+
+  <div
+    style={{
+      marginTop: 10,
+      fontSize: 13,
+      color: "#cbd5e1",
+    }}
+  >
+    Confidence: {event.confidence}
+  </div>
+</SurfaceBlock>
+
+        <SurfaceBlock title="What To Do Next">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {(
+              event.operational_intelligence
+                ?.recommended_actions || []
+            )
+              .slice(0, 3)
+              .map(
+                (
+                  action: string,
+                  idx: number
+                ) => (
+                  <div key={idx}>
+                    • {action}
+                  </div>
+                )
+              )}
+
+            {(
+              event.operational_intelligence
+                ?.recommended_actions || []
+            ).length === 0 && (
+              <div
+                style={{
+                  color: "#64748b",
+                  fontStyle: "italic",
+                }}
+              >
+                No recommended actions available
+              </div>
+            )}
+          </div>
+        </SurfaceBlock>
+
+<SurfaceBlock title="Operational Significance">
+  <div
+    style={{
+      fontSize: 13,
+      color: "#cbd5e1",
+      lineHeight: 1.8,
+    }}
+  >
+    Facilities Involved:
+    {" "}
+    {event.facilities?.length || 0}
+
+    <br />
+
+    Research Targets:
+    {" "}
+    {(
+      event.operational_intelligence
+        ?.investigation_vectors || []
+    ).length}
+
+    <br />
+
+    Escalation Level:
+    {" "}
+    {event.escalation}
+
+    <br />
+
+    Confidence:
+    {" "}
+    {event.confidence}
+  </div>
+</SurfaceBlock>
+
+<SurfaceBlock title="Related Intelligence">
+  <div
+    style={{
+      fontSize: 13,
+      color: "#cbd5e1",
+      lineHeight: 1.8,
+    }}
+  >
+    Clusters: {event.clusters}
+
+    <br />
+
+    Reports: {event.reports}
+
+    <br />
+
+    Recurrence: {event.recurrence}
+
+    <br />
+
+    Trend: {event.trend}
+  </div>
+</SurfaceBlock>
       </div>
-
-      {/* ACTIVE SURFACE */}
-
-      {ActiveRenderer && <ActiveRenderer />}
     </div>
-  );
+
+    {/* SURFACE SELECTOR */}
+
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap",
+      }}
+    >
+      {SURFACES.map((surface) => (
+        <SurfaceButton
+          key={surface}
+          label={surface}
+          active={
+            activeSurface === surface
+          }
+          onClick={() =>
+            setActiveSurface(surface as any)
+          }
+        />
+      ))}
+    </div>
+
+    {/* ACTIVE SURFACE */}
+
+    {ActiveRenderer && <ActiveRenderer />}
+  </div>
+);
 }
