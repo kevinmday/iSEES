@@ -28,7 +28,7 @@ $timestamp =
     Get-Date -Format "yyyy-MM-ddTHH-mm-ss"
 
 # ============================================
-# OPTIONAL OPERATOR NOTES
+# OPERATOR COGNITION CAPTURE
 # ============================================
 
 $systemMode =
@@ -37,31 +37,40 @@ $systemMode =
 $replayPosture =
     "REPLAY-SAFE LINEAGE ACTIVE"
 
-$phase =
-    "SESSION"
+Write-Host ""
 
-$classification =
-    "AUTO-HYDRATED"
+# ============================================
+# OPERATOR CONTEXT (OPTIONAL)
+# ============================================
+
+Write-Host ""
+Write-Host "Anything not captured automatically?"
+Write-Host "Press ENTER to skip."
+Write-Host ""
+
+$operatorNotes =
+    Read-Host "Additional Context"
+
+$phase =
+    "AUTO_INFERRED"
 
 $objective =
-    "AUTO-HYDRATED"
+    "AUTO_INFERRED"
+
+$classification =
+    "AUTO_INFERRED"
 
 $continuityPosture =
-    "AUTO-HYDRATED"
+    "AUTO_CAPTURED"
+
+$architectureDiscovery =
+    "AUTO_INFERRED"
 
 $discoveries = @()
 
 $dangerZones = @()
 
 $nextTasks = @()
-
-Write-Host ""
-Write-Host "Additional notes for future session."
-Write-Host "Press ENTER to skip."
-Write-Host ""
-
-$operatorNotes =
-    Read-Host "Notes"
 
 # ============================================
 # GIT STATE
@@ -76,18 +85,23 @@ $gitStatus =
 $gitRecentCommits =
     git log --oneline -3
 
-# ============================================
-# RECENTLY MODIFIED FILES
-# ============================================
-
 $recentFiles =
     Get-ChildItem `
         -Path . `
         -Recurse `
         -File `
+    | Where-Object {
+
+        $_.FullName -notmatch "\\node_modules\\" -and
+        $_.FullName -notmatch "\\dist\\" -and
+        $_.FullName -notmatch "\\handover_states\\" -and
+        $_.Name -notmatch "\.tsbuildinfo$"
+
+    } `
     | Sort-Object LastWriteTime -Descending `
     | Select-Object -First 10 `
     | ForEach-Object {
+
         $_.FullName.Replace(
             (Get-Location).Path + "\",
             ""
@@ -148,11 +162,17 @@ $artifact = @{
     operator_notes =
         $operatorNotes
 
-    continuity = @{
+  continuity = @{
 
-        posture =
-            $continuityPosture
-    }
+    posture =
+        $continuityPosture
+
+    next_objective =
+        $objective
+
+    architecture_discovery =
+        $architectureDiscovery
+}
 
     handoff = @{
 
