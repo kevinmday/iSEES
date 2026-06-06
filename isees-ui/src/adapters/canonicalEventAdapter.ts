@@ -34,14 +34,27 @@ export type CanonicalReplayEvent = {
   // OPERATIONAL INTELLIGENCE
   // ----------------------------------------------------------
 
-  operational_intelligence?: {
+operational_intelligence?: {
 
-    recommended_actions?: string[];
+  assessment?: {
 
-    investigation_vectors?: string[];
+    confidence: string;
 
-    domain_inference?: string[];
+    topology_state: string;
+
+    primary_hypothesis: string;
+
+    primary_contradiction: string;
+
+    next_best_action: string;
   };
+
+  recommended_actions?: string[];
+
+  investigation_vectors?: string[];
+
+  domain_inference?: string[];
+};
 
   // ----------------------------------------------------------
   // EPISTEMIC STATE
