@@ -240,10 +240,6 @@ export default function InvestigationWorkspace() {
   const overlapRegions =
     observability.overlap_regions || [];
 
-  // =========================================================
-  // SURFACE RENDERERS
-  // =========================================================
-
 const renderAssessment = () => (
 
 <SurfaceBlock title="Operational Assessment">
@@ -255,6 +251,56 @@ flexDirection: "column",
 gap: 12,
 }}
 >
+
+{event.operational_intelligence?.assessment ? (
+
+<>
+
+<DetailRow
+label="Confidence"
+value={
+event.operational_intelligence
+.assessment.confidence
+}
+/>
+
+<DetailRow
+label="Topology State"
+value={
+event.operational_intelligence
+.assessment.topology_state
+}
+/>
+
+<DetailRow
+label="Primary Hypothesis"
+value={
+event.operational_intelligence
+.assessment.primary_hypothesis
+}
+/>
+
+<DetailRow
+label="Primary Contradiction"
+value={
+event.operational_intelligence
+.assessment.primary_contradiction
+}
+/>
+
+<DetailRow
+label="Next Best Action"
+value={
+event.operational_intelligence
+.assessment.next_best_action
+}
+/>
+
+</>
+
+) : (
+
+<>
 
 <DetailRow
 label="Confidence"
@@ -270,6 +316,10 @@ value={event.escalation}
 label="Facility Count"
 value={event.facilities?.length || 0}
 />
+
+</>
+
+)}
 
 {(event.reasoning || []).map(
 (item: string, idx: number) => (
@@ -295,7 +345,7 @@ fontSize: 13,
 
 </SurfaceBlock>
 
-);  
+);
 
 
 const renderActions = () => (

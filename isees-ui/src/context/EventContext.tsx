@@ -34,139 +34,167 @@ import {
 // ============================================================
 
 export type Observation = {
-  id: string;
-  time: string;
-  location: string;
-  summary: string;
+id: string;
+time: string;
+location: string;
+summary: string;
 };
 
 export type Facility = {
-  name: string;
-  type: string;
-  distance: string;
+name: string;
+type: string;
+distance: string;
 };
 
 export type NarrativeData = {
-  observer_id: string;
-  location: string;
-  semantic_match: number;
-  time_offset: string;
-  confidence: number;
-  certainty: string;
-  text: string;
-  traits: string[];
+observer_id: string;
+location: string;
+semantic_match: number;
+time_offset: string;
+confidence: number;
+certainty: string;
+text: string;
+traits: string[];
 
-  raw_field_note?: string;
+raw_field_note?: string;
 
-  normalized_observation?: string[];
+normalized_observation?: string[];
 
-  semantic_pressure?: string;
+semantic_pressure?: string;
 
-  certainty_markers?: number;
+certainty_markers?: number;
 
-  hesitation_markers?: number;
+hesitation_markers?: number;
 
-  perceptual_stability?: string;
+perceptual_stability?: string;
 
-  physics_conflict?: string;
+physics_conflict?: string;
 
-  entanglement_links?: string[];
+entanglement_links?: string[];
 };
 
 export type TopologyState = {
-  stability_state: string;
-  ambiguity_state: string;
-  contradiction_density: number;
-  residual_instability: number;
-  entanglement_score: number;
-  cluster_fragmentation: number;
+stability_state: string;
+ambiguity_state: string;
+contradiction_density: number;
+residual_instability: number;
+entanglement_score: number;
+cluster_fragmentation: number;
 };
 
 export type OverlapRegion = {
-  overlap_score: number;
-  contributing_candidates: string[];
-  shared_features: string[];
+overlap_score: number;
+contributing_candidates: string[];
+shared_features: string[];
 };
 
 export type EntanglementData = {
-  global_entanglement_score: number;
-  high_entanglement_domains: string[][];
+global_entanglement_score: number;
+high_entanglement_domains: string[][];
 };
 
 export type ResidualVectorData = {
-  global_residual_instability: number;
-  high_instability_domains: string[];
+global_residual_instability: number;
+high_instability_domains: string[];
 };
 
 export type CollapseClusterData = {
-  cluster_fragmentation: number;
-  cluster_types: string[];
+cluster_fragmentation: number;
+cluster_types: string[];
 };
 
 export type TopologyObservability = {
-  overlap_regions: OverlapRegion[];
+overlap_regions: OverlapRegion[];
 
-  entanglements: EntanglementData;
+entanglements: EntanglementData;
 
-  residual_vectors: ResidualVectorData;
+residual_vectors: ResidualVectorData;
 
-  collapse_clusters: CollapseClusterData;
+collapse_clusters: CollapseClusterData;
+};
+
+// ============================================================
+// P22 EVENT COGNITION CONTRACTS
+// ============================================================
+
+export type AssessmentCard = {
+
+confidence: string;
+
+topology_state: string;
+
+primary_hypothesis: string;
+
+primary_contradiction: string;
+
+next_best_action: string;
 };
 
 export type OperationalIntelligence = {
 
-  recommended_actions?: string[];
+// ----------------------------------------------------------
+// P22 EVENT ASSESSMENT
+// ----------------------------------------------------------
 
-  investigation_vectors?: string[];
+assessment?: AssessmentCard;
 
-  domain_inference?: string[];
+// ----------------------------------------------------------
+// EXISTING CONTRACTS
+// PRESERVED FOR COMPATIBILITY
+// ----------------------------------------------------------
+
+recommended_actions?: string[];
+
+investigation_vectors?: string[];
+
+domain_inference?: string[];
 };
 
 export type EventData = {
-  id: string;
-  location: string;
-  confidence: number;
-  reports: number;
-  clusters: number;
-  duration: string;
-  escalation: string;
-  recurrence: string;
-  trend: string;
-  active: boolean;
+id: string;
+location: string;
+confidence: number;
+reports: number;
+clusters: number;
+duration: string;
+escalation: string;
+recurrence: string;
+trend: string;
+active: boolean;
 
-  reasoning: string[];
+reasoning: string[];
 
-  narratives?: NarrativeData[];
+narratives?: NarrativeData[];
 
-  observations: Observation[];
+observations: Observation[];
 
-  facilities: Facility[];
+facilities: Facility[];
 
-  operational_intelligence?:
-    OperationalIntelligence;
+operational_intelligence?:
+OperationalIntelligence;
 
-  topology: TopologyState;
+topology: TopologyState;
 
-  topology_observability:
-    TopologyObservability;
+topology_observability:
+TopologyObservability;
 };
 
 export type InvestigationSurface =
-  | "SUMMARY"
-  | "NARRATIVES"
-  | "OVERLAP"
-  | "ENTANGLEMENT"
-  | "RESIDUAL"
-  | "CLUSTERS"
-  | "COLLAPSE"
-  | "CANDIDATES"
-  | "CONTRADICTIONS"
-  | "HOTSPOT"
-  | "GEO";
+| "SUMMARY"
+| "NARRATIVES"
+| "OVERLAP"
+| "ENTANGLEMENT"
+| "RESIDUAL"
+| "CLUSTERS"
+| "COLLAPSE"
+| "CANDIDATES"
+| "CONTRADICTIONS"
+| "HOTSPOT"
+| "GEO";
 
 export type OperationalNode = {
-  name: string;
-  type: string;
+name: string;
+type: string;
 };
 
 // ============================================================
@@ -174,11 +202,11 @@ export type OperationalNode = {
 // ============================================================
 
 export type OperatorMode =
-  | "REPLAY"
-  | "LIVE"
-  | "TRAINING"
-  | "VALIDATION"
-  | "ENTANGLEMENT";
+| "REPLAY"
+| "LIVE"
+| "TRAINING"
+| "VALIDATION"
+| "ENTANGLEMENT";
 
 // ============================================================
 // CANONICAL REPLAY EVENTS
@@ -199,37 +227,68 @@ const CANONICAL_EVENTS:
 
 operational_intelligence: {
 
-  recommended_actions: [
+assessment: {
 
-    "Review airport radar coverage",
 
-    "Correlate civilian witness reports",
+confidence:
+  "MODERATE",
 
-    "Check weather and atmospheric conditions",
+topology_state:
+  "PARTIALLY_RESOLVED",
 
-    "Assess recurrence patterns in regional reports",
-  ],
+primary_hypothesis:
+  "Regional observability event requiring infrastructure correlation",
 
-  investigation_vectors: [
+primary_contradiction:
+  "Insufficient sensor convergence across independent sources",
 
-    "Regional observability analysis",
+next_best_action:
+  "Review airport radar coverage and correlate witness timelines",
 
-    "Civilian witness correlation",
 
-    "Airport infrastructure topology",
-
-    "Environmental anomaly screening",
-  ],
-
-  domain_inference: [
-
-    "CIVILIAN",
-
-    "AIRPORT",
-
-    "OBSERVABILITY",
-  ],
 },
+
+recommended_actions: [
+
+
+"Review airport radar coverage",
+
+"Correlate civilian witness reports",
+
+"Check weather and atmospheric conditions",
+
+"Assess recurrence patterns in regional reports",
+
+
+],
+
+investigation_vectors: [
+
+
+"Regional observability analysis",
+
+"Civilian witness correlation",
+
+"Airport infrastructure topology",
+
+"Environmental anomaly screening",
+
+
+],
+
+domain_inference: [
+
+
+"CIVILIAN",
+
+"AIRPORT",
+
+"OBSERVABILITY",
+
+
+],
+},
+
 
     core_event: {
 
