@@ -17,6 +17,7 @@ import NarrativesSurface from "./surfaces/NarrativesSurface";
 import OverlapSurface from "./surfaces/OverlapSurface";
 import EntanglementSurface from "./surfaces/EntanglementSurface";
 import ResidualSurface from "./surfaces/ResidualSurface";
+import ClustersSurface from "./surfaces/ClustersSurface";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -247,22 +248,11 @@ const renderResidual = () => (
   />
 );
 
-  const renderClusters = () => (
-    <SurfaceState
-      title="Cluster Surface"
-      state="ACTIVE"
-      density="HIGH"
-      topology="FRAGMENTED"
-      pressure="MODERATE"
-      integrity="VERIFIED"
-      glyph="CLUSTERS"
-      explanation={[
-        "Independent collapse basins currently detected.",
-        "Cluster divergence remains active.",
-        `Cluster fragmentation currently ${topology.cluster_fragmentation || 0}.`,
-      ]}
-    />
-  );
+const renderClusters = () => (
+  <ClustersSurface
+    topology={topology}
+  />
+);
 
   const renderCollapse = () => (
     <SurfaceState
