@@ -18,6 +18,7 @@ import OverlapSurface from "./surfaces/OverlapSurface";
 import EntanglementSurface from "./surfaces/EntanglementSurface";
 import ResidualSurface from "./surfaces/ResidualSurface";
 import ClustersSurface from "./surfaces/ClustersSurface";
+import CollapseSurface from "./surfaces/CollapseSurface";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -254,22 +255,9 @@ const renderClusters = () => (
   />
 );
 
-  const renderCollapse = () => (
-    <SurfaceState
-      title="Collapse Surface"
-      state="ACTIVE"
-      density="HIGH"
-      topology="COLLAPSING"
-      pressure="SEVERE"
-      integrity="UNSTABLE"
-      glyph="COLLAPSE"
-      explanation={[
-        "Topology collapse pathways currently active.",
-        "Sensor coherence degrading under manifold stress.",
-        "Collapse basin convergence detected.",
-      ]}
-    />
-  );
+const renderCollapse = () => (
+  <CollapseSurface />
+);
 
   const renderCandidates = () => (
     <SurfaceState
