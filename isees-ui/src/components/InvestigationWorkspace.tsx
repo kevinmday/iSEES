@@ -13,6 +13,7 @@ import ActionsSurface from "./surfaces/ActionsSurface";
 import ResearchSurface from "./surfaces/ResearchSurface";
 import MetricBox from "./surfaces/MetricBox";
 import SummarySurface from "./surfaces/SummarySurface";
+import NarrativesSurface from "./surfaces/NarrativesSurface";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -220,24 +221,9 @@ const renderSummary = () => (
   />
 );
 
-  const renderNarratives = () => (
-    <SurfaceBlock title="Observer Narrative Intelligence">
-      <SurfaceState
-        title="Narrative Surface State"
-        state="ACTIVE"
-        density="MODERATE"
-        topology="SEMANTICALLY COHERENT"
-        pressure="RISING"
-        integrity="VERIFIED"
-        glyph="NARRATIVE"
-        explanation={[
-          "Observer narrative convergence actively propagating.",
-          "Semantic topology coherence stabilized.",
-          "Narrative cognition field currently synchronized.",
-        ]}
-      />
-    </SurfaceBlock>
-  );
+const renderNarratives = () => (
+  <NarrativesSurface />
+);
 
   const renderOverlap = () => (
     <SurfaceBlock title="Overlap Regions">
