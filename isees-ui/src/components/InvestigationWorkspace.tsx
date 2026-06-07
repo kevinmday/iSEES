@@ -15,6 +15,7 @@ import MetricBox from "./surfaces/MetricBox";
 import SummarySurface from "./surfaces/SummarySurface";
 import NarrativesSurface from "./surfaces/NarrativesSurface";
 import OverlapSurface from "./surfaces/OverlapSurface";
+import EntanglementSurface from "./surfaces/EntanglementSurface";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -233,22 +234,11 @@ const renderOverlap = () => (
   />
 );
 
-  const renderEntanglement = () => (
-    <SurfaceState
-      title="Entanglement Surface"
-      state="ACTIVE"
-      density="HIGH"
-      topology="COUPLED"
-      pressure="ELEVATED"
-      integrity="VERIFIED"
-      glyph="ENTANGLEMENT"
-      explanation={[
-        "Cross-domain manifold coupling detected.",
-        "Observer synchronization pressure remains elevated.",
-        `Entanglement score currently ${topology.entanglement_score || 0}.`,
-      ]}
-    />
-  );
+const renderEntanglement = () => (
+  <EntanglementSurface
+    topology={topology}
+  />
+);
 
   const renderResidual = () => (
     <SurfaceState
