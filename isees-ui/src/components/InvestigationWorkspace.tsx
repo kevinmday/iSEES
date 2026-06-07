@@ -16,6 +16,7 @@ import SummarySurface from "./surfaces/SummarySurface";
 import NarrativesSurface from "./surfaces/NarrativesSurface";
 import OverlapSurface from "./surfaces/OverlapSurface";
 import EntanglementSurface from "./surfaces/EntanglementSurface";
+import ResidualSurface from "./surfaces/ResidualSurface";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -240,22 +241,11 @@ const renderEntanglement = () => (
   />
 );
 
-  const renderResidual = () => (
-    <SurfaceState
-      title="Residual Surface"
-      state="ACTIVE"
-      density="MODERATE"
-      topology="PROPAGATING"
-      pressure="UNRESOLVED"
-      integrity="PARTIAL"
-      glyph="RESIDUAL"
-      explanation={[
-        "Residual instability continues propagating through active topology.",
-        "Observer geometry remains partially unresolved.",
-        `Residual instability currently ${topology.residual_instability || 0}.`,
-      ]}
-    />
-  );
+const renderResidual = () => (
+  <ResidualSurface
+    topology={topology}
+  />
+);
 
   const renderClusters = () => (
     <SurfaceState
