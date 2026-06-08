@@ -249,26 +249,156 @@ export default function SystemBriefing() {
         {/* MANIFOLD */}
         {/* ------------------------------------------------- */}
 
-        <Section title="EVENT-SPACE MANIFOLD MODEL">
-          <p>
-            iSEES models observations as nodes embedded
-            inside a constrained event-space manifold.
-          </p>
+  <Section title="EVENT-SPACE MANIFOLD MODEL">
+  <p>
+    iSEES models observations as nodes embedded
+    inside a constrained event-space manifold.
+  </p>
 
-          <p>
-            Each event exists simultaneously across:
-          </p>
+  <p>
+    Each event exists simultaneously across:
+  </p>
 
-          <BulletList
-            items={[
-              "spatial geometry",
-              "temporal geometry",
-              "semantic geometry",
-              "observability geometry",
-              "infrastructure geometry",
-              "interpretive topology",
-            ]}
-          />
+<BulletList
+items={[
+"spatial geometry",
+"temporal geometry",
+"semantic geometry",
+"observability geometry",
+"infrastructure geometry",
+"interpretive topology",
+]}
+/>
+
+
+
+<Section title="WHY MANIFOLD LAYERS MATTER">
+  <p>
+    Every event can be examined through multiple
+    independent layers of reality.
+  </p>
+
+  <p>
+    Researchers may dynamically enable, disable,
+    combine, or weight manifold layers during
+    investigation.
+  </p>
+
+  <p>
+    Layer selection does not alter the underlying
+    event.
+  </p>
+
+  <p>
+    Instead, iSEES reconstructs topology using only
+    the active domains and evaluates how stability,
+    ambiguity, contradiction density, residual
+    instability, and entanglement change under
+    different perspectives.
+  </p>
+
+<BulletList
+items={[
+"Observability",
+"Narrative",
+"Temporal",
+"Geographic",
+"Infrastructure",
+"Weather",
+"Sensor",
+"Contradiction",
+"Historical",
+"Cultural",
+"Religious",
+"Institutional",
+"Semantic",
+"Ontological",
+"Scholarship",
+"Media",
+"Notebook",
+"Researcher Overlay",
+]}
+/>
+
+  <p>
+    The objective is not to prove a conclusion.
+  </p>
+
+  <p>
+    The objective is to determine which structures
+    remain stable across multiple independent layers
+    of analysis.
+  </p>
+</Section>
+
+<Section title="CROSS-TEMPORAL MANIFOLD ANALYSIS">
+  <p>
+    A defining capability of iSEES is the ability
+    to compare events separated by centuries without
+    assuming they represent the same phenomenon.
+  </p>
+
+  <p>
+    Consider two events:
+  </p>
+
+<BulletList
+items={[
+"Nimitz Tic Tac Encounter (2004)",
+"Nuremberg Celestial Phenomenon (1561)",
+]}
+/>
+
+  <p>
+    A traditional database treats these as unrelated
+    categories.
+  </p>
+
+  <p>
+    One becomes an aerospace incident.
+  </p>
+
+  <p>
+    The other becomes folklore, religion, or history.
+  </p>
+
+  <p>
+    iSEES instead allows researchers to selectively
+    reconstruct both events through manifold layers.
+  </p>
+
+<BulletList
+items={[
+"Enable Sensor + Infrastructure + Military layers: Nimitz remains highly structured while Nuremberg largely collapses.",
+"Enable Narrative + Semantic + Temporal layers: both events retain meaningful topology.",
+"Enable Religious + Cultural + Historical layers: Nuremberg gains structure while Nimitz changes little.",
+"Enable Institutional layers: researchers compare how different societies recorded and interpreted anomalous events.",
+"Enable Ontological layers: competing explanatory frameworks can be studied without assuming any are correct.",
+]}
+/>
+
+  <p>
+    The purpose of manifold analysis is not to prove
+    equivalence between events.
+  </p>
+
+  <p>
+    The purpose is to determine which structures
+    remain stable as technology, culture, religion,
+    geography, institutions, history, and
+    interpretation are selectively added or removed.
+  </p>
+
+  <CodeBlock>
+    The objective is not belief.
+
+```
+The objective is topology.
+```
+
+  </CodeBlock>
+</Section>
+
 
           <p>
             The system attempts to reconstruct:

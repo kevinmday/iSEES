@@ -199,7 +199,66 @@ if ($state.operator_notes) {
     Write-Host ""
 }
 
-Write-Host "Opening Handoff Artifact..."
+# ============================================
+# SESSION BRIEFING GENERATION
+# ============================================
+
+$briefing = @"
+Branch:
+$branch
+
+Last Commit:
+$commit
+
+Recent Commits:
+$(
+    ($state.git_state.recent_commits |
+        ForEach-Object { $_ }) -join "`r`n"
+)
+
+Recent Files:
+$(
+    ($state.recent_modified_files |
+        ForEach-Object { $_ }) -join "`r`n"
+)
+
+Operator Notes:
+$($state.operator_notes)
+
+Current Focus:
+$(
+    if ($state.git_state.recent_commits.Count -gt 0) {
+        $state.git_state.recent_commits[0]
+    }
+)
+
+Suggested Next Action:
+Continue from latest commit and modified files.
+"@
+
+$briefingPath =
+"C:\dev\IntentionalTradingSystem\SESSION_BRIEFING.txt"
+
+$briefing |
+    Set-Content `
+        $briefingPath
+
+$briefing |
+    Set-Clipboard
+
+Write-Host ""
+Write-Host "============================================"
+Write-Host " SESSION BRIEFING GENERATED"
+Write-Host "============================================"
 Write-Host ""
 
-notepad $latest.FullName
+Write-Host "Saved To:"
+Write-Host $briefingPath
+
+Write-Host ""
+
+Write-Host "Copied To Clipboard"
+Write-Host ""
+
+Write-Host "Paste directly into a new ChatGPT session."
+Write-Host ""
