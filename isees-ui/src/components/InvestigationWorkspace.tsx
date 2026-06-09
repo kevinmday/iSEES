@@ -7,7 +7,6 @@
 // ============================================================
 
 import { useEventContext } from "../context/EventContext";
-import SurfaceState from "./SurfaceState";
 import AssessmentSurface from "./surfaces/AssessmentSurface";
 import ActionsSurface from "./surfaces/ActionsSurface";
 import ResearchSurface from "./surfaces/ResearchSurface";
@@ -19,6 +18,10 @@ import EntanglementSurface from "./surfaces/EntanglementSurface";
 import ResidualSurface from "./surfaces/ResidualSurface";
 import ClustersSurface from "./surfaces/ClustersSurface";
 import CollapseSurface from "./surfaces/CollapseSurface";
+import CandidatesSurface from "./surfaces/CandidatesSurface";
+import ContradictionsSurface from "./surfaces/ContradictionsSurface";
+import HotspotSurface from "./surfaces/HotspotSurface";
+import GeoSurface from "./surfaces/GeoSurface";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -259,73 +262,23 @@ const renderCollapse = () => (
   <CollapseSurface />
 );
 
-  const renderCandidates = () => (
-    <SurfaceState
-      title="Candidate Surface"
-      state="ACTIVE"
-      density="MODERATE"
-      topology="EVALUATING"
-      pressure="RISING"
-      integrity="VERIFIED"
-      glyph="CANDIDATES"
-      explanation={[
-        "Candidate object evaluation active.",
-        "Operational sensor alignment underway.",
-        "Contradiction filtering currently propagating.",
-      ]}
-    />
-  );
+const renderCandidates = () => (
+  <CandidatesSurface />
+);
 
-  const renderContradictions = () => (
-    <SurfaceState
-      title="Contradiction Surface"
-      state="ACTIVE"
-      density="HIGH"
-      topology="CONFLICTED"
-      pressure="ELEVATED"
-      integrity="UNSTABLE"
-      glyph="CONTRADICTIONS"
-      explanation={[
-        "Contradiction density exceeds nominal baseline.",
-        "Observer/sensor disagreement remains unresolved.",
-        `Contradiction density currently ${topology.contradiction_density || 0}.`,
-      ]}
-    />
-  );
+const renderContradictions = () => (
+  <ContradictionsSurface
+    contradictionDensity={topology.contradiction_density || 0}
+  />
+);
 
-  const renderHotspot = () => (
-    <SurfaceState
-      title="Hotspot Surface"
-      state="ACTIVE"
-      density="HIGH"
-      topology="RECURSIVE"
-      pressure="RISING"
-      integrity="VERIFIED"
-      glyph="HOTSPOT"
-      explanation={[
-        "Historical recurrence topology detected.",
-        "Persistent emergence geometry remains active.",
-        "Regional hotspot memory synchronization active.",
-      ]}
-    />
-  );
+const renderHotspot = () => (
+  <HotspotSurface />
+);
 
-  const renderGeo = () => (
-    <SurfaceState
-      title="Geospatial Surface"
-      state="ACTIVE"
-      density="MODERATE"
-      topology="TERRAIN-BOUND"
-      pressure="STABLE"
-      integrity="VERIFIED"
-      glyph="GEO"
-      explanation={[
-        "Terrain-aware manifold propagation active.",
-        "Infrastructure geometry synchronized.",
-        "Observability normalization successfully applied.",
-      ]}
-    />
-  );
+const renderGeo = () => (
+  <GeoSurface />
+);
 
 // =========================================================
 // SURFACE MAP
