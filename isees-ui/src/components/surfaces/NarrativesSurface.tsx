@@ -26,34 +26,105 @@ export default function NarrativesSurface({
         ]}
       />
 
-      {narratives.map((narrative) => (
+      {narratives.map((narrative, index) => (
         <div
           key={narrative.observer_id}
           style={{
             marginTop: 12,
-            padding: 12,
+            padding: 16,
             border: "1px solid #374151",
             borderRadius: 6,
+            background: "#08101f",
           }}
         >
           <div
             style={{
-              fontSize: 11,
-              color: "#9ca3af",
-              marginBottom: 6,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
             }}
           >
-            {narrative.observer_id}
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#d1d5db",
+                letterSpacing: 1,
+              }}
+            >
+              OBSERVER REPORT {index + 1}
+            </div>
+
+            <div
+              style={{
+                fontSize: 11,
+                color: "#9ca3af",
+              }}
+            >
+              {narrative.location}
+            </div>
           </div>
 
           <div
             style={{
-              color: "#d1d5db",
-              lineHeight: 1.5,
+              color: "#f3f4f6",
+              lineHeight: 1.7,
+              fontSize: 16,
+              marginBottom: 14,
+              fontStyle: "italic",
             }}
           >
-            {narrative.text}
+            &ldquo;{narrative.text}&rdquo;
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 18,
+              flexWrap: "wrap",
+              fontSize: 11,
+              color: "#9ca3af",
+              marginBottom: 10,
+            }}
+          >
+            <div>
+              Confidence: {(narrative.confidence * 100).toFixed(0)}%
+            </div>
+
+            <div>
+              Certainty: {narrative.certainty}
+            </div>
+
+            <div>
+              Semantic Pressure: {narrative.semantic_pressure ?? "UNKNOWN"}
+            </div>
+          </div>
+
+          {narrative.traits.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+              }}
+            >
+              {narrative.traits.map((trait) => (
+                <div
+                  key={trait}
+                  style={{
+                    padding: "3px 8px",
+                    border: "1px solid #374151",
+                    borderRadius: 12,
+                    fontSize: 10,
+                    color: "#93c5fd",
+                  }}
+                >
+                  {trait}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </SurfaceBlock>
