@@ -13,3 +13,11 @@ export {
 export type {
   CanonicalMetadata,
 } from "./canonicalMetadata";
+
+export {
+  CANONICAL_TIERS,
+} from "./canonicalTiers";
+
+export type {
+  CanonicalTier,
+} from "./canonicalTiers";
