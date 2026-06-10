@@ -313,14 +313,17 @@ domain_inference: [
           "luminous",
         ],
 
-        narratives: [
+       narratives: [
 
-          "Observed a silent luminous object maintaining stationary position before accelerating rapidly westward.",
+  "USS Princeton radar operators tracked multiple unknown contacts descending from approximately 80000 feet to near sea level in seconds before stabilizing and remaining on station for extended periods.",
 
-          "Witnessed a bright object hovering motionless before abruptly changing direction without visible propulsion.",
+  "F/A-18 pilot visual intercept confirmed a smooth white tic tac shaped object approximately forty feet in length exhibiting abrupt directional changes without visible wings, exhaust, or control surfaces.",
 
-          "A bright object remained fixed overhead before instantly disappearing without sound or visible transition.",
-        ],
+  "Witnesses reported the object reacting to interceptor maneuvers, mirroring aircraft descent before accelerating away at extraordinary speed beyond conventional aircraft performance expectations.",
+
+  "Following termination of the intercept, the object appeared near the pre-briefed combat air patrol rendezvous point approximately sixty nautical miles away, suggesting anticipatory awareness of aircraft routing.",
+
+],
       },
 
       infrastructure_context: {
