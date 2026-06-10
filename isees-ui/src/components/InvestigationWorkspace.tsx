@@ -196,7 +196,9 @@ const renderSummary = () => (
 );
 
 const renderNarratives = () => (
-  <NarrativesSurface />
+  <NarrativesSurface
+    narratives={activeEvent.narratives ?? []}
+  />
 );
 
 const renderOverlap = () => (
