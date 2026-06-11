@@ -7,6 +7,10 @@ export {
 } from "./nimitz_2004";
 
 export {
+  ROOSEVELT_2015,
+} from "./roosevelt_2015";
+
+export {
   CANONICAL_REGISTRY,
 } from "./canonicalRegistry";
 
