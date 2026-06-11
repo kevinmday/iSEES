@@ -23,6 +23,7 @@ import HotspotSurface from "./surfaces/HotspotSurface";
 import GeoSurface from "./surfaces/GeoSurface";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import IntelligenceSummary from "./IntelligenceSummary";
+import ManifoldLayerSelector from "./ManifoldLayerSelector";
 
 
 // ============================================================
@@ -290,6 +291,8 @@ return (
   >
 
 <WorkspaceHeader event={event} />
+
+<ManifoldLayerSelector />
 
 <IntelligenceSummary event={event} />
 
