@@ -48,6 +48,7 @@ isees_uap/epistemic/handover_states/
 logs/
 *.log
 session_log.txt
+SESSION_BRIEFING.txt
 
 # ============================================================
 # PYTHON CACHE / BYTECODE
