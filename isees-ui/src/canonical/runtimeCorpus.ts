@@ -14,6 +14,10 @@ import {
   ROOSEVELT_2015,
 } from "./roosevelt_2015";
 
+import {
+  RENDLESHAM_1980,
+} from "./rendlesham_1980";
+
 // ============================================================
 // CANONICAL REPLAY EVENTS
 // ============================================================
@@ -24,5 +28,7 @@ export const CANONICAL_EVENTS:
   NIMITZ_2004,
 
   ROOSEVELT_2015,
+
+  RENDLESHAM_1980,
 
 ];

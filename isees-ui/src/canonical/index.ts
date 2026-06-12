@@ -11,6 +11,10 @@ export {
 } from "./roosevelt_2015";
 
 export {
+  RENDLESHAM_1980,
+} from "./rendlesham_1980";
+
+export {
   CANONICAL_REGISTRY,
 } from "./canonicalRegistry";
 
