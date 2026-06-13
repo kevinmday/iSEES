@@ -15,6 +15,10 @@ import PublicIntake from "./pages/PublicIntake";
 import SystemBriefing from "./pages/SystemBriefing";
 
 import { EventProvider } from "./context/EventContext";
+import {
+  WorkspaceProvider,
+} from "./workspace/context/WorkspaceContext";
+
 
 
 // ============================================================
@@ -23,15 +27,19 @@ import { EventProvider } from "./context/EventContext";
 
 function OperatorUI() {
   return (
-    <EventProvider>
-      <MainLayout
-        left={<EventRadar />}
+    <WorkspaceProvider>
 
-        center={<InvestigationWorkspace />}
+      <EventProvider>
 
-        right={<RightPanel />}
-      />
-    </EventProvider>
+        <MainLayout
+          left={<EventRadar />}
+          center={<InvestigationWorkspace />}
+          right={<RightPanel />}
+        />
+
+      </EventProvider>
+
+    </WorkspaceProvider>
   );
 }
 
