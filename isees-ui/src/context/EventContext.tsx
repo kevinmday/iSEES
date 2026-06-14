@@ -200,6 +200,22 @@ type: string;
 };
 
 // ============================================================
+// P23 WORKSPACE CONTRACT
+// ============================================================
+
+export type Workspace = {
+
+  id: string;
+
+  name: string;
+
+  events: EventData[];
+
+  activeSurface:
+    InvestigationSurface;
+};
+
+// ============================================================
 // OPERATOR MODES
 // ============================================================
 
@@ -236,6 +252,13 @@ type EventContextType = {
 
   events: EventData[];
 
+activeWorkspace:
+  Workspace;
+
+setActiveWorkspace: (
+  workspace: Workspace
+) => void;
+
   activeEvent:
     EventData | null;
 
@@ -257,6 +280,8 @@ type EventContextType = {
     node: OperationalNode | null
   ) => void;
 };
+
+
 
 // ============================================================
 // CONTEXT
@@ -292,6 +317,24 @@ export function EventProvider({
     useState<EventData[]>(
       DEMO_EVENTS
     );
+
+const [
+  activeWorkspace,
+  setActiveWorkspace,
+] =
+  useState<Workspace>({
+    id: "WS-001",
+
+    name:
+      "Default Workspace",
+
+    events: [
+      DEMO_EVENTS[0]
+    ],
+
+    activeSurface:
+      "SUMMARY",
+  });
 
   const [
     activeEvent,
@@ -448,6 +491,10 @@ export function EventProvider({
         setOperatorMode,
 
         events,
+
+        activeWorkspace,
+
+        setActiveWorkspace,
 
         activeEvent,
 
