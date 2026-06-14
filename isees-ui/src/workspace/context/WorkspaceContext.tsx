@@ -33,6 +33,14 @@ type WorkspaceContextType = {
   setActiveWorkspace: (
     workspace: Workspace
   ) => void;
+
+  addEventToWorkspace: (
+    eventId: string
+  ) => void;
+
+  removeEventFromWorkspace: (
+    eventId: string
+  ) => void;
 };
 
 // ============================================================
@@ -62,12 +70,60 @@ export function WorkspaceProvider({
       DEFAULT_WORKSPACE
     );
 
+  const addEventToWorkspace =
+    (
+      eventId: string
+    ) => {
+
+      setActiveWorkspace(
+        current => ({
+
+          ...current,
+
+          imported_events: [
+
+            ...current.imported_events,
+
+            {
+              event_id:
+                eventId,
+
+              source:
+                "SYSTEM_CANON",
+            },
+          ],
+        })
+      );
+    };
+
+  const removeEventFromWorkspace =
+    (
+      eventId: string
+    ) => {
+
+      setActiveWorkspace(
+        current => ({
+
+          ...current,
+
+          imported_events:
+            current.imported_events.filter(
+              reference =>
+                reference.event_id !==
+                eventId
+            ),
+        })
+      );
+    };
+
   return (
 
     <WorkspaceContext.Provider
       value={{
         activeWorkspace,
         setActiveWorkspace,
+        addEventToWorkspace,
+        removeEventFromWorkspace,
       }}
     >
       {children}
