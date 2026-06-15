@@ -76,23 +76,37 @@ export function WorkspaceProvider({
     ) => {
 
       setActiveWorkspace(
-        current => ({
+        current => {
 
-          ...current,
+          const alreadyExists =
+            current.imported_events.some(
+              reference =>
+                reference.event_id ===
+                eventId
+            );
 
-          imported_events: [
+          if (alreadyExists) {
+            return current;
+          }
 
-            ...current.imported_events,
+          return {
 
-            {
-              event_id:
-                eventId,
+            ...current,
 
-              source:
-                "SYSTEM_CANON",
-            },
-          ],
-        })
+            imported_events: [
+
+              ...current.imported_events,
+
+              {
+                event_id:
+                  eventId,
+
+                source:
+                  "SYSTEM_CANON",
+              },
+            ],
+          };
+        }
       );
     };
 
@@ -128,6 +142,7 @@ export function WorkspaceProvider({
     >
       {children}
     </WorkspaceContext.Provider>
+
   );
 }
 

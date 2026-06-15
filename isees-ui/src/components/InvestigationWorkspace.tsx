@@ -24,6 +24,7 @@ import GeoSurface from "./surfaces/GeoSurface";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 import IntelligenceSummary from "./IntelligenceSummary";
 import ManifoldLayerSelector from "./ManifoldLayerSelector";
+import WorkspaceOverview from "./WorkspaceOverview";
 
 
 // ============================================================
@@ -291,6 +292,8 @@ return (
   >
 
 <WorkspaceHeader event={event} />
+
+<WorkspaceOverview />
 
 <ManifoldLayerSelector />
 
