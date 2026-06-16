@@ -1,6 +1,7 @@
 // ============================================================
 // src/components/EventRadar.tsx
 // LIVE EVENT RADAR (V3 FIXED)
+// P23.3 WORKSPACE IMPORT BRIDGE
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -8,16 +9,26 @@ import EventCard from "./EventCard";
 
 import { useEventContext } from "../context/EventContext";
 
+import {
+  useWorkspace,
+} from "../workspace/context/WorkspaceContext";
+
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function EventRadar() {
+
   const {
     events,
     activeEvent,
     setActiveEvent,
   } = useEventContext();
+
+  const {
+    addEventToWorkspace,
+    setFocusedEventId,
+  } = useWorkspace();
 
   // =========================================================
   // SORTING
@@ -46,6 +57,7 @@ export default function EventRadar() {
 
   return (
     <div>
+
       {/* =================================================== */}
       {/* RADAR SUMMARY */}
       {/* =================================================== */}
@@ -121,15 +133,35 @@ export default function EventRadar() {
         }}
       >
         {sortedEvents.map((event) => {
+
           const isSelected =
             activeEvent?.id === event.id;
 
           return (
             <div
               key={event.id}
-              onClick={() =>
-                setActiveEvent(event)
-              }
+              onClick={() => {
+
+                // ------------------------------------------
+                // Legacy Runtime Selection
+                // ------------------------------------------
+
+                setActiveEvent(
+                  event
+                );
+
+                // ------------------------------------------
+                // Workspace Import Bridge
+                // ------------------------------------------
+
+                addEventToWorkspace(
+                  event.id
+                );
+
+                setFocusedEventId(
+                  event.id
+                );
+              }}
               style={{
                 cursor: "pointer",
 
