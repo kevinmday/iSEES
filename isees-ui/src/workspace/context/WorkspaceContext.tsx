@@ -137,30 +137,39 @@ export function WorkspaceProvider({
     };
 
   const removeEventFromWorkspace =
-    (
-      eventId: string
-    ) => {
+  (
+    eventId: string
+  ) => {
 
-      setActiveWorkspace(
-        current => ({
+    setActiveWorkspace(
+      current => {
+
+        const remainingEvents =
+          current.imported_events.filter(
+            reference =>
+              reference.event_id !==
+              eventId
+          );
+
+        return {
 
           ...current,
 
           imported_events:
-            current.imported_events.filter(
-              reference =>
-                reference.event_id !==
-                eventId
-            ),
+            remainingEvents,
 
           focused_event_id:
             current.focused_event_id ===
             eventId
-              ? null
+              ? (
+                  remainingEvents[0]
+                    ?.event_id ?? null
+                )
               : current.focused_event_id,
-        })
-      );
-    };
+        };
+      }
+    );
+  };
 
   return (
 

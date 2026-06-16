@@ -26,6 +26,9 @@ import IntelligenceSummary from "./IntelligenceSummary";
 import ManifoldLayerSelector from "./ManifoldLayerSelector";
 import WorkspaceOverview from "./WorkspaceOverview";
 
+import {
+  useWorkspace,
+} from "../workspace/context/WorkspaceContext";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -145,13 +148,18 @@ function DetailRow({
 // ============================================================
 
 export default function InvestigationWorkspace() {
+
   const {
-    activeEvent,
+    events,
     activeSurface,
     setActiveSurface,
   } = useEventContext();
 
-  if (!activeEvent) {
+  const {
+    focusedEventId,
+  } = useWorkspace();
+
+  if (!focusedEventId) {
     return (
       <div
         style={{
@@ -168,6 +176,28 @@ export default function InvestigationWorkspace() {
     );
   }
 
+  const activeEvent =
+    events.find(
+      event => event.id === focusedEventId
+    ) ?? null;
+
+  if (!activeEvent) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+          color: "#9ca3af",
+          fontSize: 18,
+        }}
+      >
+        Event not found in workspace
+      </div>
+    );
+  }
+
   const event = activeEvent;
 
   const topology = event.topology || {};
@@ -178,77 +208,79 @@ export default function InvestigationWorkspace() {
   const overlapRegions =
     observability.overlap_regions || [];
 
-const renderAssessment = () => (
-  <AssessmentSurface event={event} />
-);
+  const renderAssessment = () => (
+    <AssessmentSurface event={event} />
+  );
 
-const renderActions = () => (
-  <ActionsSurface event={event} />
-);
+  const renderActions = () => (
+    <ActionsSurface event={event} />
+  );
 
-const renderResearch = () => (
-  <ResearchSurface event={event} />
-);
+  const renderResearch = () => (
+    <ResearchSurface event={event} />
+  );
 
-const renderSummary = () => (
-  <SummarySurface
-    event={event}
-    topology={topology}
-  />
-);
+  const renderSummary = () => (
+    <SummarySurface
+      event={event}
+      topology={topology}
+    />
+  );
 
-const renderNarratives = () => (
-  <NarrativesSurface
-    narratives={activeEvent.narratives ?? []}
-  />
-);
+  const renderNarratives = () => (
+    <NarrativesSurface
+      narratives={activeEvent.narratives ?? []}
+    />
+  );
 
-const renderOverlap = () => (
-  <OverlapSurface
-    overlapRegions={overlapRegions}
-    DetailRow={DetailRow}
-  />
-);
+  const renderOverlap = () => (
+    <OverlapSurface
+      overlapRegions={overlapRegions}
+      DetailRow={DetailRow}
+    />
+  );
 
-const renderEntanglement = () => (
-  <EntanglementSurface
-    topology={topology}
-  />
-);
+  const renderEntanglement = () => (
+    <EntanglementSurface
+      topology={topology}
+    />
+  );
 
-const renderResidual = () => (
-  <ResidualSurface
-    topology={topology}
-  />
-);
+  const renderResidual = () => (
+    <ResidualSurface
+      topology={topology}
+    />
+  );
 
-const renderClusters = () => (
-  <ClustersSurface
-    topology={topology}
-  />
-);
+  const renderClusters = () => (
+    <ClustersSurface
+      topology={topology}
+    />
+  );
 
-const renderCollapse = () => (
-  <CollapseSurface />
-);
+  const renderCollapse = () => (
+    <CollapseSurface />
+  );
 
-const renderCandidates = () => (
-  <CandidatesSurface />
-);
+  const renderCandidates = () => (
+    <CandidatesSurface />
+  );
 
-const renderContradictions = () => (
-  <ContradictionsSurface
-    contradictionDensity={topology.contradiction_density || 0}
-  />
-);
+  const renderContradictions = () => (
+    <ContradictionsSurface
+      contradictionDensity={
+        topology.contradiction_density || 0
+      }
+    />
+  );
 
-const renderHotspot = () => (
-  <HotspotSurface />
-);
+  const renderHotspot = () => (
+    <HotspotSurface />
+  );
 
-const renderGeo = () => (
-  <GeoSurface />
-);
+  const renderGeo = () => (
+    <GeoSurface />
+  );
 
 // =========================================================
 // SURFACE MAP

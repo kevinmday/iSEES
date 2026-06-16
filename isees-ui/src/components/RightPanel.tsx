@@ -11,6 +11,9 @@ import { buildContextualIntel } from "../intel/intel_engine";
 
 import { objectRegistry } from "../intel/object_registry";
 
+import { useWorkspace }
+  from "../workspace/context/WorkspaceContext";
+
 // ============================================================
 // NODE TYPE RESOLUTION
 // ============================================================
@@ -61,7 +64,7 @@ export default function RightPanel() {
 
   const {
 
-    activeEvent,
+    events,
 
     activeSurface,
 
@@ -70,6 +73,15 @@ export default function RightPanel() {
     setSelectedOperationalNode,
 
   } = useEventContext();
+
+  const {
+    focusedEventId,
+  } = useWorkspace();
+
+  const activeEvent =
+    events.find(
+      event => event.id === focusedEventId
+    ) ?? null;
 
   // ==========================================================
   // NO ACTIVE EVENT
