@@ -9,16 +9,29 @@ import { Link } from "react-router-dom";
 
 import { useEventContext } from "../context/EventContext";
 
+import {
+  useWorkspace,
+} from "../workspace/context/WorkspaceContext";
+
 export default function MainLayout({
   left,
   center,
   right,
 }: any) {
 
-  const {
-    activeEvent,
-    operatorMode,
-  } = useEventContext();
+const {
+  events,
+  operatorMode,
+} = useEventContext();
+
+const {
+  focusedEventId,
+} = useWorkspace();
+
+const activeEvent =
+  events.find(
+    event => event.id === focusedEventId
+  ) ?? null;
 
   return (
     <div

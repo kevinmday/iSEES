@@ -10,9 +10,10 @@ import { CANONICAL_EVENTS } from "../canonical/runtimeCorpus";
 
 export default function WorkspaceOverview() {
 
-  const {
-    activeWorkspace,
-  } = useWorkspace();
+const {
+  activeWorkspace,
+  removeEventFromWorkspace,
+} = useWorkspace();
 
   const resolveEventName = (
     eventId: string,
@@ -67,7 +68,11 @@ export default function WorkspaceOverview() {
             color: "#f3f4f6",
           }}
         >
-          {activeWorkspace.name}
+          {activeWorkspace.imported_events.length <= 1
+            ? "Single Event Investigation"
+            : activeWorkspace.imported_events.length === 2
+            ? "Comparative Investigation"
+            : "Corpus Investigation"}
         </div>
 
         <div
@@ -77,7 +82,11 @@ export default function WorkspaceOverview() {
             marginTop: 4,
           }}
         >
-          {activeWorkspace.description}
+          {activeWorkspace.imported_events.length} Event
+          {activeWorkspace.imported_events.length !== 1
+            ? "s"
+            : ""}
+          {" "}Loaded
         </div>
 
       </div>
@@ -116,7 +125,7 @@ export default function WorkspaceOverview() {
 
       </div>
 
-      {/* IMPORTED EVENTS */}
+           {/* IMPORTED EVENTS */}
 
       <SectionTitle>
         Imported Events
@@ -167,12 +176,42 @@ export default function WorkspaceOverview() {
 
                 <div
                   style={{
-                    color: "#6b7280",
-                    fontSize: 11,
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
                     marginTop: 2,
                   }}
                 >
-                  {eventRef.source}
+
+                  <div
+                    style={{
+                      color: "#6b7280",
+                      fontSize: 11,
+                    }}
+                  >
+                    {eventRef.source}
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      removeEventFromWorkspace(
+                        eventRef.event_id
+                      )
+                    }
+                    style={{
+                      background:
+                        "transparent",
+                      border: "none",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    ×
+                  </button>
+
                 </div>
 
               </div>

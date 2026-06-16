@@ -38,6 +38,9 @@ export type Workspace = {
   imported_events:
     WorkspaceReference[];
 
+  focused_event_id:
+    string | null;
+
   investigations:
     WorkspaceInvestigation[];
 
