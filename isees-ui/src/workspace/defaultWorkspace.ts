@@ -1,6 +1,6 @@
 // ============================================================
 // DEFAULT WORKSPACE
-// P23 FOUNDATION
+// P23.2 WORKSPACE FOCUS FOUNDATION
 // ============================================================
 
 import type {
@@ -29,6 +29,9 @@ export const DEFAULT_WORKSPACE:
         "SYSTEM_CANON",
     },
   ],
+
+  focused_event_id:
+    "E-TICTAC-2004",
 
   investigations: [],
 

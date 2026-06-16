@@ -1,6 +1,6 @@
 // ============================================================
 // WORKSPACE CONTEXT
-// P23 FOUNDATION
+// P23.2 WORKSPACE FOCUS FOUNDATION
 // ============================================================
 
 import {
@@ -32,6 +32,13 @@ type WorkspaceContextType = {
 
   setActiveWorkspace: (
     workspace: Workspace
+  ) => void;
+
+  focusedEventId:
+    string | null;
+
+  setFocusedEventId: (
+    eventId: string | null
   ) => void;
 
   addEventToWorkspace: (
@@ -70,6 +77,21 @@ export function WorkspaceProvider({
       DEFAULT_WORKSPACE
     );
 
+  function setFocusedEventId(
+    eventId: string | null
+  ) {
+
+    setActiveWorkspace(
+      current => ({
+
+        ...current,
+
+        focused_event_id:
+          eventId,
+      })
+    );
+  }
+
   const addEventToWorkspace =
     (
       eventId: string
@@ -105,6 +127,10 @@ export function WorkspaceProvider({
                   "SYSTEM_CANON",
               },
             ],
+
+            focused_event_id:
+              current.focused_event_id ??
+              eventId,
           };
         }
       );
@@ -126,6 +152,12 @@ export function WorkspaceProvider({
                 reference.event_id !==
                 eventId
             ),
+
+          focused_event_id:
+            current.focused_event_id ===
+            eventId
+              ? null
+              : current.focused_event_id,
         })
       );
     };
@@ -135,8 +167,16 @@ export function WorkspaceProvider({
     <WorkspaceContext.Provider
       value={{
         activeWorkspace,
+
         setActiveWorkspace,
+
+        focusedEventId:
+          activeWorkspace.focused_event_id,
+
+        setFocusedEventId,
+
         addEventToWorkspace,
+
         removeEventFromWorkspace,
       }}
     >
