@@ -5,7 +5,6 @@
 // LIVE EVENT PRIORITY + OP INTEL RESET FIX
 // FULL DROP-IN REPLACEMENT
 // ============================================================
-
 import {
   createContext,
   useContext,
@@ -19,8 +18,6 @@ import type {
 
 import {
   adaptCanonicalEvents,
-  adaptLiveCluster,
-  type LiveCluster,
 } from "../adapters/canonicalEventAdapter";
 
 import {
@@ -386,98 +383,50 @@ const [
   }
 
   // =========================================================
-  // LIVE CLUSTER HYDRATION
+  // CANONICAL CORPUS INITIALIZATION
   // =========================================================
 
   useEffect(() => {
 
-    async function hydrateLiveEvents() {
+    setOperatorMode(
+      "REPLAY"
+    );
 
-      try {
+    setEvents(
+      DEMO_EVENTS
+    );
 
-        const response =
-          await fetch(
-            "http://localhost:8001/clusters"
-          );
+    internalSetActiveEvent(
+      DEMO_EVENTS[0]
+    );
 
-        const liveClusters:
-          LiveCluster[] =
-            await response.json();
+    setSelectedOperationalNode(
+      null
+    );
 
-        if (
-          !Array.isArray(
-            liveClusters
-          )
-        ) {
-          return;
-        }
+  }, []);
 
-        const liveEvents =
-          liveClusters.map(
-            adaptLiveCluster
-          );
+          // =========================================================
+  // CANONICAL CORPUS INITIALIZATION
+  // =========================================================
 
-        // ----------------------------------------
-        // LIVE EVENTS OVERRIDE DEMO EVENTS
-        // ----------------------------------------
+  useEffect(() => {
 
-        if (
-          liveEvents.length > 0
-        ) {
+    setOperatorMode(
+      "REPLAY"
+    );
 
-          setOperatorMode(
-            "LIVE"
-          );
+    setEvents(
+      DEMO_EVENTS
+    );
 
-          setEvents(
-            liveEvents
-          );
+    internalSetActiveEvent(
+      DEMO_EVENTS[0]
+    );
 
-          internalSetActiveEvent(
-            liveEvents[0]
-          );
-
-          setSelectedOperationalNode(
-            null
-          );
-
-        } else {
-
-          setOperatorMode(
-            "REPLAY"
-          );
-
-          setEvents(
-            DEMO_EVENTS
-          );
-
-          internalSetActiveEvent(
-            DEMO_EVENTS[0]
-          );
-        }
-
-      } catch (err) {
-
-        console.error(
-          "LIVE HYDRATION FAILED",
-          err
-        );
-
-        setOperatorMode(
-          "REPLAY"
-        );
-
-        setEvents(
-          DEMO_EVENTS
-        );
-
-        internalSetActiveEvent(
-          DEMO_EVENTS[0]
-        );
-      }
-    }
-
-    hydrateLiveEvents();
+    setSelectedOperationalNode(
+      null
+    );
 
   }, []);
 
