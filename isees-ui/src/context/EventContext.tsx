@@ -28,6 +28,10 @@ import {
   setTopology,
 } from "../state/epistemic/topologyStore";
 
+import type {
+  Artifact,
+} from "../artifacts/artifactTypes";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -172,11 +176,23 @@ facilities: Facility[];
 operational_intelligence?:
 OperationalIntelligence;
 
-topology: TopologyState;
+// ----------------------------------------------------------
+// P24 ARTIFACT FOUNDATION
+// ----------------------------------------------------------
+
+artifacts?:
+Artifact[];
+
+topology:
+TopologyState;
 
 topology_observability:
 TopologyObservability;
 };
+
+// ============================================================
+// SURFACES
+// ============================================================
 
 export type InvestigationSurface =
 | "SUMMARY"
@@ -195,7 +211,6 @@ export type OperationalNode = {
 name: string;
 type: string;
 };
-
 
 // ============================================================
 // OPERATOR MODES
