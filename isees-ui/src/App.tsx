@@ -19,6 +19,7 @@ import {
   WorkspaceProvider,
 } from "./workspace/context/WorkspaceContext";
 
+import { CorpusProvider } from "./corpus/context/CorpusContext";
 
 
 // ============================================================
@@ -27,22 +28,25 @@ import {
 
 function OperatorUI() {
   return (
-    <WorkspaceProvider>
+    <CorpusProvider>
 
-      <EventProvider>
+      <WorkspaceProvider>
 
-        <MainLayout
-          left={<EventRadar />}
-          center={<InvestigationWorkspace />}
-          right={<RightPanel />}
-        />
+        <EventProvider>
 
-      </EventProvider>
+          <MainLayout
+            left={<EventRadar />}
+            center={<InvestigationWorkspace />}
+            right={<RightPanel />}
+          />
 
-    </WorkspaceProvider>
+        </EventProvider>
+
+      </WorkspaceProvider>
+
+    </CorpusProvider>
   );
 }
-
 
 // ============================================================
 // ROOT APP
