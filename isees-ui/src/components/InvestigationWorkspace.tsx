@@ -25,6 +25,7 @@ import { WorkspaceHeader } from "./WorkspaceHeader";
 import IntelligenceSummary from "./IntelligenceSummary";
 import ManifoldLayerSelector from "./ManifoldLayerSelector";
 import WorkspaceOverview from "./WorkspaceOverview";
+import ResolutionPanel from "./ResolutionPanel";
 
 import {
   useWorkspace,
@@ -327,10 +328,11 @@ return (
 
 <WorkspaceOverview />
 
+<ResolutionPanel />
+
 <ManifoldLayerSelector />
 
 <IntelligenceSummary event={event} />
-
 
     {/* SURFACE SELECTOR */}
 
