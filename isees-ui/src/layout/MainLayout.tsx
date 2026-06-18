@@ -234,7 +234,7 @@ const activeEvent =
         }}
       >
         {/* ================================================= */}
-        {/* LEFT PANEL — EVENT RADAR */}
+        {/* LEFT PANEL — Explorer */}
         {/* ================================================= */}
 
         <div
@@ -268,7 +268,7 @@ const activeEvent =
                 textTransform: "uppercase",
               }}
             >
-              Event Radar
+              Explorer
             </div>
 
             <div
@@ -278,7 +278,7 @@ const activeEvent =
                 color: "#94a3b8",
               }}
             >
-              Live emergence monitoring
+              Explore events, cases, and phenomena
             </div>
           </div>
 
