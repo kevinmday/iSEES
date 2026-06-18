@@ -1,6 +1,6 @@
 // ============================================================
 // WORKSPACE CONTEXT
-// P23.2 WORKSPACE FOCUS FOUNDATION
+// P24.1 ARTIFACT FOUNDATION
 // ============================================================
 
 import {
@@ -16,6 +16,10 @@ import type {
 import type {
   Workspace,
 } from "../workspaceTypes";
+
+import type {
+  Artifact,
+} from "../../artifacts/artifactTypes";
 
 import {
   DEFAULT_WORKSPACE,
@@ -47,6 +51,14 @@ type WorkspaceContextType = {
 
   removeEventFromWorkspace: (
     eventId: string
+  ) => void;
+
+  addArtifact: (
+    artifact: Artifact
+  ) => void;
+
+  removeArtifact: (
+    artifactId: string
   ) => void;
 };
 
@@ -171,6 +183,46 @@ export function WorkspaceProvider({
     );
   };
 
+  const addArtifact =
+  (
+    artifact: Artifact
+  ) => {
+
+    setActiveWorkspace(
+      current => ({
+
+        ...current,
+
+        artifacts: [
+
+          ...current.artifacts,
+
+          artifact,
+        ],
+      })
+    );
+  };
+
+  const removeArtifact =
+  (
+    artifactId: string
+  ) => {
+
+    setActiveWorkspace(
+      current => ({
+
+        ...current,
+
+        artifacts:
+          current.artifacts.filter(
+            artifact =>
+              artifact.id !==
+              artifactId
+          ),
+      })
+    );
+  };
+
   return (
 
     <WorkspaceContext.Provider
@@ -187,6 +239,10 @@ export function WorkspaceProvider({
         addEventToWorkspace,
 
         removeEventFromWorkspace,
+
+        addArtifact,
+
+        removeArtifact,
       }}
     >
       {children}

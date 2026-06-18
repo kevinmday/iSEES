@@ -1,7 +1,11 @@
 // ============================================================
 // WORKSPACE DOMAIN MODEL
-// P23 FOUNDATION
+// P24.1 ARTIFACT FOUNDATION
 // ============================================================
+
+import type {
+  Artifact
+} from "../artifacts/artifactTypes";
 
 export type WorkspaceReferenceSource =
   | "SYSTEM_CANON"
@@ -43,6 +47,9 @@ export type Workspace = {
 
   investigations:
     WorkspaceInvestigation[];
+
+  artifacts:
+    Artifact[];
 
   active_layers:
     string[];

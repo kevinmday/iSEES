@@ -1,5 +1,5 @@
 // ============================================================
-// src/App.tsx — OPERATOR CONSOLE BRIDGE (V4 BRIEFING ROUTED)
+// src/App.tsx — OPERATOR CONSOLE BRIDGE (V5 CORPUS INTEGRATED)
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -15,37 +15,46 @@ import PublicIntake from "./pages/PublicIntake";
 import SystemBriefing from "./pages/SystemBriefing";
 
 import { EventProvider } from "./context/EventContext";
+
 import {
-  WorkspaceProvider,
+WorkspaceProvider,
 } from "./workspace/context/WorkspaceContext";
 
-import { CorpusProvider } from "./corpus/context/CorpusContext";
+import {
+CorpusProvider,
+} from "./corpus/context/CorpusContext";
 
+import CorpusBrowser from "./corpus/components/CorpusBrowser";
 
 // ============================================================
 // OPERATOR UI
 // ============================================================
 
 function OperatorUI() {
-  return (
-    <CorpusProvider>
+return ( <CorpusProvider>
 
-      <WorkspaceProvider>
+  <WorkspaceProvider>
 
-        <EventProvider>
+    <EventProvider>
 
-          <MainLayout
-            left={<EventRadar />}
-            center={<InvestigationWorkspace />}
-            right={<RightPanel />}
-          />
+      <MainLayout
+        left={
+          <>
+            <CorpusBrowser />
+            <EventRadar />
+          </>
+        }
+        center={<InvestigationWorkspace />}
+        right={<RightPanel />}
+      />
 
-        </EventProvider>
+    </EventProvider>
 
-      </WorkspaceProvider>
+  </WorkspaceProvider>
 
-    </CorpusProvider>
-  );
+</CorpusProvider>
+
+);
 }
 
 // ============================================================
@@ -53,38 +62,36 @@ function OperatorUI() {
 // ============================================================
 
 export default function App() {
-  return (
-    <Routes>
+return ( <Routes>
 
-      {/* ========================================= */}
-      {/* PUBLIC OBSERVER INTAKE                   */}
-      {/* ========================================= */}
+  {/* ========================================= */}
+  {/* PUBLIC OBSERVER INTAKE                   */}
+  {/* ========================================= */}
 
-      <Route
-        path="/report"
-        element={<PublicIntake />}
-      />
+  <Route
+    path="/report"
+    element={<PublicIntake />}
+  />
 
+  {/* ========================================= */}
+  {/* SYSTEM BRIEFING                          */}
+  {/* ========================================= */}
 
-      {/* ========================================= */}
-      {/* SYSTEM BRIEFING                          */}
-      {/* ========================================= */}
+  <Route
+    path="/briefing"
+    element={<SystemBriefing />}
+  />
 
-      <Route
-        path="/briefing"
-        element={<SystemBriefing />}
-      />
+  {/* ========================================= */}
+  {/* OPERATOR CONSOLE                         */}
+  {/* ========================================= */}
 
+  <Route
+    path="/*"
+    element={<OperatorUI />}
+  />
 
-      {/* ========================================= */}
-      {/* OPERATOR CONSOLE                         */}
-      {/* ========================================= */}
+</Routes>
 
-      <Route
-        path="/*"
-        element={<OperatorUI />}
-      />
-
-    </Routes>
-  );
+);
 }

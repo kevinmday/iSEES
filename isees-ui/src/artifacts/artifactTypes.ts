@@ -9,11 +9,20 @@ export type ArtifactType =
   | "TRANSLATION"
   | "EXTRACTION"
   | "SUMMARY"
-  | "ANNOTATION";
+  | "ANNOTATION"
+  | "OBSERVATION"
+  | "FACILITY"
+  | "CONTACT"
+  | "POINTEL"
+  | "HYPOTHESIS"
+  | "NARRATIVE";
 
 export type ArtifactRepository =
   | "LOCAL"
-  | "ZENODO";
+  | "ZENODO"
+  | "SYSTEM_CANON"
+  | "RESEARCH_CANON"
+  | "WORKSPACE";
 
 export type Artifact = {
 
@@ -27,9 +36,20 @@ export type Artifact = {
   repository:
     ArtifactRepository;
 
-  doi?: string;
+  description?:
+    string;
 
-  url?: string;
+  confidence?:
+    number;
+
+  doi?:
+    string;
+
+  url?:
+    string;
+
+  tags?:
+    string[];
 
   derived_from:
     string[];

@@ -1,6 +1,6 @@
 // ============================================================
 // DEFAULT WORKSPACE
-// P23.2 WORKSPACE FOCUS FOUNDATION
+// P24.1 ARTIFACT FOUNDATION
 // ============================================================
 
 import type {
@@ -34,6 +34,8 @@ export const DEFAULT_WORKSPACE:
     "E-TICTAC-2004",
 
   investigations: [],
+
+  artifacts: [],
 
   active_layers: [
 
