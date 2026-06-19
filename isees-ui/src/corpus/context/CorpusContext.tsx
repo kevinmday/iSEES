@@ -34,15 +34,19 @@ useState<CorpusEvent[]>(DEFAULT_CORPUS);
 useEffect(() => {
 let mounted = true;
 
+
 async function bootstrapCorpus() {
   const events = await loadCorpus();
 
   if (mounted) {
-    console.log(
-      "[CORPUS]",
-      events.length,
-      events.map((e) => e.corpus_id)
-    );
+
+    events.forEach((event) => {
+      console.log(
+        "[SIM]",
+        event.corpus_id,
+        event.similarity_resolutions?.length ?? 0
+      );
+    });
 
     setCorpus(events);
   }
@@ -54,6 +58,7 @@ return () => {
   mounted = false;
 };
 
+
 }, []);
 
 function addCorpusEvent(event: CorpusEvent) {
@@ -63,7 +68,8 @@ setCorpus((prev) => [...prev, event]);
 function removeCorpusEvent(corpusId: string) {
 setCorpus((prev) =>
 prev.filter(
-(event) => event.corpus_id !== corpusId
+(event) =>
+event.corpus_id !== corpusId
 )
 );
 }
@@ -82,7 +88,8 @@ removeCorpusEvent,
 }
 
 export function useCorpus() {
-const context = useContext(CorpusContext);
+const context =
+useContext(CorpusContext);
 
 if (!context) {
 throw new Error(

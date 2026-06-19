@@ -1,49 +1,59 @@
-import type { CanonicalReplayEvent } from "../adapters/canonicalEventAdapter";
+import type {
+CanonicalReplayEvent,
+} from "../adapters/canonicalEventAdapter";
+
+import type {
+SimilarityResolution,
+} from "./resolution/resolutionTypes";
 
 export type CorpusSourceType =
-  | "SYSTEM_CANON"
-  | "RESEARCH_CANON"
-  | "ROR"
-  | "EOR"
-  | "SCU"
-  | "RADAR"
-  | "ARGUS"
-  | "MANUAL";
+| "SYSTEM_CANON"
+| "RESEARCH_CANON"
+| "ROR"
+| "EOR"
+| "SCU"
+| "RADAR"
+| "ARGUS"
+| "MANUAL";
 
 export interface CorpusSource {
-  id: string;
+id: string;
 
-  source_type: CorpusSourceType;
+source_type: CorpusSourceType;
 
-  title: string;
+title: string;
 
-  description?: string;
+description?: string;
 
-  url?: string;
+url?: string;
 
-  created_at: string;
+created_at: string;
 }
 
 export interface ResolutionRecord {
-  source_id: string;
+source_id: string;
 
-  source_type: CorpusSourceType;
+source_type: CorpusSourceType;
 
-  confidence: number;
+confidence: number;
 
-  imported_at: string;
+imported_at: string;
 
-  imported_by?: string;
+imported_by?: string;
 }
 
 export interface CorpusEvent {
-  corpus_id: string;
+corpus_id: string;
 
-  canonical_event: CanonicalReplayEvent;
+canonical_event: CanonicalReplayEvent;
 
-  resolutions: ResolutionRecord[];
+// Provenance / federation records
+resolutions: ResolutionRecord[];
 
-  created_at: string;
+// Deterministic similarity analysis
+similarity_resolutions?: SimilarityResolution[];
 
-  updated_at: string;
+created_at: string;
+
+updated_at: string;
 }

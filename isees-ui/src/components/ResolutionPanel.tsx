@@ -1,11 +1,15 @@
 // ============================================================
 // src/components/ResolutionPanel.tsx
 // P24.2 RESOLUTION PANEL
-// FOUNDATION UI
-// FULL DROP-IN FILE
+// PROP-WIRED FOUNDATION UI
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
-export default function ResolutionPanel() {
+export default function ResolutionPanel({
+  focusedEventId,
+}: {
+  focusedEventId: string;
+}) {
 
   return (
 
@@ -69,14 +73,9 @@ export default function ResolutionPanel() {
               lineHeight: 1.5,
             }}
           >
-            Deterministic corpus resolution
-            is active. Similarity scoring
-            across narrative,
-            observability,
-            infrastructure,
-            topology, and geo
-            dimensions will appear
-            here in a future phase.
+            Focused Event:
+            {" "}
+            {focusedEventId}
           </div>
 
         </div>
@@ -109,7 +108,7 @@ export default function ResolutionPanel() {
               fontSize: 13,
             }}
           >
-            Ready For Corpus Integration
+            Resolution Data Ready
           </div>
 
         </div>

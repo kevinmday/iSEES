@@ -311,7 +311,7 @@ surfaceRendererMap[
 activeSurface as keyof typeof surfaceRendererMap
 ];
 
-  // =========================================================
+ // =========================================================
 // MAIN RENDER
 // =========================================================
 
@@ -324,15 +324,17 @@ return (
     }}
   >
 
-<WorkspaceHeader event={event} />
+    <WorkspaceHeader event={event} />
 
-<WorkspaceOverview />
+    <WorkspaceOverview />
 
-<ResolutionPanel />
+    <ResolutionPanel
+      focusedEventId={focusedEventId}
+    />
 
-<ManifoldLayerSelector />
+    <ManifoldLayerSelector />
 
-<IntelligenceSummary event={event} />
+    <IntelligenceSummary event={event} />
 
     {/* SURFACE SELECTOR */}
 
@@ -360,6 +362,7 @@ return (
     {/* ACTIVE SURFACE */}
 
     {ActiveRenderer && <ActiveRenderer />}
+
   </div>
 );
 }
