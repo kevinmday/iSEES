@@ -1,13 +1,17 @@
 // ============================================================
 // src/corpus/components/CorpusBrowser.tsx
-// P24.2C - CORPUS BROWSER V1
-// READ-ONLY CORPUS SURFACE
+// P24.3 - CORPUS BROWSER V2
+// SELECTABLE CORPUS SURFACE
 // ============================================================
 
 import { useCorpus } from "../context/CorpusContext";
 
 export default function CorpusBrowser() {
-  const { corpus } = useCorpus();
+  const {
+    corpus,
+    selectedCorpusEventId,
+    setSelectedCorpusEventId,
+  } = useCorpus();
 
   return (
     <div
@@ -45,18 +49,42 @@ export default function CorpusBrowser() {
           No corpus events loaded.
         </div>
       ) : (
-        corpus.map((event) => (
-          <div
-            key={event.corpus_id}
-            style={{
-              padding: "6px 0",
-              borderBottom:
-                "1px solid rgba(255,255,255,0.05)",
-            }}
-          >
-            {event.canonical_event.event_name}
-          </div>
-        ))
+        corpus.map((event) => {
+          const isSelected =
+            event.corpus_id ===
+            selectedCorpusEventId;
+
+          return (
+            <div
+              key={event.corpus_id}
+              onClick={() =>
+                setSelectedCorpusEventId(
+                  event.corpus_id
+                )
+              }
+              style={{
+                padding: "6px 8px",
+                cursor: "pointer",
+                borderBottom:
+                  "1px solid rgba(255,255,255,0.05)",
+
+                background: isSelected
+                  ? "rgba(0,180,255,0.15)"
+                  : "transparent",
+
+                borderLeft: isSelected
+                  ? "3px solid #00b4ff"
+                  : "3px solid transparent",
+
+                transition:
+                  "background 120ms ease",
+              }}
+            >
+              {isSelected ? "▶ " : ""}
+              {event.canonical_event.event_name}
+            </div>
+          );
+        })
       )}
     </div>
   );
