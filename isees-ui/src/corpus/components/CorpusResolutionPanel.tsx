@@ -1,4 +1,5 @@
 import { useCorpus } from "../context/CorpusContext";
+import GraphDiagnostics from "../../investigationGraph/GraphDiagnostics";
 
 export default function CorpusResolutionPanel() {
   const {
@@ -42,7 +43,7 @@ export default function CorpusResolutionPanel() {
         }}
       >
         RESOLUTION ANALYSIS
-      </div>
+            </div>
 
       <div
         style={{
@@ -171,6 +172,16 @@ export default function CorpusResolutionPanel() {
           )
         )
       )}
+
+      <hr
+        style={{
+          marginTop: "16px",
+          marginBottom: "16px",
+          opacity: 0.25,
+        }}
+      />
+
+      <GraphDiagnostics />
     </div>
   );
 }

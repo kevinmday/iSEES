@@ -1,6 +1,7 @@
 // ============================================================
-// src/App.tsx — OPERATOR CONSOLE BRIDGE (V5 CORPUS INTEGRATED)
-// P24.3 RESOLUTION SURFACE WIRED
+// src/App.tsx
+// OPERATOR CONSOLE BRIDGE (V5 GRAPH INTEGRATED)
+// P25.2 GRAPH SURFACE WIRED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -18,46 +19,57 @@ import SystemBriefing from "./pages/SystemBriefing";
 import { EventProvider } from "./context/EventContext";
 
 import {
-  WorkspaceProvider,
+WorkspaceProvider,
 } from "./workspace/context/WorkspaceContext";
 
 import {
-  CorpusProvider,
+CorpusProvider,
 } from "./corpus/context/CorpusContext";
 
 import CorpusBrowser from "./corpus/components/CorpusBrowser";
 import CorpusResolutionPanel from "./corpus/components/CorpusResolutionPanel";
+
+import GraphDiagnostics from "./graph/GraphDiagnostics";
+import GraphSurface from "./graph/GraphSurface";
 
 // ============================================================
 // OPERATOR UI
 // ============================================================
 
 function OperatorUI() {
-  return (
-    <CorpusProvider>
+return ( <CorpusProvider>
 
-      <WorkspaceProvider>
 
-        <EventProvider>
+  <WorkspaceProvider>
 
-          <MainLayout
-            left={
-              <>
-                <CorpusBrowser />
-                <CorpusResolutionPanel />
-                <EventRadar />
-              </>
-            }
-            center={<InvestigationWorkspace />}
-            right={<RightPanel />}
-          />
+    <EventProvider>
 
-        </EventProvider>
+      <MainLayout
+        left={
+          <>
+            <CorpusBrowser />
 
-      </WorkspaceProvider>
+            <GraphDiagnostics />
 
-    </CorpusProvider>
-  );
+            <GraphSurface />
+
+            <CorpusResolutionPanel />
+
+            <EventRadar />
+          </>
+        }
+        center={<InvestigationWorkspace />}
+        right={<RightPanel />}
+      />
+
+    </EventProvider>
+
+  </WorkspaceProvider>
+
+</CorpusProvider>
+
+
+);
 }
 
 // ============================================================
@@ -65,36 +77,26 @@ function OperatorUI() {
 // ============================================================
 
 export default function App() {
-  return (
-    <Routes>
+return ( <Routes>
 
-      {/* ========================================= */}
-      {/* PUBLIC OBSERVER INTAKE                   */}
-      {/* ========================================= */}
 
-      <Route
-        path="/report"
-        element={<PublicIntake />}
-      />
+  <Route
+    path="/report"
+    element={<PublicIntake />}
+  />
 
-      {/* ========================================= */}
-      {/* SYSTEM BRIEFING                          */}
-      {/* ========================================= */}
+  <Route
+    path="/briefing"
+    element={<SystemBriefing />}
+  />
 
-      <Route
-        path="/briefing"
-        element={<SystemBriefing />}
-      />
+  <Route
+    path="/*"
+    element={<OperatorUI />}
+  />
 
-      {/* ========================================= */}
-      {/* OPERATOR CONSOLE                         */}
-      {/* ========================================= */}
+</Routes>
 
-      <Route
-        path="/*"
-        element={<OperatorUI />}
-      />
 
-    </Routes>
-  );
+);
 }
