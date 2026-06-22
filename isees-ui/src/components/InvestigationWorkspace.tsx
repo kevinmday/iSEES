@@ -31,6 +31,8 @@ import {
   useWorkspace,
 } from "../workspace/context/WorkspaceContext";
 
+import InvestigationGraph from "../manifold/components/InvestigationGraph";
+
 // ============================================================
 // INVESTIGATION SURFACES
 // ============================================================
@@ -331,6 +333,8 @@ return (
     <ResolutionPanel
       focusedEventId={focusedEventId}
     />
+
+<InvestigationGraph />
 
     <ManifoldLayerSelector />
 
