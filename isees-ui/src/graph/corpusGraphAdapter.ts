@@ -6,183 +6,192 @@
 // ============================================================
 
 import type {
-CorpusEvent,
+  CorpusEvent,
 } from "../corpus/corpusTypes";
 
 import type {
-InvestigationGraph,
-GraphNode,
-GraphEdge,
-} from "./graphTypes";
+  InvestigationGraph,
+  GraphNode,
+  GraphEdge,
+} from "../manifold/graphTypes";
 
 // ============================================================
 // CORPUS → GRAPH
 // ============================================================
 
 export function buildInvestigationGraph(
-corpus: CorpusEvent[]
+  corpus: CorpusEvent[]
 ): InvestigationGraph {
 
-const nodes: GraphNode[] = [];
+  const nodes: GraphNode[] = [];
 
-const edges: GraphEdge[] = [];
+  const edges: GraphEdge[] = [];
 
-// ==========================================================
-// NODES
-// ==========================================================
+  // ==========================================================
+  // NODES
+  // ==========================================================
 
-for (const event of corpus) {
+  for (const event of corpus) {
 
+    const primaryResolution =
+      event.resolutions[0];
 
-const primaryResolution =
-  event.resolutions[0];
+    nodes.push({
 
-nodes.push({
+      id:
+        event.corpus_id,
 
-  id:
-    event.corpus_id,
+      label:
+        event.canonical_event
+          .event_name,
 
-  label:
-    event.canonical_event
-      .event_name,
+      type:
+        "EVENT",
 
-  sourceType:
-    primaryResolution
-      ?.source_type ??
-    "UNKNOWN",
+      metadata: {
 
-  confidence:
-    primaryResolution
-      ?.confidence,
+        sourceType:
+          primaryResolution
+            ?.source_type ??
+          "UNKNOWN",
 
-  metadata: {
+        confidence:
+          primaryResolution
+            ?.confidence,
 
-    eventId:
-      event.canonical_event
-        .event_id,
+        eventId:
+          event.canonical_event
+            .event_id,
 
-    createdAt:
-      event.created_at,
+        createdAt:
+          event.created_at,
 
-    updatedAt:
-      event.updated_at,
-  },
-});
-
-
-}
-
-// ==========================================================
-// EDGES
-// ==========================================================
-
-const edgeRegistry =
-new Set<string>();
-
-for (const event of corpus) {
-
-
-const sourceId =
-  event.corpus_id;
-
-const resolutions =
-  event.similarity_resolutions ??
-  [];
-
-for (
-  const resolution
-  of resolutions
-) {
-
-  const targetId =
-    resolution.target_event_id;
-
-  // ------------------------------------------------------
-  // Prevent duplicate A↔B edges
-  // ------------------------------------------------------
-
-  const edgeKey =
-    [sourceId, targetId]
-      .sort()
-      .join("::");
-
-  if (
-    edgeRegistry.has(
-      edgeKey
-    )
-  ) {
-    continue;
+        updatedAt:
+          event.updated_at,
+      },
+    });
   }
 
-  edgeRegistry.add(
-    edgeKey
-  );
+  // ==========================================================
+  // EDGES
+  // ==========================================================
 
-  const edge: GraphEdge = {
+  const edgeRegistry =
+    new Set<string>();
 
-    id: edgeKey,
+  for (const event of corpus) {
 
-    source:
-      sourceId,
+    const sourceId =
+      event.corpus_id;
 
-    target:
-      targetId,
+    const resolutions =
+      event.similarity_resolutions ??
+      [];
 
-    weight:
-      resolution.confidence,
+    for (
+      const resolution
+      of resolutions
+    ) {
 
-    relationshipType:
-      "SIMILARITY",
+      const targetId =
+        resolution.target_event_id;
 
-    metadata: {
+      const edgeKey =
+        [sourceId, targetId]
+          .sort()
+          .join("::");
 
-      confidence:
-        resolution.confidence,
+      if (
+        edgeRegistry.has(
+          edgeKey
+        )
+      ) {
+        continue;
+      }
 
-      narrative:
-        resolution
-          .narrative_similarity,
+      edgeRegistry.add(
+        edgeKey
+      );
 
-      observability:
-        resolution
-          .observability_similarity,
+      const edge: GraphEdge = {
 
-      infrastructure:
-        resolution
-          .infrastructure_similarity,
+        id:
+          edgeKey,
 
-      topology:
-        resolution
-          .topology_similarity,
+        source:
+          sourceId,
 
-      geo:
-        resolution
-          .geo_similarity,
+        target:
+          targetId,
 
-      rationale:
-        resolution.rationale,
+        relationship:
+          "SIMILARITY",
+
+        weight:
+          resolution.confidence,
+
+        metrics: {
+
+          confidence:
+            resolution.confidence,
+
+          narrative:
+            resolution
+              .narrative_similarity,
+
+          observability:
+            resolution
+              .observability_similarity,
+
+          infrastructure:
+            resolution
+              .infrastructure_similarity,
+
+          topology:
+            resolution
+              .topology_similarity,
+
+          geo:
+            resolution
+              .geo_similarity,
+        },
+
+        rationale:
+          resolution.rationale,
+      };
+
+      edges.push(
+        edge
+      );
+    }
+  }
+
+  // ==========================================================
+  // RESULT
+  // ==========================================================
+
+  return {
+
+    nodes,
+
+    edges,
+
+    statistics: {
+
+      nodeCount:
+        nodes.length,
+
+      edgeCount:
+        edges.length,
+
+      eventCount:
+        nodes.filter(
+          (node) =>
+            node.type ===
+            "EVENT"
+        ).length,
+
+      artifactCount: 0,
     },
   };
-
-  edges.push(
-    edge
-  );
-}
-
-
-}
-
-// ==========================================================
-// RESULT
-// ==========================================================
-
-return {
-
-
-nodes,
-
-edges,
-
-
-};
 }

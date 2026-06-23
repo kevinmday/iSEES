@@ -1,6 +1,6 @@
 // ============================================================
 // src/manifold/graphTypes.ts
-// P25 INVESTIGATION GRAPH FOUNDATION
+// P25.2A TOPOLOGY FOUNDATION
 // DETERMINISTIC GRAPH CONTRACTS
 // FULL DROP-IN FILE
 // ============================================================
@@ -45,6 +45,17 @@ export interface GraphNode {
   label: string;
 
   type: GraphNodeType;
+
+  // ----------------------------------------------------------
+  // P25.2A
+  // DETERMINISTIC TOPOLOGY POSITION
+  // Assigned by graphBuilder.ts
+  // Consumed by InvestigationGraph.tsx
+  // ----------------------------------------------------------
+
+  x?: number;
+
+  y?: number;
 
   metadata?: Record<
     string,
@@ -171,4 +182,21 @@ export interface InvestigationGraph {
 
   clusters?:
     GraphCluster[];
+
+  // ----------------------------------------------------------
+  // GRAPH OWNERSHIP MODEL
+  // P25 FOUNDATION
+  // ----------------------------------------------------------
+
+  centerNodeId?:
+    string;
+
+  selectedNodeId?:
+    string;
+
+  selectedEdgeId?:
+    string;
+
+  selectedClusterId?:
+    string;
 }

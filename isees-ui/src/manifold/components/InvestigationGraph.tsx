@@ -1,11 +1,15 @@
 // ============================================================
 // src/manifold/components/InvestigationGraph.tsx
-// P25 INVESTIGATION GRAPH FOUNDATION
-// DETERMINISTIC GRAPH VISUALIZATION (V1)
-// FULL DROP-IN FILE
+// P25.1 INTERACTIVE MANIFOLD FOUNDATION
+// NODE + EDGE SELECTION
+// VISUAL FEEDBACK
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
-import { useMemo } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
 
 import {
   useCorpus,
@@ -18,6 +22,10 @@ import {
 import {
   buildInvestigationGraph,
 } from "../graphBuilder";
+
+import type {
+  GraphSelection,
+} from "../graphTypes";
 
 function StatCard({
   label,
@@ -79,6 +87,22 @@ export default function InvestigationGraph() {
       ]
     );
 
+  // ==========================================================
+  // P25.1 SELECTION STATE
+  // ==========================================================
+
+  const [
+    selection,
+    setSelection,
+  ] =
+    useState<
+      GraphSelection | null
+    >(null);
+
+  // ==========================================================
+  // FOCUSED NODE
+  // ==========================================================
+
   const focusedNodeIds =
     new Set<string>();
 
@@ -89,6 +113,7 @@ export default function InvestigationGraph() {
   }
 
   return (
+
     <div
       style={{
         background: "#08101f",
@@ -101,7 +126,9 @@ export default function InvestigationGraph() {
       }}
     >
 
+      {/* ==================================================== */}
       {/* HEADER */}
+      {/* ==================================================== */}
 
       <div
         style={{
@@ -168,54 +195,203 @@ export default function InvestigationGraph() {
 
       </div>
 
-      {/* NODES */}
+     
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-        }}
-      >
+{/* ==================================================== */}
+{/* TOPOLOGY CANVAS */}
+{/* ==================================================== */}
 
-        {graph.nodes.map(
-          node => {
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 12,
+    background: "#050b16",
+    border: "1px solid #172033",
+    borderRadius: 8,
+    overflow: "hidden",
+  }}
+>
 
-            const focused =
-              focusedNodeIds.has(
-                node.id
-              );
+  <svg
+    width="100%"
+    height="500"
+    viewBox="-250 -250 500 500"
+  >
 
-            return (
+    {/* ================================================ */}
+    {/* EDGES */}
+    {/* ================================================ */}
 
-              <div
-                key={node.id}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 999,
-                  border: focused
-                    ? "1px solid #3b82f6"
-                    : "1px solid #1f2937",
-                  background: focused
-                    ? "#0f172a"
-                    : "#08101f",
-                  color: focused
-                    ? "#60a5fa"
-                    : "#d1d5db",
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
-              >
-                {node.label}
-              </div>
+    {graph.edges.map(
+      edge => {
 
-            );
-          }
-        )}
+        const source =
+          graph.nodes.find(
+            node =>
+              node.id ===
+              edge.source
+          );
 
-      </div>
+        const target =
+          graph.nodes.find(
+            node =>
+              node.id ===
+              edge.target
+          );
 
+        if (
+          !source ||
+          !target
+        ) {
+          return null;
+        }
+
+        const selected =
+          selection?.kind ===
+            "EDGE" &&
+          selection.edgeId ===
+            edge.id;
+
+        return (
+
+          <line
+            key={edge.id}
+            x1={source.x ?? 0}
+            y1={source.y ?? 0}
+            x2={target.x ?? 0}
+            y2={target.y ?? 0}
+            stroke={
+              selected
+                ? "#f59e0b"
+                : "#334155"
+            }
+            strokeWidth={
+              selected
+                ? 4
+                : Math.max(
+                    1,
+                    edge.weight * 5
+                  )
+            }
+            opacity={
+              selected
+                ? 1
+                : 0.75
+            }
+            onClick={() =>
+              setSelection({
+                kind: "EDGE",
+                edgeId:
+                  edge.id,
+                sourceId:
+                  edge.source,
+                targetId:
+                  edge.target,
+              })
+            }
+            style={{
+              cursor:
+                "pointer",
+            }}
+          />
+
+        );
+      }
+    )}
+
+    {/* ================================================ */}
+    {/* NODES */}
+    {/* ================================================ */}
+
+    {graph.nodes.map(
+      node => {
+
+        const focused =
+          focusedNodeIds.has(
+            node.id
+          );
+
+        const selected =
+          selection?.kind ===
+            "NODE" &&
+          selection.nodeId ===
+            node.id;
+
+        return (
+
+          <g
+            key={node.id}
+            onClick={() =>
+              setSelection({
+                kind: "NODE",
+                nodeId: node.id,
+                nodeType:
+                  node.type,
+              })
+            }
+            style={{
+              cursor: "pointer",
+            }}
+          >
+
+            <circle
+              cx={node.x ?? 0}
+              cy={node.y ?? 0}
+              r={
+                selected
+                  ? 18
+                  : focused
+                    ? 16
+                    : 14
+              }
+              fill={
+                selected
+                  ? "#f59e0b"
+                  : focused
+                    ? "#3b82f6"
+                    : "#1e293b"
+              }
+              stroke={
+                selected
+                  ? "#fde68a"
+                  : focused
+                    ? "#93c5fd"
+                    : "#475569"
+              }
+              strokeWidth={2}
+            />
+
+            <text
+              x={node.x ?? 0}
+              y={
+                (node.y ?? 0) + 32
+              }
+              textAnchor="middle"
+              fill="#d1d5db"
+              fontSize="11"
+              fontWeight="600"
+            >
+              {node.label}
+            </text>
+
+          </g>
+
+        );
+      }
+    )}
+
+  </svg>
+
+</div>
+
+
+
+
+      {/* ==================================================== */}
       {/* EDGES */}
+      {/* ==================================================== */}
 
       <div
         style={{
@@ -226,68 +402,119 @@ export default function InvestigationGraph() {
       >
 
         {graph.edges.map(
-          edge => (
+          edge => {
 
-            <div
-              key={edge.id}
-              style={{
-                border: "1px solid #172033",
-                borderRadius: 6,
-                padding: 10,
-                background: "#050b16",
-              }}
-            >
+            const selectedEdge =
+              selection?.kind ===
+                "EDGE" &&
+              selection.edgeId ===
+                edge.id;
+
+            return (
 
               <div
+                key={edge.id}
+                onClick={() =>
+                  setSelection({
+                    kind: "EDGE",
+                    edgeId:
+                      edge.id,
+                    sourceId:
+                      edge.source,
+                    targetId:
+                      edge.target,
+                  })
+                }
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
+                  border:
+                    selectedEdge
+                      ? "1px solid #f59e0b"
+                      : "1px solid #172033",
+
+                  borderRadius: 6,
+
+                  padding: 10,
+
+                  background:
+                    selectedEdge
+                      ? "#1f1300"
+                      : "#050b16",
+
+                  cursor: "pointer",
+
+                  userSelect: "none",
+
+                  transition:
+                    "all 0.15s ease",
                 }}
               >
 
                 <div
                   style={{
-                    color: "#d1d5db",
-                    fontWeight: 600,
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
                   }}
                 >
-                  {edge.source}
-                  {" → "}
-                  {edge.target}
+
+                  <div
+                    style={{
+                      color:
+                        selectedEdge
+                          ? "#fbbf24"
+                          : "#d1d5db",
+
+                      fontWeight: 600,
+                    }}
+                  >
+                    {edge.source}
+                    {" → "}
+                    {edge.target}
+                  </div>
+
+                  <div
+                    style={{
+                      color:
+                        selectedEdge
+                          ? "#fbbf24"
+                          : "#60a5fa",
+
+                      fontWeight: 700,
+                    }}
+                  >
+                    {(
+                      edge.weight *
+                      100
+                    ).toFixed(0)}
+                    %
+                  </div>
+
                 </div>
 
                 <div
                   style={{
-                    color: "#60a5fa",
-                    fontWeight: 700,
+                    marginTop: 6,
+
+                    color:
+                      selectedEdge
+                        ? "#fde68a"
+                        : "#9ca3af",
+
+                    fontSize: 12,
                   }}
                 >
-                  {(
-                    edge.weight *
-                    100
-                  ).toFixed(0)}
-                  %
+                  {edge.relationship}
                 </div>
 
               </div>
 
-              <div
-                style={{
-                  marginTop: 6,
-                  color: "#9ca3af",
-                  fontSize: 12,
-                }}
-              >
-                {edge.relationship}
-              </div>
-
-            </div>
-
-          )
+            );
+          }
         )}
 
       </div>
 
     </div>
+
   );
 }
