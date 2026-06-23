@@ -109,9 +109,15 @@ export interface GraphEdge {
 // ============================================================
 // GRAPH SELECTION
 // SINGLE SOURCE OF TRUTH
+// P25.1+
 // ============================================================
 
 export type GraphSelection =
+
+  | {
+
+      kind: "NONE";
+    }
 
   | {
 
@@ -132,7 +138,29 @@ export type GraphSelection =
       sourceId: string;
 
       targetId: string;
+    }
+
+  | {
+
+      kind: "CLUSTER";
+
+      clusterId: string;
     };
+
+
+// ============================================================
+// GRAPH FOCUS
+// DYNAMIC CENTER OWNERSHIP
+// ============================================================
+
+export interface GraphFocus {
+
+  centerNodeId:
+    string | null;
+
+  selection:
+    GraphSelection;
+}
 
 // ============================================================
 // GRAPH CLUSTER

@@ -87,8 +87,9 @@ export default function InvestigationGraph() {
       ]
     );
 
-  // ==========================================================
+   // ==========================================================
   // P25.1 SELECTION STATE
+  // SINGLE SOURCE OF TRUTH
   // ==========================================================
 
   const [
@@ -96,7 +97,22 @@ export default function InvestigationGraph() {
     setSelection,
   ] =
     useState<
-      GraphSelection | null
+      GraphSelection
+    >({
+      kind: "NONE",
+    });
+
+  // ==========================================================
+  // P25.2 CENTER NODE
+  // DYNAMIC GRAPH OWNERSHIP
+  // ==========================================================
+
+  const [
+    centerNodeId,
+    setCenterNodeId,
+  ] =
+    useState<
+      string | null
     >(null);
 
   // ==========================================================
@@ -221,168 +237,187 @@ export default function InvestigationGraph() {
   >
 
     {/* ================================================ */}
-    {/* EDGES */}
-    {/* ================================================ */}
+{/* EDGES */}
+{/* ================================================ */}
 
-    {graph.edges.map(
-      edge => {
+{graph.edges.map(
+  edge => {
 
-        const source =
-          graph.nodes.find(
-            node =>
-              node.id ===
-              edge.source
-          );
+    const source =
+      graph.nodes.find(
+        node =>
+          node.id ===
+          edge.source
+      );
 
-        const target =
-          graph.nodes.find(
-            node =>
-              node.id ===
-              edge.target
-          );
+    const target =
+      graph.nodes.find(
+        node =>
+          node.id ===
+          edge.target
+      );
 
-        if (
-          !source ||
-          !target
-        ) {
-          return null;
+    if (
+      !source ||
+      !target
+    ) {
+      return null;
+    }
+
+    const selected =
+      selection.kind ===
+        "EDGE" &&
+      selection.edgeId ===
+        edge.id;
+
+    return (
+
+      <line
+        key={edge.id}
+        x1={source.x ?? 0}
+        y1={source.y ?? 0}
+        x2={target.x ?? 0}
+        y2={target.y ?? 0}
+        stroke={
+          selected
+            ? "#f59e0b"
+            : "#334155"
         }
+        strokeWidth={
+          selected
+            ? 4
+            : Math.max(
+                1,
+                edge.weight * 5
+              )
+        }
+        opacity={
+          selected
+            ? 1
+            : 0.75
+        }
+        onClick={() =>
+          setSelection({
+            kind: "EDGE",
+            edgeId:
+              edge.id,
+            sourceId:
+              edge.source,
+            targetId:
+              edge.target,
+          })
+        }
+        style={{
+          cursor:
+            "pointer",
+        }}
+      />
 
-        const selected =
-          selection?.kind ===
-            "EDGE" &&
-          selection.edgeId ===
-            edge.id;
-
-        return (
-
-          <line
-            key={edge.id}
-            x1={source.x ?? 0}
-            y1={source.y ?? 0}
-            x2={target.x ?? 0}
-            y2={target.y ?? 0}
-            stroke={
-              selected
-                ? "#f59e0b"
-                : "#334155"
-            }
-            strokeWidth={
-              selected
-                ? 4
-                : Math.max(
-                    1,
-                    edge.weight * 5
-                  )
-            }
-            opacity={
-              selected
-                ? 1
-                : 0.75
-            }
-            onClick={() =>
-              setSelection({
-                kind: "EDGE",
-                edgeId:
-                  edge.id,
-                sourceId:
-                  edge.source,
-                targetId:
-                  edge.target,
-              })
-            }
-            style={{
-              cursor:
-                "pointer",
-            }}
-          />
-
-        );
-      }
-    )}
+    );
+  }
+)}
 
     {/* ================================================ */}
-    {/* NODES */}
-    {/* ================================================ */}
+{/* NODES */}
+{/* ================================================ */}
 
-    {graph.nodes.map(
-      node => {
+{graph.nodes.map(
+  node => {
 
-        const focused =
-          focusedNodeIds.has(
+    const focused =
+      focusedNodeIds.has(
+        node.id
+      );
+
+    const selected =
+      selection.kind ===
+        "NODE" &&
+      selection.nodeId ===
+        node.id;
+
+    const centered =
+      centerNodeId ===
+      node.id;
+
+    return (
+
+      <g
+        key={node.id}
+        onClick={() =>
+          setSelection({
+            kind: "NODE",
+            nodeId: node.id,
+            nodeType:
+              node.type,
+          })
+        }
+        onDoubleClick={() =>
+          setCenterNodeId(
             node.id
-          );
+          )
+        }
+        style={{
+          cursor: "pointer",
+        }}
+      >
 
-        const selected =
-          selection?.kind ===
-            "NODE" &&
-          selection.nodeId ===
-            node.id;
+        <circle
+          cx={node.x ?? 0}
+          cy={node.y ?? 0}
+          r={
+            centered
+              ? 22
+              : selected
+                ? 18
+                : focused
+                  ? 16
+                  : 14
+          }
+          fill={
+            centered
+              ? "#dc2626"
+              : selected
+                ? "#f59e0b"
+                : focused
+                  ? "#3b82f6"
+                  : "#1e293b"
+          }
+          stroke={
+            centered
+              ? "#fca5a5"
+              : selected
+                ? "#fde68a"
+                : focused
+                  ? "#93c5fd"
+                  : "#475569"
+          }
+          strokeWidth={
+            centered
+              ? 4
+              : 2
+          }
+        />
 
-        return (
+        <text
+          x={node.x ?? 0}
+          y={
+            (node.y ?? 0) + 32
+          }
+          textAnchor="middle"
+          fill="#d1d5db"
+          fontSize="11"
+          fontWeight="600"
+        >
+          {node.label}
+        </text>
 
-          <g
-            key={node.id}
-            onClick={() =>
-              setSelection({
-                kind: "NODE",
-                nodeId: node.id,
-                nodeType:
-                  node.type,
-              })
-            }
-            style={{
-              cursor: "pointer",
-            }}
-          >
+      </g>
 
-            <circle
-              cx={node.x ?? 0}
-              cy={node.y ?? 0}
-              r={
-                selected
-                  ? 18
-                  : focused
-                    ? 16
-                    : 14
-              }
-              fill={
-                selected
-                  ? "#f59e0b"
-                  : focused
-                    ? "#3b82f6"
-                    : "#1e293b"
-              }
-              stroke={
-                selected
-                  ? "#fde68a"
-                  : focused
-                    ? "#93c5fd"
-                    : "#475569"
-              }
-              strokeWidth={2}
-            />
+    );
+  }
+)}
 
-            <text
-              x={node.x ?? 0}
-              y={
-                (node.y ?? 0) + 32
-              }
-              textAnchor="middle"
-              fill="#d1d5db"
-              fontSize="11"
-              fontWeight="600"
-            >
-              {node.label}
-            </text>
-
-          </g>
-
-        );
-      }
-    )}
-
-  </svg>
+</svg>
 
 </div>
 
