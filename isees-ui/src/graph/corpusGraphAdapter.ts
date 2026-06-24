@@ -167,31 +167,43 @@ export function buildInvestigationGraph(
   }
 
   // ==========================================================
-  // RESULT
-  // ==========================================================
+// RESULT
+// ==========================================================
 
-  return {
+return {
 
-    nodes,
+  nodes,
 
-    edges,
+  edges,
 
-    statistics: {
+  statistics: {
 
-      nodeCount:
-        nodes.length,
+    nodeCount:
+      nodes.length,
 
-      edgeCount:
-        edges.length,
+    edgeCount:
+      edges.length,
 
-      eventCount:
-        nodes.filter(
-          (node) =>
-            node.type ===
-            "EVENT"
-        ).length,
+    eventCount:
+      nodes.filter(
+        node =>
+          node.type ===
+          "EVENT"
+      ).length,
 
-      artifactCount: 0,
-    },
-  };
+    facilityCount: 0,
+
+    artifactCount: 0,
+
+    personCount: 0,
+
+    organizationCount: 0,
+
+    locationCount: 0,
+
+    narrativeCount: 0,
+
+    hypothesisCount: 0,
+  },
+};
 }

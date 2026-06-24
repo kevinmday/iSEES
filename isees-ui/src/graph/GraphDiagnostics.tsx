@@ -9,7 +9,11 @@ import { useCorpus } from "../corpus/context/CorpusContext";
 
 import {
   buildInvestigationGraph,
-} from "./corpusGraphAdapter";
+} from "../manifold/graphBuilder";
+
+import {
+  useWorkspace,
+} from "../workspace/context/WorkspaceContext";
 
 // ============================================================
 // COMPONENT
@@ -21,10 +25,15 @@ export default function GraphDiagnostics() {
     corpus,
   } = useCorpus();
 
-  const graph =
-    buildInvestigationGraph(
-      corpus
-    );
+const {
+  activeWorkspace,
+} = useWorkspace();
+
+const graph =
+  buildInvestigationGraph(
+    corpus,
+    activeWorkspace
+  );
 
   const nodeCount =
     graph.nodes.length;
@@ -130,51 +139,72 @@ export default function GraphDiagnostics() {
       </div>
 
       <Metric
-        label="Nodes"
-        value={nodeCount}
-      />
+  label="Nodes"
+  value={nodeCount}
+/>
 
-      <Metric
-        label="Edges"
-        value={edgeCount}
-      />
+<Metric
+  label="Events"
+  value={
+    graph.statistics.eventCount
+  }
+/>
 
-      <Metric
-        label="Average Weight"
-        value={
-          (
-            averageWeight * 100
-          ).toFixed(1) + "%"
-        }
-      />
+<Metric
+  label="Facilities"
+  value={
+    graph.statistics.facilityCount
+  }
+/>
 
-      <Metric
-        label="Most Connected"
-        value={
-          mostConnectedNode
-        }
-      />
+<Metric
+  label="Artifacts"
+  value={
+    graph.statistics.artifactCount
+  }
+/>
 
-      {strongestEdge && (
+<Metric
+  label="Edges"
+  value={edgeCount}
+/>
 
-        <Metric
-          label="Strongest Edge"
-          value={
-            `${strongestEdge.source}
-             ↔
-             ${strongestEdge.target}
-             (${(
-               strongestEdge.weight *
-               100
-             ).toFixed(1)}%)`
-          }
-        />
+<Metric
+  label="Average Weight"
+  value={
+    (
+      averageWeight * 100
+    ).toFixed(1) + "%"
+  }
+/>
 
-      )}
+<Metric
+  label="Most Connected"
+  value={
+    mostConnectedNode
+  }
+/>
 
-    </div>
+{strongestEdge && (
 
-  );
+  <Metric
+    label="Strongest Edge"
+    value={
+      `${strongestEdge.source}
+       ↔
+       ${strongestEdge.target}
+       (${(
+         strongestEdge.weight *
+         100
+       ).toFixed(1)}%)`
+    }
+  />
+
+)}
+
+</div>
+
+);
 }
 
 // ============================================================

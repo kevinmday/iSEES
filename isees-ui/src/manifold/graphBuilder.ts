@@ -527,26 +527,60 @@ return {
 
   statistics: {
 
-    nodeCount:
-      nodes.length,
+  nodeCount:
+    nodes.length,
 
-    edgeCount:
-      edges.length,
+  edgeCount:
+    edges.length,
 
-    eventCount:
-      nodes.filter(
-        node =>
-          node.type ===
-          "EVENT"
-      ).length,
+  eventCount:
+    nodes.filter(
+      node =>
+        node.type === "EVENT"
+    ).length,
 
-    artifactCount:
-      nodes.filter(
-        node =>
-          node.type ===
-          "ARTIFACT"
-      ).length,
-  },
+  facilityCount:
+    nodes.filter(
+      node =>
+        node.type === "FACILITY"
+    ).length,
+
+  artifactCount:
+    nodes.filter(
+      node =>
+        node.type === "ARTIFACT"
+    ).length,
+
+  personCount:
+    nodes.filter(
+      node =>
+        node.type === "PERSON"
+    ).length,
+
+  organizationCount:
+    nodes.filter(
+      node =>
+        node.type === "ORGANIZATION"
+    ).length,
+
+  locationCount:
+    nodes.filter(
+      node =>
+        node.type === "LOCATION"
+    ).length,
+
+  narrativeCount:
+    nodes.filter(
+      node =>
+        node.type === "NARRATIVE"
+    ).length,
+
+  hypothesisCount:
+    nodes.filter(
+      node =>
+        node.type === "HYPOTHESIS"
+    ).length,
+},
 };
 }
 

@@ -190,7 +190,19 @@ export interface GraphStatistics {
 
   eventCount: number;
 
+  facilityCount: number;
+
   artifactCount: number;
+
+  personCount: number;
+
+  organizationCount: number;
+
+  locationCount: number;
+
+  narrativeCount: number;
+
+  hypothesisCount: number;
 }
 
 // ============================================================
