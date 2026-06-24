@@ -247,6 +247,115 @@ corpusEvent
 );
 
 // ==========================================================
+// FACILITY NODES
+// ==========================================================
+
+corpus.forEach(
+(
+  corpusEvent
+) => {
+
+  const event =
+    corpusEvent
+      .canonical_event;
+
+  const eventId =
+    event.event_id;
+
+  const facilities =
+    event.core_event
+      ?.infrastructure_context
+      ?.facilities ?? [];
+
+  facilities.forEach(
+    facility => {
+
+      const facilityId =
+        `facility:${facility.name}`;
+
+      if (
+        !nodeMap.has(
+          facilityId
+        )
+      ) {
+
+        nodeMap.set(
+          facilityId,
+          {
+            id:
+              facilityId,
+
+            label:
+              facility.name,
+
+            type:
+              "FACILITY",
+
+            metadata: {
+
+              facilityType:
+                facility.type,
+
+              distance:
+                facility.distance,
+            },
+          }
+        );
+      }
+
+      const relationshipId =
+        edgeId(
+          eventId,
+          facilityId
+        );
+
+      if (
+        !edgeMap.has(
+          relationshipId
+        )
+      ) {
+
+        edgeMap.set(
+          relationshipId,
+          {
+            id:
+              relationshipId,
+
+            source:
+              eventId,
+
+            target:
+              facilityId,
+
+            weight:
+              1,
+
+            relationship:
+              "OBSERVED_AT",
+
+            metrics: {
+              confidence: 1,
+              narrative: 0,
+              observability: 1,
+              infrastructure: 1,
+              topology: 0,
+              geo: 0,
+            },
+
+            rationale: [
+              `Facility relationship: ${facility.name}`,
+            ],
+          }
+        );
+      }
+
+    }
+  );
+
+}
+);
+
+// ==========================================================
 // ARTIFACT NODES
 // ==========================================================
 

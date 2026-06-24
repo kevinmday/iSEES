@@ -27,6 +27,14 @@ import type {
   GraphSelection,
 } from "../graphTypes";
 
+import GraphInteractionPanel
+from "../../graph/GraphInteractionPanel";
+
+import type {
+  GraphNodeIntelligence,
+  GraphEdgeIntelligence,
+} from "../../graph/graphInteractionTypes";
+
 function StatCard({
   label,
   value,
@@ -75,17 +83,19 @@ export default function InvestigationGraph() {
   } = useWorkspace();
 
   const graph =
-    useMemo(
-      () =>
-        buildInvestigationGraph(
-          corpus,
-          activeWorkspace
-        ),
-      [
+  useMemo(
+    () =>
+      buildInvestigationGraph(
         corpus,
-        activeWorkspace,
-      ]
-    );
+        activeWorkspace
+      ),
+    [
+      corpus,
+      activeWorkspace,
+    ]
+  );
+
+
 
    // ==========================================================
   // P25.1 SELECTION STATE
@@ -101,6 +111,112 @@ export default function InvestigationGraph() {
     >({
       kind: "NONE",
     });
+
+// ==========================================================
+// SELECTED NODE INTELLIGENCE
+// ==========================================================
+
+const selectedNode: GraphNodeIntelligence | undefined =
+  selection.kind === "NODE"
+    ? (() => {
+
+        const node =
+          graph.nodes.find(
+            n => n.id === selection.nodeId
+          );
+
+        if (!node) {
+          return undefined;
+        }
+
+        const connectionCount =
+          graph.edges.filter(
+            edge =>
+              edge.source === node.id ||
+              edge.target === node.id
+          ).length;
+
+        return {
+
+          nodeId:
+            node.id,
+
+          title:
+            node.label,
+
+          sourceType:
+            String(
+              node.metadata?.source ??
+              "UNKNOWN"
+            ),
+
+          confidence:
+            typeof node.metadata?.confidence ===
+            "number"
+              ? node.metadata.confidence
+              : undefined,
+
+          connectionCount,
+
+          metadata:
+            node.metadata,
+        };
+
+      })()
+    : undefined;
+
+// ==========================================================
+// SELECTED EDGE INTELLIGENCE
+// ==========================================================
+
+const selectedEdge: GraphEdgeIntelligence | undefined =
+  selection.kind === "EDGE"
+    ? (() => {
+
+        const edge =
+          graph.edges.find(
+            e => e.id === selection.edgeId
+          );
+
+        if (!edge) {
+          return undefined;
+        }
+
+        return {
+
+          edgeId:
+            edge.id,
+
+          sourceId:
+            edge.source,
+
+          targetId:
+            edge.target,
+
+          confidence:
+            edge.metrics?.confidence ?? 0,
+
+          narrative:
+            edge.metrics?.narrative ?? 0,
+
+          observability:
+            edge.metrics?.observability ?? 0,
+
+          infrastructure:
+            edge.metrics?.infrastructure ?? 0,
+
+          topology:
+            edge.metrics?.topology ?? 0,
+
+          geo:
+            edge.metrics?.geo ?? 0,
+
+          rationale:
+            edge.rationale ?? [],
+        };
+
+      })()
+    : undefined;
 
   // ==========================================================
   // P25.2 CENTER NODE
@@ -420,6 +536,11 @@ export default function InvestigationGraph() {
 </svg>
 
 </div>
+
+<GraphInteractionPanel
+  selectedNode={selectedNode}
+  selectedEdge={selectedEdge}
+/>
 
 
 

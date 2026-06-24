@@ -6,6 +6,8 @@
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
+import { useState } from "react";
+
 import { useEventContext } from "../context/EventContext";
 import AssessmentSurface from "./surfaces/AssessmentSurface";
 import ActionsSurface from "./surfaces/ActionsSurface";
@@ -32,6 +34,10 @@ import {
 } from "../workspace/context/WorkspaceContext";
 
 import InvestigationGraph from "../manifold/components/InvestigationGraph";
+
+import type {
+  GraphSelection,
+} from "../manifold/graphTypes";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -161,6 +167,12 @@ export default function InvestigationWorkspace() {
   const {
     focusedEventId,
   } = useWorkspace();
+
+const [selection] =
+  useState<GraphSelection>({
+    kind: "NONE",
+  });
+
 
   if (!focusedEventId) {
     return (
@@ -336,37 +348,69 @@ return (
 
 <InvestigationGraph />
 
-    <ManifoldLayerSelector />
+<ManifoldLayerSelector />
 
-    <IntelligenceSummary event={event} />
+<IntelligenceSummary event={event} />
 
-    {/* SURFACE SELECTOR */}
+{/* GRAPH SELECTION DIAGNOSTICS */}
 
-    <div
-      style={{
-        display: "flex",
-        gap: 8,
-        flexWrap: "wrap",
-      }}
-    >
-      {SURFACES.map((surface) => (
-        <SurfaceButton
-          key={surface}
-          label={surface}
-          active={
-            activeSurface === surface
-          }
-          onClick={() =>
-            setActiveSurface(surface as any)
-          }
-        />
-      ))}
-    </div>
-
-    {/* ACTIVE SURFACE */}
-
-    {ActiveRenderer && <ActiveRenderer />}
-
+<div
+  style={{
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 12,
+    border: "1px solid #334155",
+    borderRadius: 8,
+    background: "#0f172a",
+  }}
+>
+  <div
+    style={{
+      fontWeight: 600,
+      marginBottom: 8,
+    }}
+  >
+    Graph Selection
   </div>
+
+  <pre
+    style={{
+      margin: 0,
+      fontSize: 12,
+      overflowX: "auto",
+    }}
+  >
+    {JSON.stringify(selection, null, 2)}
+  </pre>
+</div>
+
+{/* SURFACE SELECTOR */}
+
+<div
+  style={{
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  }}
+>
+  {SURFACES.map((surface) => (
+    <SurfaceButton
+      key={surface}
+      label={surface}
+      active={
+        activeSurface === surface
+      }
+      onClick={() =>
+        setActiveSurface(surface as any)
+      }
+    />
+  ))}
+</div>
+
+{/* ACTIVE SURFACE */}
+
+{ActiveRenderer && <ActiveRenderer />}
+
+</div>
 );
 }
