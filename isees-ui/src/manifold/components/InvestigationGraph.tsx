@@ -1,8 +1,8 @@
 // ============================================================
 // src/manifold/components/InvestigationGraph.tsx
-// P25.1 INTERACTIVE MANIFOLD FOUNDATION
+// P25.5A GRAPH ICONOLOGY FOUNDATION
 // NODE + EDGE SELECTION
-// VISUAL FEEDBACK
+// ENTITY GLYPH VISUALIZATION
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -30,10 +30,17 @@ import type {
 import GraphInteractionPanel
 from "../../graph/GraphInteractionPanel";
 
+import GraphNodeGlyph
+from "./GraphNodeGlyph";
+
 import type {
   GraphNodeIntelligence,
   GraphEdgeIntelligence,
 } from "../../graph/graphInteractionTypes";
+
+// ============================================================
+// STAT CARD
+// ============================================================
 
 function StatCard({
   label,
@@ -83,21 +90,19 @@ export default function InvestigationGraph() {
   } = useWorkspace();
 
   const graph =
-  useMemo(
-    () =>
-      buildInvestigationGraph(
+    useMemo(
+      () =>
+        buildInvestigationGraph(
+          corpus,
+          activeWorkspace
+        ),
+      [
         corpus,
-        activeWorkspace
-      ),
-    [
-      corpus,
-      activeWorkspace,
-    ]
-  );
+        activeWorkspace,
+      ]
+    );
 
-
-
-   // ==========================================================
+  // ==========================================================
   // P25.1 SELECTION STATE
   // SINGLE SOURCE OF TRUTH
   // ==========================================================
@@ -112,9 +117,9 @@ export default function InvestigationGraph() {
       kind: "NONE",
     });
 
-// ==========================================================
-// SELECTED NODE INTELLIGENCE
-// ==========================================================
+  // ==========================================================
+  // SELECTED NODE INTELLIGENCE
+  // ==========================================================
 
 const selectedNode: GraphNodeIntelligence | undefined =
   selection.kind === "NODE"
@@ -433,7 +438,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
   }
 )}
 
-    {/* ================================================ */}
+   {/* ================================================ */}
 {/* NODES */}
 {/* ================================================ */}
 
@@ -455,10 +460,20 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
       centerNodeId ===
       node.id;
 
+    const glyphSize =
+      centered
+        ? 22
+        : selected
+          ? 18
+          : focused
+            ? 16
+            : 14;
+
     return (
 
       <g
         key={node.id}
+        transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
         onClick={() =>
           setSelection({
             kind: "NODE",
@@ -477,48 +492,33 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
         }}
       >
 
-        <circle
-          cx={node.x ?? 0}
-          cy={node.y ?? 0}
-          r={
-            centered
-              ? 22
-              : selected
-                ? 18
-                : focused
-                  ? 16
-                  : 14
+        <GraphNodeGlyph
+          type={node.type}
+          selected={
+            selected
           }
-          fill={
+          focused={
+            focused ||
             centered
-              ? "#dc2626"
-              : selected
-                ? "#f59e0b"
-                : focused
-                  ? "#3b82f6"
-                  : "#1e293b"
           }
-          stroke={
-            centered
-              ? "#fca5a5"
-              : selected
-                ? "#fde68a"
-                : focused
-                  ? "#93c5fd"
-                  : "#475569"
-          }
-          strokeWidth={
-            centered
-              ? 4
-              : 2
+          size={
+            glyphSize
           }
         />
 
+        {centered && (
+          <circle
+            r={glyphSize + 6}
+            fill="none"
+            stroke="#dc2626"
+            strokeWidth={3}
+            strokeDasharray="4 4"
+          />
+        )}
+
         <text
-          x={node.x ?? 0}
-          y={
-            (node.y ?? 0) + 32
-          }
+          x={0}
+          y={glyphSize + 18}
           textAnchor="middle"
           fill="#d1d5db"
           fontSize="11"
@@ -541,8 +541,6 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
   selectedNode={selectedNode}
   selectedEdge={selectedEdge}
 />
-
-
 
 
       {/* ==================================================== */}
