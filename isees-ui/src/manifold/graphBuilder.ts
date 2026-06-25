@@ -117,8 +117,11 @@ corpusEvent
       label:
         event.event_name,
 
-      type:
-        "EVENT",
+     type:
+  "EVENT",
+
+iconType:
+  "UAP",
 
       metadata: {
 
@@ -288,8 +291,11 @@ corpus.forEach(
             label:
               facility.name,
 
-            type:
-              "FACILITY",
+          type:
+  "FACILITY",
+
+iconType:
+  "BUILDING",
 
             metadata: {
 
@@ -376,7 +382,10 @@ artifact => {
         artifact.title,
 
       type:
-        "ARTIFACT",
+  "ARTIFACT",
+
+iconType:
+  "DOCUMENT",
 
       metadata: {
         repository:

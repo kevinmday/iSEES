@@ -20,6 +20,29 @@ export type GraphNodeType =
   | "HYPOTHESIS";
 
 // ============================================================
+// VISUAL ICON TYPES
+// ============================================================
+
+export type GraphIconType =
+
+  | "UAP"
+  | "BUILDING"
+  | "SHIP"
+  | "AIRCRAFT"
+  | "RADAR"
+  | "SENSOR"
+  | "PERSON"
+  | "ORGANIZATION"
+  | "LOCATION"
+  | "DOCUMENT"
+  | "PHOTO"
+  | "VIDEO"
+  | "HYPOTHESIS"
+  | "NARRATIVE";
+
+
+
+// ============================================================
 // EDGE TYPES
 // ============================================================
 
@@ -45,6 +68,8 @@ export interface GraphNode {
   label: string;
 
   type: GraphNodeType;
+
+iconType?: GraphIconType;
 
   // ----------------------------------------------------------
   // P25.2A

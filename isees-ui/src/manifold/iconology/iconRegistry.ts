@@ -7,6 +7,7 @@
 
 import type {
   GraphNodeType,
+  GraphIconType,
 } from "../graphTypes";
 
 // ============================================================
@@ -16,7 +17,7 @@ import type {
 export interface GraphIconDefinition {
 
   type:
-    GraphNodeType;
+    GraphIconType;
 
   icon:
     string;
@@ -34,13 +35,14 @@ export interface GraphIconDefinition {
 
 export const GRAPH_ICON_REGISTRY:
 Record<
-  GraphNodeType,
+  GraphIconType,
   GraphIconDefinition
 > = {
 
-  EVENT: {
 
-    type: "EVENT",
+  UAP: {
+
+  type: "UAP",
 
     icon: "🛸",
 
@@ -49,27 +51,95 @@ Record<
     size: 20,
   },
 
-  FACILITY: {
+BUILDING: {
 
-    type: "FACILITY",
+  type: "BUILDING",
 
-    icon: "🏢",
+  icon: "🏢",
 
-    color: "#94a3b8",
+  color: "#94a3b8",
 
-    size: 18,
-  },
+  size: 18,
+},
 
-  ARTIFACT: {
+DOCUMENT: {
 
-    type: "ARTIFACT",
+  type: "DOCUMENT",
 
-    icon: "📄",
+  icon: "📄",
 
-    color: "#facc15",
+  color: "#facc15",
 
-    size: 18,
-  },
+  size: 18,
+},
+
+
+SHIP: {
+
+  type: "SHIP",
+
+  icon: "🚢",
+
+  color: "#94a3b8",
+
+  size: 18,
+},
+
+AIRCRAFT: {
+
+  type: "AIRCRAFT",
+
+  icon: "✈️",
+
+  color: "#60a5fa",
+
+  size: 18,
+},
+
+RADAR: {
+
+  type: "RADAR",
+
+  icon: "📡",
+
+  color: "#22c55e",
+
+  size: 18,
+},
+
+SENSOR: {
+
+  type: "SENSOR",
+
+  icon: "📶",
+
+  color: "#22c55e",
+
+  size: 18,
+},
+
+PHOTO: {
+
+  type: "PHOTO",
+
+  icon: "📷",
+
+  color: "#facc15",
+
+  size: 18,
+},
+
+VIDEO: {
+
+  type: "VIDEO",
+
+  icon: "🎥",
+
+  color: "#facc15",
+
+  size: 18,
+},
+
 
   PERSON: {
 
@@ -132,8 +202,25 @@ Record<
 // ============================================================
 
 export function getGraphIcon(
-  type: GraphNodeType,
+  type: GraphNodeType | GraphIconType,
 ): GraphIconDefinition {
 
-  return GRAPH_ICON_REGISTRY[type];
+  switch (type) {
+
+    case "EVENT":
+      return GRAPH_ICON_REGISTRY.UAP;
+
+    case "FACILITY":
+      return GRAPH_ICON_REGISTRY.BUILDING;
+
+    case "ARTIFACT":
+      return GRAPH_ICON_REGISTRY.DOCUMENT;
+
+    default:
+      return GRAPH_ICON_REGISTRY[
+        type as GraphIconType
+      ];
+
+  }
+
 }

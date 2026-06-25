@@ -487,19 +487,13 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
         }}
       >
 
-        <GraphNodeGlyph
-          type={node.type}
-          selected={
-            selected
-          }
-          focused={
-            focused ||
-            centered
-          }
-          size={
-            glyphSize
-          }
-        />
+       <GraphNodeGlyph
+  type={node.type}
+  iconType={node.iconType}
+  selected={selected}
+  focused={focused}
+  size={glyphSize}
+/>
 
         {centered && (
           <circle
