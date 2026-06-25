@@ -55,19 +55,47 @@ export default function GraphNodeGlyph({
     // --------------------------------------------------------
     // FACILITY
     // --------------------------------------------------------
-    case "FACILITY":
-      return (
-        <rect
-          x={-r}
-          y={-r}
-          width={r * 2}
-          height={r * 2}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          rx={2}
-        />
-      );
+case "FACILITY":
+  return (
+    <g>
+
+      <rect
+        x={-r * 0.8}
+        y={-r}
+        width={r * 1.6}
+        height={r * 2}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        rx={2}
+      />
+
+      <rect
+        x={-r * 0.5}
+        y={-r * 0.6}
+        width={r * 0.25}
+        height={r * 0.25}
+        fill={stroke}
+      />
+
+      <rect
+        x={r * 0.25}
+        y={-r * 0.6}
+        width={r * 0.25}
+        height={r * 0.25}
+        fill={stroke}
+      />
+
+      <rect
+        x={-r * 0.15}
+        y={r * 0.25}
+        width={r * 0.3}
+        height={r * 0.75}
+        fill={stroke}
+      />
+
+    </g>
+  );
 
     // --------------------------------------------------------
     // ARTIFACT (diamond)

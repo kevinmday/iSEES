@@ -23,9 +23,9 @@ import {
   buildInvestigationGraph,
 } from "../graphBuilder";
 
-import type {
-  GraphSelection,
-} from "../graphTypes";
+import {
+  useGraph,
+} from "../context/GraphContext";
 
 import GraphInteractionPanel
 from "../../graph/GraphInteractionPanel";
@@ -107,15 +107,10 @@ export default function InvestigationGraph() {
   // SINGLE SOURCE OF TRUTH
   // ==========================================================
 
-  const [
+  const {
     selection,
     setSelection,
-  ] =
-    useState<
-      GraphSelection
-    >({
-      kind: "NONE",
-    });
+  } = useGraph();
 
   // ==========================================================
   // SELECTED NODE INTELLIGENCE
@@ -438,7 +433,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
   }
 )}
 
-   {/* ================================================ */}
+ {/* ================================================ */}
 {/* NODES */}
 {/* ================================================ */}
 
@@ -508,11 +503,11 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 
         {centered && (
           <circle
-            r={glyphSize + 6}
+            r={glyphSize + 8}
             fill="none"
-            stroke="#dc2626"
+            stroke="#3b82f6"
             strokeWidth={3}
-            strokeDasharray="4 4"
+            opacity={0.85}
           />
         )}
 

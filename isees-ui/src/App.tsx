@@ -1,7 +1,8 @@
 // ============================================================
 // src/App.tsx
 // OPERATOR CONSOLE BRIDGE (V5 GRAPH INTEGRATED)
-// P25.2 GRAPH SURFACE WIRED
+// P26.2 GRAPH CONTEXT FOUNDATION
+// GRAPH PROVIDER REGISTERED
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -19,12 +20,16 @@ import SystemBriefing from "./pages/SystemBriefing";
 import { EventProvider } from "./context/EventContext";
 
 import {
-WorkspaceProvider,
+  WorkspaceProvider,
 } from "./workspace/context/WorkspaceContext";
 
 import {
-CorpusProvider,
+  CorpusProvider,
 } from "./corpus/context/CorpusContext";
+
+import {
+  GraphProvider,
+} from "./manifold/context/GraphContext";
 
 import CorpusBrowser from "./corpus/components/CorpusBrowser";
 import CorpusResolutionPanel from "./corpus/components/CorpusResolutionPanel";
@@ -37,39 +42,49 @@ import GraphSurface from "./graph/GraphSurface";
 // ============================================================
 
 function OperatorUI() {
-return ( <CorpusProvider>
 
+  return (
 
-  <WorkspaceProvider>
+    <CorpusProvider>
 
-    <EventProvider>
+      <WorkspaceProvider>
 
-      <MainLayout
-        left={
-          <>
-            <CorpusBrowser />
+        <GraphProvider>
 
-            <GraphDiagnostics />
+          <EventProvider>
 
-            <GraphSurface />
+            <MainLayout
+              left={
+                <>
+                  <CorpusBrowser />
 
-            <CorpusResolutionPanel />
+                  <GraphDiagnostics />
 
-            <EventRadar />
-          </>
-        }
-        center={<InvestigationWorkspace />}
-        right={<RightPanel />}
-      />
+                  <GraphSurface />
 
-    </EventProvider>
+                  <CorpusResolutionPanel />
 
-  </WorkspaceProvider>
+                  <EventRadar />
+                </>
+              }
+              center={
+                <InvestigationWorkspace />
+              }
+              right={
+                <RightPanel />
+              }
+            />
 
-</CorpusProvider>
+          </EventProvider>
 
+        </GraphProvider>
 
-);
+      </WorkspaceProvider>
+
+    </CorpusProvider>
+
+  );
+
 }
 
 // ============================================================
@@ -77,26 +92,28 @@ return ( <CorpusProvider>
 // ============================================================
 
 export default function App() {
-return ( <Routes>
 
+  return (
 
-  <Route
-    path="/report"
-    element={<PublicIntake />}
-  />
+    <Routes>
 
-  <Route
-    path="/briefing"
-    element={<SystemBriefing />}
-  />
+      <Route
+        path="/report"
+        element={<PublicIntake />}
+      />
 
-  <Route
-    path="/*"
-    element={<OperatorUI />}
-  />
+      <Route
+        path="/briefing"
+        element={<SystemBriefing />}
+      />
 
-</Routes>
+      <Route
+        path="/*"
+        element={<OperatorUI />}
+      />
 
+    </Routes>
 
-);
+  );
+
 }
