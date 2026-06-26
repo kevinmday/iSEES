@@ -1,6 +1,8 @@
 // ============================================================
 // WORKSPACE CONTEXT
-// P24.1 ARTIFACT FOUNDATION
+// P25.6B UNIFIED INVESTIGATION IMPORT CONTRACT
+// SINGLE WORKSPACE INVESTIGATION ENTRY POINT
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import {
@@ -43,6 +45,15 @@ type WorkspaceContextType = {
 
   setFocusedEventId: (
     eventId: string | null
+  ) => void;
+
+  // ==========================================================
+  // P25.6B
+  // Unified Investigation Import Contract
+  // ==========================================================
+
+  importInvestigation: (
+    eventId: string
   ) => void;
 
   addEventToWorkspace: (
@@ -89,6 +100,10 @@ export function WorkspaceProvider({
       DEFAULT_WORKSPACE
     );
 
+  // ==========================================================
+  // FOCUS
+  // ==========================================================
+
   function setFocusedEventId(
     eventId: string | null
   ) {
@@ -103,6 +118,10 @@ export function WorkspaceProvider({
       })
     );
   }
+
+  // ==========================================================
+  // IMPORT EVENT
+  // ==========================================================
 
   const addEventToWorkspace =
     (
@@ -148,85 +167,149 @@ export function WorkspaceProvider({
       );
     };
 
+  // ==========================================================
+  // P25.6B
+  // UNIFIED INVESTIGATION IMPORT
+  // SINGLE ENTRY POINT
+  // ==========================================================
+
+  const importInvestigation =
+    (
+      eventId: string
+    ) => {
+
+      setActiveWorkspace(
+        current => {
+
+          const alreadyExists =
+            current.imported_events.some(
+              reference =>
+                reference.event_id ===
+                eventId
+            );
+
+          return {
+
+            ...current,
+
+            imported_events:
+              alreadyExists
+                ? current.imported_events
+                : [
+
+                    ...current.imported_events,
+
+                    {
+                      event_id:
+                        eventId,
+
+                      source:
+                        "SYSTEM_CANON",
+                    },
+                  ],
+
+            // Always focus the imported
+            // investigation.
+
+            focused_event_id:
+              eventId,
+          };
+        }
+      );
+    };
+
+  // ==========================================================
+  // REMOVE EVENT
+  // ==========================================================
+
   const removeEventFromWorkspace =
-  (
-    eventId: string
-  ) => {
+    (
+      eventId: string
+    ) => {
 
-    setActiveWorkspace(
-      current => {
+      setActiveWorkspace(
+        current => {
 
-        const remainingEvents =
-          current.imported_events.filter(
-            reference =>
-              reference.event_id !==
+          const remainingEvents =
+            current.imported_events.filter(
+              reference =>
+                reference.event_id !==
+                eventId
+            );
+
+          return {
+
+            ...current,
+
+            imported_events:
+              remainingEvents,
+
+            focused_event_id:
+              current.focused_event_id ===
               eventId
-          );
+                ? (
+                    remainingEvents[0]
+                      ?.event_id ?? null
+                  )
+                : current.focused_event_id,
+          };
+        }
+      );
+    };
 
-        return {
+  // ==========================================================
+  // ARTIFACTS
+  // ==========================================================
+
+  const addArtifact =
+    (
+      artifact: Artifact
+    ) => {
+
+      setActiveWorkspace(
+        current => ({
 
           ...current,
 
-          imported_events:
-            remainingEvents,
+          artifacts: [
 
-          focused_event_id:
-            current.focused_event_id ===
-            eventId
-              ? (
-                  remainingEvents[0]
-                    ?.event_id ?? null
-                )
-              : current.focused_event_id,
-        };
-      }
-    );
-  };
+            ...current.artifacts,
 
-  const addArtifact =
-  (
-    artifact: Artifact
-  ) => {
-
-    setActiveWorkspace(
-      current => ({
-
-        ...current,
-
-        artifacts: [
-
-          ...current.artifacts,
-
-          artifact,
-        ],
-      })
-    );
-  };
+            artifact,
+          ],
+        })
+      );
+    };
 
   const removeArtifact =
-  (
-    artifactId: string
-  ) => {
+    (
+      artifactId: string
+    ) => {
 
-    setActiveWorkspace(
-      current => ({
+      setActiveWorkspace(
+        current => ({
 
-        ...current,
+          ...current,
 
-        artifacts:
-          current.artifacts.filter(
-            artifact =>
-              artifact.id !==
-              artifactId
-          ),
-      })
-    );
-  };
+          artifacts:
+            current.artifacts.filter(
+              artifact =>
+                artifact.id !==
+                artifactId
+            ),
+        })
+      );
+    };
+
+  // ==========================================================
+  // PROVIDER
+  // ==========================================================
 
   return (
 
     <WorkspaceContext.Provider
       value={{
+
         activeWorkspace,
 
         setActiveWorkspace,
@@ -235,6 +318,8 @@ export function WorkspaceProvider({
           activeWorkspace.focused_event_id,
 
         setFocusedEventId,
+
+        importInvestigation,
 
         addEventToWorkspace,
 

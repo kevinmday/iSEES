@@ -1,7 +1,8 @@
 // ============================================================
 // src/components/EventRadar.tsx
-// LIVE EVENT RADAR (V3 FIXED)
-// P23.3 WORKSPACE IMPORT BRIDGE
+// P25.6B UNIFIED INVESTIGATION IMPORT
+// LIVE EVENT RADAR
+// SINGLE WORKSPACE IMPORT CONTRACT
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
@@ -26,8 +27,7 @@ export default function EventRadar() {
   } = useEventContext();
 
   const {
-    addEventToWorkspace,
-    setFocusedEventId,
+    importInvestigation,
   } = useWorkspace();
 
   // =========================================================
@@ -144,6 +144,7 @@ export default function EventRadar() {
 
                 // ------------------------------------------
                 // Legacy Runtime Selection
+                // (temporary until EventContext retirement)
                 // ------------------------------------------
 
                 setActiveEvent(
@@ -151,14 +152,10 @@ export default function EventRadar() {
                 );
 
                 // ------------------------------------------
-                // Workspace Import Bridge
+                // Unified Workspace Investigation Import
                 // ------------------------------------------
 
-                addEventToWorkspace(
-                  event.id
-                );
-
-                setFocusedEventId(
+                importInvestigation(
                   event.id
                 );
               }}

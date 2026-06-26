@@ -1,17 +1,34 @@
 // ============================================================
 // src/corpus/components/CorpusBrowser.tsx
-// P24.3 - CORPUS BROWSER V2
-// SELECTABLE CORPUS SURFACE
+// P25.6B UNIFIED INVESTIGATION IMPORT
+// CORPUS BROWSER
+// SINGLE WORKSPACE IMPORT PIPELINE
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
-import { useCorpus } from "../context/CorpusContext";
+import {
+  useCorpus,
+} from "../context/CorpusContext";
+
+import {
+  useWorkspace,
+} from "../../workspace/context/WorkspaceContext";
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 export default function CorpusBrowser() {
+
   const {
     corpus,
     selectedCorpusEventId,
     setSelectedCorpusEventId,
   } = useCorpus();
+
+  const {
+    importInvestigation,
+  } = useWorkspace();
 
   return (
     <div
@@ -50,6 +67,7 @@ export default function CorpusBrowser() {
         </div>
       ) : (
         corpus.map((event) => {
+
           const isSelected =
             event.corpus_id ===
             selectedCorpusEventId;
@@ -57,14 +75,29 @@ export default function CorpusBrowser() {
           return (
             <div
               key={event.corpus_id}
-              onClick={() =>
+              onClick={() => {
+
+                // ------------------------------------------
+                // Corpus Selection
+                // ------------------------------------------
+
                 setSelectedCorpusEventId(
                   event.corpus_id
-                )
-              }
+                );
+
+                // ------------------------------------------
+                // Unified Workspace Investigation Import
+                // ------------------------------------------
+
+                importInvestigation(
+                  event.canonical_event.event_id
+                );
+              }}
               style={{
                 padding: "6px 8px",
+
                 cursor: "pointer",
+
                 borderBottom:
                   "1px solid rgba(255,255,255,0.05)",
 
@@ -81,6 +114,7 @@ export default function CorpusBrowser() {
               }}
             >
               {isSelected ? "▶ " : ""}
+
               {event.canonical_event.event_name}
             </div>
           );
