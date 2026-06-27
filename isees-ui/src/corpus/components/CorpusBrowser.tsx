@@ -9,9 +9,6 @@ import {
   useFederation,
 } from "../../federation/context/FederationContext";
 
-import {
-  useWorkspace,
-} from "../../workspace/context/WorkspaceContext";
 
 // ============================================================
 // COMPONENT
@@ -33,11 +30,6 @@ export default function CorpusBrowser() {
 
   } = useFederation();
 
-  const {
-
-    importInvestigation,
-
-  } = useWorkspace();
 
   return (
 
@@ -211,29 +203,21 @@ export default function CorpusBrowser() {
     event.corpus_id
   }
 
-  onClick={() => {
+onClick={() => {
 
-    void selectEvent(
+  void selectEvent(
 
-      repository
-        .repository
-        .id,
+    repository
+      .repository
+      .id,
 
-      event
-        .canonical_event
-        .event_id
+    event
+      .canonical_event
+      .event_id
 
-    );
+  );
 
-    importInvestigation(
-
-      event
-        .canonical_event
-        .event_id
-
-    );
-
-  }}
+}}
 
   style={{
 
