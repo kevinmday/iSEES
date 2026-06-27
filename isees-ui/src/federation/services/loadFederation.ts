@@ -18,6 +18,7 @@ import {
 
 import type {
 
+    FederationAdapter,
     FederationRepository
 
 } from "../adapters/FederationAdapter";
@@ -27,6 +28,9 @@ import type {
 // ============================================================
 
 export interface FederatedRepository {
+
+    adapter:
+        FederationAdapter;
 
     repository:
         FederationRepository;
@@ -51,7 +55,7 @@ Promise<
     FederatedKnowledgeLayer
 > {
 
-    const repositories =
+    const adapters =
         getRepositories();
 
     const knowledgeLayer:
@@ -61,7 +65,7 @@ Promise<
     for (
 
         const adapter
-        of repositories
+        of adapters
 
     ) {
 
@@ -69,6 +73,8 @@ Promise<
             await adapter.load();
 
         knowledgeLayer.push({
+
+            adapter,
 
             repository:
 

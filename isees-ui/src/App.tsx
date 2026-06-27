@@ -1,9 +1,8 @@
 // ============================================================
 // src/App.tsx
 // OPERATOR CONSOLE BRIDGE (V5 GRAPH INTEGRATED)
-// P26.2 GRAPH CONTEXT FOUNDATION
-// GRAPH PROVIDER REGISTERED
-// FULL DROP-IN REPLACEMENT
+// P26 FEDERATED KNOWLEDGE LAYER
+// FEDERATION PROVIDER REGISTERED
 // ============================================================
 
 import { Routes, Route } from "react-router-dom";
@@ -17,11 +16,17 @@ import InvestigationWorkspace from "./components/InvestigationWorkspace";
 import PublicIntake from "./pages/PublicIntake";
 import SystemBriefing from "./pages/SystemBriefing";
 
-import { EventProvider } from "./context/EventContext";
+import {
+  EventProvider,
+} from "./context/EventContext";
 
 import {
   WorkspaceProvider,
 } from "./workspace/context/WorkspaceContext";
+
+import {
+  FederationProvider,
+} from "./federation/context/FederationContext";
 
 import {
   CorpusProvider,
@@ -49,35 +54,39 @@ function OperatorUI() {
 
       <WorkspaceProvider>
 
-        <GraphProvider>
+        <FederationProvider>
 
-          <EventProvider>
+          <GraphProvider>
 
-            <MainLayout
-              left={
-                <>
-                  <CorpusBrowser />
+            <EventProvider>
 
-                  <GraphDiagnostics />
+              <MainLayout
+                left={
+                  <>
+                    <CorpusBrowser />
 
-                  <GraphSurface />
+                    <GraphDiagnostics />
 
-                  <CorpusResolutionPanel />
+                    <GraphSurface />
 
-                  <EventRadar />
-                </>
-              }
-              center={
-                <InvestigationWorkspace />
-              }
-              right={
-                <RightPanel />
-              }
-            />
+                    <CorpusResolutionPanel />
 
-          </EventProvider>
+                    <EventRadar />
+                  </>
+                }
+                center={
+                  <InvestigationWorkspace />
+                }
+                right={
+                  <RightPanel />
+                }
+              />
 
-        </GraphProvider>
+            </EventProvider>
+
+          </GraphProvider>
+
+        </FederationProvider>
 
       </WorkspaceProvider>
 
