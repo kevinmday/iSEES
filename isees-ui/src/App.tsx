@@ -1,8 +1,8 @@
 // ============================================================
 // src/App.tsx
-// OPERATOR CONSOLE BRIDGE (V5 GRAPH INTEGRATED)
-// P26 FEDERATED KNOWLEDGE LAYER
-// FEDERATION PROVIDER REGISTERED
+// OPERATOR CONSOLE BRIDGE (V6)
+// P26.1 INTELLIGENCE BRIEF FOUNDATION
+// FEDERATION + INTELLIGENCE PROVIDERS REGISTERED
 // ============================================================
 
 import { Routes, Route } from "react-router-dom";
@@ -11,7 +11,7 @@ import MainLayout from "./layout/MainLayout";
 
 import RightPanel from "./components/RightPanel";
 import EventRadar from "./components/EventRadar";
-import InvestigationWorkspace from "./components/InvestigationWorkspace";
+import PrimarySurface from "./surfaces/PrimarySurface";
 
 import PublicIntake from "./pages/PublicIntake";
 import SystemBriefing from "./pages/SystemBriefing";
@@ -27,6 +27,10 @@ import {
 import {
   FederationProvider,
 } from "./federation/context/FederationContext";
+
+import {
+  IntelligenceBriefProvider,
+} from "./intel/context/IntelligenceBriefContext";
 
 import {
   CorpusProvider,
@@ -56,35 +60,39 @@ function OperatorUI() {
 
         <FederationProvider>
 
-          <GraphProvider>
+          <IntelligenceBriefProvider>
 
-            <EventProvider>
+            <GraphProvider>
 
-              <MainLayout
-                left={
-                  <>
-                    <CorpusBrowser />
+              <EventProvider>
 
-                    <GraphDiagnostics />
+                <MainLayout
+                  left={
+                    <>
+                      <CorpusBrowser />
 
-                    <GraphSurface />
+                      <GraphDiagnostics />
 
-                    <CorpusResolutionPanel />
+                      <GraphSurface />
 
-                    <EventRadar />
-                  </>
-                }
-                center={
-                  <InvestigationWorkspace />
-                }
-                right={
-                  <RightPanel />
-                }
-              />
+                      <CorpusResolutionPanel />
 
-            </EventProvider>
+                      <EventRadar />
+                    </>
+                  }
+                  center={
+                    <PrimarySurface />
+                  }
+                  right={
+                    <RightPanel />
+                  }
+                />
 
-          </GraphProvider>
+              </EventProvider>
+
+            </GraphProvider>
+
+          </IntelligenceBriefProvider>
 
         </FederationProvider>
 
