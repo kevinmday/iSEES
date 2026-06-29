@@ -6,7 +6,7 @@
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
-import { useState } from "react";
+
 
 import { useEventContext } from "../context/EventContext";
 import AssessmentSurface from "./surfaces/AssessmentSurface";
@@ -33,11 +33,12 @@ import {
   useWorkspace,
 } from "../workspace/context/WorkspaceContext";
 
+import {
+  useGraph,
+} from "../manifold/context/GraphContext";
+
 import InvestigationGraph from "../manifold/components/InvestigationGraph";
 
-import type {
-  GraphSelection,
-} from "../manifold/graphTypes";
 
 // ============================================================
 // INVESTIGATION SURFACES
@@ -168,10 +169,9 @@ export default function InvestigationWorkspace() {
     focusedEventId,
   } = useWorkspace();
 
-const [selection] =
-  useState<GraphSelection>({
-    kind: "NONE",
-  });
+const {
+  selection,
+} = useGraph();
 
 
   if (!focusedEventId) {
@@ -352,7 +352,9 @@ return (
 
 <IntelligenceSummary event={event} />
 
-{/* GRAPH SELECTION DIAGNOSTICS */}
+{/* ========================================================= */}
+{/* GRAPH SELECTION SUMMARY */}
+{/* ========================================================= */}
 
 <div
   style={{
@@ -364,24 +366,94 @@ return (
     background: "#0f172a",
   }}
 >
+
   <div
     style={{
-      fontWeight: 600,
-      marginBottom: 8,
+      fontWeight: 700,
+      marginBottom: 10,
+      fontSize: 13,
+      letterSpacing: 1,
+      textTransform: "uppercase",
     }}
   >
-    Graph Selection
+    Current Graph Selection
   </div>
 
-  <pre
-    style={{
-      margin: 0,
-      fontSize: 12,
-      overflowX: "auto",
-    }}
-  >
-    {JSON.stringify(selection, null, 2)}
-  </pre>
+  {selection.kind === "NONE" && (
+
+    <div
+      style={{
+        color: "#94a3b8",
+        fontSize: 12,
+      }}
+    >
+      Nothing selected.
+      Click a node or relationship in the
+      Investigation Graph.
+    </div>
+
+  )}
+
+  {selection.kind === "NODE" && (
+
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        fontSize: 12,
+      }}
+    >
+
+      <div>
+        <strong>Type:</strong>{" "}
+        {selection.nodeType}
+      </div>
+
+      <div>
+        <strong>Node:</strong>{" "}
+        {selection.nodeId}
+      </div>
+
+    </div>
+
+  )}
+
+  {selection.kind === "EDGE" && (
+
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        fontSize: 12,
+      }}
+    >
+
+      <div>
+        <strong>Relationship</strong>
+      </div>
+
+      <div>
+        {selection.sourceId}
+      </div>
+
+      <div
+        style={{
+          color: "#60a5fa",
+        }}
+      >
+        ↓
+      </div>
+
+      <div>
+        {selection.targetId}
+      </div>
+
+    </div>
+
+  )}
+
 </div>
 
 {/* SURFACE SELECTOR */}
