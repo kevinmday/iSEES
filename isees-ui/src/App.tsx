@@ -43,8 +43,11 @@ import {
 import CorpusBrowser from "./corpus/components/CorpusBrowser";
 import CorpusResolutionPanel from "./corpus/components/CorpusResolutionPanel";
 
+import FederationPreviewPanel
+  from "./federation/components/FederationPreviewPanel";
+
 import GraphDiagnostics from "./graph/GraphDiagnostics";
-import GraphSurface from "./graph/GraphSurface";
+
 
 // ============================================================
 // OPERATOR UI
@@ -67,25 +70,32 @@ function OperatorUI() {
               <EventProvider>
 
                 <MainLayout
+
                   left={
                     <>
+
                       <CorpusBrowser />
+
+                      <FederationPreviewPanel />
 
                       <GraphDiagnostics />
 
-                      <GraphSurface />
-
+                      
                       <CorpusResolutionPanel />
 
                       <EventRadar />
+
                     </>
                   }
+
                   center={
                     <PrimarySurface />
                   }
+
                   right={
                     <RightPanel />
                   }
+
                 />
 
               </EventProvider>

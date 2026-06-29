@@ -2,13 +2,27 @@
 // src/corpus/components/CorpusBrowser.tsx
 // P26 FEDERATED KNOWLEDGE LAYER
 // FEDERATED KNOWLEDGE BROWSER
-// EXPLORER TREE UX
+// OPERATOR EXPLORER SURFACE
+//
+// Browse repositories.
+// Select investigations.
+// Future workflow:
+//
+// Browse
+//   ↓
+// Preview
+//   ↓
+// Import
+//   ↓
+// Investigate
+//
+// The browser intentionally remains lightweight.
+// It is a navigation surface—not an investigation surface.
 // ============================================================
 
 import {
   useFederation,
 } from "../../federation/context/FederationContext";
-
 
 // ============================================================
 // COMPONENT
@@ -29,7 +43,6 @@ export default function CorpusBrowser() {
     selectEvent,
 
   } = useFederation();
-
 
   return (
 
@@ -55,6 +68,10 @@ export default function CorpusBrowser() {
       >
         FEDERATED KNOWLEDGE
       </div>
+
+      {/* ================================================ */}
+      {/* EMPTY */}
+      {/* ================================================ */}
 
       {
 
@@ -106,7 +123,7 @@ export default function CorpusBrowser() {
                   >
 
                     {/* ==================================== */}
-                    {/* REPOSITORY HEADER */}
+                    {/* REPOSITORY */}
                     {/* ==================================== */}
 
                     <div
@@ -197,118 +214,125 @@ export default function CorpusBrowser() {
 
                           return (
 
-<div
+                            <div
 
-  key={
-    event.corpus_id
-  }
+                              key={
+                                event.corpus_id
+                              }
 
-onClick={() => {
+                              onClick={() => {
 
-  void selectEvent(
+                                void selectEvent(
 
-    repository
-      .repository
-      .id,
+                                  repository
+                                    .repository
+                                    .id,
 
-    event
-      .canonical_event
-      .event_id
+                                  event
+                                    .canonical_event
+                                    .event_id
 
-  );
+                                );
 
-}}
+                              }}
 
-  style={{
+                              style={{
 
-    display: "flex",
+                                display: "flex",
 
-    alignItems: "center",
+                                alignItems: "center",
 
-    gap: "6px",
+                                gap: "6px",
 
-    marginLeft: "14px",
+                                marginLeft: "14px",
 
-    marginTop: "1px",
+                                marginTop: "1px",
 
-    marginBottom: "1px",
+                                marginBottom: "1px",
 
-    padding: "4px 8px",
+                                padding: "4px 8px",
 
-    cursor: "pointer",
+                                cursor: "pointer",
 
-    fontSize: "12px",
+                                fontSize: "12px",
 
-    lineHeight: 1.35,
+                                lineHeight: 1.35,
 
-    whiteSpace: "nowrap",
+                                whiteSpace: "nowrap",
 
-    overflow: "hidden",
+                                overflow: "hidden",
 
-    textOverflow: "ellipsis",
+                                textOverflow: "ellipsis",
 
-    borderRadius: "4px",
+                                borderRadius: "4px",
 
-    borderLeft:
+                                borderLeft:
 
-      isSelected
+                                  isSelected
 
-        ? "3px solid #3ea6ff"
+                                    ? "3px solid #3ea6ff"
 
-        : "3px solid transparent",
+                                    : "3px solid transparent",
 
-    background:
+                                background:
 
-      isSelected
+                                  isSelected
 
-        ? "rgba(62,166,255,.14)"
+                                    ? "rgba(62,166,255,.14)"
 
-        : "transparent",
+                                    : "transparent",
 
-    transition:
-      "all 120ms ease",
+                                transition:
+                                  "all 120ms ease",
 
-  }}
+                              }}
 
->
+                            >
 
-  <span
-    style={{
-      width: "14px",
-      flexShrink: 0,
-      opacity: isSelected ? 1 : 0.45,
-    }}
-  >
-    {
+                              <span
+                                style={{
+                                  width: "14px",
+                                  flexShrink: 0,
+                                  opacity:
+                                    isSelected
+                                      ? 1
+                                      : 0.45,
+                                }}
+                              >
 
-      isSelected
+                                {
 
-        ? "▶"
+                                  isSelected
 
-        : "•"
+                                    ? "▶"
 
-    }
-  </span>
+                                    : "•"
 
-  <span
-    style={{
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-      flex: 1,
-      textAlign: "left",
-    }}
-  >
-    {
+                                }
 
-      event
-        .canonical_event
-        .event_name
+                              </span>
 
-    }
-  </span>
+                              <span
+                                style={{
+                                  flex: 1,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  textAlign: "left",
+                                }}
+                              >
 
-</div>
+                                {
+
+                                  event
+                                    .canonical_event
+                                    .event_name
+
+                                }
+
+                              </span>
+
+                            </div>
 
                           );
 
