@@ -1,9 +1,8 @@
 // ============================================================
 // src/manifold/components/InvestigationGraph.tsx
-// P25.5A GRAPH ICONOLOGY FOUNDATION
-// NODE + EDGE SELECTION
-// ENTITY GLYPH VISUALIZATION
-// FULL DROP-IN REPLACEMENT
+// P28 MANIFOLD PROMOTION
+// PRIMARY INVESTIGATION SURFACE
+// DETERMINISTIC INVESTIGATION TOPOLOGY
 // ============================================================
 
 import {
@@ -271,7 +270,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
               letterSpacing: 1,
             }}
           >
-            Investigation Graph
+            Investigation Manifold
           </div>
 
           <div
@@ -281,7 +280,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
               fontWeight: 700,
             }}
           >
-            Deterministic Relationship Map
+            Deterministic Investigation Topology
           </div>
 
         </div>

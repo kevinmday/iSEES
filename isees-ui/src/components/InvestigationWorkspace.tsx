@@ -325,7 +325,7 @@ surfaceRendererMap[
 activeSurface as keyof typeof surfaceRendererMap
 ];
 
- // =========================================================
+// =========================================================
 // MAIN RENDER
 // =========================================================
 
@@ -340,17 +340,21 @@ return (
 
     <WorkspaceHeader event={event} />
 
+    {/* ===================================================== */}
+    {/* PRIMARY INVESTIGATION MANIFOLD */}
+    {/* ===================================================== */}
+
+    <InvestigationGraph />
+
+    <ManifoldLayerSelector />
+
     <WorkspaceOverview />
 
     <ResolutionPanel
       focusedEventId={focusedEventId}
     />
 
-<InvestigationGraph />
-
-<ManifoldLayerSelector />
-
-<IntelligenceSummary event={event} />
+    <IntelligenceSummary event={event} />
 
 {/* ========================================================= */}
 {/* GRAPH SELECTION SUMMARY */}
@@ -376,7 +380,7 @@ return (
       textTransform: "uppercase",
     }}
   >
-    Current Graph Selection
+    Current Manifold Selection
   </div>
 
   {selection.kind === "NONE" && (
@@ -389,7 +393,7 @@ return (
     >
       Nothing selected.
       Click a node or relationship in the
-      Investigation Graph.
+      Investigation Manifold.
     </div>
 
   )}
