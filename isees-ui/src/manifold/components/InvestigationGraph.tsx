@@ -8,7 +8,6 @@
 
 import {
   useMemo,
-  useState,
 } from "react";
 
 import {
@@ -102,15 +101,19 @@ export default function InvestigationGraph() {
       ]
     );
 
-  // ==========================================================
-  // P25.1 SELECTION STATE
+   // ==========================================================
+  // P28A
+  // GRAPH CONTEXT OWNERSHIP
   // SINGLE SOURCE OF TRUTH
   // ==========================================================
 
   const {
     selection,
     setSelection,
+    centerNodeId,
+    setCenterNodeId,
   } = useGraph();
+
 
   // ==========================================================
   // SELECTED NODE INTELLIGENCE
@@ -218,18 +221,6 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
       })()
     : undefined;
 
-  // ==========================================================
-  // P25.2 CENTER NODE
-  // DYNAMIC GRAPH OWNERSHIP
-  // ==========================================================
-
-  const [
-    centerNodeId,
-    setCenterNodeId,
-  ] =
-    useState<
-      string | null
-    >(null);
 
   // ==========================================================
   // FOCUSED NODE

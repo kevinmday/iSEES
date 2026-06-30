@@ -1,8 +1,9 @@
 // ============================================================
 // src/manifold/context/GraphContext.tsx
-// P26.1 MANIFOLD OWNERSHIP FOUNDATION
-// GRAPH INTERACTION CONTEXT
-// FULL DROP-IN FILE
+// P28B GRAPH-DRIVEN INVESTIGATION CONTEXT
+// MANIFOLD OWNERSHIP FOUNDATION
+// SINGLE SOURCE OF TRUTH
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import {
@@ -20,10 +21,39 @@ import type {
 } from "../graphTypes";
 
 // ============================================================
+// INVESTIGATION CONTEXT
+// ============================================================
+
+export type InvestigationContext = {
+
+  selectedNodeId:
+    string | null;
+
+  selectedEdgeId:
+    string | null;
+
+  selectedEventId:
+    string | null;
+
+  selectedFacilityId:
+    string | null;
+
+  selectedArtifactId:
+    string | null;
+
+  selectedClusterId:
+    string | null;
+};
+
+// ============================================================
 // CONTEXT CONTRACT
 // ============================================================
 
 type GraphContextType = {
+
+  // ----------------------------------------------------------
+  // GRAPH SELECTION
+  // ----------------------------------------------------------
 
   selection:
     GraphSelection;
@@ -32,11 +62,26 @@ type GraphContextType = {
     selection: GraphSelection
   ) => void;
 
+  // ----------------------------------------------------------
+  // GRAPH CENTER
+  // ----------------------------------------------------------
+
   centerNodeId:
     string | null;
 
   setCenterNodeId: (
     nodeId: string | null
+  ) => void;
+
+  // ----------------------------------------------------------
+  // INVESTIGATION CONTEXT
+  // ----------------------------------------------------------
+
+  investigationContext:
+    InvestigationContext;
+
+  setInvestigationContext: (
+    context: InvestigationContext
   ) => void;
 };
 
@@ -59,6 +104,10 @@ export function GraphProvider({
   children: ReactNode;
 }) {
 
+  // ==========================================================
+  // GRAPH SELECTION
+  // ==========================================================
+
   const [
     selection,
     setSelection,
@@ -66,6 +115,10 @@ export function GraphProvider({
     useState<GraphSelection>({
       kind: "NONE",
     });
+
+  // ==========================================================
+  // GRAPH CENTER
+  // ==========================================================
 
   const [
     centerNodeId,
@@ -75,18 +128,54 @@ export function GraphProvider({
       string | null
     >(null);
 
+  // ==========================================================
+  // INVESTIGATION CONTEXT
+  // ==========================================================
+
+  const [
+    investigationContext,
+    setInvestigationContext,
+  ] =
+    useState<
+      InvestigationContext
+    >({
+
+      selectedNodeId:
+        null,
+
+      selectedEdgeId:
+        null,
+
+      selectedEventId:
+        null,
+
+      selectedFacilityId:
+        null,
+
+      selectedArtifactId:
+        null,
+
+      selectedClusterId:
+        null,
+    });
+
+  // ==========================================================
+  // PROVIDER
+  // ==========================================================
+
   return (
 
     <GraphContext.Provider
       value={{
 
         selection,
-
         setSelection,
 
         centerNodeId,
-
         setCenterNodeId,
+
+        investigationContext,
+        setInvestigationContext,
       }}
     >
 
