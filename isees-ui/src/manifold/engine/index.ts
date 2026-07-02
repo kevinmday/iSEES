@@ -1,6 +1,6 @@
 // ============================================================
 // src/manifold/engine/index.ts
-// P29 MANIFOLD ENGINE FOUNDATION
+// P30 MANIFOLD ENGINE FOUNDATION
 // PUBLIC EXPORT SURFACE
 // FULL DROP-IN FILE
 // ============================================================
@@ -10,7 +10,7 @@
 // ============================================================
 
 export {
-  buildManifold,
+  computeManifold,
 } from "./manifoldEngine";
 
 // ============================================================
@@ -27,23 +27,21 @@ export {
 
 export type {
 
-  ManifoldState,
+  Manifold,
 
-  ManifoldTopology,
+  ManifoldNode,
 
-  ResolvedManifold,
-
-  ResolvedSelection,
-
-  BuildManifoldRequest,
-
-  BuildManifoldResult,
-
-} from "./manifoldTypes";
-
-export {
+  ManifoldEdge,
 
   ManifoldLayer,
+
+  ManifoldSnapshot,
+
+  ManifoldStatistics,
+
+  DiscoveryResult,
+
+  LayoutResult,
 
 } from "./manifoldTypes";
 
@@ -54,18 +52,20 @@ export {
 // Planned additions:
 //
 // export {
-//   recomputeManifold,
-//   collapseTopology,
-//   dissolveTopology,
-//   resolveNarratives,
-//   resolveContradictions,
-//   resolveEntanglement,
-//   resolveHotspots,
+//   manifoldDiscovery,
+//   manifoldResolver,
+//   manifoldMetrics,
+//   manifoldLayout,
+//   manifoldHistory,
 // } from "./...";
 //
-// This folder intentionally becomes the deterministic
-// computational core of iSEES. Rendering layers (2D graph,
-// 3D manifold, timeline, narrative explorer, etc.) consume
-// these contracts without owning computation.
+// The Manifold Engine is the deterministic computational
+// core of iSEES. It implements the Resolve–Dissolve
+// Computation (RDC) methodology while exposing a stable
+// public API for consumers.
+//
+// Rendering layers (2D graph, 3D manifold, timeline,
+// narratives, investigation workspace, etc.) consume these
+// contracts without owning computation.
 //
 // ============================================================

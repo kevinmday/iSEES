@@ -1,200 +1,117 @@
 // ============================================================
 // src/manifold/engine/manifoldTypes.ts
-// P29 MANIFOLD ENGINE FOUNDATION
-// DETERMINISTIC MANIFOLD TYPE CONTRACTS
-// FULL DROP-IN FILE
-// ============================================================
-
-import type {
-  InvestigationGraph,
-  GraphNode,
-  GraphEdge,
-  GraphSelection,
-} from "../graphTypes";
-
-import type {
-  InvestigationContext,
-} from "../context/GraphContext";
-
-// ============================================================
-// MANIFOLD LAYERS
-// ============================================================
-
-export const ManifoldLayer = {
-
-  OBSERVABILITY: "OBSERVABILITY",
-
-  NARRATIVE: "NARRATIVE",
-
-  TEMPORAL: "TEMPORAL",
-
-  GEOSPATIAL: "GEOSPATIAL",
-
-  INFRASTRUCTURE: "INFRASTRUCTURE",
-
-  TOPOLOGY: "TOPOLOGY",
-
-  INTENTION: "INTENTION",
-
-  BELIEF: "BELIEF",
-
-  RELIGION: "RELIGION",
-
-  MYTHOLOGY: "MYTHOLOGY",
-
-  ASTROLOGY: "ASTROLOGY",
-
-  CULTURAL: "CULTURAL",
-
-  SYMBOLIC: "SYMBOLIC",
-
-  PHENOMENOLOGY: "PHENOMENOLOGY",
-
-} as const;
-
-export type ManifoldLayer =
-  (typeof ManifoldLayer)[
-    keyof typeof ManifoldLayer
-  ];
-
-// ============================================================
-// MANIFOLD STATE
-// ============================================================
-
-export type ManifoldState = {
-
-  graph:
-    InvestigationGraph;
-
-  activeLayers:
-    ManifoldLayer[];
-
-  selection:
-    GraphSelection;
-
-  centerNodeId:
-    string | null;
-};
-
-// ============================================================
-// TOPOLOGY SUMMARY
-// ============================================================
-
-export type ManifoldTopology = {
-
-  nodeCount:
-    number;
-
-  edgeCount:
-    number;
-
-  eventCount:
-    number;
-
-  artifactCount:
-    number;
-
-  clusterCount:
-    number;
-
-  contradictionDensity:
-    number;
-
-  residualInstability:
-    number;
-
-  entanglementScore:
-    number;
-};
-
-// ============================================================
-// RESOLVED MANIFOLD
-// ============================================================
-
-export type ResolvedManifold = {
-
-  state:
-    ManifoldState;
-
-  topology:
-    ManifoldTopology;
-
-  investigationContext:
-    InvestigationContext;
-};
-
-// ============================================================
-// RESOLVED SELECTION
-// ============================================================
-
-export type ResolvedSelection = {
-
-  selectedNode?:
-    GraphNode;
-
-  selectedEdge?:
-    GraphEdge;
-
-  connectedNodes:
-    GraphNode[];
-
-  connectedEdges:
-    GraphEdge[];
-};
-
-// ============================================================
-// ENGINE INPUT
-// ============================================================
-
-export type BuildManifoldRequest = {
-
-  graph:
-    InvestigationGraph;
-
-  activeLayers:
-    ManifoldLayer[];
-
-  selection:
-    GraphSelection;
-
-  centerNodeId:
-    string | null;
-};
-
-// ============================================================
-// ENGINE OUTPUT
-// ============================================================
-
-export type BuildManifoldResult = {
-
-  manifold:
-    ResolvedManifold;
-
-  resolvedSelection:
-    ResolvedSelection;
-};
-
-// ============================================================
-// FUTURE NOTES
-// ============================================================
+// P30 MANIFOLD ENGINE FOUNDATION
+// MANIFOLD TYPE CONTRACTS
 //
-// The Manifold Engine intentionally sits ABOVE the graph.
+// These contracts define the public language of the Manifold
+// subsystem. They intentionally contain no computational logic.
+// The deterministic Resolve–Dissolve Computation (RDC) pipeline
+// will operate exclusively against these contracts.
 //
-// InvestigationGraph
-//     becomes one visualization.
-//
-// Future projections:
-//
-// • 2D Investigation Graph
-// • 3D Manifold
-// • Timeline
-// • Narrative Flow
-// • Collapse Surface
-// • Contradiction Surface
-// • Heatmaps
-// • Future AR/VR exploration
-//
-// All projections consume the same deterministic
-// ResolvedManifold.
-//
+// All manifold subsystems should import from this file.
 // ============================================================
+
+/**
+ * A canonical manifold.
+ * Represents the complete computed topology for a workspace.
+ */
+export interface Manifold {
+    id: string;
+    name: string;
+
+    nodes: ManifoldNode[];
+    edges: ManifoldEdge[];
+
+    activeLayers: string[];
+
+    statistics: ManifoldStatistics;
+
+    snapshot: ManifoldSnapshot;
+}
+
+/**
+ * Canonical manifold node.
+ */
+export interface ManifoldNode {
+    id: string;
+
+    type: string;
+
+    label: string;
+
+    metadata?: Record<string, unknown>;
+}
+
+/**
+ * Canonical manifold edge.
+ */
+export interface ManifoldEdge {
+    id: string;
+
+    source: string;
+
+    target: string;
+
+    relationship: string;
+
+    weight: number;
+
+    metadata?: Record<string, unknown>;
+}
+
+/**
+ * Active epistemic layer.
+ */
+export interface ManifoldLayer {
+    id: string;
+
+    name: string;
+
+    enabled: boolean;
+
+    metadata?: Record<string, unknown>;
+}
+
+/**
+ * Immutable snapshot metadata describing a computed manifold.
+ */
+export interface ManifoldSnapshot {
+    revision: number;
+
+    timestamp: string;
+}
+
+/**
+ * High-level manifold statistics.
+ *
+ * Additional metrics will migrate into the Metrics subsystem
+ * as the deterministic engine evolves.
+ */
+export interface ManifoldStatistics {
+    nodeCount: number;
+
+    edgeCount: number;
+
+    activeLayerCount: number;
+}
+
+/**
+ * Result returned by the discovery subsystem.
+ *
+ * This contract intentionally remains minimal until the
+ * Discovery subsystem is implemented.
+ */
+export interface DiscoveryResult {
+    discoveredNodes: ManifoldNode[];
+
+    discoveredEdges: ManifoldEdge[];
+}
+
+/**
+ * Result returned by the layout subsystem.
+ */
+export interface LayoutResult {
+    nodes: ManifoldNode[];
+
+    edges: ManifoldEdge[];
+}
