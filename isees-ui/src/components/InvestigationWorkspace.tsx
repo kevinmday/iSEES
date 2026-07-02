@@ -27,7 +27,6 @@ import { WorkspaceHeader } from "./WorkspaceHeader";
 import IntelligenceSummary from "./IntelligenceSummary";
 import ManifoldLayerSelector from "./ManifoldLayerSelector";
 import WorkspaceOverview from "./WorkspaceOverview";
-import ResolutionPanel from "./ResolutionPanel";
 
 import {
   useWorkspace,
@@ -37,7 +36,7 @@ import {
   useGraph,
 } from "../manifold/context/GraphContext";
 
-import InvestigationGraph from "../manifold/components/InvestigationGraph";
+import PrimaryInvestigationManifold from "../manifold/components/PrimaryInvestigationManifold";
 
 
 // ============================================================
@@ -344,15 +343,13 @@ return (
     {/* PRIMARY INVESTIGATION MANIFOLD */}
     {/* ===================================================== */}
 
-    <InvestigationGraph />
+    <PrimaryInvestigationManifold
+  focusedEventId={focusedEventId}
+/>
 
     <ManifoldLayerSelector />
 
     <WorkspaceOverview />
-
-    <ResolutionPanel
-      focusedEventId={focusedEventId}
-    />
 
     <IntelligenceSummary event={event} />
 
