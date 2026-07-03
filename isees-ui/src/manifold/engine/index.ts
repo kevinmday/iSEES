@@ -1,8 +1,15 @@
 // ============================================================
 // src/manifold/engine/index.ts
-// P30 MANIFOLD ENGINE FOUNDATION
+// P31A
+// DETERMINISTIC MANIFOLD ENGINE
 // PUBLIC EXPORT SURFACE
-// FULL DROP-IN FILE
+//
+// This module exposes the complete public API of the
+// deterministic Manifold subsystem.
+//
+// Consumers should import from this file rather than individual
+// implementation modules whenever possible.
+//
 // ============================================================
 
 // ============================================================
@@ -12,6 +19,16 @@
 export {
   computeManifold,
 } from "./manifoldEngine";
+
+// ============================================================
+// RUNTIME
+// ============================================================
+
+export {
+  manifoldRuntime,
+  ManifoldRuntime,
+  DEFAULT_MANIFOLD_RUNTIME,
+} from "./manifoldRuntime";
 
 // ============================================================
 // CONTEXT RESOLVER
@@ -45,6 +62,14 @@ export type {
 
 } from "./manifoldTypes";
 
+export type {
+
+  ManifoldRuntimeState,
+
+  ManifoldViewMode,
+
+} from "./manifoldRuntime";
+
 // ============================================================
 // FUTURE EXPORTS
 // ============================================================
@@ -59,13 +84,19 @@ export type {
 //   manifoldHistory,
 // } from "./...";
 //
-// The Manifold Engine is the deterministic computational
-// core of iSEES. It implements the Resolve–Dissolve
-// Computation (RDC) methodology while exposing a stable
-// public API for consumers.
+// The Manifold subsystem is intentionally layered:
 //
-// Rendering layers (2D graph, 3D manifold, timeline,
-// narratives, investigation workspace, etc.) consume these
-// contracts without owning computation.
+// Operator
+//      ↓
+// Runtime
+//      ↓
+// Engine
+//      ↓
+// Discovery / Metrics / Layout / History
+//
+// Rendering layers (2D manifold, 3D manifold,
+// investigation workspace, narratives, timelines,
+// etc.) consume these public contracts without owning
+// deterministic computation.
 //
 // ============================================================

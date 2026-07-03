@@ -1,14 +1,14 @@
 // ============================================================
 // src/manifold/components/PrimaryInvestigationManifold.tsx
-// P30
+// P31A
 // PRIMARY INVESTIGATION MANIFOLD
 //
 // The Investigation Manifold is the primary operational
 // workspace of iSEES.
 //
-// It owns the deterministic investigation topology and is the
-// canonical visualization through which operators explore,
-// resolve, compare, and discover relationships.
+// It owns the deterministic investigation topology and serves
+// as the canonical operational surface through which operators
+// explore, resolve, compare, and discover relationships.
 //
 // Every other investigation surface is either:
 //
@@ -16,48 +16,36 @@
 //   • an interpretation of manifold state
 //   • a control surface acting upon manifold state
 //
-// As iSEES evolves, the manifold becomes the investigation
-// itself rather than simply another visualization.
+// P31A establishes the operator event pipeline.
 //
-// Planned responsibilities:
+// Toolbar
+//     ↓
+// Primary Investigation Manifold
+//     ↓
+// Manifold Runtime (next)
+//     ↓
+// Manifold Engine
+//     ↓
+// Deterministic Projection
 //
-//   • Deterministic Investigation Topology
-//   • 2D Investigation Manifold
-//   • 3D Investigation Manifold
-//   • Resolve–Dissolve–Collapse (RDC)
-//   • Dynamic Layer Recomputation
-//   • Topology Re-layout
-//   • Temporal Playback
-//   • Operator Navigation
-//   • Camera & View Controls
-//   • Layer Management
-//   • Workspace Context
-//   • Resolution Inspection
-//   • Selection Inspection
-//   • Operator Controls
-//   • Node Expansion
-//   • Relationship Discovery
-//   • Manifold History
-//   • Comparative Investigations
-//   • Multi-event Fusion
-//   • Future AI-assisted Investigation
-//
-// P30A established the ownership boundary.
-//
-// P30B incrementally migrated manifold-owned controls into this
-// component.
-//
-// P30C begins exposing operator-facing manifold controls while
-// preserving deterministic behavior.
+// The manifold owns operator intent while remaining completely
+// independent of the underlying computation.
 //
 // ============================================================
 
 import InvestigationGraph from "./InvestigationGraph";
-import ManifoldToolbar from "./ManifoldToolbar";
+
+import ManifoldToolbar, {
+  type ManifoldToolbarAction,
+} from "./ManifoldToolbar";
 
 import ManifoldLayerSelector from "../../components/ManifoldLayerSelector";
 import WorkspaceOverview from "../../components/WorkspaceOverview";
 import ResolutionPanel from "../../components/ResolutionPanel";
+
+import {
+  manifoldRuntime,
+} from "../engine/manifoldRuntime";
 
 import {
   useGraph,
@@ -83,6 +71,24 @@ export default function PrimaryInvestigationManifold({
     selection,
   } = useGraph();
 
+    // ==========================================================
+  // OPERATOR ACTIONS
+  // ==========================================================
+
+  function handleToolbarAction(
+    action: ManifoldToolbarAction,
+  ) {
+
+    // P31A
+    //
+    // The Primary Investigation Manifold owns operator intent.
+    // The runtime subsystem orchestrates deterministic
+    // computation while remaining independent of the UI.
+
+    manifoldRuntime.dispatch(action);
+
+  }
+
   return (
     <section
       style={{
@@ -96,7 +102,9 @@ export default function PrimaryInvestigationManifold({
       {/* MANIFOLD OPERATOR TOOLBAR */}
       {/* ===================================================== */}
 
-      <ManifoldToolbar />
+      <ManifoldToolbar
+        onAction={handleToolbarAction}
+      />
 
       {/* ===================================================== */}
       {/* INVESTIGATION MANIFOLD */}
@@ -197,7 +205,9 @@ export default function PrimaryInvestigationManifold({
               <strong>Relationship</strong>
             </div>
 
-            <div>{selection.sourceId}</div>
+            <div>
+              {selection.sourceId}
+            </div>
 
             <div
               style={{
@@ -207,7 +217,9 @@ export default function PrimaryInvestigationManifold({
               ↓
             </div>
 
-            <div>{selection.targetId}</div>
+            <div>
+              {selection.targetId}
+            </div>
           </div>
         )}
 

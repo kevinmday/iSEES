@@ -1,44 +1,72 @@
 // ============================================================
 // src/manifold/components/ManifoldToolbar.tsx
-// P30C
+// P31A
 // MANIFOLD OPERATOR TOOLBAR
 //
-// The Manifold Toolbar is the operator's primary interface for
-// interacting with the Investigation Manifold.
+// The Manifold Toolbar is the operator's primary operational
+// interface for interacting with the Investigation Manifold.
 //
-// The toolbar exposes investigation operations rather than
-// implementation details. The deterministic manifold engine
-// automatically recomputes the topology whenever an operation
-// changes investigation state.
+// The toolbar intentionally exposes investigation operations
+// rather than implementation details.
 //
-// Current Operations:
+// The toolbar never performs computation directly.
+// Instead, it emits operator intent back to the owning
+// Primary Investigation Manifold, which delegates execution to
+// the deterministic Manifold Runtime.
+//
+// Ownership:
+//
+// Toolbar
+//     ↓
+// Primary Investigation Manifold
+//     ↓
+// Manifold Runtime
+//     ↓
+// Manifold Engine
+//     ↓
+// Deterministic Projection
+//
+// Future:
 //
 // • Resolve
 // • Dissolve
 // • Collapse
-// • 2D View
-// • 3D View
-//
-// Future:
-//
 // • Temporal Playback
-// • Layout Modes
 // • History Navigation
-// • Export
+// • Snapshot Management
+// • Layout Modes
 // • Collaboration
 //
 // ============================================================
 
+export type ManifoldToolbarAction =
+  | "RESOLVE"
+  | "DISSOLVE"
+  | "COLLAPSE"
+  | "VIEW_2D"
+  | "VIEW_3D";
+
+// ============================================================
+// BUTTON
+// ============================================================
+
+interface ToolbarButtonProps {
+  label: string;
+  tooltip: string;
+  action: ManifoldToolbarAction;
+  onAction: (action: ManifoldToolbarAction) => void;
+}
+
 function ToolbarButton({
   label,
   tooltip,
-}: {
-  label: string;
-  tooltip: string;
-}) {
+  action,
+  onAction,
+}: ToolbarButtonProps) {
   return (
     <button
       title={tooltip}
+      onClick={() => onAction(action)}
       style={{
         background: "#111827",
         border: "1px solid #374151",
@@ -61,7 +89,13 @@ function ToolbarButton({
 // COMPONENT
 // ============================================================
 
-export default function ManifoldToolbar() {
+interface ManifoldToolbarProps {
+  onAction: (action: ManifoldToolbarAction) => void;
+}
+
+export default function ManifoldToolbar({
+  onAction,
+}: ManifoldToolbarProps) {
   return (
     <section
       style={{
@@ -95,27 +129,37 @@ export default function ManifoldToolbar() {
       >
         <ToolbarButton
           label="Resolve"
-          tooltip="Expand the investigation by discovering additional evidence-supported relationships."
+          action="RESOLVE"
+          onAction={onAction}
+          tooltip="Expand the investigation by deterministically recomputing evidence-supported relationships."
         />
 
         <ToolbarButton
           label="Dissolve"
-          tooltip="Remove inferred or weak relationships to expose alternative manifold structures."
+          action="DISSOLVE"
+          onAction={onAction}
+          tooltip="Remove inferred or weak relationships and recompute the investigation manifold."
         />
 
         <ToolbarButton
           label="Collapse"
-          tooltip="Commit the investigation to the current interpretation while preserving alternate possibilities in investigation history."
+          action="COLLAPSE"
+          onAction={onAction}
+          tooltip="Commit the current investigation interpretation while preserving deterministic history."
         />
 
         <ToolbarButton
           label="2D"
-          tooltip="Display the investigation manifold using the deterministic two-dimensional layout."
+          action="VIEW_2D"
+          onAction={onAction}
+          tooltip="Display the deterministic two-dimensional investigation manifold."
         />
 
         <ToolbarButton
           label="3D"
-          tooltip="Display the investigation manifold using the three-dimensional topology view."
+          action="VIEW_3D"
+          onAction={onAction}
+          tooltip="Display the deterministic three-dimensional investigation manifold."
         />
       </div>
     </section>
