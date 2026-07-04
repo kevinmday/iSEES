@@ -1,42 +1,34 @@
 // ============================================================
 // src/manifold/components/ManifoldToolbar.tsx
-// P31A
+// P32.1
 // MANIFOLD OPERATOR TOOLBAR
 //
 // The Manifold Toolbar is the operator's primary operational
 // interface for interacting with the Investigation Manifold.
 //
-// The toolbar intentionally exposes investigation operations
-// rather than implementation details.
-//
-// The toolbar never performs computation directly.
-// Instead, it emits operator intent back to the owning
-// Primary Investigation Manifold, which delegates execution to
-// the deterministic Manifold Runtime.
+// Toolbar actions express operator intent only. Computational
+// execution is delegated to the owning Investigation and its
+// deterministic Resolve–Dissolve Computation (RDC) runtime.
 //
 // Ownership:
 //
-// Toolbar
-//     ↓
+// Operator
+//      ↓
+// Manifold Toolbar
+//      ↓
 // Primary Investigation Manifold
-//     ↓
-// Manifold Runtime
-//     ↓
-// Manifold Engine
-//     ↓
-// Deterministic Projection
+//      ↓
+// Resolve–Dissolve Computation (RDC)
+//      ↓
+// Deterministic Investigation Manifold
 //
-// Future:
-//
-// • Resolve
-// • Dissolve
-// • Collapse
-// • Temporal Playback
-// • History Navigation
-// • Snapshot Management
-// • Layout Modes
-// • Collaboration
-//
+// FULL DROP-IN REPLACEMENT
+// ============================================================
+
+import Tooltip from "../../components/Tooltip";
+
+// ============================================================
+// ACTIONS
 // ============================================================
 
 export type ManifoldToolbarAction =
@@ -64,24 +56,25 @@ function ToolbarButton({
   onAction,
 }: ToolbarButtonProps) {
   return (
-    <button
-      title={tooltip}
-      onClick={() => onAction(action)}
-      style={{
-        background: "#111827",
-        border: "1px solid #374151",
-        color: "#f3f4f6",
-        padding: "8px 14px",
-        borderRadius: 6,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: 1,
-        cursor: "pointer",
-        textTransform: "uppercase",
-      }}
-    >
-      {label}
-    </button>
+    <Tooltip text={tooltip}>
+      <button
+        onClick={() => onAction(action)}
+        style={{
+          background: "#111827",
+          border: "1px solid #374151",
+          color: "#f3f4f6",
+          padding: "8px 14px",
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: 1,
+          cursor: "pointer",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -117,7 +110,7 @@ export default function ManifoldToolbar({
           color: "#e5e7eb",
         }}
       >
-        Manifold Operations
+        Investigation Operations
       </div>
 
       <div
@@ -131,35 +124,35 @@ export default function ManifoldToolbar({
           label="Resolve"
           action="RESOLVE"
           onAction={onAction}
-          tooltip="Expand the investigation by deterministically recomputing evidence-supported relationships."
+          tooltip="Execute Resolve–Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
         />
 
         <ToolbarButton
           label="Dissolve"
           action="DISSOLVE"
           onAction={onAction}
-          tooltip="Remove inferred or weak relationships and recompute the investigation manifold."
+          tooltip="Remove the current manifold solution and return the Investigation to an unresolved computational state."
         />
 
         <ToolbarButton
           label="Collapse"
           action="COLLAPSE"
           onAction={onAction}
-          tooltip="Commit the current investigation interpretation while preserving deterministic history."
+          tooltip="Collapse the current Investigation Manifold according to the selected deterministic collapse strategy while preserving reproducibility."
         />
 
         <ToolbarButton
           label="2D"
           action="VIEW_2D"
           onAction={onAction}
-          tooltip="Display the deterministic two-dimensional investigation manifold."
+          tooltip="Display the current Investigation Manifold using a two-dimensional projection. No recomputation occurs."
         />
 
         <ToolbarButton
           label="3D"
           action="VIEW_3D"
           onAction={onAction}
-          tooltip="Display the deterministic three-dimensional investigation manifold."
+          tooltip="Display the current Investigation Manifold using a three-dimensional projection. No recomputation occurs."
         />
       </div>
     </section>

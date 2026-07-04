@@ -233,16 +233,106 @@ const activeEvent =
           overflow: "hidden",
         }}
       >
+        
         {/* ================================================= */}
-        {/* LEFT PANEL — Explorer */}
+        {/* LEFT PANEL — INVESTIGATION CONTROL */}
         {/* ================================================= */}
 
         <div
           style={{
-            width: 285,
-            minWidth: 285,
-            maxWidth: 285,
+            width: 340,
+            minWidth: 340,
+            maxWidth: 340,
             borderRight: "1px solid #182235",
+            background: "#070d18",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: 10,
+            }}
+          >
+            {left}
+          </div>
+        </div>
+
+                {/* ================================================= */}
+        {/* CENTER PANEL — PRIMARY INVESTIGATION MANIFOLD */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            background: "#09111f",
+            overflowY: "auto",
+            overflowX: "hidden",
+            borderRight: "1px solid #182235",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 1440,
+              margin: "0 auto",
+              padding: 18,
+            }}
+          >
+            {/* CENTER HEADER */}
+
+            <div
+              style={{
+                borderBottom: "1px solid #182235",
+                paddingBottom: 12,
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                }}
+              >
+                Primary Investigation Manifold
+              </div>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 11,
+                  color: "#94a3b8",
+                }}
+              >
+                Deterministic visualization of the active investigation
+                manifold.
+              </div>
+            </div>
+
+            {/* CENTER CONTENT */}
+
+            <div>{center}</div>
+
+          </div>
+
+        </div>
+
+                {/* ================================================= */}
+        {/* RIGHT PANEL — SELECTION INTELLIGENCE */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            width: 340,
+            minWidth: 340,
+            maxWidth: 340,
             background: "#070d18",
             display: "flex",
             flexDirection: "column",
@@ -268,7 +358,7 @@ const activeEvent =
                 textTransform: "uppercase",
               }}
             >
-              Explorer
+              Selection Intelligence
             </div>
 
             <div
@@ -278,128 +368,7 @@ const activeEvent =
                 color: "#94a3b8",
               }}
             >
-              Explore events, cases, and phenomena
-            </div>
-          </div>
-
-          {/* CONTENT */}
-
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: 10,
-            }}
-          >
-            {left}
-          </div>
-        </div>
-
-        {/* ================================================= */}
-        {/* CENTER PANEL — INVESTIGATION WORKSPACE */}
-        {/* ================================================= */}
-
-        <div
-          style={{
-            flex: "0 1 52%",
-            minWidth: 0,
-            maxWidth: "52%",
-            background: "#09111f",
-            overflowY: "auto",
-            overflowX: "hidden",
-            borderRight: "1px solid #182235",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 1320,
-              margin: "0 auto",
-              padding: 18,
-            }}
-          >
-            {/* CENTER HEADER */}
-
-            <div
-              style={{
-                borderBottom: "1px solid #182235",
-                paddingBottom: 12,
-                marginBottom: 18,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                }}
-              >
-                Investigation Workspace
-              </div>
-
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 11,
-                  color: "#94a3b8",
-                }}
-              >
-                Reconstructed event analysis and manifold
-                reasoning
-              </div>
-            </div>
-
-            {/* CENTER CONTENT */}
-
-            <div>{center}</div>
-          </div>
-        </div>
-
-        {/* ================================================= */}
-        {/* RIGHT PANEL — OPERATIONAL INTELLIGENCE */}
-        {/* ================================================= */}
-
-        <div
-          style={{
-            flex: "1 1 0",
-            minWidth: 390,
-            maxWidth: 460,
-            background: "#070d18",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          {/* HEADER */}
-
-          <div
-            style={{
-              padding: 14,
-              borderBottom: "1px solid #182235",
-              background: "#0b1220",
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                letterSpacing: 1,
-                textTransform: "uppercase",
-              }}
-            >
-              Operational Intelligence
-            </div>
-
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 11,
-                color: "#94a3b8",
-              }}
-            >
-              Context-aware investigation vectors
+              Deterministic analysis of the active selection.
             </div>
           </div>
 
@@ -414,7 +383,9 @@ const activeEvent =
           >
             {right}
           </div>
+
         </div>
+
       </div>
 
       {/* ===================================================== */}

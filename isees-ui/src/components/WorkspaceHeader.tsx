@@ -1,3 +1,15 @@
+// ============================================================
+// src/components/WorkspaceHeader.tsx
+// P32
+// INVESTIGATION OWNERSHIP FOUNDATION
+//
+// The header now represents the Investigation rather than simply
+// the currently focused event. The focused event is presented as
+// the Primary Subject of the active Investigation.
+//
+// FULL DROP-IN REPLACEMENT
+// ============================================================
+
 import MetricBox from "./surfaces/MetricBox";
 
 interface WorkspaceHeaderProps {
@@ -16,28 +28,78 @@ export function WorkspaceHeader({
         background: "#08101f",
       }}
     >
+      {/* ===================================================== */}
+      {/* INVESTIGATION HEADER */}
+      {/* ===================================================== */}
+
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 14,
+          alignItems: "flex-start",
+          marginBottom: 18,
         }}
       >
         <div>
           <div
             style={{
-              fontSize: 24,
-              fontWeight: 800,
-              letterSpacing: 1,
+              fontSize: 11,
+              color: "#60a5fa",
+              fontWeight: 700,
+              letterSpacing: 2,
+              textTransform: "uppercase",
+              marginBottom: 8,
             }}
           >
-            {event.id}
+            Investigation
+          </div>
+
+          <div
+            style={{
+              fontSize: 26,
+              fontWeight: 800,
+              letterSpacing: 0.5,
+              color: "#f3f4f6",
+            }}
+          >
+            Nimitz Investigation
           </div>
 
           <div
             style={{
               marginTop: 6,
+              color: "#9ca3af",
+              fontSize: 13,
+            }}
+          >
+            Comparative Investigation • System Canon
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              color: "#d1d5db",
+              fontSize: 14,
+            }}
+          >
+            <span
+              style={{
+                color: "#6b7280",
+                textTransform: "uppercase",
+                fontSize: 11,
+                letterSpacing: 1,
+                marginRight: 8,
+              }}
+            >
+              Primary Subject
+            </span>
+
+            {event.id}
+          </div>
+
+          <div
+            style={{
+              marginTop: 4,
               color: "#9ca3af",
               fontSize: 13,
             }}
@@ -64,6 +126,10 @@ export function WorkspaceHeader({
           {event.escalation}
         </div>
       </div>
+
+      {/* ===================================================== */}
+      {/* INVESTIGATION METRICS */}
+      {/* ===================================================== */}
 
       <div
         style={{

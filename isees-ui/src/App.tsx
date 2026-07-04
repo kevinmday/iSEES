@@ -1,8 +1,18 @@
 // ============================================================
 // src/App.tsx
-// OPERATOR CONSOLE BRIDGE (V6)
-// P26.1 INTELLIGENCE BRIEF FOUNDATION
-// FEDERATION + INTELLIGENCE PROVIDERS REGISTERED
+// OPERATOR CONSOLE BRIDGE (V7)
+// P30.1 INVESTIGATION CONTROL FOUNDATION
+// SYSTEM CANON ARCHITECTURE
+//
+// The left side of the operator console is now owned by
+// Investigation Control.
+//
+// Explore Mode
+//   Constructs investigations.
+//
+// Compute Mode
+//   Defines the computational universe.
+//
 // ============================================================
 
 import { Routes, Route } from "react-router-dom";
@@ -10,8 +20,11 @@ import { Routes, Route } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
 
 import RightPanel from "./components/RightPanel";
-import EventRadar from "./components/EventRadar";
 import PrimarySurface from "./surfaces/PrimarySurface";
+
+import {
+  InvestigationControl,
+} from "./investigationControl";
 
 import PublicIntake from "./pages/PublicIntake";
 import SystemBriefing from "./pages/SystemBriefing";
@@ -40,17 +53,20 @@ import {
   GraphProvider,
 } from "./manifold/context/GraphContext";
 
-import CorpusBrowser from "./corpus/components/CorpusBrowser";
-import CorpusResolutionPanel from "./corpus/components/CorpusResolutionPanel";
-
-import FederationPreviewPanel
-  from "./federation/components/FederationPreviewPanel";
-
-import GraphDiagnostics from "./graph/GraphDiagnostics";
-
-
 // ============================================================
 // OPERATOR UI
+// P30.1
+// INVESTIGATION CONTROL FOUNDATION
+//
+// The left side of the operator console is now owned by
+// Investigation Control.
+//
+// Explore Mode
+//   Investigation construction.
+//
+// Compute Mode
+//   Computational universe definition.
+//
 // ============================================================
 
 function OperatorUI() {
@@ -72,20 +88,7 @@ function OperatorUI() {
                 <MainLayout
 
                   left={
-                    <>
-
-                      <CorpusBrowser />
-
-                      <FederationPreviewPanel />
-
-                      <GraphDiagnostics />
-
-                      
-                      <CorpusResolutionPanel />
-
-                      <EventRadar />
-
-                    </>
+                    <InvestigationControl />
                   }
 
                   center={
