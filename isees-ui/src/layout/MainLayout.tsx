@@ -228,77 +228,102 @@ const activeEvent =
       <div
         style={{
           display: "flex",
+
           flex: 1,
+
           minHeight: 0,
+
           overflow: "hidden",
+
+          padding: "12px",
+
+          gap: "12px",
+
+          background: "#060b14",
         }}
       >
-        
+  
         {/* ================================================= */}
         {/* LEFT PANEL — INVESTIGATION CONTROL */}
         {/* ================================================= */}
 
         <div
           style={{
-            width: 340,
-            minWidth: 340,
-            maxWidth: 340,
-            borderRight: "1px solid #182235",
+            width: 320,
+            minWidth: 320,
+            maxWidth: 320,
+
             background: "#070d18",
+
+            border: "1px solid #182235",
+            borderRadius: 10,
+
             display: "flex",
             flexDirection: "column",
+
             overflow: "hidden",
+
             flexShrink: 0,
           }}
         >
           <div
             style={{
               flex: 1,
+
               overflowY: "auto",
-              padding: 10,
+
+              padding: "18px",
+
+              scrollbarGutter: "stable",
             }}
           >
             {left}
           </div>
         </div>
 
-                {/* ================================================= */}
+        {/* ================================================= */}
         {/* CENTER PANEL — PRIMARY INVESTIGATION MANIFOLD */}
         {/* ================================================= */}
 
         <div
           style={{
             flex: 1,
+
             minWidth: 0,
+
             background: "#09111f",
+
             overflowY: "auto",
             overflowX: "hidden",
-            borderRight: "1px solid #182235",
+
+            scrollbarGutter: "stable both-edges",
           }}
         >
           <div
             style={{
               width: "100%",
-              maxWidth: 1440,
-              margin: "0 auto",
-              padding: 18,
+
+              margin: 0,
+
+              padding: "16px",
+
+              boxSizing: "border-box",
             }}
           >
             {/* CENTER HEADER */}
 
             <div
               style={{
-                borderBottom: "1px solid #182235",
-                paddingBottom: 12,
                 marginBottom: 18,
               }}
             >
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: 18,
+
                   fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
+
+                  color: "#f8fafc",
                 }}
               >
                 Primary Investigation Manifold
@@ -307,8 +332,14 @@ const activeEvent =
               <div
                 style={{
                   marginTop: 6,
-                  fontSize: 11,
+
+                  fontSize: 12,
+
                   color: "#94a3b8",
+
+                  lineHeight: 1.5,
+
+                  maxWidth: 760,
                 }}
               >
                 Deterministic visualization of the active investigation
@@ -319,9 +350,7 @@ const activeEvent =
             {/* CENTER CONTENT */}
 
             <div>{center}</div>
-
           </div>
-
         </div>
 
                 {/* ================================================= */}
