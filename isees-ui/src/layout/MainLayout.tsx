@@ -13,27 +13,35 @@ import {
   useWorkspace,
 } from "../workspace/context/WorkspaceContext";
 
+import WorkspaceModeBar
+  from "../components/workspace/WorkspaceModeBar";
+
+// ============================================================
+// MAIN LAYOUT
+// ============================================================
+
 export default function MainLayout({
   left,
   center,
   right,
 }: any) {
 
-const {
-  events,
-  operatorMode,
-} = useEventContext();
+  const {
+    events,
+    operatorMode,
+  } = useEventContext();
 
-const {
-  focusedEventId,
-} = useWorkspace();
+  const {
+    focusedEventId,
+  } = useWorkspace();
 
-const activeEvent =
-  events.find(
-    event => event.id === focusedEventId
-  ) ?? null;
+  const activeEvent =
+    events.find(
+      event => event.id === focusedEventId
+    ) ?? null;
 
   return (
+
     <div
       style={{
         display: "flex",
@@ -46,6 +54,7 @@ const activeEvent =
         fontFamily: "Consolas, monospace",
       }}
     >
+
       {/* ===================================================== */}
       {/* TOP COMMAND BAR */}
       {/* ===================================================== */}
@@ -416,6 +425,13 @@ const activeEvent =
         </div>
 
       </div>
+
+
+{/* ========================================================== */}
+{/* WORKSPACE MODE BAR */}
+{/* ========================================================== */}
+
+<WorkspaceModeBar />
 
       {/* ===================================================== */}
       {/* FOOTER STATUS STRIP */}

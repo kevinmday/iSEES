@@ -31,7 +31,22 @@ import {
 // CONTEXT TYPE
 // ============================================================
 
+export type WorkspaceMode =
+  | "HOME"
+  | "MANIFOLD"
+  | "COMPARE"
+  | "NARRATIVE"
+  | "EVIDENCE"
+  | "TIMELINE"
+  | "LAYERS"
+  | "INTENTION"
+  | "RESEARCH";
+
 type WorkspaceContextType = {
+
+  // ==========================================================
+  // ACTIVE WORKSPACE
+  // ==========================================================
 
   activeWorkspace:
     Workspace;
@@ -39,6 +54,21 @@ type WorkspaceContextType = {
   setActiveWorkspace: (
     workspace: Workspace
   ) => void;
+
+  // ==========================================================
+  // ACTIVE OPERATOR WORKSPACE MODE
+  // ==========================================================
+
+  activeWorkspaceMode:
+    WorkspaceMode;
+
+  setActiveWorkspaceMode: (
+    mode: WorkspaceMode
+  ) => void;
+
+  // ==========================================================
+  // ACTIVE INVESTIGATION FOCUS
+  // ==========================================================
 
   focusedEventId:
     string | null;
@@ -98,6 +128,18 @@ export function WorkspaceProvider({
   ] =
     useState<Workspace>(
       DEFAULT_WORKSPACE
+    );
+
+  // ==========================================================
+  // ACTIVE OPERATOR WORKSPACE MODE
+  // ==========================================================
+
+  const [
+    activeWorkspaceMode,
+    setActiveWorkspaceMode,
+  ] =
+    useState<WorkspaceMode>(
+      "HOME"
     );
 
   // ==========================================================
@@ -301,7 +343,7 @@ export function WorkspaceProvider({
       );
     };
 
-  // ==========================================================
+    // ==========================================================
   // PROVIDER
   // ==========================================================
 
@@ -310,20 +352,44 @@ export function WorkspaceProvider({
     <WorkspaceContext.Provider
       value={{
 
+        // ====================================================
+        // ACTIVE WORKSPACE
+        // ====================================================
+
         activeWorkspace,
 
         setActiveWorkspace,
+
+        // ====================================================
+        // ACTIVE OPERATOR WORKSPACE MODE
+        // ====================================================
+
+        activeWorkspaceMode,
+
+        setActiveWorkspaceMode,
+
+        // ====================================================
+        // ACTIVE INVESTIGATION FOCUS
+        // ====================================================
 
         focusedEventId:
           activeWorkspace.focused_event_id,
 
         setFocusedEventId,
 
+        // ====================================================
+        // INVESTIGATION MANAGEMENT
+        // ====================================================
+
         importInvestigation,
 
         addEventToWorkspace,
 
         removeEventFromWorkspace,
+
+        // ====================================================
+        // ARTIFACT MANAGEMENT
+        // ====================================================
 
         addArtifact,
 
