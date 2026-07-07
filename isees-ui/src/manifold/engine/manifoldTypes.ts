@@ -5,15 +5,31 @@
 //
 // These contracts define the public language of the Manifold
 // subsystem. They intentionally contain no computational logic.
-// The deterministic Resolve–Dissolve Computation (RDC) pipeline
-// will operate exclusively against these contracts.
+//
+// Resolve–Dissolve Computation (RDC) produces the canonical
+// deterministic Investigation Manifold.
+//
+// The Investigation Manifold is the sole deterministic
+// representation of the current investigation state.
+//
+// Graphs, timelines, narratives, intention surfaces and all
+// future visualizations are projections derived from the
+// Investigation Manifold.
 //
 // All manifold subsystems should import from this file.
 // ============================================================
 
 /**
- * A canonical manifold.
- * Represents the complete computed topology for a workspace.
+ * Canonical Investigation Manifold.
+ *
+ * Represents the complete deterministic state of an
+ * investigation.
+ *
+ * NOTE:
+ * Although the exported type name remains "Manifold" for
+ * backward compatibility, this contract represents the
+ * canonical Investigation Manifold defined by System Canon
+ * P33B.
  */
 export interface Manifold {
     id: string;
@@ -28,6 +44,16 @@ export interface Manifold {
 
     snapshot: ManifoldSnapshot;
 }
+
+/**
+ * Canonical alias.
+ *
+ * Preferred name for all new development.
+ *
+ * Existing code may continue using "Manifold" until
+ * incremental migration occurs.
+ */
+export type InvestigationManifold = Manifold;
 
 /**
  * Canonical manifold node.
@@ -61,6 +87,11 @@ export interface ManifoldEdge {
 
 /**
  * Active epistemic layer.
+ *
+ * Layers are computational inputs consumed by
+ * Resolve–Dissolve Computation (RDC).
+ *
+ * Layers never belong to any visualization.
  */
 export interface ManifoldLayer {
     id: string;
