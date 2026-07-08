@@ -1,35 +1,33 @@
 // ============================================================
 // src/manifold/components/PrimaryInvestigationManifold.tsx
-// P31A
-// PRIMARY INVESTIGATION MANIFOLD
+// P34C
+// PRIMARY INVESTIGATION WORKSPACE
 //
-// The Investigation Manifold is the primary operational
-// workspace of iSEES.
+// The Primary Investigation Workspace is the central projection
+// host for an Investigation Session.
 //
-// It owns the deterministic investigation topology and serves
-// as the canonical operational surface through which operators
-// explore, resolve, compare, and discover relationships.
+// The Workspace Runtime owns the active Workspace Mode.
+// This component renders the deterministic projection
+// associated with that mode.
 //
-// Every other investigation surface is either:
+// Every workspace mode is a projection of the same underlying
+// Investigation Session.
 //
-//   • a projection of manifold state
-//   • an interpretation of manifold state
-//   • a control surface acting upon manifold state
+// Ownership:
 //
-// P31A establishes the operator event pipeline.
-//
-// Toolbar
-//     ↓
-// Primary Investigation Manifold
-//     ↓
-// Manifold Runtime (next)
-//     ↓
-// Manifold Engine
-//     ↓
-// Deterministic Projection
-//
-// The manifold owns operator intent while remaining completely
-// independent of the underlying computation.
+// Operator
+//      ↓
+// Workspace Runtime
+//      ↓
+// Active Workspace Mode
+//      ↓
+// Primary Investigation Workspace
+//      ↓
+// Projection Surface
+//      ↓
+// Manifold Runtime
+//      ↓
+// Resolve–Dissolve Computation (RDC)
 //
 // ============================================================
 
@@ -51,6 +49,14 @@ import {
   useGraph,
 } from "../context/GraphContext";
 
+import {
+  useWorkspaceRuntime,
+} from "../../workspace/runtime/WorkspaceRuntimeContext";
+
+import {
+  WorkspaceMode,
+} from "../../workspace/runtime/WorkspaceRuntimeTypes";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -70,6 +76,12 @@ export default function PrimaryInvestigationManifold({
   const {
     selection,
   } = useGraph();
+
+  const runtime =
+    useWorkspaceRuntime();
+
+  const activeMode =
+    runtime.getActiveMode();
 
     // ==========================================================
   // OPERATOR ACTIONS
@@ -122,7 +134,11 @@ export default function PrimaryInvestigationManifold({
       {/* WORKSPACE OVERVIEW */}
       {/* ===================================================== */}
 
-      <WorkspaceOverview />
+      {activeMode === WorkspaceMode.OVERVIEW && (
+
+  <WorkspaceOverview />
+
+)}
 
       {/* ===================================================== */}
       {/* RESOLUTION PANEL */}

@@ -1,12 +1,12 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntime.ts
-// P34
+// P34D
 // WORKSPACE RUNTIME FOUNDATION
 //
 // The Workspace Runtime owns the deterministic Investigation
-// Session.
+// Session and Operator State.
 //
-// It composes the major deterministic subsystems without
+// It composes deterministic runtime subsystems without
 // performing computation itself.
 //
 // Ownership:
@@ -16,7 +16,8 @@
 // Main Layout
 //      ↓
 // Workspace Runtime
-//      ├── Workspace Context
+//      ├── Investigation Session
+//      ├── Operator State
 //      ├── Manifold Runtime
 //      ├── Corpus
 //      ├── Artifacts
@@ -34,50 +35,22 @@ import type {
   Workspace,
 } from "../workspaceTypes";
 
+import {
+  WorkspaceMode,
+} from "./WorkspaceRuntimeTypes";
+
 import type {
-  Artifact,
-} from "../../artifacts/artifactTypes";
+  WorkspaceRuntimeState,
+  WorkspaceOperatorState,
+  WorkspaceMode as WorkspaceModeType,
+} from "./WorkspaceRuntimeTypes";
 
 // ============================================================
 // TYPES
 // ============================================================
 
-export type WorkspaceRuntimeStatus =
-  | "INITIALIZING"
-  | "READY"
-  | "ACTIVE";
-
-export interface WorkspaceRuntimeState {
-
-  /**
-   * Runtime status.
-   */
-  status:
-    WorkspaceRuntimeStatus;
-
-  /**
-   * Active workspace.
-   *
-   * Assigned by the Workspace Context.
-   */
-  workspace?:
-    Workspace;
-
-  /**
-   * Cached artifacts.
-   *
-   * Ownership remains with Workspace Context.
-   */
-  artifacts:
-    Artifact[];
-
-  /**
-   * Runtime revision.
-   */
-  revision:
-    number;
-
-}
+type WorkspaceRuntimeListener =
+  () => void;
 
 // ============================================================
 // RUNTIME
@@ -88,14 +61,36 @@ export class WorkspaceRuntime {
   private state:
     WorkspaceRuntimeState = {
 
-      status:
-        "INITIALIZING",
+      status: "INITIALIZING",
 
-      artifacts: [],
+      session: {
+
+        workspace: undefined,
+
+        artifacts: [],
+
+      },
+
+      operator: {
+
+        activeMode:
+          WorkspaceMode.OVERVIEW,
+
+      },
 
       revision: 0,
 
     };
+
+  /**
+   * Runtime listeners.
+   *
+   * React observes runtime changes through this lightweight
+   * notification mechanism. Ownership remains entirely within
+   * the Workspace Runtime.
+   */
+  private listeners =
+    new Set<WorkspaceRuntimeListener>();
 
   // ==========================================================
   // ACCESSORS
@@ -114,6 +109,92 @@ export class WorkspaceRuntime {
 
   }
 
+  getOperatorState():
+    Readonly<WorkspaceOperatorState> {
+
+    return this.state.operator;
+
+  }
+
+  getActiveMode():
+    WorkspaceModeType {
+
+    return this.state.operator.activeMode;
+
+  }
+
+  // ==========================================================
+  // OBSERVERS
+  // ==========================================================
+
+  subscribe(
+    listener: WorkspaceRuntimeListener,
+  ): () => void {
+
+    this.listeners.add(
+      listener,
+    );
+
+    return () => {
+
+      this.listeners.delete(
+        listener,
+      );
+
+    };
+
+  }
+
+  private notify(): void {
+
+    for (
+      const listener
+      of this.listeners
+    ) {
+
+      listener();
+
+    }
+
+  }
+
+  // ==========================================================
+  // OPERATOR STATE
+  // ==========================================================
+
+  setActiveMode(
+    mode: WorkspaceModeType,
+  ): void {
+
+    if (
+      this.state.operator.activeMode === mode
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      operator: {
+
+        ...this.state.operator,
+
+        activeMode: mode,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
   // ==========================================================
   // LIFECYCLE
   // ==========================================================
@@ -128,6 +209,8 @@ export class WorkspaceRuntime {
 
     };
 
+    this.notify();
+
   }
 
   activate(
@@ -138,14 +221,22 @@ export class WorkspaceRuntime {
 
       ...this.state,
 
-      workspace,
-
       status: "ACTIVE",
+
+      session: {
+
+        ...this.state.session,
+
+        workspace,
+
+      },
 
       revision:
         this.state.revision + 1,
 
     };
+
+    this.notify();
 
   }
 
@@ -163,6 +254,18 @@ export class WorkspaceRuntime {
   // Projection Runtime
   // Collaboration Runtime
   // Export Runtime
+  //
+  // Future Operator State
+  // ---------------------
+  //
+  // Selection
+  // Focus
+  // Hover
+  // Viewport
+  // Layout
+  // Playback
+  // History Cursor
+  // Command State
   //
   // ==========================================================
 

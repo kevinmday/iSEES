@@ -1,13 +1,15 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntimeContext.tsx
-// P34
+// P34D
 // WORKSPACE RUNTIME CONTEXT
 //
 // React access layer for the deterministic Workspace Runtime.
 //
-// This context does NOT own deterministic computation.
-// It simply exposes the singleton Workspace Runtime to the
-// operator interface.
+// The Workspace Runtime remains the canonical owner of the
+// Investigation Session and Operator State.
+//
+// This context bridges runtime state changes into the React
+// rendering lifecycle without transferring ownership.
 //
 // Ownership:
 //
@@ -28,6 +30,8 @@
 import {
   createContext,
   useContext,
+  useEffect,
+  useState,
 } from "react";
 
 import type {
@@ -61,6 +65,24 @@ export function WorkspaceRuntimeProvider({
   children: ReactNode;
 }) {
 
+  const [, forceUpdate] =
+    useState(0);
+
+  useEffect(() => {
+
+    const unsubscribe =
+      workspaceRuntime.subscribe(() => {
+
+        forceUpdate(
+          revision => revision + 1,
+        );
+
+      });
+
+    return unsubscribe;
+
+  }, []);
+
   return (
 
     <WorkspaceRuntimeContext.Provider
@@ -87,7 +109,7 @@ export function useWorkspaceRuntime() {
   if (!runtime) {
 
     throw new Error(
-      "useWorkspaceRuntime must be used inside WorkspaceRuntimeProvider"
+      "useWorkspaceRuntime must be used inside WorkspaceRuntimeProvider",
     );
 
   }

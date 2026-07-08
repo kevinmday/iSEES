@@ -1,21 +1,39 @@
 // ============================================================
 // src/components/workspace/WorkspaceModeBar.tsx
-// P33
+// P34B
 // OPERATOR WORKSPACE MODE BAR
 //
 // Persistent operator workspace selector.
 //
+// The Workspace Mode Bar is the operator's primary mechanism
+// for selecting the active Workspace Mode.
+//
+// The bar owns no state.
+//
+// All mode ownership resides within the deterministic
+// Workspace Runtime.
+//
 // FULL DROP-IN FILE
 // ============================================================
 
-import type { CSSProperties } from "react";
+import type {
+  CSSProperties,
+} from "react";
+
+import {
+  useWorkspaceRuntime,
+} from "../../workspace/runtime/WorkspaceRuntimeContext";
+
+import {
+  WorkspaceMode,
+} from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
 // ============================================================
 // MODE BUTTON STYLE
 // ============================================================
 
 function modeStyle(
-  active = false
+  active = false,
 ): CSSProperties {
 
   return {
@@ -53,15 +71,48 @@ function modeStyle(
     userSelect: "none",
 
     transition: "all 0.15s ease",
+
   };
 
 }
+
+// ============================================================
+// MODES
+// ============================================================
+
+const MODES = [
+
+  WorkspaceMode.OVERVIEW,
+
+  WorkspaceMode.MANIFOLD,
+
+  WorkspaceMode.COMPARE,
+
+  WorkspaceMode.NARRATIVE,
+
+  WorkspaceMode.EVIDENCE,
+
+  WorkspaceMode.TIMELINE,
+
+  WorkspaceMode.LAYERS,
+
+  WorkspaceMode.INTENTION,
+
+  WorkspaceMode.RESEARCH,
+
+] as const;
 
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function WorkspaceModeBar() {
+
+  const runtime =
+    useWorkspaceRuntime();
+
+  const activeMode =
+    runtime.getActiveMode();
 
   return (
 
@@ -86,41 +137,23 @@ export default function WorkspaceModeBar() {
       }}
     >
 
-      <div style={modeStyle(true)}>
-        OVERVIEW
-      </div>
+      {MODES.map((mode) => (
 
-      <div style={modeStyle()}>
-        MANIFOLD
-      </div>
+        <div
+          key={mode}
+          style={modeStyle(
+            activeMode === mode,
+          )}
+          onClick={() =>
+            runtime.setActiveMode(
+              mode,
+            )
+          }
+        >
+          {mode}
+        </div>
 
-      <div style={modeStyle()}>
-        COMPARE
-      </div>
-
-      <div style={modeStyle()}>
-        NARRATIVE
-      </div>
-
-      <div style={modeStyle()}>
-        EVIDENCE
-      </div>
-
-      <div style={modeStyle()}>
-        TIMELINE
-      </div>
-
-      <div style={modeStyle()}>
-        LAYERS
-      </div>
-
-      <div style={modeStyle()}>
-        INTENTION
-      </div>
-
-      <div style={modeStyle()}>
-        RESEARCH
-      </div>
+      ))}
 
     </div>
 
