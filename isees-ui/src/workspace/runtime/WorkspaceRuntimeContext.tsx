@@ -1,15 +1,17 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntimeContext.tsx
-// P34D
-// WORKSPACE RUNTIME CONTEXT
+// P36
+// RUNTIME-OWNED INVESTIGATION CONTEXT
 //
 // React access layer for the deterministic Workspace Runtime.
 //
-// The Workspace Runtime remains the canonical owner of the
-// Investigation Session and Operator State.
+// The Workspace Runtime remains the canonical owner of:
 //
-// This context bridges runtime state changes into the React
-// rendering lifecycle without transferring ownership.
+// • Active Workspace
+// • Active Investigation
+// • Operator State
+//
+// React merely observes runtime state changes.
 //
 // Ownership:
 //
@@ -65,6 +67,10 @@ export function WorkspaceRuntimeProvider({
   children: ReactNode;
 }) {
 
+  // React does not own runtime state.
+  // It simply re-renders whenever the deterministic
+  // Workspace Runtime publishes a revision.
+
   const [, forceUpdate] =
     useState(0);
 
@@ -96,14 +102,14 @@ export function WorkspaceRuntimeProvider({
 }
 
 // ============================================================
-// HOOK
+// HOOKS
 // ============================================================
 
 export function useWorkspaceRuntime() {
 
   const runtime =
     useContext(
-      WorkspaceRuntimeContext
+      WorkspaceRuntimeContext,
     );
 
   if (!runtime) {
@@ -115,5 +121,29 @@ export function useWorkspaceRuntime() {
   }
 
   return runtime;
+
+}
+
+/**
+ * Convenience hook for the active investigation.
+ *
+ * Workspace modes should consume investigation state from
+ * the Workspace Runtime rather than maintaining their own
+ * duplicate investigation state.
+ */
+export function useActiveInvestigation() {
+
+  return useWorkspaceRuntime()
+    .getActiveInvestigation();
+
+}
+
+/**
+ * Convenience hook for the active workspace mode.
+ */
+export function useWorkspaceMode() {
+
+  return useWorkspaceRuntime()
+    .getActiveMode();
 
 }

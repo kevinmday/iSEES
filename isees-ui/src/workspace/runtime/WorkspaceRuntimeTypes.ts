@@ -1,12 +1,12 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntimeTypes.ts
-// P34
-// WORKSPACE RUNTIME TYPES
+// P36
+// RUNTIME-OWNED INVESTIGATION TYPES
 //
 // Canonical contracts for the deterministic Workspace Runtime.
 //
 // The Workspace Runtime owns the active Investigation Session
-// and the active Operator State while composing deterministic
+// and active Operator State while composing deterministic
 // runtime subsystems without performing computation.
 //
 // Computational ownership remains within Resolve–Dissolve
@@ -17,7 +17,8 @@
 // Operator
 //      ↓
 // Workspace Runtime
-//      ├── Investigation Session
+//      ├── Active Workspace
+//      ├── Active Investigation
 //      └── Operator State
 //              ↓
 //          Active Workspace Mode
@@ -79,12 +80,23 @@ export type WorkspaceMode =
 export interface WorkspaceRuntimeSession {
 
   /**
-   * Active workspace.
+   * Active workspace container.
    */
   workspace?: Workspace;
 
   /**
-   * Imported artifacts.
+   * Active investigation owned by the runtime.
+   *
+   * This becomes the single source of truth consumed by all
+   * workspace modes.
+   *
+   * A concrete Investigation contract will replace 'unknown'
+   * when extracted into the canonical investigation model.
+   */
+  investigation?: unknown;
+
+  /**
+   * Imported artifacts associated with the investigation.
    */
   artifacts: Artifact[];
 
@@ -99,8 +111,9 @@ export interface WorkspaceOperatorState {
   /**
    * Current operator workspace mode.
    *
-   * This determines which deterministic projection surface
-   * is currently active.
+   * Operator state determines which deterministic projection
+   * surface is currently being viewed without modifying the
+   * underlying investigation.
    */
   activeMode:
     WorkspaceMode;
@@ -120,7 +133,7 @@ export interface WorkspaceRuntimeState {
     WorkspaceRuntimeStatus;
 
   /**
-   * Current Investigation Session.
+   * Active Investigation Session.
    */
   session:
     WorkspaceRuntimeSession;
@@ -128,15 +141,17 @@ export interface WorkspaceRuntimeState {
   /**
    * Current Operator State.
    *
-   * Operator state describes how the current Investigation
-   * Session is being viewed without modifying the underlying
-   * investigation.
+   * Operator state describes how the active Investigation
+   * Session is being viewed.
    */
   operator:
     WorkspaceOperatorState;
 
   /**
-   * Runtime revision.
+   * Monotonically increasing runtime revision.
+   *
+   * Consumers observe this value to detect deterministic
+   * runtime changes.
    */
   revision:
     number;
@@ -169,8 +184,8 @@ export interface WorkspaceRuntimeState {
 //
 // As the Workspace Runtime evolves into the deterministic
 // owner of the complete Investigation Session, additional
-// operator state will be introduced here while maintaining
-// strict separation between:
+// runtime-owned contracts will be introduced here while
+// maintaining strict separation between:
 //
 // • Investigation Session (what exists)
 // • Operator State (how it is viewed)

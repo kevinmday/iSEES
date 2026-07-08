@@ -1,13 +1,15 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntime.ts
-// P34D
-// WORKSPACE RUNTIME FOUNDATION
+// P36
+// RUNTIME-OWNED INVESTIGATION STATE
 //
-// The Workspace Runtime owns the deterministic Investigation
-// Session and Operator State.
+// The Workspace Runtime is the deterministic owner of the
+// operator's active Investigation Session.
 //
-// It composes deterministic runtime subsystems without
-// performing computation itself.
+// It owns investigation state and operator state while
+// composing deterministic runtime subsystems.
+//
+// The Workspace Runtime performs no computation.
 //
 // Ownership:
 //
@@ -16,7 +18,8 @@
 // Main Layout
 //      ↓
 // Workspace Runtime
-//      ├── Investigation Session
+//      ├── Active Workspace
+//      ├── Active Investigation
 //      ├── Operator State
 //      ├── Manifold Runtime
 //      ├── Corpus
@@ -67,6 +70,8 @@ export class WorkspaceRuntime {
 
         workspace: undefined,
 
+        investigation: undefined,
+
         artifacts: [],
 
       },
@@ -86,8 +91,10 @@ export class WorkspaceRuntime {
    * Runtime listeners.
    *
    * React observes runtime changes through this lightweight
-   * notification mechanism. Ownership remains entirely within
-   * the Workspace Runtime.
+   * notification mechanism.
+   *
+   * All mutable investigation state remains owned by the
+   * Workspace Runtime.
    */
   private listeners =
     new Set<WorkspaceRuntimeListener>();
@@ -113,6 +120,19 @@ export class WorkspaceRuntime {
     Readonly<WorkspaceOperatorState> {
 
     return this.state.operator;
+
+  }
+
+  getWorkspace():
+    Workspace | undefined {
+
+    return this.state.session.workspace;
+
+  }
+
+  getActiveInvestigation() {
+
+    return this.state.session.investigation;
 
   }
 
@@ -196,6 +216,66 @@ export class WorkspaceRuntime {
   }
 
   // ==========================================================
+  // INVESTIGATION OWNERSHIP
+  // ==========================================================
+
+  setActiveInvestigation(
+    investigation: unknown,
+  ): void {
+
+    if (
+      this.state.session.investigation === investigation
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      session: {
+
+        ...this.state.session,
+
+        investigation,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  clearActiveInvestigation(): void {
+
+    this.state = {
+
+      ...this.state,
+
+      session: {
+
+        ...this.state.session,
+
+        investigation: undefined,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
   // LIFECYCLE
   // ==========================================================
 
@@ -228,6 +308,33 @@ export class WorkspaceRuntime {
         ...this.state.session,
 
         workspace,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  deactivate(): void {
+
+    this.state = {
+
+      ...this.state,
+
+      status: "READY",
+
+      session: {
+
+        workspace: undefined,
+
+        investigation: undefined,
+
+        artifacts: [],
 
       },
 
