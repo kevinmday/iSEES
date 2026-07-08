@@ -1,17 +1,32 @@
 // ============================================================
 // src/App.tsx
-// OPERATOR CONSOLE BRIDGE (V7)
-// P30.1 INVESTIGATION CONTROL FOUNDATION
-// SYSTEM CANON ARCHITECTURE
+// OPERATOR CONSOLE BRIDGE (V8)
+// P35
+// WORKSPACE RUNTIME INTEGRATION
 //
-// The left side of the operator console is now owned by
-// Investigation Control.
+// The Workspace Runtime is now introduced as the deterministic
+// Investigation Session owner.
 //
-// Explore Mode
-//   Constructs investigations.
+// Ownership:
 //
-// Compute Mode
-//   Defines the computational universe.
+// Corpus
+//      ↓
+// Workspace
+//      ↓
+// Workspace Runtime
+//      ↓
+// Federation
+//      ↓
+// Intelligence
+//      ↓
+// Graph
+//      ↓
+// Event
+//      ↓
+// MainLayout
+//
+// The Workspace Runtime composes deterministic runtime
+// subsystems while remaining independent of computation.
 //
 // ============================================================
 
@@ -38,6 +53,10 @@ import {
 } from "./workspace/context/WorkspaceContext";
 
 import {
+  WorkspaceRuntimeProvider,
+} from "./workspace/runtime";
+
+import {
   FederationProvider,
 } from "./federation/context/FederationContext";
 
@@ -55,18 +74,6 @@ import {
 
 // ============================================================
 // OPERATOR UI
-// P30.1
-// INVESTIGATION CONTROL FOUNDATION
-//
-// The left side of the operator console is now owned by
-// Investigation Control.
-//
-// Explore Mode
-//   Investigation construction.
-//
-// Compute Mode
-//   Computational universe definition.
-//
 // ============================================================
 
 function OperatorUI() {
@@ -77,37 +84,41 @@ function OperatorUI() {
 
       <WorkspaceProvider>
 
-        <FederationProvider>
+        <WorkspaceRuntimeProvider>
 
-          <IntelligenceBriefProvider>
+          <FederationProvider>
 
-            <GraphProvider>
+            <IntelligenceBriefProvider>
 
-              <EventProvider>
+              <GraphProvider>
 
-                <MainLayout
+                <EventProvider>
 
-                  left={
-                    <InvestigationControl />
-                  }
+                  <MainLayout
 
-                  center={
-                    <PrimarySurface />
-                  }
+                    left={
+                      <InvestigationControl />
+                    }
 
-                  right={
-                    <RightPanel />
-                  }
+                    center={
+                      <PrimarySurface />
+                    }
 
-                />
+                    right={
+                      <RightPanel />
+                    }
 
-              </EventProvider>
+                  />
 
-            </GraphProvider>
+                </EventProvider>
 
-          </IntelligenceBriefProvider>
+              </GraphProvider>
 
-        </FederationProvider>
+            </IntelligenceBriefProvider>
+
+          </FederationProvider>
+
+        </WorkspaceRuntimeProvider>
 
       </WorkspaceProvider>
 
@@ -118,7 +129,7 @@ function OperatorUI() {
 }
 
 // ============================================================
-// ROOT APP
+// ROOT APPLICATION
 // ============================================================
 
 export default function App() {
@@ -129,17 +140,23 @@ export default function App() {
 
       <Route
         path="/report"
-        element={<PublicIntake />}
+        element={
+          <PublicIntake />
+        }
       />
 
       <Route
         path="/briefing"
-        element={<SystemBriefing />}
+        element={
+          <SystemBriefing />
+        }
       />
 
       <Route
         path="/*"
-        element={<OperatorUI />}
+        element={
+          <OperatorUI />
+        }
       />
 
     </Routes>

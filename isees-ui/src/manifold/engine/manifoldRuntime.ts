@@ -1,35 +1,44 @@
 // ============================================================
 // src/manifold/engine/manifoldRuntime.ts
-// P31A
-// DETERMINISTIC MANIFOLD RUNTIME FOUNDATION
+// P33A
+// DETERMINISTIC MANIFOLD RUNTIME
 //
-// The Manifold Runtime is the orchestration layer that owns the
-// active investigation session.
+// The Manifold Runtime is the deterministic orchestration layer
+// that owns an active Investigation Session.
 //
 // Responsibilities:
 //
 //   • Receive operator intent
-//   • Manage runtime state
-//   • Coordinate deterministic computation
-//   • Invoke the Manifold Engine
-//   • Maintain investigation history
-//   • Control presentation mode
+//   • Own deterministic runtime state
+//   • Coordinate Resolve–Dissolve Computation (RDC)
+//   • Invoke the deterministic Manifold Engine
+//   • Maintain runtime history
+//   • Manage presentation state
+//   • Own runtime selection state
+//   • Own future snapshot state
 //
-// The runtime intentionally contains NO computational logic.
-// Computation remains the responsibility of the deterministic
-// Manifold Engine.
+// The runtime intentionally performs NO computation.
+//
+// Computational ownership belongs exclusively to the
+// deterministic Manifold Engine.
 //
 // Ownership:
 //
 // Operator
 //      ↓
-// Toolbar
+// Manifold Toolbar
 //      ↓
 // Primary Investigation Manifold
 //      ↓
 // Manifold Runtime
 //      ↓
-// Manifold Engine
+// Resolve–Dissolve Computation (RDC)
+//      ↓
+// Deterministic Investigation Manifold
+//
+// The Runtime owns investigation execution.
+//
+// The Engine owns investigation computation.
 //
 // ============================================================
 
@@ -53,39 +62,71 @@ export type ManifoldViewMode =
   | "2D"
   | "3D";
 
+export type RuntimeExecutionState =
+  | "IDLE"
+  | "RESOLVING"
+  | "RESOLVED"
+  | "DISSOLVED"
+  | "COLLAPSED";
+
+export interface RuntimeSelection {
+
+  nodeId?: string;
+
+  edgeId?: string;
+
+}
+
 export interface ManifoldRuntimeState {
 
   /**
    * Current deterministic manifold.
-   *
-   * Undefined until the first successful computation.
    */
   manifold?: Manifold;
 
   /**
-   * Current presentation mode.
+   * Presentation mode.
    */
   viewMode: ManifoldViewMode;
 
   /**
+   * Runtime execution state.
+   */
+  executionState: RuntimeExecutionState;
+
+  /**
+   * Current runtime selection.
+   *
+   * Eventually replaces UI-owned transient selection.
+   */
+  selection: RuntimeSelection;
+
+  /**
    * Runtime revision.
    *
-   * Incremented every deterministic operator action.
+   * Incremented after every deterministic operator action.
    */
   revision: number;
+
 }
 
 // ============================================================
 // DEFAULT STATE
 // ============================================================
 
-export const DEFAULT_MANIFOLD_RUNTIME: ManifoldRuntimeState = {
+export const DEFAULT_MANIFOLD_RUNTIME:
+ManifoldRuntimeState = {
 
   manifold: undefined,
 
   viewMode: "2D",
 
+  executionState: "IDLE",
+
+  selection: {},
+
   revision: 0,
+
 };
 
 // ============================================================
@@ -94,19 +135,22 @@ export const DEFAULT_MANIFOLD_RUNTIME: ManifoldRuntimeState = {
 
 export class ManifoldRuntime {
 
-  private state: ManifoldRuntimeState =
+  private state =
     DEFAULT_MANIFOLD_RUNTIME;
 
   // ==========================================================
   // ACCESSORS
   // ==========================================================
 
-  getState(): Readonly<ManifoldRuntimeState> {
+  getState():
+    Readonly<ManifoldRuntimeState> {
+
     return this.state;
+
   }
 
   // ==========================================================
-  // OPERATOR ENTRY POINT
+  // OPERATOR ENTRY
   // ==========================================================
 
   dispatch(
@@ -137,12 +181,14 @@ export class ManifoldRuntime {
 
       default: {
 
-        const exhaustive: never = action;
+        const exhaustive: never =
+          action;
 
         console.warn(
           "[ManifoldRuntime] Unknown action:",
           exhaustive,
         );
+
       }
 
     }
@@ -155,15 +201,13 @@ export class ManifoldRuntime {
 
   private resolve(): void {
 
-    console.log(
-      "[Runtime] Resolve",
-    );
+    this.state = {
 
-    // P31A
-    //
-    // This intentionally invokes the public engine API.
-    // computeManifold() remains a stub until the RDC
-    // pipeline is implemented.
+      ...this.state,
+
+      executionState: "RESOLVING",
+
+    };
 
     try {
 
@@ -171,17 +215,33 @@ export class ManifoldRuntime {
         computeManifold();
 
       this.state = {
+
         ...this.state,
+
         manifold,
+
+        executionState: "RESOLVED",
+
         revision:
           this.state.revision + 1,
+
       };
 
-    } catch {
+    }
+
+    catch {
 
       console.info(
         "[Runtime] computeManifold() not yet implemented.",
       );
+
+      this.state = {
+
+        ...this.state,
+
+        executionState: "IDLE",
+
+      };
 
     }
 
@@ -189,21 +249,33 @@ export class ManifoldRuntime {
 
   private dissolve(): void {
 
-    console.log(
-      "[Runtime] Dissolve",
-    );
+    this.state = {
 
-    this.bumpRevision();
+      ...this.state,
+
+      manifold: undefined,
+
+      executionState: "DISSOLVED",
+
+      revision:
+        this.state.revision + 1,
+
+    };
 
   }
 
   private collapse(): void {
 
-    console.log(
-      "[Runtime] Collapse",
-    );
+    this.state = {
 
-    this.bumpRevision();
+      ...this.state,
+
+      executionState: "COLLAPSED",
+
+      revision:
+        this.state.revision + 1,
+
+    };
 
   }
 
@@ -222,29 +294,27 @@ export class ManifoldRuntime {
 
     };
 
-    console.log(
-      "[Runtime] View Mode:",
-      mode,
-    );
-
   }
 
   // ==========================================================
-  // HELPERS
+  // FUTURE RUNTIME API
   // ==========================================================
-
-  private bumpRevision(): void {
-
-    this.state = {
-
-      ...this.state,
-
-      revision:
-        this.state.revision + 1,
-
-    };
-
-  }
+  //
+  // selectNode()
+  // selectEdge()
+  // clearSelection()
+  // saveSnapshot()
+  // restoreSnapshot()
+  // undo()
+  // redo()
+  // replay()
+  // export()
+  //
+  // These capabilities belong to the Runtime because they
+  // represent deterministic investigation session ownership
+  // rather than computation.
+  //
+  // ==========================================================
 
 }
 
