@@ -1,38 +1,20 @@
 // ============================================================
 // src/surfaces/PrimarySurface.tsx
-// P26.2
+// P36 DIAGNOSTIC
 // PRIMARY SURFACE
 //
-// The Primary Surface owns the center investigation region.
+// Temporary diagnostic.
 //
-// It decides which major investigation surface the operator
-// should see.
+// Force the application to render only the Workspace Surface.
 //
-// Current implementation:
+// If Workspace Modes still do not change after this file,
+// the problem is NOT inside PrimarySurface.
 //
-//   Intelligence Brief
-//          OR
-//   Investigation Workspace
-//
-// Future:
-//
-//   Timeline
-//   Comparative Analysis
-//   Narrative Reconstruction
-//   Investigation Graph
-//   3D Manifold
-//   Hypothesis Workspace
-//
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
-import InvestigationWorkspace from "../components/InvestigationWorkspace";
-
-import IntelligenceBrief from "../intel/components/IntelligenceBrief";
-
-import {
-  useIntelligenceBrief,
-} from "../intel/context/IntelligenceBriefContext";
-
+import WorkspaceSurface
+  from "./WorkspaceSurface";
 
 // ============================================================
 // COMPONENT
@@ -40,39 +22,13 @@ import {
 
 export default function PrimarySurface() {
 
-  const {
-
-    brief,
-
-  } = useIntelligenceBrief();
-
-
-  // ==========================================================
-  // INTELLIGENCE BRIEF
-  // ==========================================================
-
-  if (
-
-    brief
-
-  ) {
-
-    return (
-
-      <IntelligenceBrief />
-
-    );
-
-  }
-
-
-  // ==========================================================
-  // DEFAULT
-  // ==========================================================
+  console.log(
+    "PrimarySurface render"
+  );
 
   return (
 
-    <InvestigationWorkspace />
+    <WorkspaceSurface />
 
   );
 

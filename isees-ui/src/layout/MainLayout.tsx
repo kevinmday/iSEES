@@ -13,6 +13,14 @@ import {
   useWorkspace,
 } from "../workspace/context/WorkspaceContext";
 
+import {
+  useWorkspaceRuntime,
+} from "../workspace/runtime/WorkspaceRuntimeContext";
+
+import {
+  WorkspaceMode,
+} from "../workspace/runtime/WorkspaceRuntimeTypes";
+
 import WorkspaceModeBar
   from "../components/workspace/WorkspaceModeBar";
 
@@ -34,6 +42,88 @@ export default function MainLayout({
   const {
     focusedEventId,
   } = useWorkspace();
+
+  const runtime =
+    useWorkspaceRuntime();
+
+  const activeWorkspaceMode =
+    runtime.getActiveMode();
+
+  const workspaceTitle = (() => {
+
+    switch (activeWorkspaceMode) {
+
+      case WorkspaceMode.OVERVIEW:
+        return "Overview Workspace";
+
+      case WorkspaceMode.MANIFOLD:
+        return "Primary Investigation Manifold";
+
+      case WorkspaceMode.COMPARE:
+        return "Comparative Analysis Workspace";
+
+      case WorkspaceMode.NARRATIVE:
+        return "Narrative Reconstruction Workspace";
+
+      case WorkspaceMode.EVIDENCE:
+        return "Evidence Workspace";
+
+      case WorkspaceMode.TIMELINE:
+        return "Timeline Workspace";
+
+      case WorkspaceMode.LAYERS:
+        return "Layer Analysis Workspace";
+
+      case WorkspaceMode.INTENTION:
+        return "Intention Analysis Workspace";
+
+      case WorkspaceMode.RESEARCH:
+        return "Research Workspace";
+
+      default:
+        return "Primary Investigation Manifold";
+
+    }
+
+  })();
+
+  const workspaceDescription = (() => {
+
+    switch (activeWorkspaceMode) {
+
+      case WorkspaceMode.OVERVIEW:
+        return "Operational overview of the active investigation.";
+
+      case WorkspaceMode.MANIFOLD:
+        return "Deterministic visualization of the active investigation manifold.";
+
+      case WorkspaceMode.COMPARE:
+        return "Comparative analysis across investigation candidates.";
+
+      case WorkspaceMode.NARRATIVE:
+        return "Narrative reconstruction of the active investigation.";
+
+      case WorkspaceMode.EVIDENCE:
+        return "Evidence supporting the active investigation.";
+
+      case WorkspaceMode.TIMELINE:
+        return "Temporal progression of the active investigation.";
+
+      case WorkspaceMode.LAYERS:
+        return "Deterministic investigation layer analysis.";
+
+      case WorkspaceMode.INTENTION:
+        return "Candidate intention analysis derived from deterministic computation.";
+
+      case WorkspaceMode.RESEARCH:
+        return "Research artifacts associated with the active investigation.";
+
+      default:
+        return "Deterministic visualization of the active investigation manifold.";
+
+    }
+
+  })();
 
   const activeEvent =
     events.find(
@@ -335,7 +425,7 @@ export default function MainLayout({
                   color: "#f8fafc",
                 }}
               >
-                Primary Investigation Manifold
+                {workspaceTitle}
               </div>
 
               <div
@@ -351,8 +441,7 @@ export default function MainLayout({
                   maxWidth: 760,
                 }}
               >
-                Deterministic visualization of the active investigation
-                manifold.
+              {workspaceDescription}
               </div>
             </div>
 

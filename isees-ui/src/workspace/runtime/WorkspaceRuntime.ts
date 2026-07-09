@@ -20,6 +20,7 @@
 // Workspace Runtime
 //      ├── Active Workspace
 //      ├── Active Investigation
+//      ├── Focused Event
 //      ├── Operator State
 //      ├── Manifold Runtime
 //      ├── Corpus
@@ -71,6 +72,8 @@ export class WorkspaceRuntime {
         workspace: undefined,
 
         investigation: undefined,
+
+        focusedEvent: undefined,
 
         artifacts: [],
 
@@ -136,6 +139,12 @@ export class WorkspaceRuntime {
 
   }
 
+  getFocusedEvent() {
+
+    return this.state.session.focusedEvent;
+
+  }
+
   getActiveMode():
     WorkspaceModeType {
 
@@ -177,7 +186,6 @@ export class WorkspaceRuntime {
     }
 
   }
-
   // ==========================================================
   // OPERATOR STATE
   // ==========================================================
@@ -276,6 +284,66 @@ export class WorkspaceRuntime {
   }
 
   // ==========================================================
+  // FOCUSED EVENT OWNERSHIP
+  // ==========================================================
+
+  setFocusedEvent(
+    focusedEvent: unknown,
+  ): void {
+
+    if (
+      this.state.session.focusedEvent === focusedEvent
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      session: {
+
+        ...this.state.session,
+
+        focusedEvent,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  clearFocusedEvent(): void {
+
+    this.state = {
+
+      ...this.state,
+
+      session: {
+
+        ...this.state.session,
+
+        focusedEvent: undefined,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
   // LIFECYCLE
   // ==========================================================
 
@@ -334,6 +402,8 @@ export class WorkspaceRuntime {
 
         investigation: undefined,
 
+        focusedEvent: undefined,
+
         artifacts: [],
 
       },
@@ -366,7 +436,6 @@ export class WorkspaceRuntime {
   // ---------------------
   //
   // Selection
-  // Focus
   // Hover
   // Viewport
   // Layout

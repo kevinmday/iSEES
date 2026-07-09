@@ -19,6 +19,7 @@
 // Workspace Runtime
 //      ├── Active Workspace
 //      ├── Active Investigation
+//      ├── Focused Event
 //      └── Operator State
 //              ↓
 //          Active Workspace Mode
@@ -94,6 +95,17 @@ export interface WorkspaceRuntimeSession {
    * when extracted into the canonical investigation model.
    */
   investigation?: unknown;
+
+  /**
+   * Currently focused event within the active investigation.
+   *
+   * Every workspace mode observes the same deterministic
+   * runtime-owned event focus.
+   *
+   * A concrete Event contract will replace 'unknown' when
+   * extracted into the canonical investigation model.
+   */
+  focusedEvent?: unknown;
 
   /**
    * Imported artifacts associated with the investigation.
