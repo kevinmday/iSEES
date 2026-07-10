@@ -136,25 +136,33 @@ export default function WorkspaceModeBar() {
         padding: "0 18px",
       }}
     >
-
       {MODES.map((mode) => (
-
         <div
           key={mode}
           style={modeStyle(
             activeMode === mode,
           )}
-          onClick={() =>
+          onClick={() => {
+
+            console.log(
+              "Clicked:",
+              mode,
+            );
+
             runtime.setActiveMode(
               mode,
-            )
-          }
+            );
+
+            console.log(
+              "Runtime now:",
+              runtime.getActiveMode(),
+            );
+
+          }}
         >
           {mode}
         </div>
-
       ))}
-
     </div>
 
   );

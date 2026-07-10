@@ -71,13 +71,22 @@ export function WorkspaceRuntimeProvider({
   // It simply re-renders whenever the deterministic
   // Workspace Runtime publishes a revision.
 
-  const [, forceUpdate] =
+  const [revision, forceUpdate] =
     useState(0);
+
+  console.log(
+    "WorkspaceRuntimeProvider render:",
+    revision,
+  );
 
   useEffect(() => {
 
     const unsubscribe =
       workspaceRuntime.subscribe(() => {
+
+        console.log(
+          "WorkspaceRuntimeContext notified",
+        );
 
         forceUpdate(
           revision => revision + 1,

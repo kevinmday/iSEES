@@ -1,17 +1,39 @@
 // ============================================================
 // src/surfaces/PrimarySurface.tsx
-// P36 DIAGNOSTIC
-// PRIMARY SURFACE
+// P37A
+// PRIMARY WORKSPACE PROJECTION
 //
-// Temporary diagnostic.
+// Canonical projection surface for the Workspace Runtime.
 //
-// Force the application to render only the Workspace Surface.
+// The Workspace Runtime deterministically owns the active
+// Workspace Mode. PrimarySurface performs no computation
+// and owns no application state.
 //
-// If Workspace Modes still do not change after this file,
-// the problem is NOT inside PrimarySurface.
+// It simply projects the appropriate workspace surface
+// selected by the Workspace Projection subsystem.
+//
+// Ownership:
+//
+// Operator
+//      ↓
+// Workspace Runtime
+//      ↓
+// Workspace Projection
+//      ↓
+// PrimarySurface
+//      ↓
+// Active Workspace Surface
+//
+// PrimarySurface owns no state.
+// PrimarySurface performs no computation.
+// It is the deterministic projection boundary between the
+// runtime and the visible operator workspace.
 //
 // FULL DROP-IN REPLACEMENT
 // ============================================================
+
+import WorkspaceProjection
+  from "../workspace/runtime/WorkspaceProjection";
 
 import WorkspaceSurface
   from "./WorkspaceSurface";
@@ -22,13 +44,13 @@ import WorkspaceSurface
 
 export default function PrimarySurface() {
 
-  console.log(
-    "PrimarySurface render"
-  );
-
   return (
 
-    <WorkspaceSurface />
+    <WorkspaceProjection
+      fallback={
+        <WorkspaceSurface />
+      }
+    />
 
   );
 
