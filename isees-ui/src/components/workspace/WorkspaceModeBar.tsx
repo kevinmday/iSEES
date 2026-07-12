@@ -112,7 +112,8 @@ export default function WorkspaceModeBar() {
     useWorkspaceRuntime();
 
   const activeMode =
-    runtime.getActiveMode();
+  runtime.getActiveMode();
+
 
   return (
 
@@ -144,20 +145,12 @@ export default function WorkspaceModeBar() {
           )}
           onClick={() => {
 
-            console.log(
-              "Clicked:",
-              mode,
-            );
-
+           
             runtime.setActiveMode(
               mode,
             );
 
-            console.log(
-              "Runtime now:",
-              runtime.getActiveMode(),
-            );
-
+           
           }}
         >
           {mode}

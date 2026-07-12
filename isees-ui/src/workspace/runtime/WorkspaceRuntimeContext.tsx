@@ -52,9 +52,17 @@ import type {
 // CONTEXT
 // ============================================================
 
+type WorkspaceRuntimeContextValue = {
+
+  runtime: WorkspaceRuntime;
+
+  revision: number;
+
+};
+
 const WorkspaceRuntimeContext =
   createContext<
-    WorkspaceRuntime | undefined
+    WorkspaceRuntimeContextValue | undefined
   >(undefined);
 
 // ============================================================
@@ -74,20 +82,13 @@ export function WorkspaceRuntimeProvider({
   const [revision, forceUpdate] =
     useState(0);
 
-  console.log(
-    "WorkspaceRuntimeProvider render:",
-    revision,
-  );
 
   useEffect(() => {
 
     const unsubscribe =
       workspaceRuntime.subscribe(() => {
 
-        console.log(
-          "WorkspaceRuntimeContext notified",
-        );
-
+      
         forceUpdate(
           revision => revision + 1,
         );
@@ -98,10 +99,17 @@ export function WorkspaceRuntimeProvider({
 
   }, []);
 
-  return (
+    return (
 
     <WorkspaceRuntimeContext.Provider
-      value={workspaceRuntime}
+      value={{
+
+        runtime:
+          workspaceRuntime,
+
+        revision,
+
+      }}
     >
       {children}
     </WorkspaceRuntimeContext.Provider>
@@ -116,12 +124,12 @@ export function WorkspaceRuntimeProvider({
 
 export function useWorkspaceRuntime() {
 
-  const runtime =
+  const context =
     useContext(
       WorkspaceRuntimeContext,
     );
 
-  if (!runtime) {
+  if (!context) {
 
     throw new Error(
       "useWorkspaceRuntime must be used inside WorkspaceRuntimeProvider",
@@ -129,7 +137,7 @@ export function useWorkspaceRuntime() {
 
   }
 
-  return runtime;
+  return context.runtime;
 
 }
 

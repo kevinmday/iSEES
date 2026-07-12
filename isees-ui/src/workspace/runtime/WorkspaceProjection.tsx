@@ -85,11 +85,6 @@ export default function WorkspaceProjection({
    const activeMode =
     runtime.getActiveMode();
 
-  console.log(
-    "WorkspaceProjection:",
-    activeMode,
-  );
-
   switch (activeMode) {
 
     case WorkspaceMode.OVERVIEW:

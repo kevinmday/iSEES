@@ -49,12 +49,6 @@ export default function MainLayout({
   const activeWorkspaceMode =
     runtime.getActiveMode();
 
-console.log(
-  "MainLayout:",
-  activeWorkspaceMode,
-);
-
-
 
   const workspaceTitle = (() => {
 

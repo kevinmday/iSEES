@@ -14,6 +14,8 @@ import { objectRegistry } from "../intel/object_registry";
 import { useWorkspace }
   from "../workspace/context/WorkspaceContext";
 
+import { useEffect } from "react";
+
 // ============================================================
 // NODE TYPE RESOLUTION
 // ============================================================
@@ -130,7 +132,7 @@ export default function RightPanel() {
         )
       : fallbackAssets;
 
-  // ==========================================================
+    // ==========================================================
   // EVENT-BOUND NODE SYNCHRONIZATION
   // ==========================================================
 
@@ -145,21 +147,34 @@ export default function RightPanel() {
       expectedNodeName || ""
     );
 
-  if (
-    firstAsset &&
-    !eventHasSelectedNode
-  ) {
+  useEffect(() => {
 
-    setSelectedOperationalNode({
+    if (
+      firstAsset &&
+      !eventHasSelectedNode
+    ) {
 
-      name: firstAsset,
+      setSelectedOperationalNode({
 
-      type:
-        resolveNodeType(
-          firstAsset
-        ),
-    });
-  }
+        name: firstAsset,
+
+        type:
+          resolveNodeType(
+            firstAsset
+          ),
+      });
+
+    }
+
+  }, [
+
+    firstAsset,
+
+    eventHasSelectedNode,
+
+    setSelectedOperationalNode,
+
+  ]);
 
   // ==========================================================
   // HANDLERS
