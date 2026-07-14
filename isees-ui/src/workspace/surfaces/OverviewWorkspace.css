@@ -1,0 +1,236 @@
+/* ==========================================================
+   OverviewWorkspace.css
+   Canon v1
+   OVERVIEW WORKSPACE
+
+   Production Investigation Dashboard
+
+   Presentation only.
+
+   Implements the Canon v1 Production Design System.
+
+   Runtime ownership remains external.
+
+   ========================================================== */
+
+.overview-workspace {
+
+    height: 100%;
+    overflow: auto;
+
+    padding: var(--workspace-padding);
+
+    color: var(--text-secondary);
+
+}
+
+/* ==========================================================
+   DASHBOARD
+   ========================================================== */
+
+.overview-dashboard {
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: var(--workspace-gap);
+
+    max-width: var(--workspace-max-width);
+
+}
+
+/* ==========================================================
+   ACTIVE INVESTIGATION
+   ========================================================== */
+
+.investigation-summary {
+
+    width: 100%;
+    max-width: 720px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: var(--panel-header-gap);
+
+    padding: var(--panel-padding);
+
+    background: var(--panel-background);
+
+    border: var(--panel-border);
+
+    border-radius: var(--panel-radius);
+
+    box-shadow: var(--shadow-sm);
+
+}
+
+.summary-label {
+
+    font-family: var(--font-family-sans);
+
+    font-size: var(--font-micro);
+
+    font-weight: var(--weight-semibold);
+
+    letter-spacing: var(--tracking-system);
+
+    text-transform: uppercase;
+
+    color: var(--text-caption);
+
+}
+
+.summary-title {
+
+    margin:
+        var(--space-xxs)
+        0
+        var(--space-xs);
+
+    font-family: var(--type-title-family);
+
+    font-size: var(--type-title-size);
+
+    font-weight: var(--type-title-weight);
+
+    line-height: var(--line-tight);
+
+    letter-spacing: var(--tracking-normal);
+
+    color: var(--text-primary);
+
+}
+
+.summary-subtitle {
+
+    font-family: var(--font-family-sans);
+
+    font-size: var(--font-body);
+
+    line-height: var(--line-normal);
+
+    color: var(--text-muted);
+
+}
+
+.summary-subject {
+
+    margin-top: var(--space-xs);
+
+    font-family: var(--font-family-sans);
+
+    font-size: var(--font-meta);
+
+    color: var(--text-caption);
+
+}
+
+.summary-location {
+
+    margin-top: var(--space-xxs);
+
+    font-family: var(--font-family-sans);
+
+    font-size: var(--font-body);
+
+    font-weight: var(--weight-medium);
+
+    color: var(--text-secondary);
+
+}
+
+/* ==========================================================
+   OPERATIONAL METRICS
+   ========================================================== */
+
+.investigation-metrics {
+
+    width: 100%;
+    max-width: 720px;
+
+    display: grid;
+
+    grid-template-columns: repeat(6, 1fr);
+
+    gap: var(--card-gap);
+
+}
+
+.metric-card {
+
+    min-height: var(--metric-height);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+
+    padding: var(--metric-padding);
+
+    background: var(--card-background);
+
+    border: var(--card-border);
+
+    border-radius: var(--metric-radius);
+
+    box-shadow: var(--shadow-sm);
+
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast);
+
+}
+
+.metric-label {
+
+    font-family: var(--type-system-family);
+
+    font-size: var(--type-system-size);
+
+    font-weight: var(--type-system-weight);
+
+    letter-spacing: var(--tracking-system);
+
+    text-transform: uppercase;
+
+    color: var(--text-caption);
+
+    opacity: .85;
+
+}
+
+.metric-value {
+
+    margin-top: var(--metric-gap);
+
+    font-family: var(--type-metric-family);
+
+    font-size: var(--font-section);
+
+    font-weight: var(--type-metric-weight);
+
+    line-height: var(--line-tight);
+
+    letter-spacing: var(--tracking-normal);
+
+    color: var(--text-primary);
+
+}
+
+/* ==========================================================
+   FUTURE DASHBOARD SECTIONS
+
+   Reserved for:
+
+   • Topology Overview
+   • Investigation Health
+   • Evidence Maturity
+   • Layer Contribution
+   • Timeline Summary
+
+   Every future section inherits Canon v1.
+
+   ========================================================== */

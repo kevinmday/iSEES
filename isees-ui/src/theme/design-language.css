@@ -1,0 +1,344 @@
+/* ==========================================================
+   iSEES Canon v1
+   Production Design System
+
+   Canonical Design Language
+
+   This file defines every visual primitive used by the
+   iSEES operator interface.
+
+   Ownership
+   ---------
+   Workspace Runtime
+        ↓
+   Workspace Projection
+        ↓
+   Workspace Surface
+        ↓
+   Canon v1
+
+   Runtime owns behavior.
+
+   Canon owns presentation.
+
+   Presentation only.
+
+   No runtime ownership.
+   No application logic.
+   No state.
+   No computation.
+
+   ========================================================== */
+
+:root {
+
+    /* ======================================================
+       COLOR SYSTEM
+       ====================================================== */
+
+    --surface-0: #060b14;
+    --surface-1: #09111f;
+    --surface-2: #0b1220;
+    --surface-3: rgba(15, 23, 42, 0.35);
+
+    --border-color: rgba(148,163,184,.12);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #e2e8f0;
+    --text-muted: #cbd5e1;
+    --text-caption: #94a3b8;
+    --text-disabled: #64748b;
+
+    /* ======================================================
+       SEMANTIC COLORS
+       ====================================================== */
+
+    --color-success: #4ade80;
+    --color-warning: #facc15;
+    --color-critical: #ef4444;
+    --color-information: #38bdf8;
+    --color-compare: #8b5cf6;
+
+    /* ======================================================
+       TYPOGRAPHY
+       Canon Typography v1
+       ====================================================== */
+
+    /* ------------------------------------------------------
+       FONT FAMILIES
+       ------------------------------------------------------ */
+
+    --font-family-sans:
+        Inter,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+    --font-family-mono:
+        Consolas,
+        "SFMono-Regular",
+        "Cascadia Code",
+        monospace;
+
+    /* ------------------------------------------------------
+       CANON TYPE SCALE
+       ------------------------------------------------------ */
+
+    --font-display: 34px;
+    --font-workspace: 26px;
+    --font-section: 18px;
+    --font-panel: 15px;
+    --font-body: 14px;
+    --font-meta: 12px;
+    --font-micro: 11px;
+
+    /* ------------------------------------------------------
+       FONT WEIGHTS
+       ------------------------------------------------------ */
+
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+
+    /* ------------------------------------------------------
+       LINE HEIGHT
+       ------------------------------------------------------ */
+
+    --line-tight: 1.15;
+    --line-normal: 1.45;
+    --line-relaxed: 1.65;
+
+    /* ------------------------------------------------------
+       TRACKING
+       ------------------------------------------------------ */
+
+    --tracking-normal: 0;
+    --tracking-system: .08em;
+    --tracking-status: .06em;
+
+    /* ------------------------------------------------------
+       TYPOGRAPHIC ROLES
+       ------------------------------------------------------ */
+
+    /* Machine labels */
+
+    --type-system-family: var(--font-family-sans);
+    --type-system-size: var(--font-micro);
+    --type-system-weight: var(--weight-semibold);
+
+    /* Workspace / briefing titles */
+
+    --type-title-family: var(--font-family-sans);
+    --type-title-size: var(--font-workspace);
+    --type-title-weight: var(--weight-bold);
+
+    /* Panel headings */
+
+    --type-panel-family: var(--font-family-sans);
+    --type-panel-size: var(--font-panel);
+    --type-panel-weight: var(--weight-bold);
+
+    /* Body copy */
+
+    --type-body-family: var(--font-family-sans);
+    --type-body-size: var(--font-body);
+    --type-body-weight: var(--weight-regular);
+
+    /* Machine identifiers */
+
+    --type-id-family: var(--font-family-mono);
+    --type-id-size: var(--font-body);
+    --type-id-weight: var(--weight-semibold);
+
+    /* Metrics */
+
+    --type-metric-family: var(--font-family-sans);
+    --type-metric-weight: var(--weight-bold);
+
+    /* ======================================================
+       SPACING
+       ====================================================== */
+
+    --space-xxs: 4px;
+    --space-xs: 6px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-xxl: 48px;
+    --space-3xl: 64px;
+
+    /* ======================================================
+       SURFACE HIERARCHY
+       ====================================================== */
+
+    --surface-radius-sm: 8px;
+    --surface-radius: 12px;
+    --surface-radius-lg: 16px;
+
+    --surface-padding-sm: 12px;
+    --surface-padding-md: 16px;
+    --surface-padding-lg: 24px;
+    --surface-padding-xl: 32px;
+
+    --surface-border:
+        1px solid var(--border-color);
+
+    /* ======================================================
+       PANEL LANGUAGE
+       ====================================================== */
+
+    --panel-background: var(--surface-2);
+    --panel-border: var(--surface-border);
+    --panel-radius: var(--surface-radius);
+    --panel-padding: var(--space-lg);
+    --panel-gap: var(--space-md);
+    --panel-header-gap: var(--space-xs);
+
+    /* ======================================================
+       CARD LANGUAGE
+       ====================================================== */
+
+    --card-background: var(--surface-3);
+    --card-border: var(--surface-border);
+    --card-radius: var(--surface-radius);
+    --card-padding: 18px;
+    --card-gap: 12px;
+
+    /* ======================================================
+       METRIC LANGUAGE
+       ====================================================== */
+
+    --metric-height: 74px;
+    --metric-padding: 16px;
+    --metric-gap: 8px;
+    --metric-radius: var(--surface-radius);
+
+    /* ======================================================
+       STATUS
+       ====================================================== */
+
+    --status-height: 22px;
+    --status-radius: 999px;
+
+    /* ======================================================
+       NAVIGATION
+       ====================================================== */
+
+    --header-height: 56px;
+    --modebar-height: 54px;
+    --statusbar-height: 28px;
+
+    /* ======================================================
+       DIVIDERS
+       ====================================================== */
+
+    --divider-color: rgba(148,163,184,.12);
+
+    /* ======================================================
+       SHADOWS
+       ====================================================== */
+
+    --shadow-sm:
+        0 2px 8px rgba(0,0,0,.18);
+
+    --shadow-md:
+        0 8px 24px rgba(0,0,0,.22);
+
+    --shadow-lg:
+        0 16px 48px rgba(0,0,0,.30);
+
+    /* ======================================================
+       INTERACTION
+       ====================================================== */
+
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+
+    --hover-opacity: .90;
+    --disabled-opacity: .45;
+
+    --focus-ring:
+        0 0 0 2px rgba(56,189,248,.35);
+
+    /* ======================================================
+       SCROLLBARS
+       ====================================================== */
+
+    --scrollbar-width: 8px;
+
+    --scrollbar-track: transparent;
+
+    --scrollbar-thumb: rgba(148,163,184,.22);
+
+    --scrollbar-thumb-hover: rgba(148,163,184,.38);
+
+    /* ======================================================
+       WORKSPACE
+       ====================================================== */
+
+    --workspace-max-width: 1120px;
+    --workspace-padding: var(--space-xl);
+    --workspace-gap: var(--space-lg);
+
+}
+
+/* ==========================================================
+   CANON SCROLLBARS
+   ========================================================== */
+
+* {
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        rgba(148,163,184,.22)
+        transparent;
+
+}
+
+*::-webkit-scrollbar {
+
+    width: 8px;
+
+    height: 8px;
+
+}
+
+*::-webkit-scrollbar-track {
+
+    background: transparent;
+
+}
+
+*::-webkit-scrollbar-thumb {
+
+    background: rgba(148,163,184,.22);
+
+    border-radius: 999px;
+
+    border: 2px solid transparent;
+
+    background-clip: padding-box;
+
+    transition: background var(--transition-fast);
+
+}
+
+*::-webkit-scrollbar-thumb:hover {
+
+    background: rgba(148,163,184,.38);
+
+    background-clip: padding-box;
+
+}
+
+*::-webkit-scrollbar-corner {
+
+    background: transparent;
+
+}

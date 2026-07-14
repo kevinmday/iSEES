@@ -29,6 +29,7 @@
 //
 // Computational ownership remains inside the Manifold Runtime
 // and Resolve–Dissolve Computation (RDC).
+
 // ============================================================
 
 import {
@@ -47,6 +48,7 @@ import type {
   WorkspaceRuntimeState,
   WorkspaceOperatorState,
   WorkspaceMode as WorkspaceModeType,
+  WorkspaceSelection,
 } from "./WorkspaceRuntimeTypes";
 
 // ============================================================
@@ -145,13 +147,7 @@ export class WorkspaceRuntime {
 
   }
 
-  getActiveMode():
-    WorkspaceModeType {
-
-    return this.state.operator.activeMode;
-
-  }
-
+ 
   // ==========================================================
   // OBSERVERS
   // ==========================================================
@@ -186,9 +182,17 @@ export class WorkspaceRuntime {
     }
 
   }
+
   // ==========================================================
   // OPERATOR STATE
   // ==========================================================
+
+  getActiveMode():
+    WorkspaceModeType {
+
+    return this.state.operator.activeMode;
+
+  }
 
   setActiveMode(
     mode: WorkspaceModeType,
@@ -211,6 +215,68 @@ export class WorkspaceRuntime {
         ...this.state.operator,
 
         activeMode: mode,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  getSelection() {
+
+    return this.state.operator.selection;
+
+  }
+
+  setSelection(
+    selection: WorkspaceSelection,
+  ): void {
+
+    if (
+      this.state.operator.selection === selection
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      operator: {
+
+        ...this.state.operator,
+
+        selection,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  clearSelection(): void {
+
+    this.state = {
+
+      ...this.state,
+
+      operator: {
+
+        ...this.state.operator,
+
+        selection: undefined,
 
       },
 

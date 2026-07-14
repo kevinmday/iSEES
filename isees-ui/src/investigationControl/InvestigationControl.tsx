@@ -69,11 +69,11 @@ export default function InvestigationControl() {
       <div
         style={{
 
-          paddingBottom: 10,
+          paddingBottom: "var(--space-sm)",
 
-          marginBottom: 12,
+          marginBottom: "var(--space-md)",
 
-          borderBottom: "1px solid #1f2937",
+          borderBottom: "var(--surface-border)",
 
         }}
       >
@@ -81,15 +81,19 @@ export default function InvestigationControl() {
         <div
           style={{
 
-            fontSize: 15,
+            fontFamily: "var(--font-family-sans)",
 
-            fontWeight: 800,
+            fontSize: "var(--font-panel)",
 
-            letterSpacing: 1.2,
+            fontWeight: "var(--weight-bold)",
+
+            letterSpacing: "var(--tracking-system)",
 
             textTransform: "uppercase",
 
-            color: "#f8fafc",
+            lineHeight: "var(--line-tight)",
+
+            color: "var(--text-primary)",
 
           }}
         >
@@ -107,9 +111,13 @@ export default function InvestigationControl() {
 
           display: "flex",
 
-          marginBottom: 16,
+          alignItems: "stretch",
 
-          borderBottom: "1px solid #1f2937",
+          marginBottom: "var(--space-md)",
+
+          borderBottom: "var(--surface-border)",
+
+          gap: 0,
 
         }}
       >

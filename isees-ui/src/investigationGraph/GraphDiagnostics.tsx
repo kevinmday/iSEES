@@ -172,31 +172,38 @@ export function GraphDiagnostics() {
       {/* RAW GRAPH */}
       {/* ================================================== */}
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: "6px",
-          padding: "10px",
-          overflow: "auto",
-        }}
-      >
-        <strong>Graph JSON</strong>
+      {false && (
 
-        <pre
+        <div
           style={{
-            marginTop: "8px",
-            fontSize: "11px",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
+            flex: 1,
+            minHeight: 0,
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "6px",
+            padding: "10px",
+            overflow: "auto",
           }}
         >
-          {JSON.stringify(graph, null, 2)}
-        </pre>
-      </div>
+          <strong>Graph JSON</strong>
+
+          <pre
+            style={{
+              marginTop: "8px",
+              fontSize: "11px",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {JSON.stringify(graph, null, 2)}
+          </pre>
+        </div>
+
+      )}
+
     </div>
+
   );
+
 }
 
 export default GraphDiagnostics;

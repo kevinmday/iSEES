@@ -59,14 +59,38 @@ export default function CorpusBrowser() {
 
       <div
         style={{
-          fontWeight: 700,
-          fontSize: "14px",
-          textAlign: "center",
-          marginBottom: "14px",
-          letterSpacing: "0.05em",
+
+          marginBottom: "var(--space-md)",
+
+          paddingBottom: "var(--space-xs)",
+
+          borderBottom: "var(--surface-border)",
+
         }}
       >
-        FEDERATED KNOWLEDGE
+
+        <div
+          style={{
+
+            fontFamily: "var(--font-family-sans)",
+
+            fontSize: "var(--font-panel)",
+
+            fontWeight: "var(--weight-bold)",
+
+            letterSpacing: "var(--tracking-system)",
+
+            textTransform: "uppercase",
+
+            lineHeight: "var(--line-tight)",
+
+            color: "var(--text-primary)",
+
+          }}
+        >
+          Federated Knowledge
+        </div>
+
       </div>
 
       {/* ================================================ */}
@@ -81,8 +105,19 @@ export default function CorpusBrowser() {
 
             <div
               style={{
-                fontSize: "12px",
-                opacity: 0.6,
+
+                padding: "var(--space-sm) 0",
+
+                fontFamily: "var(--font-family-sans)",
+
+                fontSize: "var(--font-meta)",
+
+                lineHeight: "var(--line-normal)",
+
+                color: "var(--text-muted)",
+
+                opacity: .75,
+
               }}
             >
               No repositories loaded.
@@ -117,12 +152,12 @@ export default function CorpusBrowser() {
                     }
 
                     style={{
-                      marginBottom: "10px",
+                      marginBottom: "var(--space-sm)",
                     }}
 
                   >
 
-                    {/* ==================================== */}
+                                      {/* ==================================== */}
                     {/* REPOSITORY */}
                     {/* ==================================== */}
 
@@ -146,25 +181,41 @@ export default function CorpusBrowser() {
 
                         alignItems: "center",
 
-                        gap: "6px",
+                        gap: "var(--space-xs)",
 
                         cursor: "pointer",
 
                         userSelect: "none",
 
-                        fontWeight: 700,
+                        padding: "6px 0",
 
-                        fontSize: "12px",
+                        fontFamily: "var(--font-family-sans)",
 
-                        color: "#d6d6d6",
+                        fontSize: "var(--font-meta)",
 
-                        padding: "4px 0",
+                        fontWeight: "var(--weight-bold)",
+
+                        letterSpacing: ".02em",
+
+                        color: "var(--text-secondary)",
+
+                        transition: "var(--transition-fast)",
 
                       }}
 
                     >
 
-                      <span>
+                      <span
+                        style={{
+
+                          width: 14,
+
+                          color: "var(--text-muted)",
+
+                          flexShrink: 0,
+
+                        }}
+                      >
 
                         {
 
@@ -178,7 +229,13 @@ export default function CorpusBrowser() {
 
                       </span>
 
-                      <span>
+                      <span
+                        style={{
+
+                          flex: 1,
+
+                        }}
+                      >
 
                         {
 
@@ -191,6 +248,7 @@ export default function CorpusBrowser() {
                       </span>
 
                     </div>
+
 
                     {/* ==================================== */}
                     {/* EVENTS */}

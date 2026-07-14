@@ -1,6 +1,6 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntimeTypes.ts
-// P36
+// P36.2
 // RUNTIME-OWNED INVESTIGATION TYPES
 //
 // Canonical contracts for the deterministic Workspace Runtime.
@@ -21,8 +21,8 @@
 //      ├── Active Investigation
 //      ├── Focused Event
 //      └── Operator State
-//              ↓
-//          Active Workspace Mode
+//              ├── Active Workspace Mode
+//              └── Active Selection
 //
 // ============================================================
 
@@ -75,6 +75,25 @@ export type WorkspaceMode =
   ];
 
 // ============================================================
+// OPERATOR SELECTION
+// ============================================================
+
+export interface WorkspaceSelection {
+
+  /**
+   * Runtime-owned operator selection.
+   *
+   * A concrete deterministic selection contract will replace
+   * these generic fields as Investigation Graph ownership
+   * moves into the Workspace Runtime.
+   */
+  type: string;
+
+  id: string;
+
+}
+
+// ============================================================
 // INVESTIGATION SESSION
 // ============================================================
 
@@ -87,28 +106,16 @@ export interface WorkspaceRuntimeSession {
 
   /**
    * Active investigation owned by the runtime.
-   *
-   * This becomes the single source of truth consumed by all
-   * workspace modes.
-   *
-   * A concrete Investigation contract will replace 'unknown'
-   * when extracted into the canonical investigation model.
    */
   investigation?: unknown;
 
   /**
-   * Currently focused event within the active investigation.
-   *
-   * Every workspace mode observes the same deterministic
-   * runtime-owned event focus.
-   *
-   * A concrete Event contract will replace 'unknown' when
-   * extracted into the canonical investigation model.
+   * Currently focused event.
    */
   focusedEvent?: unknown;
 
   /**
-   * Imported artifacts associated with the investigation.
+   * Imported artifacts.
    */
   artifacts: Artifact[];
 
@@ -121,14 +128,16 @@ export interface WorkspaceRuntimeSession {
 export interface WorkspaceOperatorState {
 
   /**
-   * Current operator workspace mode.
-   *
-   * Operator state determines which deterministic projection
-   * surface is currently being viewed without modifying the
-   * underlying investigation.
+   * Current workspace mode.
    */
   activeMode:
     WorkspaceMode;
+
+  /**
+   * Runtime-owned operator selection.
+   */
+  selection?:
+    WorkspaceSelection;
 
 }
 
@@ -152,18 +161,12 @@ export interface WorkspaceRuntimeState {
 
   /**
    * Current Operator State.
-   *
-   * Operator state describes how the active Investigation
-   * Session is being viewed.
    */
   operator:
     WorkspaceOperatorState;
 
   /**
    * Monotonically increasing runtime revision.
-   *
-   * Consumers observe this value to detect deterministic
-   * runtime changes.
    */
   revision:
     number;
@@ -173,8 +176,6 @@ export interface WorkspaceRuntimeState {
 // ============================================================
 // FUTURE CONTRACTS
 // ============================================================
-//
-// export interface WorkspaceSelection {}
 //
 // export interface WorkspaceFocus {}
 //
@@ -193,14 +194,5 @@ export interface WorkspaceRuntimeState {
 // export interface WorkspaceExport {}
 //
 // export interface WorkspaceNotification {}
-//
-// As the Workspace Runtime evolves into the deterministic
-// owner of the complete Investigation Session, additional
-// runtime-owned contracts will be introduced here while
-// maintaining strict separation between:
-//
-// • Investigation Session (what exists)
-// • Operator State (how it is viewed)
-// • Computation (how it is derived)
 //
 // ============================================================

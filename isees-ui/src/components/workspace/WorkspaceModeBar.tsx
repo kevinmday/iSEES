@@ -1,19 +1,15 @@
 // ============================================================
 // src/components/workspace/WorkspaceModeBar.tsx
-// P34B
+// Canon v1
 // OPERATOR WORKSPACE MODE BAR
 //
 // Persistent operator workspace selector.
 //
-// The Workspace Mode Bar is the operator's primary mechanism
-// for selecting the active Workspace Mode.
+// Presentation governed by Canon v1.
 //
-// The bar owns no state.
+// Runtime ownership remains external.
 //
-// All mode ownership resides within the deterministic
-// Workspace Runtime.
-//
-// FULL DROP-IN FILE
+// Full drop-in.
 // ============================================================
 
 import type {
@@ -42,25 +38,27 @@ function modeStyle(
 
     padding: "12px 18px",
 
-    borderRadius: 10,
+    borderRadius: "var(--surface-radius)",
 
     border: active
-      ? "1px solid #3b82f6"
-      : "1px solid #2b3444",
+      ? "1px solid var(--color-information)"
+      : "var(--surface-border)",
 
     background: active
-      ? "#0b1730"
-      : "#08101f",
+      ? "var(--surface-2)"
+      : "var(--surface-1)",
 
     color: active
-      ? "#f8fafc"
-      : "#9ca3af",
+      ? "var(--text-primary)"
+      : "var(--text-caption)",
 
-    fontSize: 11,
+    fontFamily: "var(--font-family-sans)",
 
-    fontWeight: 700,
+    fontSize: "var(--font-micro)",
 
-    letterSpacing: 1.1,
+    fontWeight: "var(--weight-semibold)",
+
+    letterSpacing: "var(--tracking-system)",
 
     textAlign: "center",
 
@@ -70,7 +68,7 @@ function modeStyle(
 
     userSelect: "none",
 
-    transition: "all 0.15s ease",
+    transition: "var(--transition-fast)",
 
   };
 
@@ -112,19 +110,20 @@ export default function WorkspaceModeBar() {
     useWorkspaceRuntime();
 
   const activeMode =
-  runtime.getActiveMode();
-
+    runtime.getActiveMode();
 
   return (
 
     <div
       style={{
-        height: 74,
-        minHeight: 74,
 
-        borderTop: "1px solid #182235",
+        height: "var(--modebar-height)",
 
-        background: "#08101f",
+        minHeight: "var(--modebar-height)",
+
+        borderTop: "var(--surface-border)",
+
+        background: "var(--surface-1)",
 
         display: "flex",
 
@@ -132,12 +131,15 @@ export default function WorkspaceModeBar() {
 
         justifyContent: "center",
 
-        gap: 14,
+        gap: "var(--space-sm)",
 
-        padding: "0 18px",
+        padding: "0 var(--space-lg)",
+
       }}
     >
+
       {MODES.map((mode) => (
+
         <div
           key={mode}
           style={modeStyle(
@@ -145,17 +147,17 @@ export default function WorkspaceModeBar() {
           )}
           onClick={() => {
 
-           
             runtime.setActiveMode(
               mode,
             );
 
-           
           }}
         >
           {mode}
         </div>
+
       ))}
+
     </div>
 
   );

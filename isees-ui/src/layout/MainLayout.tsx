@@ -13,14 +13,6 @@ import {
   useWorkspace,
 } from "../workspace/context/WorkspaceContext";
 
-import {
-  useWorkspaceRuntime,
-} from "../workspace/runtime/WorkspaceRuntimeContext";
-
-import {
-  WorkspaceMode,
-} from "../workspace/runtime/WorkspaceRuntimeTypes";
-
 import WorkspaceModeBar
   from "../components/workspace/WorkspaceModeBar";
 
@@ -42,89 +34,6 @@ export default function MainLayout({
   const {
     focusedEventId,
   } = useWorkspace();
-
-  const runtime =
-    useWorkspaceRuntime();
-
-  const activeWorkspaceMode =
-    runtime.getActiveMode();
-
-
-  const workspaceTitle = (() => {
-
-    switch (activeWorkspaceMode) {
-
-      case WorkspaceMode.OVERVIEW:
-        return "Overview Workspace";
-
-      case WorkspaceMode.MANIFOLD:
-        return "Primary Investigation Manifold";
-
-      case WorkspaceMode.COMPARE:
-        return "Comparative Analysis Workspace";
-
-      case WorkspaceMode.NARRATIVE:
-        return "Narrative Reconstruction Workspace";
-
-      case WorkspaceMode.EVIDENCE:
-        return "Evidence Workspace";
-
-      case WorkspaceMode.TIMELINE:
-        return "Timeline Workspace";
-
-      case WorkspaceMode.LAYERS:
-        return "Layer Analysis Workspace";
-
-      case WorkspaceMode.INTENTION:
-        return "Intention Analysis Workspace";
-
-      case WorkspaceMode.RESEARCH:
-        return "Research Workspace";
-
-      default:
-        return "Primary Investigation Manifold";
-
-    }
-
-  })();
-
-  const workspaceDescription = (() => {
-
-    switch (activeWorkspaceMode) {
-
-      case WorkspaceMode.OVERVIEW:
-        return "Operational overview of the active investigation.";
-
-      case WorkspaceMode.MANIFOLD:
-        return "Deterministic visualization of the active investigation manifold.";
-
-      case WorkspaceMode.COMPARE:
-        return "Comparative analysis across investigation candidates.";
-
-      case WorkspaceMode.NARRATIVE:
-        return "Narrative reconstruction of the active investigation.";
-
-      case WorkspaceMode.EVIDENCE:
-        return "Evidence supporting the active investigation.";
-
-      case WorkspaceMode.TIMELINE:
-        return "Temporal progression of the active investigation.";
-
-      case WorkspaceMode.LAYERS:
-        return "Deterministic investigation layer analysis.";
-
-      case WorkspaceMode.INTENTION:
-        return "Candidate intention analysis derived from deterministic computation.";
-
-      case WorkspaceMode.RESEARCH:
-        return "Research artifacts associated with the active investigation.";
-
-      default:
-        return "Deterministic visualization of the active investigation manifold.";
-
-    }
-
-  })();
 
   const activeEvent =
     events.find(
@@ -152,32 +61,50 @@ export default function MainLayout({
 
       <div
         style={{
-          height: 42,
-          minHeight: 42,
-          borderBottom: "1px solid #182235",
-          background: "#0b1220",
+          height: "var(--header-height)",
+          minHeight: "var(--header-height)",
+
+          borderBottom: "var(--surface-border)",
+
+          background: "var(--surface-2)",
+
           display: "flex",
+
           alignItems: "center",
+
           justifyContent: "space-between",
-          paddingLeft: 16,
-          paddingRight: 16,
+
+          paddingLeft: "var(--space-lg)",
+
+          paddingRight: "var(--space-lg)",
+
           flexShrink: 0,
         }}
       >
+
         {/* LEFT */}
 
         <div
           style={{
             display: "flex",
+
             alignItems: "center",
-            gap: 14,
+
+            gap: "var(--space-lg)",
           }}
         >
+
           <div
             style={{
-              fontSize: 21,
-              fontWeight: 800,
-              letterSpacing: 1,
+              fontFamily: "var(--font-family-mono)",
+
+              fontSize: "var(--font-workspace)",
+
+              fontWeight: "var(--weight-bold)",
+
+              lineHeight: "var(--line-tight)",
+
+              color: "var(--text-primary)",
             }}
           >
             iSEES-UAP
@@ -185,13 +112,20 @@ export default function MainLayout({
 
           <div
             style={{
-              fontSize: 13,
-              color: "#94a3b8",
-              letterSpacing: 1,
+              fontFamily: "var(--font-family-sans)",
+
+              fontSize: "var(--font-meta)",
+
+              color: "var(--text-caption)",
+
+              letterSpacing: "var(--tracking-system)",
+
+              textTransform: "uppercase",
             }}
           >
             Emergence Detection System
           </div>
+
         </div>
 
         {/* RIGHT */}
@@ -199,20 +133,31 @@ export default function MainLayout({
         <div
           style={{
             display: "flex",
+
             alignItems: "center",
-            gap: 24,
-            fontSize: 11,
+
+            gap: "var(--space-xl)",
+
+            fontFamily: "var(--font-family-sans)",
+
+            fontSize: "var(--font-micro)",
+
+            color: "var(--text-caption)",
+
+            letterSpacing: "var(--tracking-system)",
+
             textTransform: "uppercase",
-            color: "#9ca3af",
           }}
         >
+
           <Link
             to="/briefing"
             style={{
-              color: "#7dd3fc",
+              color: "var(--color-information)",
+
               textDecoration: "none",
-              fontWeight: 700,
-              letterSpacing: 1,
+
+              fontWeight: "var(--weight-semibold)",
             }}
           >
             SYSTEM BRIEFING
@@ -220,15 +165,19 @@ export default function MainLayout({
 
           <span>
             STATUS:
+
             <span
               style={{
-                color: "#4ade80",
-                marginLeft: 6,
-                fontWeight: 700,
+                color: "var(--color-success)",
+
+                marginLeft: "var(--space-xs)",
+
+                fontWeight: "var(--weight-bold)",
               }}
             >
               ACTIVE
             </span>
+
           </span>
 
           <span>
@@ -236,17 +185,25 @@ export default function MainLayout({
           </span>
 
           <span>
+
             MANIFOLD:
+
             <span
               style={{
-                color: "#38bdf8",
-                marginLeft: 6,
+                color: "var(--color-information)",
+
+                marginLeft: "var(--space-xs)",
+
+                fontWeight: "var(--weight-semibold)",
               }}
             >
               ONLINE
             </span>
+
           </span>
+
         </div>
+
       </div>
 
       {/* ===================================================== */}
@@ -255,70 +212,96 @@ export default function MainLayout({
 
       <div
         style={{
-          height: 58,
           minHeight: 58,
-          borderBottom: "1px solid #182235",
-          background: "#08101d",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          paddingLeft: 18,
-          paddingRight: 18,
+
+          height: 58,
+
           flexShrink: 0,
+
+          display: "flex",
+
+          flexDirection: "column",
+
+          justifyContent: "center",
+
+          paddingLeft: "var(--space-lg)",
+
+          paddingRight: "var(--space-lg)",
+
+          background: "var(--surface-1)",
+
+          borderBottom: "var(--surface-border)",
         }}
       >
+
         <div
           style={{
-            fontSize: 12,
-            color: "#4ade80",
-            fontWeight: 700,
-            letterSpacing: 1,
+            fontFamily: "var(--font-family-sans)",
+
+            fontSize: "var(--font-micro)",
+
+            fontWeight: "var(--weight-bold)",
+
+            letterSpacing: "var(--tracking-system)",
+
             textTransform: "uppercase",
+
+            color: "var(--color-success)",
           }}
         >
-          Primary Signal | Event Acquired & Confirmed
+          Primary Signal · Event Acquired & Confirmed
         </div>
 
         <div
           style={{
-            marginTop: 8,
+            marginTop: "var(--space-xs)",
+
             display: "flex",
-            gap: 26,
+
             flexWrap: "wrap",
-            fontSize: 12,
-            color: "#d1d5db",
+
+            gap: "var(--space-xl)",
+
+            fontFamily: "var(--font-family-mono)",
+
+            fontSize: "var(--font-meta)",
+
+            color: "var(--text-secondary)",
           }}
         >
+
           <span>
-            EVENT:{" "}
+            EVENT&nbsp;
             {activeEvent?.id || "NO ACTIVE EVENT"}
           </span>
 
           <span>
-            CONFIDENCE:{" "}
+            CONFIDENCE&nbsp;
             {activeEvent?.confidence || "--"}
           </span>
 
           <span>
-            CLUSTERS:{" "}
+            CLUSTERS&nbsp;
             {activeEvent?.clusters || "--"}
           </span>
 
           <span>
-            REPORTS:{" "}
+            REPORTS&nbsp;
             {activeEvent?.reports || "--"}
           </span>
 
           <span>
-            STATUS:{" "}
+            STATUS&nbsp;
             {activeEvent?.escalation || "--"}
           </span>
 
           <span>
-            RECURRENCE:{" "}
+            RECURRENCE&nbsp;
             {activeEvent?.recurrence || "--"}
           </span>
+
         </div>
+
       </div>
 
       {/* ===================================================== */}
@@ -382,7 +365,7 @@ export default function MainLayout({
         </div>
 
         {/* ================================================= */}
-        {/* CENTER PANEL — PRIMARY INVESTIGATION MANIFOLD */}
+        {/* CENTER PANEL */}
         {/* ================================================= */}
 
         <div
@@ -410,49 +393,16 @@ export default function MainLayout({
               boxSizing: "border-box",
             }}
           >
-            {/* CENTER HEADER */}
-
-            <div
-              style={{
-                marginBottom: 18,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 18,
-
-                  fontWeight: 700,
-
-                  color: "#f8fafc",
-                }}
-              >
-                {workspaceTitle}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 6,
-
-                  fontSize: 12,
-
-                  color: "#94a3b8",
-
-                  lineHeight: 1.5,
-
-                  maxWidth: 760,
-                }}
-              >
-              {workspaceDescription}
-              </div>
-            </div>
-
+            {/* ================================================= */}
             {/* CENTER CONTENT */}
+            {/* ================================================= */}
 
             <div>{center}</div>
+
           </div>
         </div>
 
-                {/* ================================================= */}
+        {/* ================================================= */}
         {/* RIGHT PANEL — SELECTION INTELLIGENCE */}
         {/* ================================================= */}
 

@@ -25,15 +25,15 @@ export default function GraphDiagnostics() {
     corpus,
   } = useCorpus();
 
-const {
-  activeWorkspace,
-} = useWorkspace();
+  const {
+    activeWorkspace,
+  } = useWorkspace();
 
-const graph =
-  buildInvestigationGraph(
-    corpus,
-    activeWorkspace
-  );
+  const graph =
+    buildInvestigationGraph(
+      corpus,
+      activeWorkspace
+    );
 
   const nodeCount =
     graph.nodes.length;
@@ -42,14 +42,15 @@ const graph =
     graph.edges.length;
 
   const strongestEdge =
-    graph.edges.reduce(
-      (best, current) =>
-        current.weight >
-        best.weight
-          ? current
-          : best,
-      graph.edges[0]
-    );
+    graph.edges.length > 0
+      ? graph.edges.reduce(
+          (best, current) =>
+            current.weight >
+            best.weight
+              ? current
+              : best
+        )
+      : undefined;
 
   const averageWeight =
     graph.edges.length > 0
@@ -67,7 +68,7 @@ const graph =
     new Map<string, number>();
 
   graph.edges.forEach(
-    (edge) => {
+    edge => {
 
       connectionCounts.set(
         edge.source,
@@ -86,7 +87,9 @@ const graph =
           ) ?? 0
         ) + 1
       );
+
     }
+
   );
 
   let mostConnectedNode =
@@ -110,101 +113,132 @@ const graph =
 
       mostConnectedNode =
         nodeId;
+
     }
+
   }
 
   return (
 
     <div
       style={{
-        background: "#08101f",
+
+        background:
+          "var(--surface-2)",
+
         border:
-          "1px solid #172033",
-        borderRadius: 10,
-        padding: 16,
+          "var(--surface-border)",
+
+        borderRadius:
+          "var(--surface-radius)",
+
+        padding:
+          "var(--surface-padding-md)",
+
       }}
     >
 
       <div
         style={{
-          fontSize: 11,
-          color: "#6b7280",
+
+          marginBottom:
+            "var(--space-md)",
+
+          fontFamily:
+            "var(--font-family-sans)",
+
+          fontSize:
+            "var(--font-panel)",
+
+          fontWeight:
+            "var(--weight-bold)",
+
+          letterSpacing:
+            "var(--tracking-system)",
+
           textTransform:
             "uppercase",
-          letterSpacing: 1.5,
-          marginBottom: 16,
+
+          color:
+            "var(--text-primary)",
+
         }}
       >
-        Graph Diagnostics
+        Graph Summary
       </div>
 
       <Metric
-  label="Nodes"
-  value={nodeCount}
-/>
+        label="Nodes"
+        value={nodeCount}
+      />
 
-<Metric
-  label="Events"
-  value={
-    graph.statistics.eventCount
-  }
-/>
+      <Metric
+        label="Events"
+        value={
+          graph.statistics.eventCount
+        }
+      />
 
-<Metric
-  label="Facilities"
-  value={
-    graph.statistics.facilityCount
-  }
-/>
+      <Metric
+        label="Facilities"
+        value={
+          graph.statistics.facilityCount
+        }
+      />
 
-<Metric
-  label="Artifacts"
-  value={
-    graph.statistics.artifactCount
-  }
-/>
+      <Metric
+        label="Artifacts"
+        value={
+          graph.statistics.artifactCount
+        }
+      />
 
-<Metric
-  label="Edges"
-  value={edgeCount}
-/>
+      <Metric
+        label="Edges"
+        value={edgeCount}
+      />
 
-<Metric
-  label="Average Weight"
-  value={
-    (
-      averageWeight * 100
-    ).toFixed(1) + "%"
-  }
-/>
+      <Metric
+        label="Average Weight"
+        value={
+          (
+            averageWeight * 100
+          ).toFixed(1) + "%"
+        }
+      />
 
-<Metric
-  label="Most Connected"
-  value={
-    mostConnectedNode
-  }
-/>
+      <Metric
+        label="Most Connected"
+        value={
+          mostConnectedNode
+        }
+      />
 
-{strongestEdge && (
+      {
 
-  <Metric
-    label="Strongest Edge"
-    value={
-      `${strongestEdge.source}
-       ↔
-       ${strongestEdge.target}
-       (${(
-         strongestEdge.weight *
-         100
-       ).toFixed(1)}%)`
-    }
-  />
+        strongestEdge && (
 
-)}
+          <Metric
+            label="Strongest Edge"
+            value={
+              `${strongestEdge.source}
+               ↔
+               ${strongestEdge.target}
+               (${(
+                 strongestEdge.weight *
+                 100
+               ).toFixed(1)}%)`
+            }
+          />
 
-</div>
+        )
 
-);
+      }
+
+    </div>
+
+  );
+
 }
 
 // ============================================================
