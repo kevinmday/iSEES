@@ -42,6 +42,7 @@ import type {
 
 import {
   WorkspaceMode,
+  WorkspaceLayoutMode,
 } from "./WorkspaceRuntimeTypes";
 
 import type {
@@ -81,12 +82,15 @@ export class WorkspaceRuntime {
 
       },
 
-      operator: {
+     operator: {
 
-        activeMode:
-          WorkspaceMode.OVERVIEW,
+  activeMode:
+    WorkspaceMode.OVERVIEW,
 
-      },
+  layoutMode:
+    WorkspaceLayoutMode.NORMAL,
+
+},
 
       revision: 0,
 
@@ -226,6 +230,81 @@ export class WorkspaceRuntime {
     this.notify();
 
   }
+
+  // ==========================================================
+  // WORKSPACE LAYOUT
+  // ==========================================================
+
+  getLayoutMode():
+    WorkspaceLayoutMode {
+
+    return this.state.operator.layoutMode;
+
+  }
+
+  isFocusMode():
+    boolean {
+
+    return (
+      this.state.operator.layoutMode ===
+      WorkspaceLayoutMode.FOCUS
+    );
+
+  }
+
+  setFocusMode(
+    enabled: boolean,
+  ): void {
+
+    const layoutMode =
+      enabled
+        ? WorkspaceLayoutMode.FOCUS
+        : WorkspaceLayoutMode.NORMAL;
+
+    if (
+      this.state.operator.layoutMode ===
+      layoutMode
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      operator: {
+
+        ...this.state.operator,
+
+        layoutMode,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  toggleFocusMode():
+    void {
+
+    this.setFocusMode(
+
+      !this.isFocusMode()
+
+    );
+
+  }
+
+  // ==========================================================
+  // SELECTION
+  // ==========================================================
 
   getSelection() {
 

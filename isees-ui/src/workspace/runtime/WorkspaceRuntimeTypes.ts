@@ -1,6 +1,6 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntimeTypes.ts
-// P36.2
+// P38B
 // RUNTIME-OWNED INVESTIGATION TYPES
 //
 // Canonical contracts for the deterministic Workspace Runtime.
@@ -22,6 +22,7 @@
 //      ├── Focused Event
 //      └── Operator State
 //              ├── Active Workspace Mode
+//              ├── Active Layout Mode
 //              └── Active Selection
 //
 // ============================================================
@@ -72,6 +73,38 @@ export const WorkspaceMode = {
 export type WorkspaceMode =
   typeof WorkspaceMode[
     keyof typeof WorkspaceMode
+  ];
+
+// ============================================================
+// WORKSPACE LAYOUT MODES
+// ============================================================
+
+/**
+ * Canonical workspace presentation state.
+ *
+ * NORMAL
+ *     Standard operational workspace.
+ *
+ * FOCUS
+ *     Workspace expands while surrounding
+ *     operator chrome is temporarily hidden.
+ *
+ * Layout ownership belongs to the Workspace Runtime
+ * because it represents operator state rather than
+ * investigation state.
+ */
+
+export const WorkspaceLayoutMode = {
+
+  NORMAL: "NORMAL",
+
+  FOCUS: "FOCUS",
+
+} as const;
+
+export type WorkspaceLayoutMode =
+  typeof WorkspaceLayoutMode[
+    keyof typeof WorkspaceLayoutMode
   ];
 
 // ============================================================
@@ -128,10 +161,25 @@ export interface WorkspaceRuntimeSession {
 export interface WorkspaceOperatorState {
 
   /**
-   * Current workspace mode.
+   * Current active workspace mode.
+   *
+   * Determines which workspace surface is currently
+   * presented to the operator.
    */
   activeMode:
     WorkspaceMode;
+
+  /**
+   * Current workspace layout mode.
+   *
+   * Layout is owned by the operator rather than the
+   * investigation. This allows the operator to switch
+   * between the standard operational layout and a
+   * focused authoring/analysis layout without affecting
+   * investigation state.
+   */
+  layoutMode:
+    WorkspaceLayoutMode;
 
   /**
    * Runtime-owned operator selection.
@@ -177,11 +225,17 @@ export interface WorkspaceRuntimeState {
 // FUTURE CONTRACTS
 // ============================================================
 //
-// export interface WorkspaceFocus {}
+// WorkspaceLayout will eventually expand beyond
+// NORMAL / FOCUS to include additional operator-owned
+// presentation state such as:
+//
+// • Dock visibility
+// • Panel sizing
+// • Workspace chrome
+// • Multi-monitor layouts
+// • Immersive presentation modes
 //
 // export interface WorkspaceViewport {}
-//
-// export interface WorkspaceLayout {}
 //
 // export interface WorkspacePlayback {}
 //
