@@ -1,12 +1,25 @@
 // ============================================================
 // ManifoldWorkspace.tsx
-// P37A
-// RUNTIME WORKSPACE SURFACE
+// P39B
+// PRODUCTION MANIFOLD WORKSPACE
 //
-// Placeholder workspace.
+// Canonical interactive investigation manifold.
 //
-// FULL DROP-IN FILE
+// Presentation-only.
+//
+// Owns:
+// • Production workspace layout
+// • Manifold presentation
+//
+// Does NOT own:
+// • Runtime
+// • Graph engine
+// • Selection logic
+// • Manifold computation
+//
 // ============================================================
+
+import PrimaryInvestigationManifold from "../../manifold/components/PrimaryInvestigationManifold";
 
 export default function ManifoldWorkspace() {
 
@@ -14,13 +27,16 @@ export default function ManifoldWorkspace() {
 
     <div
       style={{
-        padding: 32,
-        color: "#94a3b8",
-        fontSize: 18,
-        fontWeight: 700,
+        height: "100%",
+        display: "flex",
+        overflow: "hidden",
       }}
     >
-      Manifold Workspace
+
+      <PrimaryInvestigationManifold
+        focusedEventId="E-TICTAC-2004"
+      />
+
     </div>
 
   );

@@ -57,6 +57,8 @@ import {
   WorkspaceMode,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
+import DrawerSection from "./DrawerSection";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -103,12 +105,27 @@ export default function PrimaryInvestigationManifold({
 
   return (
     <section
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
+  style={{
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    overflow: "hidden",
+  }}
+>
+
+  {/* ===================================================== */}
+  {/* MANIFOLD HEADER REGION                               */}
+  {/* ===================================================== */}
+
+  <div
+    style={{
+      flexShrink: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+    }}
+  >
 
       {/* ===================================================== */}
       {/* MANIFOLD OPERATOR TOOLBAR */}
@@ -118,129 +135,171 @@ export default function PrimaryInvestigationManifold({
         onAction={handleToolbarAction}
       />
 
-      {/* ===================================================== */}
-      {/* INVESTIGATION MANIFOLD */}
-      {/* ===================================================== */}
+  </div>
 
-      <InvestigationGraph />
+     {/* ===================================================== */}
+{/* INVESTIGATION MANIFOLD                               */}
+{/* ===================================================== */}
 
-      {/* ===================================================== */}
-      {/* MANIFOLD LAYERS */}
-      {/* ===================================================== */}
+<div
+  style={{
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    gap: 12,
+  }}
+>
 
-      <ManifoldLayerSelector />
+  <InvestigationGraph />
 
-      {/* ===================================================== */}
-      {/* WORKSPACE OVERVIEW */}
-      {/* ===================================================== */}
+</div>
 
-      {activeMode === WorkspaceMode.OVERVIEW && (
-
-  <WorkspaceOverview />
-
-)}
-
-      {/* ===================================================== */}
-      {/* RESOLUTION PANEL */}
-      {/* ===================================================== */}
-
-      <ResolutionPanel
-        focusedEventId={focusedEventId}
-      />
-
-      {/* ===================================================== */}
-      {/* CURRENT MANIFOLD SELECTION */}
+        {/* ===================================================== */}
+      {/* DRAWER REGION                                         */}
       {/* ===================================================== */}
 
       <div
         style={{
-          marginTop: 12,
-          marginBottom: 12,
-          padding: 12,
-          border: "1px solid #334155",
-          borderRadius: 8,
-          background: "#0f172a",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          flexShrink: 0,
         }}
       >
+
+    {/* ===================================================== */}
+{/* LAYER CONTROLS */}
+{/* ===================================================== */}
+
+<DrawerSection
+  title="Layer Controls"
+>
+
+  <ManifoldLayerSelector />
+
+</DrawerSection>
+
+       {/* ===================================================== */}
+{/* INVESTIGATION SUMMARY */}
+{/* ===================================================== */}
+
+{activeMode === WorkspaceMode.OVERVIEW && (
+
+  <DrawerSection
+    title="Investigation Summary"
+  >
+
+    <WorkspaceOverview />
+
+  </DrawerSection>
+
+)}
+
+        {/* ===================================================== */}
+        {/* RESOLUTION PANEL */}
+        {/* ===================================================== */}
+
+        <ResolutionPanel
+          focusedEventId={focusedEventId}
+        />
+
+        {/* ===================================================== */}
+        {/* CURRENT MANIFOLD SELECTION */}
+        {/* ===================================================== */}
+
         <div
           style={{
-            fontWeight: 700,
-            marginBottom: 10,
-            fontSize: 13,
-            letterSpacing: 1,
-            textTransform: "uppercase",
+            marginTop: 12,
+            marginBottom: 12,
+            padding: 12,
+            border: "1px solid #334155",
+            borderRadius: 8,
+            background: "#0f172a",
           }}
         >
-          Current Manifold Selection
-        </div>
-
-        {selection.kind === "NONE" && (
           <div
             style={{
-              color: "#94a3b8",
-              fontSize: 12,
+              fontWeight: 700,
+              marginBottom: 10,
+              fontSize: 13,
+              letterSpacing: 1,
+              textTransform: "uppercase",
             }}
           >
-            Nothing selected.
-            Click a node or relationship in the
-            Investigation Manifold.
+            Current Manifold Selection
           </div>
-        )}
 
-        {selection.kind === "NODE" && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              fontSize: 12,
-            }}
-          >
-            <div>
-              <strong>Type:</strong>{" "}
-              {selection.nodeType}
-            </div>
-
-            <div>
-              <strong>Node:</strong>{" "}
-              {selection.nodeId}
-            </div>
-          </div>
-        )}
-
-        {selection.kind === "EDGE" && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              fontSize: 12,
-            }}
-          >
-            <div>
-              <strong>Relationship</strong>
-            </div>
-
-            <div>
-              {selection.sourceId}
-            </div>
-
+          {selection.kind === "NONE" && (
             <div
               style={{
-                color: "#60a5fa",
+                color: "#94a3b8",
+                fontSize: 12,
               }}
             >
-              ↓
+              Nothing selected.
+              Click a node or relationship in the
+              Investigation Manifold.
             </div>
+          )}
 
-            <div>
-              {selection.targetId}
+          {selection.kind === "NODE" && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                fontSize: 12,
+              }}
+            >
+              <div>
+                <strong>Type:</strong>{" "}
+                {selection.nodeType}
+              </div>
+
+              <div>
+                <strong>Node:</strong>{" "}
+                {selection.nodeId}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {selection.kind === "EDGE" && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                fontSize: 12,
+              }}
+            >
+              <div>
+                <strong>Relationship</strong>
+              </div>
+
+              <div>
+                {selection.sourceId}
+              </div>
+
+              <div
+                style={{
+                  color: "#60a5fa",
+                }}
+              >
+                ↓
+              </div>
+
+              <div>
+                {selection.targetId}
+              </div>
+            </div>
+          )}
+
+        </div>
 
       </div>
 
     </section>
   );
+
 }
