@@ -321,198 +321,223 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 
 {/* ==================================================== */}
 {/* TOPOLOGY CANVAS */}
+{/* P40
+    PRODUCTION MANIFOLD VIEWPORT
+
+    Owns:
+    • Graph presentation
+    • Responsive viewport
+    • SVG host
+
+    Does NOT own:
+    • Graph computation
+    • Selection
+    • Runtime
+    • Layout algorithms
+*/}
 {/* ==================================================== */}
 
 <div
   style={{
+    flex: 1,
+    minHeight: 0,
+
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
-    padding: 12,
+    alignItems: "stretch",
+
+    padding: 16,
+
     background: "#050b16",
     border: "1px solid #172033",
     borderRadius: 8,
+
     overflow: "hidden",
+
+    position: "relative",
   }}
 >
 
   <svg
     width="100%"
-    height="500"
-    viewBox="-250 -250 500 500"
+    height="100%"
+    viewBox="-320 -320 640 640"
+    preserveAspectRatio="xMidYMid meet"
   >
+       {/* ================================================ */}
+    {/* EDGES */}
+    {/* ================================================ */}
+
+    {graph.edges.map(
+      edge => {
+
+        const source =
+          graph.nodes.find(
+            node =>
+              node.id ===
+              edge.source
+          );
+
+        const target =
+          graph.nodes.find(
+            node =>
+              node.id ===
+              edge.target
+          );
+
+        if (
+          !source ||
+          !target
+        ) {
+
+          return null;
+
+        }
+
+        const selected =
+          selection.kind ===
+            "EDGE" &&
+          selection.edgeId ===
+            edge.id;
+
+        return (
+
+          <line
+            key={edge.id}
+            x1={source.x ?? 0}
+            y1={source.y ?? 0}
+            x2={target.x ?? 0}
+            y2={target.y ?? 0}
+            stroke={
+              selected
+                ? "#f59e0b"
+                : "#334155"
+            }
+            strokeWidth={
+              selected
+                ? 4
+                : Math.max(
+                    1,
+                    edge.weight * 5
+                  )
+            }
+            opacity={
+              selected
+                ? 1
+                : 0.75
+            }
+            onClick={() =>
+              setSelection({
+                kind: "EDGE",
+                edgeId:
+                  edge.id,
+                sourceId:
+                  edge.source,
+                targetId:
+                  edge.target,
+              })
+            }
+            style={{
+              cursor: "pointer",
+            }}
+          />
+
+        );
+
+      }
+    )}
 
     {/* ================================================ */}
-{/* EDGES */}
-{/* ================================================ */}
+    {/* NODES */}
+    {/* ================================================ */}
 
-{graph.edges.map(
-  edge => {
+    {graph.nodes.map(
+      node => {
 
-    const source =
-      graph.nodes.find(
-        node =>
-          node.id ===
-          edge.source
-      );
-
-    const target =
-      graph.nodes.find(
-        node =>
-          node.id ===
-          edge.target
-      );
-
-    if (
-      !source ||
-      !target
-    ) {
-      return null;
-    }
-
-    const selected =
-      selection.kind ===
-        "EDGE" &&
-      selection.edgeId ===
-        edge.id;
-
-    return (
-
-      <line
-        key={edge.id}
-        x1={source.x ?? 0}
-        y1={source.y ?? 0}
-        x2={target.x ?? 0}
-        y2={target.y ?? 0}
-        stroke={
-          selected
-            ? "#f59e0b"
-            : "#334155"
-        }
-        strokeWidth={
-          selected
-            ? 4
-            : Math.max(
-                1,
-                edge.weight * 5
-              )
-        }
-        opacity={
-          selected
-            ? 1
-            : 0.75
-        }
-        onClick={() =>
-          setSelection({
-            kind: "EDGE",
-            edgeId:
-              edge.id,
-            sourceId:
-              edge.source,
-            targetId:
-              edge.target,
-          })
-        }
-        style={{
-          cursor:
-            "pointer",
-        }}
-      />
-
-    );
-  }
-)}
-
- {/* ================================================ */}
-{/* NODES */}
-{/* ================================================ */}
-
-{graph.nodes.map(
-  node => {
-
-    const focused =
-      focusedNodeIds.has(
-        node.id
-      );
-
-    const selected =
-      selection.kind ===
-        "NODE" &&
-      selection.nodeId ===
-        node.id;
-
-    const centered =
-      centerNodeId ===
-      node.id;
-
-    const glyphSize =
-      centered
-        ? 22
-        : selected
-          ? 18
-          : focused
-            ? 16
-            : 14;
-
-    return (
-
-      <g
-        key={node.id}
-        transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
-        onClick={() =>
-          setSelection({
-            kind: "NODE",
-            nodeId: node.id,
-            nodeType:
-              node.type,
-          })
-        }
-        onDoubleClick={() =>
-          setCenterNodeId(
+        const focused =
+          focusedNodeIds.has(
             node.id
-          )
-        }
-        style={{
-          cursor: "pointer",
-        }}
-      >
+          );
 
-       <GraphNodeGlyph
-  type={node.type}
-  iconType={node.iconType}
-  selected={selected}
-  focused={focused}
-  size={glyphSize}
-/>
+        const selected =
+          selection.kind ===
+            "NODE" &&
+          selection.nodeId ===
+            node.id;
 
-        {centered && (
-          <circle
-            r={glyphSize + 8}
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            opacity={0.85}
-          />
-        )}
+        const centered =
+          centerNodeId ===
+          node.id;
 
-        <text
-          x={0}
-          y={glyphSize + 18}
-          textAnchor="middle"
-          fill="#d1d5db"
-          fontSize="11"
-          fontWeight="600"
-        >
-          {node.label}
-        </text>
+        const glyphSize =
+          centered
+            ? 22
+            : selected
+              ? 18
+              : focused
+                ? 16
+                : 14;
 
-      </g>
+        return (
 
-    );
-  }
-)}
+          <g
+            key={node.id}
+            transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
+            onClick={() =>
+              setSelection({
+                kind: "NODE",
+                nodeId: node.id,
+                nodeType:
+                  node.type,
+              })
+            }
+            onDoubleClick={() =>
+              setCenterNodeId(
+                node.id
+              )
+            }
+            style={{
+              cursor: "pointer",
+            }}
+          >
 
-</svg>
+            <GraphNodeGlyph
+              type={node.type}
+              iconType={node.iconType}
+              selected={selected}
+              focused={focused}
+              size={glyphSize}
+            />
+
+            {centered && (
+              <circle
+                r={glyphSize + 8}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                opacity={0.85}
+              />
+            )}
+
+            <text
+              x={0}
+              y={glyphSize + 18}
+              textAnchor="middle"
+              fill="#d1d5db"
+              fontSize="11"
+              fontWeight="600"
+            >
+              {node.label}
+            </text>
+
+          </g>
+
+        );
+
+      }
+    )}
+
+  </svg>
 
 </div>
 
@@ -521,133 +546,133 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
   selectedEdge={selectedEdge}
 />
 
+{/* ==================================================== */}
+{/* EDGES */}
+{/* ==================================================== */}
 
-      {/* ==================================================== */}
-      {/* EDGES */}
-      {/* ==================================================== */}
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  }}
+>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
+  {graph.edges.map(
+    edge => {
 
-        {graph.edges.map(
-          edge => {
+      const selectedEdge =
+        selection?.kind ===
+          "EDGE" &&
+        selection.edgeId ===
+          edge.id;
 
-            const selectedEdge =
-              selection?.kind ===
-                "EDGE" &&
-              selection.edgeId ===
-                edge.id;
+      return (
 
-            return (
-
-              <div
-                key={edge.id}
-                onClick={() =>
-                  setSelection({
-                    kind: "EDGE",
-                    edgeId:
-                      edge.id,
-                    sourceId:
-                      edge.source,
-                    targetId:
-                      edge.target,
-                  })
-                }
-                style={{
-                  border:
-                    selectedEdge
-                      ? "1px solid #f59e0b"
-                      : "1px solid #172033",
-
-                  borderRadius: 6,
-
-                  padding: 10,
-
-                  background:
-                    selectedEdge
-                      ? "#1f1300"
-                      : "#050b16",
-
-                  cursor: "pointer",
-
-                  userSelect: "none",
-
-                  transition:
-                    "all 0.15s ease",
-                }}
-              >
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                  }}
-                >
-
-                  <div
-                    style={{
-                      color:
-                        selectedEdge
-                          ? "#fbbf24"
-                          : "#d1d5db",
-
-                      fontWeight: 600,
-                    }}
-                  >
-                    {edge.source}
-                    {" → "}
-                    {edge.target}
-                  </div>
-
-                  <div
-                    style={{
-                      color:
-                        selectedEdge
-                          ? "#fbbf24"
-                          : "#60a5fa",
-
-                      fontWeight: 700,
-                    }}
-                  >
-                    {(
-                      edge.weight *
-                      100
-                    ).toFixed(0)}
-                    %
-                  </div>
-
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 6,
-
-                    color:
-                      selectedEdge
-                        ? "#fde68a"
-                        : "#9ca3af",
-
-                    fontSize: 12,
-                  }}
-                >
-                  {edge.relationship}
-                </div>
-
-              </div>
-
-            );
+        <div
+          key={edge.id}
+          onClick={() =>
+            setSelection({
+              kind: "EDGE",
+              edgeId:
+                edge.id,
+              sourceId:
+                edge.source,
+              targetId:
+                edge.target,
+            })
           }
-        )}
+          style={{
+            border:
+              selectedEdge
+                ? "1px solid #f59e0b"
+                : "1px solid #172033",
 
-      </div>
+            borderRadius: 6,
 
-    </div>
+            padding: 10,
 
-  );
+            background:
+              selectedEdge
+                ? "#1f1300"
+                : "#050b16",
+
+            cursor: "pointer",
+
+            userSelect: "none",
+
+            transition:
+              "all 0.15s ease",
+          }}
+        >
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "space-between",
+            }}
+          >
+
+            <div
+              style={{
+                color:
+                  selectedEdge
+                    ? "#fbbf24"
+                    : "#d1d5db",
+
+                fontWeight: 600,
+              }}
+            >
+              {edge.source}
+              {" → "}
+              {edge.target}
+            </div>
+
+            <div
+              style={{
+                color:
+                  selectedEdge
+                    ? "#fbbf24"
+                    : "#60a5fa",
+
+                fontWeight: 700,
+              }}
+            >
+              {(
+                edge.weight *
+                100
+              ).toFixed(0)}
+              %
+            </div>
+
+          </div>
+
+          <div
+            style={{
+              marginTop: 6,
+
+              color:
+                selectedEdge
+                  ? "#fde68a"
+                  : "#9ca3af",
+
+              fontSize: 12,
+            }}
+          >
+            {edge.relationship}
+          </div>
+
+        </div>
+
+      );
+    }
+  )}
+
+</div>
+
+</div>
+
+);
+
 }
