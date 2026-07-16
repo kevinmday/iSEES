@@ -1,16 +1,16 @@
 // ============================================================
 // src/surfaces/PrimarySurface.tsx
-// P37A
-// PRIMARY WORKSPACE PROJECTION
+// P39A
+// PRIMARY WORKSPACE SURFACE
 //
-// Canonical projection surface for the Workspace Runtime.
+// Canonical runtime projection boundary.
 //
-// The Workspace Runtime deterministically owns the active
-// Workspace Mode. PrimarySurface performs no computation
-// and owns no application state.
+// The Workspace Runtime owns the active Workspace Mode.
+// PrimarySurface owns no state and performs no computation.
 //
-// It simply projects the appropriate workspace surface
-// selected by the Workspace Projection subsystem.
+// P39A completes the migration from the legacy
+// WorkspaceProjection router to the canonical
+// WorkspaceSurface runtime router.
 //
 // Ownership:
 //
@@ -18,22 +18,12 @@
 //      ↓
 // Workspace Runtime
 //      ↓
-// Workspace Projection
+// WorkspaceSurface
 //      ↓
-// PrimarySurface
-//      ↓
-// Active Workspace Surface
-//
-// PrimarySurface owns no state.
-// PrimarySurface performs no computation.
-// It is the deterministic projection boundary between the
-// runtime and the visible operator workspace.
+// Active Workspace
 //
 // FULL DROP-IN REPLACEMENT
 // ============================================================
-
-import WorkspaceProjection
-  from "../workspace/runtime/WorkspaceProjection";
 
 import WorkspaceSurface
   from "./WorkspaceSurface";
@@ -46,11 +36,7 @@ export default function PrimarySurface() {
 
   return (
 
-    <WorkspaceProjection
-      fallback={
-        <WorkspaceSurface />
-      }
-    />
+    <WorkspaceSurface />
 
   );
 

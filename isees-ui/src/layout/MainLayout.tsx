@@ -5,8 +5,9 @@
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
-import { Link } from "react-router-dom";
+import { useState } from "react";
 
+import { Link } from "react-router-dom";
 import { useEventContext } from "../context/EventContext";
 
 import {
@@ -34,6 +35,11 @@ export default function MainLayout({
   const {
     focusedEventId,
   } = useWorkspace();
+
+  const [
+    workspaceExpanded,
+    setWorkspaceExpanded,
+  ] = useState(false);
 
   const activeEvent =
     events.find(
@@ -332,6 +338,10 @@ export default function MainLayout({
 
         <div
           style={{
+            display: workspaceExpanded
+              ? "none"
+              : "flex",
+
             width: 320,
             minWidth: 320,
             maxWidth: 320,
@@ -341,7 +351,6 @@ export default function MainLayout({
             border: "1px solid #182235",
             borderRadius: 10,
 
-            display: "flex",
             flexDirection: "column",
 
             overflow: "hidden",
@@ -365,7 +374,7 @@ export default function MainLayout({
         </div>
 
         {/* ================================================= */}
-        {/* CENTER PANEL */}
+        {/* CENTER PANEL — WORKSPACE PROJECTION */}
         {/* ================================================= */}
 
         <div
@@ -374,16 +383,80 @@ export default function MainLayout({
 
             minWidth: 0,
 
+            display: "flex",
+            flexDirection: "column",
+
             background: "#09111f",
 
-            overflowY: "auto",
-            overflowX: "hidden",
-
-            scrollbarGutter: "stable both-edges",
+            overflow: "hidden",
           }}
         >
+
+          {/* =============================================== */}
+          {/* WORKSPACE TOOLBAR */}
+          {/* =============================================== */}
+
           <div
             style={{
+              display: "flex",
+
+              justifyContent: "flex-end",
+
+              alignItems: "center",
+
+              padding: "12px 16px",
+
+              borderBottom: "1px solid #182235",
+
+              background: "#0b1220",
+
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={() =>
+                setWorkspaceExpanded(
+                  !workspaceExpanded
+                )
+              }
+              style={{
+                padding: "6px 12px",
+
+                background: "#162033",
+
+                color: "#e2e8f0",
+
+                border: "1px solid #263347",
+
+                borderRadius: 6,
+
+                cursor: "pointer",
+
+                fontSize: 12,
+
+                fontWeight: 600,
+              }}
+            >
+              {workspaceExpanded
+                ? "Restore"
+                : "Expand"}
+            </button>
+          </div>
+
+          {/* =============================================== */}
+          {/* WORKSPACE PROJECTION HOST */}
+          {/* Runtime-owned investigation workspace */}
+          {/* =============================================== */}
+
+          <div
+            style={{
+              flex: 1,
+
+              overflowY: "auto",
+              overflowX: "hidden",
+
+              scrollbarGutter: "stable both-edges",
+
               width: "100%",
 
               margin: 0,
@@ -393,28 +466,36 @@ export default function MainLayout({
               boxSizing: "border-box",
             }}
           >
-            {/* ================================================= */}
-            {/* CENTER CONTENT */}
-            {/* ================================================= */}
+            {/* ============================================= */}
+            {/* ACTIVE WORKSPACE SURFACE */}
+            {/* ============================================= */}
 
-            <div>{center}</div>
+            {center}
 
           </div>
+
         </div>
 
-        {/* ================================================= */}
+         {/* ================================================= */}
         {/* RIGHT PANEL — SELECTION INTELLIGENCE */}
         {/* ================================================= */}
 
         <div
           style={{
+            display: workspaceExpanded
+              ? "none"
+              : "flex",
+
             width: 340,
             minWidth: 340,
             maxWidth: 340,
+
             background: "#070d18",
-            display: "flex",
+
             flexDirection: "column",
+
             overflow: "hidden",
+
             flexShrink: 0,
           }}
         >
@@ -465,7 +546,6 @@ export default function MainLayout({
         </div>
 
       </div>
-
 
 {/* ========================================================== */}
 {/* WORKSPACE MODE BAR */}
