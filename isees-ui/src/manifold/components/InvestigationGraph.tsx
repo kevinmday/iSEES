@@ -320,7 +320,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
      
 
 {/* ==================================================== */}
-{/* TOPOLOGY CANVAS */}
+{/* TOPOLOGY CANVAS                                     */}
 {/* P40
     PRODUCTION MANIFOLD VIEWPORT
 
@@ -340,17 +340,17 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 <div
   style={{
     flex: 1,
-    minHeight: 0,
+    minHeight: 560,
 
     display: "flex",
     justifyContent: "center",
     alignItems: "stretch",
 
-    padding: 16,
+    padding: 20,
 
     background: "#050b16",
-    border: "1px solid #172033",
-    borderRadius: 8,
+    border: "1px solid rgba(148,163,184,0.12)",
+    borderRadius: 12,
 
     overflow: "hidden",
 
@@ -364,6 +364,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
     viewBox="-320 -320 640 640"
     preserveAspectRatio="xMidYMid meet"
   >
+
        {/* ================================================ */}
     {/* EDGES */}
     {/* ================================================ */}
