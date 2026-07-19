@@ -1,0 +1,185 @@
+// ============================================================
+// src/manifold/components/GraphNodes.tsx
+// P41B
+// GRAPH NODES
+//
+// Owns
+// • Node presentation
+// • Node glyph rendering
+// • Node labels
+// • Node click handling
+// • Node focus presentation
+// • Center node presentation
+//
+// Does NOT own
+// • Graph computation
+// • Runtime
+// • Selection state ownership
+// • Viewport
+//
+// NOTE
+// Behavior matches the existing InvestigationGraph node
+// rendering so the extraction can occur without changing
+// functionality.
+// ============================================================
+
+import GraphNodeGlyph
+from "./GraphNodeGlyph";
+
+import type {
+  GraphNode,
+  GraphSelection,
+} from "../graphTypes";
+
+// ============================================================
+// TYPES
+// ============================================================
+
+export interface GraphNodesProps {
+
+  nodes:
+    GraphNode[];
+
+  selection:
+    GraphSelection;
+
+  focusedNodeIds:
+    Set<string>;
+
+  centerNodeId:
+    string | null;
+
+  setCenterNodeId: (
+    nodeId: string
+  ) => void;
+
+  setSelection: (
+    selection: GraphSelection
+  ) => void;
+
+}
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
+export default function GraphNodes({
+
+  nodes,
+  selection,
+  focusedNodeIds,
+  centerNodeId,
+  setCenterNodeId,
+  setSelection,
+
+}: GraphNodesProps) {
+
+  return (
+
+    <>
+
+      {nodes.map(
+        node => {
+
+          const focused =
+            focusedNodeIds.has(
+              node.id
+            );
+
+          const selected =
+            selection.kind === "NODE" &&
+            selection.nodeId === node.id;
+
+          const centered =
+            centerNodeId ===
+            node.id;
+
+          const glyphSize =
+            centered
+              ? 22
+              : selected
+                ? 18
+                : focused
+                  ? 16
+                  : 14;
+
+          return (
+
+           <g
+          key={node.id}
+          transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
+          onClick={() =>
+            setSelection({
+
+              kind: "NODE",
+
+              nodeId:
+                node.id,
+
+              nodeType:
+                node.type,
+
+            })
+          }
+          onDoubleClick={() =>
+            setCenterNodeId(
+              node.id
+            )
+          }
+          style={{
+            cursor: "pointer",
+          }}
+        >
+
+          <circle
+            r={16}
+            fill="transparent"
+            style={{
+              cursor: "pointer",
+            }}
+          >
+          </circle>
+
+              <GraphNodeGlyph
+                type={node.type}
+                iconType={node.iconType}
+                selected={selected}
+                focused={focused}
+                size={glyphSize}
+              />
+
+              {centered && (
+
+                <circle
+                  r={glyphSize + 8}
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  opacity={0.85}
+                />
+
+              )}
+
+              <text
+                x={0}
+                y={glyphSize + 18}
+                textAnchor="middle"
+                fill="#d1d5db"
+                fontSize="11"
+                fontWeight="600"
+              >
+                {node.label}
+              </text>
+
+            </g>
+
+          );
+
+        }
+      )}
+
+    </>
+
+  );
+
+}

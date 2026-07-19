@@ -25,56 +25,29 @@ import {
   useGraph,
 } from "../context/GraphContext";
 
+import InvestigationViewport
+from "./InvestigationViewport";
+
+import GraphStatistics
+from "./GraphStatistics";
+
 import GraphInteractionPanel
 from "../../graph/GraphInteractionPanel";
-
-import GraphNodeGlyph
-from "./GraphNodeGlyph";
 
 import type {
   GraphNodeIntelligence,
   GraphEdgeIntelligence,
 } from "../../graph/graphInteractionTypes";
 
-// ============================================================
-// STAT CARD
-// ============================================================
+import GraphNodes
+from "./GraphNodes";
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
-  return (
-    <div
-      style={{
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          color: "#6b7280",
-          fontSize: 11,
-          textTransform: "uppercase",
-        }}
-      >
-        {label}
-      </div>
+import GraphEdges
+from "./GraphEdges";
 
-      <div
-        style={{
-          color: "#f3f4f6",
-          fontSize: 18,
-          fontWeight: 700,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
+// ============================================================
+// COMPONENT
+// ============================================================
 
 export default function InvestigationGraph() {
 
@@ -100,7 +73,7 @@ export default function InvestigationGraph() {
       ]
     );
 
-   // ==========================================================
+  // ==========================================================
   // P28A
   // GRAPH CONTEXT OWNERSHIP
   // SINGLE SOURCE OF TRUTH
@@ -112,7 +85,6 @@ export default function InvestigationGraph() {
     centerNodeId,
     setCenterNodeId,
   } = useGraph();
-
 
   // ==========================================================
   // SELECTED NODE INTELLIGENCE
@@ -221,7 +193,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
     : undefined;
 
 
-  // ==========================================================
+   // ==========================================================
   // FOCUSED NODE
   // ==========================================================
 
@@ -285,78 +257,39 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 16,
-          }}
-        >
-
-          <StatCard
-            label="Nodes"
-            value={
-              graph.statistics.nodeCount
-            }
-          />
-
-          <StatCard
-            label="Edges"
-            value={
-              graph.statistics.edgeCount
-            }
-          />
-
-          <StatCard
-            label="Events"
-            value={
-              graph.statistics.eventCount
-            }
-          />
-
-        </div>
+        <GraphStatistics
+          nodeCount={
+            graph.statistics.nodeCount
+          }
+          edgeCount={
+            graph.statistics.edgeCount
+          }
+          eventCount={
+            graph.statistics.eventCount
+          }
+        />
 
       </div>
 
-     
+      {/* ==================================================== */}
+      {/* TOPOLOGY CANVAS                                     */}
+      {/* P40
+          PRODUCTION MANIFOLD VIEWPORT
 
-{/* ==================================================== */}
-{/* TOPOLOGY CANVAS                                     */}
-{/* P40
-    PRODUCTION MANIFOLD VIEWPORT
+          Owns:
+          • Graph presentation
+          • Responsive viewport
+          • SVG host
 
-    Owns:
-    • Graph presentation
-    • Responsive viewport
-    • SVG host
+          Does NOT own:
+          • Graph computation
+          • Selection
+          • Runtime
+          • Layout algorithms
+      */}
+      {/* ==================================================== */}
 
-    Does NOT own:
-    • Graph computation
-    • Selection
-    • Runtime
-    • Layout algorithms
-*/}
-{/* ==================================================== */}
-
-<div
-  style={{
-    flex: 1,
-    minHeight: 560,
-
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "stretch",
-
-    padding: 20,
-
-    background: "#050b16",
-    border: "1px solid rgba(148,163,184,0.12)",
-    borderRadius: 12,
-
-    overflow: "hidden",
-
-    position: "relative",
-  }}
->
+<InvestigationViewport>
 
   <svg
     width="100%"
@@ -364,183 +297,41 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
     viewBox="-320 -320 640 640"
     preserveAspectRatio="xMidYMid meet"
   >
-
-       {/* ================================================ */}
+    {/* ================================================ */}
     {/* EDGES */}
     {/* ================================================ */}
 
-    {graph.edges.map(
-      edge => {
-
-        const source =
-          graph.nodes.find(
-            node =>
-              node.id ===
-              edge.source
-          );
-
-        const target =
-          graph.nodes.find(
-            node =>
-              node.id ===
-              edge.target
-          );
-
-        if (
-          !source ||
-          !target
-        ) {
-
-          return null;
-
-        }
-
-        const selected =
-          selection.kind ===
-            "EDGE" &&
-          selection.edgeId ===
-            edge.id;
-
-        return (
-
-          <line
-            key={edge.id}
-            x1={source.x ?? 0}
-            y1={source.y ?? 0}
-            x2={target.x ?? 0}
-            y2={target.y ?? 0}
-            stroke={
-              selected
-                ? "#f59e0b"
-                : "#334155"
-            }
-            strokeWidth={
-              selected
-                ? 4
-                : Math.max(
-                    1,
-                    edge.weight * 5
-                  )
-            }
-            opacity={
-              selected
-                ? 1
-                : 0.75
-            }
-            onClick={() =>
-              setSelection({
-                kind: "EDGE",
-                edgeId:
-                  edge.id,
-                sourceId:
-                  edge.source,
-                targetId:
-                  edge.target,
-              })
-            }
-            style={{
-              cursor: "pointer",
-            }}
-          />
-
-        );
-
+    <GraphEdges
+      nodes={
+        graph.nodes
       }
-    )}
+      edges={
+        graph.edges
+      }
+      selection={
+        selection
+      }
+      setSelection={
+        setSelection
+      }
+    />
 
     {/* ================================================ */}
     {/* NODES */}
     {/* ================================================ */}
 
-    {graph.nodes.map(
-      node => {
-
-        const focused =
-          focusedNodeIds.has(
-            node.id
-          );
-
-        const selected =
-          selection.kind ===
-            "NODE" &&
-          selection.nodeId ===
-            node.id;
-
-        const centered =
-          centerNodeId ===
-          node.id;
-
-        const glyphSize =
-          centered
-            ? 22
-            : selected
-              ? 18
-              : focused
-                ? 16
-                : 14;
-
-        return (
-
-          <g
-            key={node.id}
-            transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
-            onClick={() =>
-              setSelection({
-                kind: "NODE",
-                nodeId: node.id,
-                nodeType:
-                  node.type,
-              })
-            }
-            onDoubleClick={() =>
-              setCenterNodeId(
-                node.id
-              )
-            }
-            style={{
-              cursor: "pointer",
-            }}
-          >
-
-            <GraphNodeGlyph
-              type={node.type}
-              iconType={node.iconType}
-              selected={selected}
-              focused={focused}
-              size={glyphSize}
-            />
-
-            {centered && (
-              <circle
-                r={glyphSize + 8}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                opacity={0.85}
-              />
-            )}
-
-            <text
-              x={0}
-              y={glyphSize + 18}
-              textAnchor="middle"
-              fill="#d1d5db"
-              fontSize="11"
-              fontWeight="600"
-            >
-              {node.label}
-            </text>
-
-          </g>
-
-        );
-
-      }
-    )}
+    <GraphNodes
+      nodes={graph.nodes}
+      selection={selection}
+      focusedNodeIds={focusedNodeIds}
+      centerNodeId={centerNodeId}
+      setCenterNodeId={setCenterNodeId}
+      setSelection={setSelection}
+    />
 
   </svg>
 
-</div>
+</InvestigationViewport>
 
 <GraphInteractionPanel
   selectedNode={selectedNode}
@@ -548,7 +339,7 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 />
 
 {/* ==================================================== */}
-{/* EDGES */}
+{/* EDGE INSPECTOR */}
 {/* ==================================================== */}
 
 <div
