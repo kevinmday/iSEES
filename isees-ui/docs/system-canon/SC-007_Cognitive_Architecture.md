@@ -1,770 +1,266 @@
-\# ============================================================
+# ============================================================
 
-\# iSEES SYSTEM CANON
+# iSEES SYSTEM CANON
 
-\# ------------------------------------------------------------
+# ------------------------------------------------------------
 
-\# SC-007 • Cognitive Architecture
+# SC-007 • Cognitive Architecture
 
-\# ============================================================#
+# ============================================================
 
-\# System Canon ID
+## System Canon ID
 
-\#
+**SC-007**
 
-\# SC-007
+## Status
 
-\#
+**SYSTEM CANON**
 
-\# Title
+## Version
 
-\#
+**1.1**
 
-\# Cognitive Architecture
+## Introduced
 
-\#
+**P40**
 
-\# Status
+## Revised
 
-\#
+**P42**
 
-\# SYSTEM CANON
+## Author
 
-\#
+**Kevin M. Day**
 
-\# Version
+# Dependencies
 
-\#
+-   SC-001 Resolve-Dissolve Computation
+-   SC-002 Computational Layers
+-   SC-003 Investigation Manifold
+-   SC-004 Investigation Control
+-   SC-005 Intention Engine
+-   SC-006 Research Authoring Framework
 
-\# 1.1
+# Purpose
 
-\#
+Define the canonical cognitive architecture governing how an
+investigator encounters, understands, reasons about, and communicates
+objective investigative reality.
 
-\# Introduced
+This document establishes the deterministic cognitive layers through
+which objective investigative reality becomes justified human knowledge.
+It defines the responsibilities, ownership boundaries, computational
+invariants, and architectural principles that govern every future
+implementation of iSEES.
 
-\#
+# Abstract
 
-\# P40
+An investigation exists independently of iSEES.
 
-\#
+It is the objective state of relationships, evidence, observations,
+events, and hypotheses that exists whether or not software is present.
 
-\# Revised
+The Investigation Manifold is **not** the investigation.
 
-\#
+It is the deterministic computational representation of the
+investigation.
 
-\# P42
+The investigator never interacts directly with objective investigative
+reality.
 
-\#
+Instead, the investigator interacts with its computational
+representation through deterministic cognitive layers.
 
-\# Author
+Each cognitive layer owns exactly one responsibility.
 
-\#
+This separation preserves determinism, inspectability, reproducibility,
+provenance, and investigator authority regardless of implementation
+technology.
 
-\# Kevin M. Day
+# Philosophy
 
-\#
+Investigation is the discovery and justification of objective
+relationships that exist independently of the investigator.
 
-\# Dependencies
+The purpose of iSEES is not to create knowledge.
 
-\#
+Its purpose is to provide a deterministic computational environment in
+which investigators can encounter, understand, organize, reason about,
+and communicate objective investigative reality.
 
-\# SC-001 Resolve-Dissolve Computation
+Implementation follows cognition.
 
-\#
+Never the reverse.
 
-\# SC-002 Computational Layers
+# Canonical Definitions
 
-\#
+**Investigation**
 
-\# SC-003 Investigation Manifold
+The objective state of relationships, observations, evidence,
+hypotheses, and events that exists independently of any investigator or
+computational system.
 
-\#
+**Investigation Manifold**
 
-\# SC-004 Investigation Control
+The deterministic computational representation of an investigation.
 
-\#
+**Investigator**
 
-\# SC-005 Intention Engine
+The human cognitive system that intentionally acquires, organizes,
+reasons about, and communicates justified understanding.
 
-\#
+**Knowledge**
 
-\# SC-006 Research Authoring Framework
+Justified understanding produced through disciplined interaction between
+investigator cognition and objective investigative reality.
 
-\#
+# Cognitive Model
 
-\# Purpose
+Objective Investigation
 
-\#
+↓
 
-\# Define the canonical cognitive architecture of iSEES.
+Resolve--Dissolve Computation
 
-\#
-
-\# This document establishes how objective investigative
-
-\# reality becomes justified human knowledge through
-
-\# deterministic cognition.
-
-\#
-
-\# It defines the canonical cognitive layers,
-
-\# their responsibilities,
-
-\# ownership boundaries,
-
-\# computational invariants,
-
-\# and the principles that govern every future
-
-\# implementation of iSEES.
-
-\#
-
-\# ============================================================
-
-\# ABSTRACT
-
-\# ============================================================
-
-\#
-
-\# iSEES is not organized around software components.
-
-\#
-
-\# It is organized around the natural cognitive process
-
-\# of professional investigation.
-
-\#
-
-\# Every major subsystem exists to support exactly one
-
-\# stage of investigative cognition.
-
-\#
-
-\# Objective investigative reality is represented by
-
-\# the Investigation Manifold.
-
-\#
-
-\# Investigator attention is represented by
-
-\# Investigation Interaction.
-
-\#
-
-\# Investigator inspection is represented by
-
-\# Selection Intelligence.
-
-\#
-
-\# Investigator working memory is represented by
-
-\# the Research Desk.
-
-\#
-
-\# Investigator communication is represented by
-
-\# the Authoring Studio.
-
-\#
-
-\# Every layer owns one cognitive responsibility.
-
-\#
-
-\# No layer performs the responsibilities of another.
-
-\#
-
-\# This separation preserves
-
-\#
-
-\# • determinism
-
-\#
-
-\# • inspectability
-
-\#
-
-\# • reproducibility
-
-\#
-
-\# • provenance
-
-\#
-
-\# • investigator authority
-
-\#
-
-\# regardless of implementation technology.
-
-\#
-
-\# ============================================================
-
-\# PHILOSOPHY
-
-\# ============================================================
-
-\#
-
-\# (To Be Derived)
-
-\#
-
-\#
-
-\# ============================================================
-
-\# COGNITIVE MODEL
-
-\# ============================================================
-
-\#
-
-\# (To Be Derived)
-
-\#
-
-\#
-
-\# ============================================================
-
-\# COGNITIVE LAYERS
-
-\# ============================================================
-
-
-
-The cognitive architecture of iSEES consists of independent
-
-layers, each owning exactly one cognitive responsibility.
-
-
-
-\------------------------------------------------------------
-
-Resolve-Dissolve Computation
-
-\------------------------------------------------------------
-
-
-
-Purpose
-
-
-
-Compute objective investigative reality.
-
-
-
-Question
-
-
-
-What objectively exists?
-
-
-
-Produces
-
-
-
-Objective investigative state.
-
-
-
-\------------------------------------------------------------
+↓
 
 Investigation Manifold
 
-\------------------------------------------------------------
-
-
-
-Purpose
-
-
-
-Represent objective investigative reality.
-
-
-
-Question
-
-
-
-How is objective investigative reality organized?
-
-
-
-Produces
-
-
-
-A deterministic computational representation of the
-
-investigation.
-
-
-
-\------------------------------------------------------------
+↓
 
 Investigation Interaction
 
-\------------------------------------------------------------
-
-
-
-Purpose
-
-
-
-Direct investigator attention.
-
-
-
-Question
-
-
-
-What is the investigator intentionally examining?
-
-
-
-Produces
-
-
-
-Interaction state.
-
-
-
-\------------------------------------------------------------
+↓
 
 Selection Intelligence
 
-\------------------------------------------------------------
-
-
-
-Purpose
-
-
-
-Inspect selected investigative objects.
-
-
-
-Question
-
-
-
-What is this?
-
-
-
-Produces
-
-
-
-Inspectable understanding of the current selection.
-
-
-
-\------------------------------------------------------------
+↓
 
 Research Desk
 
-\------------------------------------------------------------
-
-
-
-Purpose
-
-
-
-Maintain persistent investigative working memory.
-
-
-
-Question
-
-
-
-What deserves deeper consideration?
-
-
-
-Produces
-
-
-
-Persistent research context.
-
-
-
-\------------------------------------------------------------
+↓
 
 Investigator Reasoning
 
-\------------------------------------------------------------
-
-
-
-Purpose
-
-
-
-Develop justified understanding.
-
-
-
-Question
-
-
-
-What does this mean?
-
-
-
-Produces
-
-
-
-Hypotheses, narratives, conclusions,
-
-and investigative direction.
-
-
-
-\------------------------------------------------------------
+↓
 
 Authoring Studio
 
-\------------------------------------------------------------
+↓
 
+Published Knowledge
 
+Knowledge emerges through disciplined interaction between objective
+investigative reality and human reasoning.
 
-Purpose
+# Cognitive Layers
 
+1.  Resolve--Dissolve Computation --- Computes objective investigative
+    reality.
+2.  Investigation Manifold --- Represents objective investigative
+    reality.
+3.  Investigation Interaction --- Directs investigator attention.
+4.  Selection Intelligence --- Explains the current investigative focus.
+5.  Research Desk --- Maintains persistent investigative working memory.
+6.  Investigator Reasoning --- Develops justified understanding.
+7.  Authoring Studio --- Communicates justified understanding through
+    durable investigative artifacts.
 
+# Ownership
 
-Communicate justified understanding.
-
-
-
-Question
-
-
-
-How should this investigation be communicated?
-
-
-
-Produces
-
-
-
-Reports,
-
-presentations,
-
-briefings,
-
-papers,
-
-and published research artifacts.
-
-\# ============================================================
-
-\# OWNERSHIP
-
-\# ============================================================
-
-
-
-Every cognitive layer owns one responsibility.
-
-
+Every cognitive layer owns exactly one responsibility.
 
 No responsibility may belong to multiple layers.
 
-
-
-No layer may assume the responsibilities of another.
-
-
-
-Objective investigative state is never modified by
-
-investigator cognition.
-
-
-
-Investigator cognition never changes the ownership of
-
-objective investigative state.
-
-
+Objective investigative state is never modified by investigator
+cognition.
 
 Interaction directs attention.
 
-
-
 Inspection explains.
-
-
 
 Working memory organizes.
 
-
-
 Reasoning understands.
-
-
 
 Authoring communicates.
 
+These ownership boundaries are invariant across every implementation of
+iSEES.
 
+# Computational Invariants
 
-These ownership boundaries are invariant across every
+-   Determinism
+-   Inspectability
+-   Reproducibility
+-   Provenance
+-   Investigator Authority
 
-implementation of iSEES.
-
-\# ============================================================
-
-\# COMPUTATIONAL INVARIANTS
-
-\# ============================================================
-
-
-
-The cognitive architecture shall preserve the following
-
-properties.
-
-
-
-• Determinism
-
-
-
-• Inspectability
-
-
-
-• Reproducibility
-
-
-
-• Provenance
-
-
-
-• Investigator Authority
-
-
-
-Every cognitive state shall be inspectable.
-
-
-
-Every transition between cognitive layers shall be
-
-deterministic.
-
-
+Every cognitive transition shall be deterministic.
 
 Every conclusion shall be traceable to objective evidence.
 
-
-
 No computation shall obscure investigator reasoning.
 
-
-
-No implementation may violate these invariants.
-
-\# ============================================================
-
-\# AI BOUNDARIES
-
-\# ============================================================
-
-
+# AI Boundaries
 
 Artificial Intelligence is not part of investigation.
 
+Artificial Intelligence is not part of investigator interaction.
 
-
-Artificial Intelligence is not part of investigator
-
-interaction.
-
-
-
-Artificial Intelligence is not part of investigator
-
-reasoning.
-
-
+Artificial Intelligence is not part of investigator reasoning.
 
 AI shall never determine investigative conclusions.
 
+AI may assist only after an investigator has intentionally constructed
+sufficient understanding to communicate.
 
+AI improves communication, not cognition.
 
-AI may assist only after the investigator has intentionally
+# Architectural Principle
 
-constructed sufficient understanding to communicate.
+Architecture eliminates unnecessary degrees of freedom until
+implementation becomes the natural consequence.
 
+Every implementation decision should be derivable from architectural
+invariants rather than subjective design preference.
 
+# Consequences
 
-AI exists to improve communication,
+The user interface is not the architecture.
 
-not cognition.
+The runtime is not the architecture.
 
+React is not the architecture.
 
+Programming languages are not the architecture.
 
-Investigator authority shall always remain absolute.
+The invariant cognitive model is the architecture.
 
-\# ============================================================
+# Future Implementation
 
-\# FUTURE IMPLEMENTATION
-
-\# ============================================================
-
-
-
-Future implementations of iSEES shall preserve the
-
-canonical cognitive architecture regardless of programming
-
-language, user interface, runtime design, or computational
-
-platform.
-
-
+Future implementations of iSEES shall preserve this canonical cognitive
+architecture regardless of programming language, runtime, user
+interface, or computational platform.
 
 Software components may evolve.
 
-
-
-Runtime architectures may evolve.
-
-
-
-User interfaces may evolve.
-
-
-
 The cognitive architecture shall remain invariant.
 
+# Canon Evolution
 
+## Version 1.0
 
-All future implementations shall derive their structure
+Established the deterministic investigation workflow.
 
-from the cognitive responsibilities defined within this
+## Version 1.1
 
-System Canon rather than allowing implementation
+Established Investigation Interaction as the canonical cognitive bridge
+between the Investigation Manifold and investigator reasoning.
 
-constraints to redefine investigative cognition.
+Clarified that the Investigation Manifold is the deterministic
+computational representation of an investigation rather than the
+investigation itself.
 
-\# ============================================================
-
-\# CANON EVOLUTION
-
-\# ============================================================
-
-\#
-
-\# Version 1.0
-
-\#
-
-\# Established the Investigation Workbench and
-
-\# Authoring Studio as the primary cognitive
-
-\# workflow for deterministic investigation.
-
-\#
-
-\#
-
-\# Version 1.1
-
-\#
-
-\# Reframed the architecture around invariant
-
-\# investigative cognition rather than specific
-
-\# user interface workspaces.
-
-\#
-
-\# Established Investigation Interaction as an
-
-\# independent canonical cognitive layer between
-
-\# the Investigation Manifold and Selection
-
-\# Intelligence.
-
-\#
-
-\# Clarified that the Investigation Manifold is
-
-\# the objective computational representation of
-
-\# an investigation and the deterministic interface
-
-\# through which an investigator encounters
-
-\# objective investigative reality.
-
-\#
-
-\# Separated the cognitive responsibilities of
-
-\# representation,
-
-\# attention,
-
-\# inspection,
-
-\# working memory,
-
-\# reasoning,
-
-\# and communication into distinct ownership
-
-\# boundaries.
-
-\#
-
-\# This revision reflects a deeper understanding
-
-\# of investigative cognition gained through the
-
-\# implementation of the iSEES runtime architecture
-
-\# during P40 through P42.
-
-\#
-
-\# ============================================================
-
+Separated representation, attention, inspection, working memory,
+reasoning, and communication into independent ownership layers.
