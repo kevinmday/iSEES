@@ -290,26 +290,13 @@ export default function InvestigationGraph({
           }}
         >
 
+                   {/* ================================================ */}
+          {/* MANIFOLD INSTRUMENTS                             */}
           {/* ================================================ */}
-          {/* DEFAULT INSTRUMENT RAIL                          */}
-          {/* ================================================ */}
 
-          <div
-            style={{
-              position: "absolute",
-
-              top: 12,
-              left: 12,
-
-              pointerEvents: "none",
-            }}
-          >
-
-            <ManifoldToolbar
-              onAction={onAction}
-            />
-
-          </div>
+          <ManifoldToolbar
+            onAction={onAction}
+          />
 
         </div>
 

@@ -1,13 +1,13 @@
 // ============================================================
 // src/manifold/components/ManifoldToolbar.tsx
-// P45A
-// MANIFOLD INSTRUMENT SYSTEM
+// P45A-B1
+// MANIFOLD INSTRUMENT COLLECTION
 //
-// Static P45A instrument presentation.
+// Defines the analytical instruments currently available over
+// the Investigation Manifold.
 //
-// Manifold controls are analytical instruments layered over
-// the investigation surface rather than permanent layout
-// regions surrounding the surface.
+// Generic instrument presentation and drag behavior are owned
+// by ManifoldInstrumentPalette.
 //
 // SC-009:
 // MANIFOLD INSTRUMENT ARCHITECTURE
@@ -16,25 +16,12 @@
 // remains delegated to the owning Investigation and its
 // deterministic Resolve-Dissolve Computation (RDC) runtime.
 //
-// Ownership:
-//
-// Operator
-//      ↓
-// Manifold Instrument
-//      ↓
-// Primary Investigation Manifold
-//      ↓
-// Resolve-Dissolve Computation (RDC)
-//      ↓
-// Deterministic Investigation Manifold
-//
 // ============================================================
 
-import type {
-  ReactNode,
-} from "react";
-
 import Tooltip from "../../components/Tooltip";
+
+import ManifoldInstrumentPalette
+from "./ManifoldInstrumentPalette";
 
 // ============================================================
 // ACTIONS
@@ -112,108 +99,6 @@ function InstrumentButton({
 }
 
 // ============================================================
-// GENERIC INSTRUMENT PALETTE
-// ============================================================
-
-interface ManifoldInstrumentPaletteProps {
-  title: string;
-  children: ReactNode;
-}
-
-function ManifoldInstrumentPalette({
-  title,
-  children,
-}: ManifoldInstrumentPaletteProps) {
-
-  return (
-
-    <div
-      style={{
-        width: 126,
-
-        padding: 8,
-
-        border:
-          "1px solid rgba(148,163,184,0.22)",
-
-        borderRadius: 8,
-
-        background:
-          "rgba(2,6,23,0.90)",
-
-        boxShadow:
-          "0 8px 24px rgba(0,0,0,0.28)",
-
-        backdropFilter: "blur(8px)",
-
-        pointerEvents: "auto",
-      }}
-    >
-
-      {/* ===================================================== */}
-      {/* INSTRUMENT HEADER                                     */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-
-          marginBottom: 7,
-
-          color: "#64748b",
-
-          fontSize: 9,
-          fontWeight: 700,
-
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-        }}
-      >
-
-        <span>
-          {title}
-        </span>
-
-        <span
-          aria-hidden="true"
-          style={{
-            color: "#475569",
-            fontSize: 12,
-            lineHeight: 1,
-
-            cursor: "grab",
-
-            userSelect: "none",
-          }}
-        >
-          ⠿
-        </span>
-
-      </div>
-
-      {/* ===================================================== */}
-      {/* INSTRUMENT CONTENT                                    */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
-        {children}
-      </div>
-
-    </div>
-
-  );
-
-}
-
-// ============================================================
 // COMPONENT
 // ============================================================
 
@@ -229,23 +114,17 @@ export default function ManifoldToolbar({
 
   return (
 
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-
-        gap: 8,
-
-        pointerEvents: "none",
-      }}
-    >
-
+    <>
       {/* ===================================================== */}
       {/* COMPUTATION INSTRUMENT                                */}
       {/* ===================================================== */}
 
       <ManifoldInstrumentPalette
         title="Computation"
+        defaultPosition={{
+          x: 12,
+          y: 12,
+        }}
       >
 
         <InstrumentButton
@@ -277,6 +156,10 @@ export default function ManifoldToolbar({
 
       <ManifoldInstrumentPalette
         title="Projection"
+        defaultPosition={{
+          x: 12,
+          y: 154,
+        }}
       >
 
         <InstrumentButton
@@ -295,7 +178,7 @@ export default function ManifoldToolbar({
 
       </ManifoldInstrumentPalette>
 
-    </div>
+    </>
 
   );
 
