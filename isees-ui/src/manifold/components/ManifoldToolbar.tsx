@@ -119,13 +119,14 @@ export default function ManifoldToolbar({
       {/* COMPUTATION INSTRUMENT                                */}
       {/* ===================================================== */}
 
-      <ManifoldInstrumentPalette
-        title="Computation"
-        defaultPosition={{
-          x: 12,
-          y: 12,
-        }}
-      >
+   <ManifoldInstrumentPalette
+  instrumentId="computation"
+  title="Computation"
+  defaultPosition={{
+    x: 12,
+    y: 12,
+  }}
+>
 
         <InstrumentButton
           label="Resolve"
@@ -154,13 +155,14 @@ export default function ManifoldToolbar({
       {/* PROJECTION INSTRUMENT                                 */}
       {/* ===================================================== */}
 
-      <ManifoldInstrumentPalette
-        title="Projection"
-        defaultPosition={{
-          x: 12,
-          y: 154,
-        }}
-      >
+  <ManifoldInstrumentPalette
+  instrumentId="projection"
+  title="Projection"
+  defaultPosition={{
+    x: 12,
+    y: 154,
+  }}
+>
 
         <InstrumentButton
           label="2D"

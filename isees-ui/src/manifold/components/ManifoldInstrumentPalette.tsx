@@ -49,7 +49,16 @@ type InstrumentDockState =
   | "DOCKED"
   | "FLOATING";
 
+interface PersistedInstrumentState {
+  position: InstrumentPosition;
+  dockState: InstrumentDockState;
+}
+
+const INSTRUMENT_STORAGE_PREFIX =
+  "isees.manifold.instrument.";
+
 interface ManifoldInstrumentPaletteProps {
+  instrumentId: string;
   title: string;
   children: ReactNode;
   defaultPosition: InstrumentPosition;
@@ -62,10 +71,108 @@ interface ManifoldInstrumentPaletteProps {
 const DOCK_SNAP_TOLERANCE = 32;
 
 // ============================================================
+// PERSISTENCE
+// ============================================================
+
+function loadInstrumentState(
+  instrumentId: string,
+  defaultPosition: InstrumentPosition,
+): PersistedInstrumentState {
+
+  const fallback: PersistedInstrumentState = {
+    position: defaultPosition,
+    dockState: "DOCKED",
+  };
+
+  try {
+
+    const raw =
+      window.localStorage.getItem(
+        `${INSTRUMENT_STORAGE_PREFIX}${instrumentId}`
+      );
+
+    if (!raw) {
+      return fallback;
+    }
+
+    const parsed =
+      JSON.parse(raw) as
+        Partial<PersistedInstrumentState>;
+
+    const x =
+      parsed.position?.x;
+
+    const y =
+      parsed.position?.y;
+
+    const dockState =
+      parsed.dockState;
+
+    if (
+      typeof x !== "number" ||
+      typeof y !== "number" ||
+      (
+        dockState !== "DOCKED" &&
+        dockState !== "FLOATING"
+      )
+    ) {
+      return fallback;
+    }
+
+    if (dockState === "DOCKED") {
+
+      return {
+        position: defaultPosition,
+        dockState: "DOCKED",
+      };
+
+    }
+
+    return {
+      position: {
+        x,
+        y,
+      },
+      dockState: "FLOATING",
+    };
+
+  } catch {
+
+    return fallback;
+
+  }
+
+}
+
+function saveInstrumentState(
+  instrumentId: string,
+  state: PersistedInstrumentState,
+): void {
+
+  try {
+
+    window.localStorage.setItem(
+      `${INSTRUMENT_STORAGE_PREFIX}${instrumentId}`,
+      JSON.stringify(state)
+    );
+
+  } catch {
+
+    // Browser persistence is optional.
+    // Instrument interaction remains functional if storage
+    // is unavailable.
+
+  }
+
+}
+
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
 export default function ManifoldInstrumentPalette({
+  instrumentId,
   title,
   children,
   defaultPosition,
@@ -80,11 +187,30 @@ export default function ManifoldInstrumentPalette({
       y: 0,
     });
 
+    // ==========================================================
+  // INITIAL STATE
+  // ==========================================================
+
+  const initialStateRef =
+    useRef<PersistedInstrumentState | null>(
+      null
+    );
+
+  if (!initialStateRef.current) {
+
+    initialStateRef.current =
+      loadInstrumentState(
+        instrumentId,
+        defaultPosition
+      );
+
+  }
+
   const [
     position,
     setPosition,
   ] = useState<InstrumentPosition>(
-    defaultPosition
+    initialStateRef.current.position
   );
 
   const [
@@ -96,7 +222,7 @@ export default function ManifoldInstrumentPalette({
     dockState,
     setDockState,
   ] = useState<InstrumentDockState>(
-    "DOCKED"
+    initialStateRef.current.dockState
   );
 
   // ==========================================================
@@ -258,20 +384,40 @@ export default function ManifoldInstrumentPalette({
           defaultPosition.y
       ) <= DOCK_SNAP_TOLERANCE;
 
-    if (shouldDock) {
+       if (shouldDock) {
+
+      const nextState: PersistedInstrumentState = {
+        position: defaultPosition,
+        dockState: "DOCKED",
+      };
 
       setPosition(
-        defaultPosition
+        nextState.position
       );
 
       setDockState(
-        "DOCKED"
+        nextState.dockState
+      );
+
+      saveInstrumentState(
+        instrumentId,
+        nextState
       );
 
     } else {
 
+      const nextState: PersistedInstrumentState = {
+        position,
+        dockState: "FLOATING",
+      };
+
       setDockState(
-        "FLOATING"
+        nextState.dockState
+      );
+
+      saveInstrumentState(
+        instrumentId,
+        nextState
       );
 
     }
@@ -279,7 +425,6 @@ export default function ManifoldInstrumentPalette({
     setDragging(false);
 
   }
-
   // ==========================================================
   // RENDER
   // ==========================================================
