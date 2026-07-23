@@ -30,19 +30,15 @@
 // Resolve–Dissolve Computation (RDC)
 //
 // ============================================================
-
 import InvestigationGraph from "./InvestigationGraph";
 
-import ManifoldToolbar, {
-  type ManifoldToolbarAction,
+import type {
+  ManifoldToolbarAction,
 } from "./ManifoldToolbar";
-
 
 import {
   manifoldRuntime,
 } from "../engine/manifoldRuntime";
-
-
 // ============================================================
 // TYPES
 // ============================================================
@@ -107,7 +103,7 @@ export default function PrimaryInvestigationManifold({
       }}
     >
 
-          {/* ===================================================== */}
+       {/* ===================================================== */}
       {/* INVESTIGATION MANIFOLD                                */}
       {/* ===================================================== */}
 
@@ -133,39 +129,7 @@ export default function PrimaryInvestigationManifold({
         }}
       >
 
-        <InvestigationGraph />
-
-      </div>
-
-      {/* ===================================================== */}
-      {/* MANIFOLD OPERATOR CONTROLS                            */}
-      {/* ===================================================== */}
-      {/*
-        Operator controls are intentionally projected beneath
-        the primary Investigation Manifold.
-
-        The topology remains the dominant analytical surface.
-        Controls influence computation and projection without
-        visually competing with the manifold itself.
-      */}
-
-      <div
-        style={{
-          flexShrink: 0,
-
-          width: "100%",
-
-          display: "flex",
-          alignItems: "center",
-
-          paddingTop: 8,
-
-          borderTop:
-            "1px solid rgba(148,163,184,0.12)",
-        }}
-      >
-
-        <ManifoldToolbar
+        <InvestigationGraph
           onAction={handleToolbarAction}
         />
 

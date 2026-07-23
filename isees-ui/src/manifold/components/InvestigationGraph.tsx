@@ -31,6 +31,9 @@ from "./InvestigationViewport";
 import GraphStatistics
 from "./GraphStatistics";
 
+import ManifoldToolbar, {
+  type ManifoldToolbarAction,
+} from "./ManifoldToolbar";
 
 import GraphNodes
 from "./GraphNodes";
@@ -38,10 +41,22 @@ from "./GraphNodes";
 import GraphEdges
 from "./GraphEdges";
 // ============================================================
+// TYPES
+// ============================================================
+
+interface InvestigationGraphProps {
+  onAction: (
+    action: ManifoldToolbarAction,
+  ) => void;
+}
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
-export default function InvestigationGraph() {
+export default function InvestigationGraph({
+  onAction,
+}: InvestigationGraphProps) {
 
   const {
     corpus,
@@ -64,7 +79,6 @@ export default function InvestigationGraph() {
         activeWorkspace,
       ]
     );
-
   // ==========================================================
   // P28A
   // GRAPH CONTEXT OWNERSHIP
@@ -204,50 +218,102 @@ export default function InvestigationGraph() {
       */}
       {/* ==================================================== */}
 
-<InvestigationViewport>
+      <InvestigationViewport>
 
-  <svg
-    width="100%"
-    height="100%"
-    viewBox="-320 -320 640 640"
-    preserveAspectRatio="xMidYMid meet"
-  >
-    {/* ================================================ */}
-    {/* EDGES */}
-    {/* ================================================ */}
+        {/* ================================================== */}
+        {/* TOPOLOGY                                           */}
+        {/* ================================================== */}
 
-    <GraphEdges
-      nodes={
-        graph.nodes
-      }
-      edges={
-        graph.edges
-      }
-      selection={
-        selection
-      }
-      setSelection={
-        setSelection
-      }
-    />
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="-320 -320 640 640"
+          preserveAspectRatio="xMidYMid meet"
+        >
 
-    {/* ================================================ */}
-    {/* NODES */}
-    {/* ================================================ */}
+          {/* ================================================ */}
+          {/* EDGES                                            */}
+          {/* ================================================ */}
 
-    <GraphNodes
-      nodes={graph.nodes}
-      selection={selection}
-      focusedNodeIds={focusedNodeIds}
-      centerNodeId={centerNodeId}
-      setCenterNodeId={setCenterNodeId}
-      setSelection={setSelection}
-    />
+          <GraphEdges
+            nodes={
+              graph.nodes
+            }
+            edges={
+              graph.edges
+            }
+            selection={
+              selection
+            }
+            setSelection={
+              setSelection
+            }
+          />
 
-  </svg>
+          {/* ================================================ */}
+          {/* NODES                                            */}
+          {/* ================================================ */}
 
-</InvestigationViewport>
+          <GraphNodes
+            nodes={graph.nodes}
+            selection={selection}
+            focusedNodeIds={focusedNodeIds}
+            centerNodeId={centerNodeId}
+            setCenterNodeId={setCenterNodeId}
+            setSelection={setSelection}
+          />
 
+        </svg>
+
+        {/* ================================================== */}
+        {/* MANIFOLD INSTRUMENT LAYER                          */}
+        {/* ================================================== */}
+        {/*
+          SC-009
+          MANIFOLD INSTRUMENT ARCHITECTURE
+
+          Instruments are projected directly over the topology
+          viewport and consume no topology layout dimensions.
+
+          The overlay ignores pointer interaction outside
+          instrument bounds.
+        */}
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+
+            zIndex: 20,
+
+            pointerEvents: "none",
+          }}
+        >
+
+          {/* ================================================ */}
+          {/* DEFAULT INSTRUMENT RAIL                          */}
+          {/* ================================================ */}
+
+          <div
+            style={{
+              position: "absolute",
+
+              top: 12,
+              left: 12,
+
+              pointerEvents: "none",
+            }}
+          >
+
+            <ManifoldToolbar
+              onAction={onAction}
+            />
+
+          </div>
+
+        </div>
+
+      </InvestigationViewport>
 {/* ==================================================== */}
 {/* EDGE INSPECTOR                                      */}
 {/* ==================================================== */}

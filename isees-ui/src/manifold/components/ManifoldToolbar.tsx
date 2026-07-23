@@ -1,28 +1,38 @@
 // ============================================================
 // src/manifold/components/ManifoldToolbar.tsx
 // P45A
-// MANIFOLD OPERATOR CONTROL RAIL
+// MANIFOLD INSTRUMENT SYSTEM
 //
-// Compact operational control surface for the Investigation
-// Manifold.
+// Static P45A instrument presentation.
+//
+// Manifold controls are analytical instruments layered over
+// the investigation surface rather than permanent layout
+// regions surrounding the surface.
+//
+// SC-009:
+// MANIFOLD INSTRUMENT ARCHITECTURE
 //
 // Actions express operator intent only. Computational execution
 // remains delegated to the owning Investigation and its
-// deterministic Resolve–Dissolve Computation (RDC) runtime.
+// deterministic Resolve-Dissolve Computation (RDC) runtime.
 //
 // Ownership:
 //
 // Operator
 //      ↓
-// Manifold Operator Control Rail
+// Manifold Instrument
 //      ↓
 // Primary Investigation Manifold
 //      ↓
-// Resolve–Dissolve Computation (RDC)
+// Resolve-Dissolve Computation (RDC)
 //      ↓
 // Deterministic Investigation Manifold
 //
 // ============================================================
+
+import type {
+  ReactNode,
+} from "react";
 
 import Tooltip from "../../components/Tooltip";
 
@@ -38,22 +48,24 @@ export type ManifoldToolbarAction =
   | "VIEW_3D";
 
 // ============================================================
-// BUTTON
+// INSTRUMENT BUTTON
 // ============================================================
 
-interface ToolbarButtonProps {
+interface InstrumentButtonProps {
   label: string;
   tooltip: string;
   action: ManifoldToolbarAction;
-  onAction: (action: ManifoldToolbarAction) => void;
+  onAction: (
+    action: ManifoldToolbarAction,
+  ) => void;
 }
 
-function ToolbarButton({
+function InstrumentButton({
   label,
   tooltip,
   action,
   onAction,
-}: ToolbarButtonProps) {
+}: InstrumentButtonProps) {
 
   return (
 
@@ -64,14 +76,17 @@ function ToolbarButton({
           onAction(action)
         }
         style={{
-          background: "#111827",
+          width: "100%",
+
+          background:
+            "rgba(15,23,42,0.94)",
 
           border:
-            "1px solid rgba(148,163,184,0.24)",
+            "1px solid rgba(148,163,184,0.22)",
 
           color: "#e5e7eb",
 
-          padding: "6px 11px",
+          padding: "7px 10px",
 
           borderRadius: 6,
 
@@ -81,6 +96,7 @@ function ToolbarButton({
 
           cursor: "pointer",
 
+          textAlign: "left",
           textTransform: "uppercase",
 
           whiteSpace: "nowrap",
@@ -96,33 +112,101 @@ function ToolbarButton({
 }
 
 // ============================================================
-// GROUP LABEL
+// GENERIC INSTRUMENT PALETTE
 // ============================================================
 
-interface ControlGroupLabelProps {
-  children: string;
+interface ManifoldInstrumentPaletteProps {
+  title: string;
+  children: ReactNode;
 }
 
-function ControlGroupLabel({
+function ManifoldInstrumentPalette({
+  title,
   children,
-}: ControlGroupLabelProps) {
+}: ManifoldInstrumentPaletteProps) {
 
   return (
 
     <div
       style={{
-        color: "#64748b",
+        width: 126,
 
-        fontSize: 9,
-        fontWeight: 700,
+        padding: 8,
 
-        letterSpacing: 1.2,
-        textTransform: "uppercase",
+        border:
+          "1px solid rgba(148,163,184,0.22)",
 
-        whiteSpace: "nowrap",
+        borderRadius: 8,
+
+        background:
+          "rgba(2,6,23,0.90)",
+
+        boxShadow:
+          "0 8px 24px rgba(0,0,0,0.28)",
+
+        backdropFilter: "blur(8px)",
+
+        pointerEvents: "auto",
       }}
     >
-      {children}
+
+      {/* ===================================================== */}
+      {/* INSTRUMENT HEADER                                     */}
+      {/* ===================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+
+          marginBottom: 7,
+
+          color: "#64748b",
+
+          fontSize: 9,
+          fontWeight: 700,
+
+          letterSpacing: 1.2,
+          textTransform: "uppercase",
+        }}
+      >
+
+        <span>
+          {title}
+        </span>
+
+        <span
+          aria-hidden="true"
+          style={{
+            color: "#475569",
+            fontSize: 12,
+            lineHeight: 1,
+
+            cursor: "grab",
+
+            userSelect: "none",
+          }}
+        >
+          ⠿
+        </span>
+
+      </div>
+
+      {/* ===================================================== */}
+      {/* INSTRUMENT CONTENT                                    */}
+      {/* ===================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}
+      >
+        {children}
+      </div>
+
     </div>
 
   );
@@ -147,104 +231,69 @@ export default function ManifoldToolbar({
 
     <div
       style={{
-        width: "100%",
-
         display: "flex",
-        alignItems: "center",
-        flexWrap: "wrap",
+        flexDirection: "column",
 
-        gap: 18,
+        gap: 8,
 
-        padding: "6px 2px",
+        pointerEvents: "none",
       }}
     >
 
       {/* ===================================================== */}
-      {/* COMPUTATION                                           */}
+      {/* COMPUTATION INSTRUMENT                                */}
       {/* ===================================================== */}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
+      <ManifoldInstrumentPalette
+        title="Computation"
       >
 
-        <ControlGroupLabel>
-          Computation
-        </ControlGroupLabel>
-
-        <ToolbarButton
+        <InstrumentButton
           label="Resolve"
           action="RESOLVE"
           onAction={onAction}
-          tooltip="Execute Resolve–Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
+          tooltip="Execute Resolve-Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
         />
 
-        <ToolbarButton
+        <InstrumentButton
           label="Dissolve"
           action="DISSOLVE"
           onAction={onAction}
           tooltip="Remove the current manifold solution and return the Investigation to an unresolved computational state."
         />
 
-        <ToolbarButton
+        <InstrumentButton
           label="Collapse"
           action="COLLAPSE"
           onAction={onAction}
           tooltip="Collapse the current Investigation Manifold according to the selected deterministic collapse strategy while preserving reproducibility."
         />
 
-      </div>
+      </ManifoldInstrumentPalette>
 
       {/* ===================================================== */}
-      {/* DIVIDER                                               */}
+      {/* PROJECTION INSTRUMENT                                 */}
       {/* ===================================================== */}
 
-      <div
-        style={{
-          width: 1,
-          height: 22,
-
-          background:
-            "rgba(148,163,184,0.18)",
-
-          flexShrink: 0,
-        }}
-      />
-
-      {/* ===================================================== */}
-      {/* PROJECTION                                            */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
+      <ManifoldInstrumentPalette
+        title="Projection"
       >
 
-        <ControlGroupLabel>
-          Projection
-        </ControlGroupLabel>
-
-        <ToolbarButton
+        <InstrumentButton
           label="2D"
           action="VIEW_2D"
           onAction={onAction}
           tooltip="Display the current Investigation Manifold using a two-dimensional projection. No recomputation occurs."
         />
 
-        <ToolbarButton
+        <InstrumentButton
           label="3D"
           action="VIEW_3D"
           onAction={onAction}
           tooltip="Display the current Investigation Manifold using a three-dimensional projection. No recomputation occurs."
         />
 
-      </div>
+      </ManifoldInstrumentPalette>
 
     </div>
 
