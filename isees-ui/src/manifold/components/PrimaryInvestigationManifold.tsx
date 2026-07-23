@@ -107,52 +107,7 @@ export default function PrimaryInvestigationManifold({
       }}
     >
 
-      {/* ===================================================== */}
-      {/* MANIFOLD HEADER REGION                                */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          flexShrink: 0,
-
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-
-          width: "100%",
-
-          paddingBottom: 8,
-
-          borderBottom:
-            "1px solid rgba(148,163,184,0.12)",
-        }}
-      >
-
-        {/* ===================================================== */}
-        {/* MANIFOLD OPERATOR TOOLBAR                             */}
-        {/* ===================================================== */}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-
-            gap: 12,
-
-            width: "100%",
-          }}
-        >
-
-          <ManifoldToolbar
-            onAction={handleToolbarAction}
-          />
-
-        </div>
-
-      </div>
-
-            {/* ===================================================== */}
+          {/* ===================================================== */}
       {/* INVESTIGATION MANIFOLD                                */}
       {/* ===================================================== */}
 
@@ -182,29 +137,39 @@ export default function PrimaryInvestigationManifold({
 
       </div>
 
+      {/* ===================================================== */}
+      {/* MANIFOLD OPERATOR CONTROLS                            */}
+      {/* ===================================================== */}
+      {/*
+        Operator controls are intentionally projected beneath
+        the primary Investigation Manifold.
 
-         {/* ===================================================== */}
-        {/* SECONDARY MANIFOLD SURFACES                          */}
-        {/* ===================================================== */}
-        {/*
-          Investigation summary, resolution intelligence, and
-          selection intelligence are intentionally projected
-          outside the primary Manifold viewport.
+        The topology remains the dominant analytical surface.
+        Controls influence computation and projection without
+        visually competing with the manifold itself.
+      */}
 
-          The Manifold workspace remains focused on deterministic
-          investigation topology.
-        */}
+      <div
+        style={{
+          flexShrink: 0,
 
-              {/* ===================================================== */}
-        {/* SECONDARY MANIFOLD SURFACES                          */}
-        {/* ===================================================== */}
-        {/*
-          Resolution and selection intelligence are intentionally
-          projected outside the primary Manifold viewport.
+          width: "100%",
 
-          The Manifold workspace remains focused on deterministic
-          investigation topology.
-        */}
+          display: "flex",
+          alignItems: "center",
+
+          paddingTop: 8,
+
+          borderTop:
+            "1px solid rgba(148,163,184,0.12)",
+        }}
+      >
+
+        <ManifoldToolbar
+          onAction={handleToolbarAction}
+        />
+
+      </div>
 
     </section>
 

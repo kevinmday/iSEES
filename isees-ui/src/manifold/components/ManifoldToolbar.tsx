@@ -1,20 +1,20 @@
 // ============================================================
 // src/manifold/components/ManifoldToolbar.tsx
-// P32.1
-// MANIFOLD OPERATOR TOOLBAR
+// P45A
+// MANIFOLD OPERATOR CONTROL RAIL
 //
-// The Manifold Toolbar is the operator's primary operational
-// interface for interacting with the Investigation Manifold.
+// Compact operational control surface for the Investigation
+// Manifold.
 //
-// Toolbar actions express operator intent only. Computational
-// execution is delegated to the owning Investigation and its
+// Actions express operator intent only. Computational execution
+// remains delegated to the owning Investigation and its
 // deterministic Resolve–Dissolve Computation (RDC) runtime.
 //
 // Ownership:
 //
 // Operator
 //      ↓
-// Manifold Toolbar
+// Manifold Operator Control Rail
 //      ↓
 // Primary Investigation Manifold
 //      ↓
@@ -22,7 +22,6 @@
 //      ↓
 // Deterministic Investigation Manifold
 //
-// FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import Tooltip from "../../components/Tooltip";
@@ -55,27 +54,79 @@ function ToolbarButton({
   action,
   onAction,
 }: ToolbarButtonProps) {
+
   return (
+
     <Tooltip text={tooltip}>
+
       <button
-        onClick={() => onAction(action)}
+        onClick={() =>
+          onAction(action)
+        }
         style={{
           background: "#111827",
-          border: "1px solid #374151",
-          color: "#f3f4f6",
-          padding: "8px 14px",
+
+          border:
+            "1px solid rgba(148,163,184,0.24)",
+
+          color: "#e5e7eb",
+
+          padding: "6px 11px",
+
           borderRadius: 6,
-          fontSize: 11,
+
+          fontSize: 10,
           fontWeight: 700,
-          letterSpacing: 1,
+          letterSpacing: 0.8,
+
           cursor: "pointer",
+
           textTransform: "uppercase",
+
+          whiteSpace: "nowrap",
         }}
       >
         {label}
       </button>
+
     </Tooltip>
+
   );
+
+}
+
+// ============================================================
+// GROUP LABEL
+// ============================================================
+
+interface ControlGroupLabelProps {
+  children: string;
+}
+
+function ControlGroupLabel({
+  children,
+}: ControlGroupLabelProps) {
+
+  return (
+
+    <div
+      style={{
+        color: "#64748b",
+
+        fontSize: 9,
+        fontWeight: 700,
+
+        letterSpacing: 1.2,
+        textTransform: "uppercase",
+
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </div>
+
+  );
+
 }
 
 // ============================================================
@@ -83,43 +134,47 @@ function ToolbarButton({
 // ============================================================
 
 interface ManifoldToolbarProps {
-  onAction: (action: ManifoldToolbarAction) => void;
+  onAction: (
+    action: ManifoldToolbarAction,
+  ) => void;
 }
 
 export default function ManifoldToolbar({
   onAction,
 }: ManifoldToolbarProps) {
+
   return (
-    <section
+
+    <div
       style={{
+        width: "100%",
+
         display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        padding: 12,
-        border: "1px solid #334155",
-        borderRadius: 8,
-        background: "#0f172a",
+        alignItems: "center",
+        flexWrap: "wrap",
+
+        gap: 18,
+
+        padding: "6px 2px",
       }}
     >
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          letterSpacing: 1,
-          textTransform: "uppercase",
-          color: "#e5e7eb",
-        }}
-      >
-        Investigation Operations
-      </div>
+
+      {/* ===================================================== */}
+      {/* COMPUTATION                                           */}
+      {/* ===================================================== */}
 
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
+          alignItems: "center",
           gap: 8,
         }}
       >
+
+        <ControlGroupLabel>
+          Computation
+        </ControlGroupLabel>
+
         <ToolbarButton
           label="Resolve"
           action="RESOLVE"
@@ -141,6 +196,40 @@ export default function ManifoldToolbar({
           tooltip="Collapse the current Investigation Manifold according to the selected deterministic collapse strategy while preserving reproducibility."
         />
 
+      </div>
+
+      {/* ===================================================== */}
+      {/* DIVIDER                                               */}
+      {/* ===================================================== */}
+
+      <div
+        style={{
+          width: 1,
+          height: 22,
+
+          background:
+            "rgba(148,163,184,0.18)",
+
+          flexShrink: 0,
+        }}
+      />
+
+      {/* ===================================================== */}
+      {/* PROJECTION                                            */}
+      {/* ===================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+
+        <ControlGroupLabel>
+          Projection
+        </ControlGroupLabel>
+
         <ToolbarButton
           label="2D"
           action="VIEW_2D"
@@ -154,7 +243,11 @@ export default function ManifoldToolbar({
           onAction={onAction}
           tooltip="Display the current Investigation Manifold using a three-dimensional projection. No recomputation occurs."
         />
+
       </div>
-    </section>
+
+    </div>
+
   );
+
 }
