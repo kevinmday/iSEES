@@ -257,11 +257,60 @@ export default function GraphInteractionPanel({
 
       )}
 
+      {/* ====================================== */}
+      {/* RESEARCH BRIDGE                        */}
+      {/* ====================================== */}
+
+      <div
+        style={{
+          marginTop: 18,
+          background: "#0d1728",
+          border: "1px solid #172033",
+          borderRadius: 8,
+          padding: 12,
+        }}
+      >
+
+        <div
+          style={{
+            color: "#e5e7eb",
+            fontWeight: 700,
+            marginBottom: 10,
+          }}
+        >
+          Research Bridge
+        </div>
+
+        <div
+          style={{
+            color: "#94a3b8",
+            fontSize: 12,
+            marginBottom: 12,
+          }}
+        >
+          0 Anchors
+        </div>
+
+        <div
+          style={{
+            color: "#6b7280",
+            fontSize: 12,
+            lineHeight: 1.5,
+          }}
+        >
+          Right-click a node or edge
+          and choose "Bridge to Research"
+          to collect investigation objects
+          for later authoring.
+        </div>
+
+      </div>
+
     </div>
 
   );
-}
 
+}
 // ============================================================
 // METRIC
 // ============================================================

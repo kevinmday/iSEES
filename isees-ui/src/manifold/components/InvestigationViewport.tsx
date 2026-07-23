@@ -1,12 +1,12 @@
 // ============================================================
 // src/manifold/components/InvestigationViewport.tsx
-// P41B
+// P45A
 // INVESTIGATION VIEWPORT
 //
 // Owns
 // • Viewport presentation
 // • Responsive viewport host
-// • SVG host (future)
+// • SVG host
 // • Camera (future)
 // • Zoom (future)
 // • Pan (future)
@@ -18,10 +18,9 @@
 // • Runtime
 // • Intelligence
 //
-// NOTE
-// This is the initial viewport shell. The SVG topology
-// rendering will be migrated here incrementally during
-// subsequent P41B checkpoints.
+// The viewport expands to consume the space provided by the
+// Manifold workspace. Topology scale remains independently
+// controlled by the projection / SVG coordinate system.
 //
 // ============================================================
 
@@ -52,16 +51,19 @@ export default function InvestigationViewport({
     <div
       style={{
         flex: 1,
-        minHeight: 560,
+
+        minWidth: 0,
+        minHeight: 0,
 
         display: "flex",
         justifyContent: "center",
         alignItems: "stretch",
 
-        padding: 20,
-
         background: "#050b16",
-        border: "1px solid rgba(148,163,184,0.12)",
+
+        border:
+          "1px solid rgba(148,163,184,0.12)",
+
         borderRadius: 12,
 
         overflow: "hidden",

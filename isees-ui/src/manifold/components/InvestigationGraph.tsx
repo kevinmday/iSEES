@@ -31,20 +31,12 @@ from "./InvestigationViewport";
 import GraphStatistics
 from "./GraphStatistics";
 
-import GraphInteractionPanel
-from "../../graph/GraphInteractionPanel";
-
-import type {
-  GraphNodeIntelligence,
-  GraphEdgeIntelligence,
-} from "../../graph/graphInteractionTypes";
 
 import GraphNodes
 from "./GraphNodes";
 
 import GraphEdges
 from "./GraphEdges";
-
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -86,112 +78,28 @@ export default function InvestigationGraph() {
     setCenterNodeId,
   } = useGraph();
 
-  // ==========================================================
+    // ==========================================================
   // SELECTED NODE INTELLIGENCE
   // ==========================================================
+  //
+  // Selection intelligence is no longer projected inside the
+  // Investigation Graph.
+  //
+  // GraphContext remains the canonical owner of graph
+  // selection. Selected-node intelligence will be resolved and
+  // projected by the dedicated Selection Intelligence surface.
+  //
+  // ==========================================================
 
-const selectedNode: GraphNodeIntelligence | undefined =
-  selection.kind === "NODE"
-    ? (() => {
-
-        const node =
-          graph.nodes.find(
-            n => n.id === selection.nodeId
-          );
-
-        if (!node) {
-          return undefined;
-        }
-
-        const connectionCount =
-          graph.edges.filter(
-            edge =>
-              edge.source === node.id ||
-              edge.target === node.id
-          ).length;
-
-        return {
-
-          nodeId:
-            node.id,
-
-          title:
-            node.label,
-
-          sourceType:
-            String(
-              node.metadata?.source ??
-              "UNKNOWN"
-            ),
-
-          confidence:
-            typeof node.metadata?.confidence ===
-            "number"
-              ? node.metadata.confidence
-              : undefined,
-
-          connectionCount,
-
-          metadata:
-            node.metadata,
-        };
-
-      })()
-    : undefined;
-
-// ==========================================================
-// SELECTED EDGE INTELLIGENCE
-// ==========================================================
-
-const selectedEdge: GraphEdgeIntelligence | undefined =
-  selection.kind === "EDGE"
-    ? (() => {
-
-        const edge =
-          graph.edges.find(
-            e => e.id === selection.edgeId
-          );
-
-        if (!edge) {
-          return undefined;
-        }
-
-        return {
-
-          edgeId:
-            edge.id,
-
-          sourceId:
-            edge.source,
-
-          targetId:
-            edge.target,
-
-          confidence:
-            edge.metrics?.confidence ?? 0,
-
-          narrative:
-            edge.metrics?.narrative ?? 0,
-
-          observability:
-            edge.metrics?.observability ?? 0,
-
-          infrastructure:
-            edge.metrics?.infrastructure ?? 0,
-
-          topology:
-            edge.metrics?.topology ?? 0,
-
-          geo:
-            edge.metrics?.geo ?? 0,
-
-          rationale:
-            edge.rationale ?? [],
-        };
-
-      })()
-    : undefined;
-
+  // ==========================================================
+  // SELECTED EDGE INTELLIGENCE
+  // ==========================================================
+  //
+  // Selection intelligence is projected outside the
+  // Investigation Graph by the dedicated Selection
+  // Intelligence surface.
+  //
+  // ==========================================================
 
    // ==========================================================
   // FOCUSED NODE
@@ -210,13 +118,20 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 
     <div
       style={{
+        flex: 1,
+        minWidth: 0,
+        minHeight: 0,
+
         background: "#08101f",
         border: "1px solid #172033",
         borderRadius: 8,
         padding: 16,
+
         display: "flex",
         flexDirection: "column",
         gap: 12,
+
+        overflow: "hidden",
       }}
     >
 
@@ -333,135 +248,17 @@ const selectedEdge: GraphEdgeIntelligence | undefined =
 
 </InvestigationViewport>
 
-<GraphInteractionPanel
-  selectedNode={selectedNode}
-  selectedEdge={selectedEdge}
-/>
-
 {/* ==================================================== */}
-{/* EDGE INSPECTOR */}
+{/* EDGE INSPECTOR                                      */}
 {/* ==================================================== */}
+{/*
+  The persistent edge inspector has been removed from the
+  primary Manifold surface.
 
-<div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  }}
->
-
-  {graph.edges.map(
-    edge => {
-
-      const selectedEdge =
-        selection?.kind ===
-          "EDGE" &&
-        selection.edgeId ===
-          edge.id;
-
-      return (
-
-        <div
-          key={edge.id}
-          onClick={() =>
-            setSelection({
-              kind: "EDGE",
-              edgeId:
-                edge.id,
-              sourceId:
-                edge.source,
-              targetId:
-                edge.target,
-            })
-          }
-          style={{
-            border:
-              selectedEdge
-                ? "1px solid #f59e0b"
-                : "1px solid #172033",
-
-            borderRadius: 6,
-
-            padding: 10,
-
-            background:
-              selectedEdge
-                ? "#1f1300"
-                : "#050b16",
-
-            cursor: "pointer",
-
-            userSelect: "none",
-
-            transition:
-              "all 0.15s ease",
-          }}
-        >
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-            }}
-          >
-
-            <div
-              style={{
-                color:
-                  selectedEdge
-                    ? "#fbbf24"
-                    : "#d1d5db",
-
-                fontWeight: 600,
-              }}
-            >
-              {edge.source}
-              {" → "}
-              {edge.target}
-            </div>
-
-            <div
-              style={{
-                color:
-                  selectedEdge
-                    ? "#fbbf24"
-                    : "#60a5fa",
-
-                fontWeight: 700,
-              }}
-            >
-              {(
-                edge.weight *
-                100
-              ).toFixed(0)}
-              %
-            </div>
-
-          </div>
-
-          <div
-            style={{
-              marginTop: 6,
-
-              color:
-                selectedEdge
-                  ? "#fde68a"
-                  : "#9ca3af",
-
-              fontSize: 12,
-            }}
-          >
-            {edge.relationship}
-          </div>
-
-        </div>
-
-      );
-    }
-  )}
-
-</div>
+  Edge selection remains available directly through the
+  topology. Selected-edge intelligence will be projected
+  through the dedicated Selection Intelligence surface.
+*/}
 
 </div>
 

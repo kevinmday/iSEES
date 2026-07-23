@@ -32,6 +32,9 @@ import {
 import InvestigationWorkspace
   from "../components/InvestigationWorkspace";
 
+import ManifoldWorkspace
+  from "../workspace/surfaces/ManifoldWorkspace";
+
 // ============================================================
 // PLACEHOLDER SURFACE
 // ============================================================
@@ -91,11 +94,11 @@ export default function WorkspaceSurface() {
         />
       );
 
-    case WorkspaceMode.MANIFOLD:
+case WorkspaceMode.MANIFOLD:
 
-      return (
-        <InvestigationWorkspace />
-      );
+  return (
+    <ManifoldWorkspace />
+  );
 
     case WorkspaceMode.COMPARE:
 
