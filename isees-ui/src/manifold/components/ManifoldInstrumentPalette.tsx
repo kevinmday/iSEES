@@ -1,23 +1,28 @@
 // ============================================================
 // src/manifold/components/ManifoldInstrumentPalette.tsx
-// P45A-B1
+// P45A-B2
 // MANIFOLD INSTRUMENT PALETTE
 //
-// Generic draggable analytical instrument projected over the
-// Investigation Manifold topology viewport.
+// Generic dockable / draggable analytical instrument projected
+// over the Investigation Manifold topology viewport.
 //
 // SC-009:
 // MANIFOLD INSTRUMENT ARCHITECTURE
 //
-// This component owns instrument presentation and local
-// floating position.
+// This component owns:
+// • Instrument presentation
+// • Local floating position
+// • Drag interaction
+// • Canonical dock position
+// • Dock / float state
+// • Snap-to-dock behavior
 //
 // It does NOT own:
 // • Computational semantics
 // • Manifold runtime
 // • Graph computation
 // • Graph projection
-// • Docking persistence
+// • Persistent workspace state
 //
 // ============================================================
 
@@ -40,11 +45,21 @@ interface InstrumentPosition {
   y: number;
 }
 
+type InstrumentDockState =
+  | "DOCKED"
+  | "FLOATING";
+
 interface ManifoldInstrumentPaletteProps {
   title: string;
   children: ReactNode;
   defaultPosition: InstrumentPosition;
 }
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const DOCK_SNAP_TOLERANCE = 32;
 
 // ============================================================
 // COMPONENT
@@ -76,6 +91,30 @@ export default function ManifoldInstrumentPalette({
     dragging,
     setDragging,
   ] = useState(false);
+
+  const [
+    dockState,
+    setDockState,
+  ] = useState<InstrumentDockState>(
+    "DOCKED"
+  );
+
+  // ==========================================================
+  // DOCK PROXIMITY
+  // ==========================================================
+
+  const distanceFromDock =
+    Math.hypot(
+      position.x -
+        defaultPosition.x,
+      position.y -
+        defaultPosition.y
+    );
+
+  const nearDock =
+    dragging &&
+    distanceFromDock <=
+      DOCK_SNAP_TOLERANCE;
 
   // ==========================================================
   // DRAG START
@@ -177,6 +216,13 @@ export default function ManifoldInstrumentPalette({
       y: nextY,
     });
 
+    if (
+      nextX !== defaultPosition.x ||
+      nextY !== defaultPosition.y
+    ) {
+      setDockState("FLOATING");
+    }
+
   }
 
   // ==========================================================
@@ -204,6 +250,32 @@ export default function ManifoldInstrumentPalette({
       );
     }
 
+    const shouldDock =
+      Math.hypot(
+        position.x -
+          defaultPosition.x,
+        position.y -
+          defaultPosition.y
+      ) <= DOCK_SNAP_TOLERANCE;
+
+    if (shouldDock) {
+
+      setPosition(
+        defaultPosition
+      );
+
+      setDockState(
+        "DOCKED"
+      );
+
+    } else {
+
+      setDockState(
+        "FLOATING"
+      );
+
+    }
+
     setDragging(false);
 
   }
@@ -214,116 +286,168 @@ export default function ManifoldInstrumentPalette({
 
   return (
 
-    <div
-      ref={paletteRef}
-      style={{
-        position: "absolute",
-
-        left: position.x,
-        top: position.y,
-
-        width: 126,
-
-        padding: 8,
-
-        border:
-          "1px solid rgba(148,163,184,0.22)",
-
-        borderRadius: 8,
-
-        background:
-          "rgba(2,6,23,0.90)",
-
-        boxShadow:
-          dragging
-            ? "0 12px 32px rgba(0,0,0,0.42)"
-            : "0 8px 24px rgba(0,0,0,0.28)",
-
-        backdropFilter: "blur(8px)",
-
-        pointerEvents: "auto",
-
-        zIndex:
-          dragging
-            ? 2
-            : 1,
-      }}
-    >
-
+    <>
       {/* ===================================================== */}
-      {/* DRAG HANDLE                                           */}
+      {/* DOCK TARGET                                           */}
       {/* ===================================================== */}
 
-      <div
-        onPointerDown={
-          handlePointerDown
-        }
-        onPointerMove={
-          handlePointerMove
-        }
-        onPointerUp={
-          handlePointerUp
-        }
-        onPointerCancel={
-          handlePointerUp
-        }
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+      {nearDock && (
 
-          marginBottom: 7,
-
-          color: "#64748b",
-
-          fontSize: 9,
-          fontWeight: 700,
-
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-
-          cursor:
-            dragging
-              ? "grabbing"
-              : "grab",
-
-          userSelect: "none",
-          touchAction: "none",
-        }}
-      >
-
-        <span>
-          {title}
-        </span>
-
-        <span
+        <div
           aria-hidden="true"
           style={{
-            color: "#475569",
-            fontSize: 12,
-            lineHeight: 1,
-          }}
-        >
-          ⠿
-        </span>
+            position: "absolute",
 
-      </div>
+            left: defaultPosition.x,
+            top: defaultPosition.y,
+
+            width: 142,
+            height:
+              paletteRef.current
+                ?.offsetHeight ?? 80,
+
+            border:
+              "1px dashed rgba(96,165,250,0.65)",
+
+            borderRadius: 8,
+
+            background:
+              "rgba(59,130,246,0.06)",
+
+            boxSizing: "border-box",
+
+            pointerEvents: "none",
+          }}
+        />
+
+      )}
 
       {/* ===================================================== */}
-      {/* INSTRUMENT CONTENT                                    */}
+      {/* INSTRUMENT                                            */}
       {/* ===================================================== */}
 
       <div
+        ref={paletteRef}
+        data-dock-state={dockState}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
+          position: "absolute",
+
+          left: position.x,
+          top: position.y,
+
+          width: 126,
+
+          padding: 8,
+
+          border:
+            nearDock
+              ? "1px solid rgba(96,165,250,0.65)"
+              : "1px solid rgba(148,163,184,0.22)",
+
+          borderRadius: 8,
+
+          background:
+            "rgba(2,6,23,0.90)",
+
+          boxShadow:
+            dragging
+              ? "0 12px 32px rgba(0,0,0,0.42)"
+              : "0 8px 24px rgba(0,0,0,0.28)",
+
+          backdropFilter: "blur(8px)",
+
+          pointerEvents: "auto",
+
+          zIndex:
+            dragging
+              ? 3
+              : 2,
         }}
       >
-        {children}
+
+        {/* =================================================== */}
+        {/* DRAG HANDLE                                         */}
+        {/* =================================================== */}
+
+        <div
+          onPointerDown={
+            handlePointerDown
+          }
+          onPointerMove={
+            handlePointerMove
+          }
+          onPointerUp={
+            handlePointerUp
+          }
+          onPointerCancel={
+            handlePointerUp
+          }
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+
+            marginBottom: 7,
+
+            color:
+              nearDock
+                ? "#93c5fd"
+                : "#64748b",
+
+            fontSize: 9,
+            fontWeight: 700,
+
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+
+            cursor:
+              dragging
+                ? "grabbing"
+                : "grab",
+
+            userSelect: "none",
+            touchAction: "none",
+          }}
+        >
+
+          <span>
+            {title}
+          </span>
+
+          <span
+            aria-hidden="true"
+            style={{
+              color:
+                nearDock
+                  ? "#93c5fd"
+                  : "#475569",
+
+              fontSize: 12,
+              lineHeight: 1,
+            }}
+          >
+            ⠿
+          </span>
+
+        </div>
+
+        {/* =================================================== */}
+        {/* INSTRUMENT CONTENT                                  */}
+        {/* =================================================== */}
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
+        >
+          {children}
+        </div>
+
       </div>
 
-    </div>
+    </>
 
   );
 
