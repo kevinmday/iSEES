@@ -22,6 +22,10 @@ import {
 } from "../graphBuilder";
 
 import {
+  applyCircularManifoldLayout,
+} from "../layout/manifoldLayout";
+
+import {
   useGraph,
 } from "../context/GraphContext";
 
@@ -67,6 +71,10 @@ export default function InvestigationGraph({
     focusedEventId,
   } = useWorkspace();
 
+  // ==========================================================
+  // GRAPH CONSTRUCTION
+  // ==========================================================
+
   const graph =
     useMemo(
       () =>
@@ -77,6 +85,36 @@ export default function InvestigationGraph({
       [
         corpus,
         activeWorkspace,
+      ]
+    );
+
+  // ==========================================================
+  // MANIFOLD LAYOUT
+  // ==========================================================
+  //
+  // Graph construction and spatial layout are intentionally
+  // independent.
+  //
+  // The graph builder establishes deterministic semantic
+  // topology. The Manifold Layout Engine projects that topology
+  // into spatial coordinates for presentation.
+  //
+  // ==========================================================
+
+  const positionedNodes =
+    useMemo(
+      () =>
+        applyCircularManifoldLayout(
+          graph.nodes,
+          {
+            centerNodeId:
+              graph.centerNodeId,
+            orbitRadius: 180,
+          }
+        ),
+      [
+        graph.nodes,
+        graph.centerNodeId,
       ]
     );
   // ==========================================================
@@ -297,7 +335,7 @@ export default function InvestigationGraph({
 
                 <GraphEdges
                   nodes={
-                    graph.nodes
+                    positionedNodes
                   }
                   edges={
                     graph.edges
@@ -315,7 +353,7 @@ export default function InvestigationGraph({
                 {/* ============================================ */}
 
                 <GraphNodes
-                  nodes={graph.nodes}
+                  nodes={positionedNodes}
                   selection={selection}
                   focusedNodeIds={focusedNodeIds}
                   centerNodeId={centerNodeId}

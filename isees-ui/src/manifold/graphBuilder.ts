@@ -414,114 +414,16 @@ edgeMap.values()
 
 
 // ==========================================================
-// P25.3
-// DYNAMIC CENTER NODE
-// INVESTIGATION-CENTRIC TOPOLOGY
-// ==========================================================
-
-const focusedNodeId =
-  workspace.focused_event_id;
-
-const centerRadius = 0;
-const orbitRadius = 180;
-
-// ==========================================================
-// CENTER NODE
-// ==========================================================
-
-const centerNode =
-  focusedNodeId
-    ? nodes.find(
-        node =>
-          node.id ===
-          focusedNodeId
-      )
-    : undefined;
-
-if (centerNode) {
-
-  centerNode.x =
-    centerRadius;
-
-  centerNode.y =
-    centerRadius;
-}
-
-// ==========================================================
-// ORBIT NODES
-// ==========================================================
-
-const orbitNodes =
-  nodes.filter(
-    node =>
-      node.id !==
-      focusedNodeId
-  );
-
-orbitNodes.forEach(
-  (
-    node,
-    index
-  ) => {
-
-    const angle =
-      (
-        index /
-        Math.max(
-          orbitNodes.length,
-          1
-        )
-      ) *
-      Math.PI *
-      2;
-
-    node.x =
-      Math.cos(angle) *
-      orbitRadius;
-
-    node.y =
-      Math.sin(angle) *
-      orbitRadius;
-  }
-);
-
-// ==========================================================
-// FALLBACK
-// NO FOCUSED EVENT
-// ==========================================================
-
-if (!focusedNodeId) {
-
-  nodes.forEach(
-    (
-      node,
-      index
-    ) => {
-
-      const angle =
-        (
-          index /
-          Math.max(
-            nodes.length,
-            1
-          )
-        ) *
-        Math.PI *
-        2;
-
-      node.x =
-        Math.cos(angle) *
-        orbitRadius;
-
-      node.y =
-        Math.sin(angle) *
-        orbitRadius;
-    }
-  );
-}
-
-// ==========================================================
 // RETURN GRAPH
+// ==========================================================
+//
+// P45A-C2
+//
+// Graph construction owns semantic topology only.
+//
+// Spatial positioning has been removed from the graph builder
+// and is now owned by the Manifold Layout Engine.
+//
 // ==========================================================
 
 return {
@@ -531,65 +433,67 @@ return {
   edges,
 
   centerNodeId:
-    focusedNodeId ??
+    workspace.focused_event_id ??
     undefined,
 
   statistics: {
 
-  nodeCount:
-    nodes.length,
+    nodeCount:
+      nodes.length,
 
-  edgeCount:
-    edges.length,
+    edgeCount:
+      edges.length,
 
-  eventCount:
-    nodes.filter(
-      node =>
-        node.type === "EVENT"
-    ).length,
+    eventCount:
+      nodes.filter(
+        node =>
+          node.type === "EVENT"
+      ).length,
 
-  facilityCount:
-    nodes.filter(
-      node =>
-        node.type === "FACILITY"
-    ).length,
+    facilityCount:
+      nodes.filter(
+        node =>
+          node.type === "FACILITY"
+      ).length,
 
-  artifactCount:
-    nodes.filter(
-      node =>
-        node.type === "ARTIFACT"
-    ).length,
+    artifactCount:
+      nodes.filter(
+        node =>
+          node.type === "ARTIFACT"
+      ).length,
 
-  personCount:
-    nodes.filter(
-      node =>
-        node.type === "PERSON"
-    ).length,
+    personCount:
+      nodes.filter(
+        node =>
+          node.type === "PERSON"
+      ).length,
 
-  organizationCount:
-    nodes.filter(
-      node =>
-        node.type === "ORGANIZATION"
-    ).length,
+    organizationCount:
+      nodes.filter(
+        node =>
+          node.type === "ORGANIZATION"
+      ).length,
 
-  locationCount:
-    nodes.filter(
-      node =>
-        node.type === "LOCATION"
-    ).length,
+    locationCount:
+      nodes.filter(
+        node =>
+          node.type === "LOCATION"
+      ).length,
 
-  narrativeCount:
-    nodes.filter(
-      node =>
-        node.type === "NARRATIVE"
-    ).length,
+    narrativeCount:
+      nodes.filter(
+        node =>
+          node.type === "NARRATIVE"
+      ).length,
 
-  hypothesisCount:
-    nodes.filter(
-      node =>
-        node.type === "HYPOTHESIS"
-    ).length,
-},
+    hypothesisCount:
+      nodes.filter(
+        node =>
+          node.type === "HYPOTHESIS"
+      ).length,
+
+  },
+
 };
-}
 
+}
