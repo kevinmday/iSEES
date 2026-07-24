@@ -218,88 +218,154 @@ export default function InvestigationGraph({
       */}
       {/* ==================================================== */}
 
+
       <InvestigationViewport>
+        {(viewportSize) => {
 
-        {/* ================================================== */}
-        {/* TOPOLOGY                                           */}
-        {/* ================================================== */}
+          // ==================================================
+          // RESPONSIVE TOPOLOGY PROJECTION
+          // ==================================================
+          //
+          // Graph coordinates remain deterministic and
+          // independent of viewport dimensions.
+          //
+          // The SVG projection adapts its visible coordinate
+          // space to the physical aspect ratio of the
+          // Investigation Viewport.
+          //
+          // ==================================================
 
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="-320 -320 640 640"
-          preserveAspectRatio="xMidYMid meet"
-        >
+          const baseExtent = 270;
 
-          {/* ================================================ */}
-          {/* EDGES                                            */}
-          {/* ================================================ */}
+          const viewportWidth =
+            Math.max(
+              viewportSize.width,
+              1
+            );
 
-          <GraphEdges
-            nodes={
-              graph.nodes
-            }
-            edges={
-              graph.edges
-            }
-            selection={
-              selection
-            }
-            setSelection={
-              setSelection
-            }
-          />
+          const viewportHeight =
+            Math.max(
+              viewportSize.height,
+              1
+            );
 
-          {/* ================================================ */}
-          {/* NODES                                            */}
-          {/* ================================================ */}
+          const aspectRatio =
+            viewportWidth /
+            viewportHeight;
 
-          <GraphNodes
-            nodes={graph.nodes}
-            selection={selection}
-            focusedNodeIds={focusedNodeIds}
-            centerNodeId={centerNodeId}
-            setCenterNodeId={setCenterNodeId}
-            setSelection={setSelection}
-          />
+          const viewBoxWidth =
+            aspectRatio >= 1
+              ? baseExtent *
+                2 *
+                aspectRatio
+              : baseExtent * 2;
 
-        </svg>
+          const viewBoxHeight =
+            aspectRatio >= 1
+              ? baseExtent * 2
+              : (
+                  baseExtent *
+                  2
+                ) /
+                aspectRatio;
 
-        {/* ================================================== */}
-        {/* MANIFOLD INSTRUMENT LAYER                          */}
-        {/* ================================================== */}
-        {/*
-          SC-009
-          MANIFOLD INSTRUMENT ARCHITECTURE
+          const viewBoxX =
+            -viewBoxWidth / 2;
 
-          Instruments are projected directly over the topology
-          viewport and consume no topology layout dimensions.
+          const viewBoxY =
+            -viewBoxHeight / 2;
 
-          The overlay ignores pointer interaction outside
-          instrument bounds.
-        */}
+          return (
 
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
+            <>
+              {/* ============================================== */}
+              {/* TOPOLOGY                                       */}
+              {/* ============================================== */}
 
-            zIndex: 20,
+              <svg
+                width="100%"
+                height="100%"
+                viewBox={
+                  `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`
+                }
+                preserveAspectRatio="xMidYMid meet"
+              >
 
-            pointerEvents: "none",
-          }}
-        >
+                {/* ============================================ */}
+                {/* EDGES                                        */}
+                {/* ============================================ */}
 
-                   {/* ================================================ */}
-          {/* MANIFOLD INSTRUMENTS                             */}
-          {/* ================================================ */}
+                <GraphEdges
+                  nodes={
+                    graph.nodes
+                  }
+                  edges={
+                    graph.edges
+                  }
+                  selection={
+                    selection
+                  }
+                  setSelection={
+                    setSelection
+                  }
+                />
 
-          <ManifoldToolbar
-            onAction={onAction}
-          />
+                {/* ============================================ */}
+                {/* NODES                                        */}
+                {/* ============================================ */}
 
-        </div>
+                <GraphNodes
+                  nodes={graph.nodes}
+                  selection={selection}
+                  focusedNodeIds={focusedNodeIds}
+                  centerNodeId={centerNodeId}
+                  setCenterNodeId={setCenterNodeId}
+                  setSelection={setSelection}
+                />
 
+              </svg>
+
+              {/* ============================================== */}
+              {/* MANIFOLD INSTRUMENT LAYER                     */}
+              {/* ============================================== */}
+              {/*
+                SC-009
+                MANIFOLD INSTRUMENT ARCHITECTURE
+
+                Instruments are projected directly over the
+                topology viewport and consume no topology
+                layout dimensions.
+
+                The overlay ignores pointer interaction outside
+                instrument bounds.
+              */}
+
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+
+                  zIndex: 20,
+
+                  pointerEvents: "none",
+                }}
+              >
+
+                {/* ============================================ */}
+                {/* MANIFOLD INSTRUMENTS                         */}
+                {/* ============================================ */}
+
+                <ManifoldToolbar
+                  onAction={onAction}
+                />
+
+              </div>
+
+            </>
+
+          );
+
+        }}
       </InvestigationViewport>
 {/* ==================================================== */}
 {/* EDGE INSPECTOR                                      */}

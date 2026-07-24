@@ -1,28 +1,35 @@
 // ============================================================
 // src/manifold/components/InvestigationViewport.tsx
-// P45A
-// INVESTIGATION VIEWPORT
+// P45A-C
+// RESPONSIVE INVESTIGATION VIEWPORT
 //
-// Owns
+// Owns:
 // • Viewport presentation
-// • Responsive viewport host
+// • Responsive viewport measurement
 // • SVG host
+// • Instrument coordinate host
 // • Camera (future)
 // • Zoom (future)
 // • Pan (future)
 // • Projection (future)
 //
-// Does NOT own
+// Does NOT own:
 // • Graph computation
 // • Selection
-// • Runtime
+// • Investigation runtime
 // • Intelligence
 //
-// The viewport expands to consume the space provided by the
-// Manifold workspace. Topology scale remains independently
-// controlled by the projection / SVG coordinate system.
+// The viewport measures the physical investigation surface.
+// Graph topology remains expressed independently in abstract
+// deterministic coordinates.
 //
 // ============================================================
+
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type {
   ReactNode,
@@ -32,10 +39,17 @@ import type {
 // TYPES
 // ============================================================
 
+export interface InvestigationViewportSize {
+  width: number;
+  height: number;
+}
+
 interface InvestigationViewportProps {
-
-  children: ReactNode;
-
+  children:
+    | ReactNode
+    | ((
+        size: InvestigationViewportSize
+      ) => ReactNode);
 }
 
 // ============================================================
@@ -46,9 +60,88 @@ export default function InvestigationViewport({
   children,
 }: InvestigationViewportProps) {
 
+  const viewportRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+  const [
+    size,
+    setSize,
+  ] = useState<InvestigationViewportSize>({
+    width: 0,
+    height: 0,
+  });
+
+  // ==========================================================
+  // VIEWPORT MEASUREMENT
+  // ==========================================================
+
+  useEffect(
+    () => {
+
+      const viewport =
+        viewportRef.current;
+
+      if (!viewport) {
+        return;
+      }
+
+         function measure(): void {
+
+        const currentViewport =
+          viewportRef.current;
+
+        if (!currentViewport) {
+          return;
+        }
+
+        const rect =
+          currentViewport.getBoundingClientRect();
+
+        setSize({
+          width: rect.width,
+          height: rect.height,
+        });
+
+      }
+
+      measure();
+
+      const observer =
+        new ResizeObserver(
+          measure
+        );
+
+      observer.observe(
+        viewport
+      );
+
+      return () => {
+        observer.disconnect();
+      };
+
+    },
+    []
+  );
+
+  // ==========================================================
+  // CONTENT
+  // ==========================================================
+
+  const content =
+    typeof children === "function"
+      ? children(size)
+      : children;
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
 
     <div
+      ref={viewportRef}
       style={{
         flex: 1,
 
@@ -72,7 +165,7 @@ export default function InvestigationViewport({
       }}
     >
 
-      {children}
+      {content}
 
     </div>
 
