@@ -342,9 +342,9 @@ export default function MainLayout({
               ? "none"
               : "flex",
 
-            width: 320,
-            minWidth: 320,
-            maxWidth: 320,
+            width: 280,
+            minWidth: 280,
+            maxWidth: 280,
 
             background: "#070d18",
 
@@ -447,17 +447,32 @@ export default function MainLayout({
           {/* WORKSPACE PROJECTION HOST */}
           {/* Runtime-owned investigation workspace */}
           {/* =============================================== */}
+          {/*
+              The projection host owns the physical workspace
+              bounds.
+
+              Workspace surfaces receive a stable flex region
+              rather than participating in document-style
+              vertical scrolling.
+
+              Individual workspaces may own scrolling internally
+              when their interaction model requires it.
+          */}
+          {/* =============================================== */}
 
           <div
             style={{
               flex: 1,
 
-              overflowY: "auto",
-              overflowX: "hidden",
-
-              scrollbarGutter: "stable both-edges",
+              minWidth: 0,
+              minHeight: 0,
 
               width: "100%",
+
+              display: "flex",
+              flexDirection: "column",
+
+              overflow: "hidden",
 
               margin: 0,
 
@@ -475,7 +490,6 @@ export default function MainLayout({
           </div>
 
         </div>
-
          {/* ================================================= */}
         {/* RIGHT PANEL — SELECTION INTELLIGENCE */}
         {/* ================================================= */}
@@ -486,9 +500,9 @@ export default function MainLayout({
               ? "none"
               : "flex",
 
-            width: 340,
-            minWidth: 340,
-            maxWidth: 340,
+            width: 300,
+            minWidth: 300,
+            maxWidth: 300,
 
             background: "#070d18",
 

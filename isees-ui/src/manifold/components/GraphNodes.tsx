@@ -103,6 +103,56 @@ export default function GraphNodes({
                   ? 16
                   : 14;
 
+// ==========================================================
+// LABEL PROJECTION
+// ==========================================================
+//
+// Labels project away from the Manifold center so that
+// peripheral node labels consume exterior space rather than
+// crossing topology toward neighboring node territories.
+//
+// EVENT labels retain centered presentation because events
+// act as primary topology anchors.
+//
+// ==========================================================
+
+const nodeX =
+  node.x ?? 0;
+
+
+const peripheralLabel =
+  node.type === "FACILITY";
+
+const horizontalThreshold = 24;
+
+const projectsLeft =
+  peripheralLabel &&
+  nodeX < -horizontalThreshold;
+
+const projectsRight =
+  peripheralLabel &&
+  nodeX > horizontalThreshold;
+
+const labelX =
+  projectsLeft
+    ? -(glyphSize + 10)
+    : projectsRight
+      ? glyphSize + 10
+      : 0;
+
+const labelY =
+  projectsLeft ||
+  projectsRight
+    ? 4
+    : glyphSize + 18;
+
+const labelAnchor =
+  projectsLeft
+    ? "end"
+    : projectsRight
+      ? "start"
+      : "middle";
+
           return (
 
            <g
@@ -160,16 +210,22 @@ export default function GraphNodes({
 
               )}
 
-              <text
-                x={0}
-                y={glyphSize + 18}
-                textAnchor="middle"
-                fill="#d1d5db"
-                fontSize="11"
-                fontWeight="600"
-              >
-                {node.label}
-              </text>
+    <text
+  x={labelX}
+  y={labelY}
+  textAnchor={labelAnchor}
+  dominantBaseline={
+    projectsLeft ||
+    projectsRight
+      ? "middle"
+      : undefined
+  }
+  fill="#d1d5db"
+  fontSize="11"
+  fontWeight="600"
+>
+  {node.label}
+</text>
 
             </g>
 

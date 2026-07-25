@@ -267,13 +267,80 @@ export default function InvestigationGraph({
           // Graph coordinates remain deterministic and
           // independent of viewport dimensions.
           //
-          // The SVG projection adapts its visible coordinate
-          // space to the physical aspect ratio of the
-          // Investigation Viewport.
+          // Projection derives the visible coordinate space
+          // from the actual positioned topology and adapts that
+          // space to the physical Investigation Viewport.
+          //
+          // Layout owns topology geometry.
+          // Projection owns framing.
           //
           // ==================================================
 
-          const baseExtent = 270;
+          const topologyPadding = 55;
+
+          // ==================================================
+          // TOPOLOGY BOUNDS
+          // ==================================================
+
+          const xCoordinates =
+            positionedNodes.map(
+              node =>
+                node.x ?? 0
+            );
+
+          const yCoordinates =
+            positionedNodes.map(
+              node =>
+                node.y ?? 0
+            );
+
+          const minX =
+            Math.min(
+              ...xCoordinates
+            );
+
+          const maxX =
+            Math.max(
+              ...xCoordinates
+            );
+
+          const minY =
+            Math.min(
+              ...yCoordinates
+            );
+
+          const maxY =
+            Math.max(
+              ...yCoordinates
+            );
+
+          const topologyWidth =
+            Math.max(
+              maxX - minX,
+              1
+            );
+
+          const topologyHeight =
+            Math.max(
+              maxY - minY,
+              1
+            );
+
+          const topologyCenterX =
+            (
+              minX +
+              maxX
+            ) / 2;
+
+          const topologyCenterY =
+            (
+              minY +
+              maxY
+            ) / 2;
+
+          // ==================================================
+          // PHYSICAL VIEWPORT
+          // ==================================================
 
           const viewportWidth =
             Math.max(
@@ -287,36 +354,69 @@ export default function InvestigationGraph({
               1
             );
 
-          const aspectRatio =
+          const viewportAspectRatio =
             viewportWidth /
             viewportHeight;
 
-          const viewBoxWidth =
-            aspectRatio >= 1
-              ? baseExtent *
-                2 *
-                aspectRatio
-              : baseExtent * 2;
+          // ==================================================
+          // PADDED TOPOLOGY EXTENT
+          // ==================================================
 
-          const viewBoxHeight =
-            aspectRatio >= 1
-              ? baseExtent * 2
-              : (
-                  baseExtent *
-                  2
-                ) /
-                aspectRatio;
+          let viewBoxWidth =
+            topologyWidth +
+            topologyPadding * 2;
+
+          let viewBoxHeight =
+            topologyHeight +
+            topologyPadding * 2;
+
+          const topologyAspectRatio =
+            viewBoxWidth /
+            viewBoxHeight;
+
+          // ==================================================
+          // ASPECT-RATIO CORRECTION
+          // ==================================================
+          //
+          // Expand only the deficient dimension so the entire
+          // padded topology remains visible without changing
+          // deterministic node geometry.
+          //
+          // ==================================================
+
+          if (
+            topologyAspectRatio >
+            viewportAspectRatio
+          ) {
+
+            viewBoxHeight =
+              viewBoxWidth /
+              viewportAspectRatio;
+
+          } else {
+
+            viewBoxWidth =
+              viewBoxHeight *
+              viewportAspectRatio;
+
+          }
+
+          // ==================================================
+          // VIEWBOX ORIGIN
+          // ==================================================
 
           const viewBoxX =
-            -viewBoxWidth / 2;
+            topologyCenterX -
+            viewBoxWidth / 2;
 
           const viewBoxY =
-            -viewBoxHeight / 2;
+            topologyCenterY -
+            viewBoxHeight / 2;
 
           return (
 
             <>
-              {/* ============================================== */}
+{/* ============================================== */}
               {/* TOPOLOGY                                       */}
               {/* ============================================== */}
 

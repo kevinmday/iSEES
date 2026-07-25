@@ -72,6 +72,10 @@ import {
   GraphProvider,
 } from "./manifold/context/GraphContext";
 
+import {
+  ResearchBridgeProvider,
+} from "./research/ResearchBridgeContext";
+
 // ============================================================
 // OPERATOR UI
 // ============================================================
@@ -86,37 +90,41 @@ function OperatorUI() {
 
         <WorkspaceRuntimeProvider>
 
-          <FederationProvider>
+          <ResearchBridgeProvider>
 
-            <IntelligenceBriefProvider>
+            <FederationProvider>
 
-              <GraphProvider>
+              <IntelligenceBriefProvider>
 
-                <EventProvider>
+                <GraphProvider>
 
-                  <MainLayout
+                  <EventProvider>
 
-                    left={
-                      <InvestigationControl />
-                    }
+                    <MainLayout
 
-                    center={
-                      <PrimarySurface />
-                    }
+                      left={
+                        <InvestigationControl />
+                      }
 
-                    right={
-                      <RightPanel />
-                    }
+                      center={
+                        <PrimarySurface />
+                      }
 
-                  />
+                      right={
+                        <RightPanel />
+                      }
 
-                </EventProvider>
+                    />
 
-              </GraphProvider>
+                  </EventProvider>
 
-            </IntelligenceBriefProvider>
+                </GraphProvider>
 
-          </FederationProvider>
+              </IntelligenceBriefProvider>
+
+            </FederationProvider>
+
+          </ResearchBridgeProvider>
 
         </WorkspaceRuntimeProvider>
 
