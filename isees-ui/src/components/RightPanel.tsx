@@ -264,7 +264,7 @@ function NodeInspector({
     <div>
 
       {/* ===================================================== */}
-      {/* IDENTITY                                              */}
+      {/* NODE                                                 */}
       {/* ===================================================== */}
 
       <InspectorSection
@@ -284,13 +284,6 @@ function NodeInspector({
         >
           {intelligence.title}
         </div>
-
-        <IntelRow
-          label="Node ID"
-          value={
-            intelligence.nodeId
-          }
-        />
 
         <IntelRow
           label="Source"
@@ -322,7 +315,7 @@ function NodeInspector({
       </InspectorSection>
 
       {/* ===================================================== */}
-      {/* METADATA                                              */}
+      {/* METADATA                                             */}
       {/* ===================================================== */}
 
       <InspectorSection
@@ -337,11 +330,27 @@ function NodeInspector({
 
       </InspectorSection>
 
+      {/* ===================================================== */}
+      {/* TECHNICAL                                            */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Technical"
+      >
+
+        <IntelRow
+          label="Node ID"
+          value={
+            intelligence.nodeId
+          }
+        />
+
+      </InspectorSection>
+
     </div>
 
   );
 }
-
 // ============================================================
 // EDGE INSPECTOR
 // ============================================================
@@ -369,6 +378,7 @@ function EdgeInspector({
   return (
 
     <div>
+
       {/* ===================================================== */}
       {/* RELATIONSHIP                                         */}
       {/* ===================================================== */}
@@ -379,37 +389,54 @@ function EdgeInspector({
 
         <div
           style={{
-            fontSize: 16,
-            fontWeight: 700,
-            color: "#f8fafc",
-            marginBottom: 14,
+            marginBottom: 16,
           }}
         >
-          {intelligence.relationship}
+
+          <div
+            style={{
+              color: "#f8fafc",
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.4,
+            }}
+          >
+            {intelligence.sourceLabel}
+          </div>
+
+          <div
+            style={{
+              padding: "8px 0",
+
+              color: "#60a5fa",
+
+              fontSize: 11,
+              fontWeight: 700,
+
+              textTransform: "uppercase",
+              letterSpacing: 0.8,
+            }}
+          >
+            ↓ {formatLabel(
+              intelligence.relationship
+            )}
+          </div>
+
+          <div
+            style={{
+              color: "#f8fafc",
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.4,
+            }}
+          >
+            {intelligence.targetLabel}
+          </div>
+
         </div>
 
-        <IntelRow
-          label="Edge ID"
-          value={
-            intelligence.edgeId
-          }
-        />
-
-        <IntelRow
-          label="Source"
-          value={
-            intelligence.sourceLabel
-          }
-        />
-
-        <IntelRow
-          label="Target"
-          value={
-            intelligence.targetLabel
-          }
-        />
-
       </InspectorSection>
+
       {/* ===================================================== */}
       {/* METRICS                                              */}
       {/* ===================================================== */}
@@ -521,11 +548,41 @@ function EdgeInspector({
 
       </InspectorSection>
 
+      {/* ===================================================== */}
+      {/* TECHNICAL                                            */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Technical"
+      >
+
+        <IntelRow
+          label="Edge ID"
+          value={
+            intelligence.edgeId
+          }
+        />
+
+        <IntelRow
+          label="Source ID"
+          value={
+            intelligence.sourceId
+          }
+        />
+
+        <IntelRow
+          label="Target ID"
+          value={
+            intelligence.targetId
+          }
+        />
+
+      </InspectorSection>
+
     </div>
 
   );
 }
-
 // ============================================================
 // INSPECTOR SECTION
 // ============================================================
