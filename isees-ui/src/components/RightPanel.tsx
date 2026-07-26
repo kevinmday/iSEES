@@ -1,62 +1,52 @@
 // ============================================================
 // src/components/RightPanel.tsx
-// CONTEXT-DRIVEN OPERATIONAL INTELLIGENCE (V9)
-// EVENT-BOUND COGNITION STATE SYNCHRONIZATION
-// FULL DROP-IN REPLACEMENT
+// P45B
+// SELECTION INTELLIGENCE INSPECTOR
+//
+// The right panel is a deterministic projection of the
+// operator's current Investigation Manifold selection.
+//
+// It does NOT own selection.
+// It does NOT infer intelligence.
+// It does NOT duplicate global event state.
+//
+// Ownership:
+//
+// Operator
+//      ↓
+// Investigation Manifold
+//      ↓
+// GraphContext Selection
+//      ↓
+// Selection Intelligence Resolver
+//      ↓
+// Selection Intelligence Inspector
+//
 // ============================================================
 
-import { useEventContext } from "../context/EventContext";
+import {
+  useMemo,
+} from "react";
 
-import { buildContextualIntel } from "../intel/intel_engine";
+import {
+  useCorpus,
+} from "../corpus/context/CorpusContext";
 
-import { objectRegistry } from "../intel/object_registry";
+import {
+  useWorkspace,
+} from "../workspace/context/WorkspaceContext";
 
-import { useWorkspace }
-  from "../workspace/context/WorkspaceContext";
+import {
+  useGraph,
+} from "../manifold/context/GraphContext";
 
-import { useEffect } from "react";
+import {
+  buildInvestigationGraph,
+} from "../manifold/graphBuilder";
 
-// ============================================================
-// NODE TYPE RESOLUTION
-// ============================================================
-
-function resolveNodeType(
-  assetName: string
-): string {
-
-  const lower =
-    assetName.toLowerCase();
-
-  if (
-    lower.includes("tower")
-  ) {
-    return "ATC_TOWER";
-  }
-
-  if (
-    lower.includes("nexrad") ||
-    lower.includes("radar")
-  ) {
-    return "NEXRAD_RADAR";
-  }
-
-  if (
-    lower.includes("airport")
-  ) {
-    return "AIRPORT_OPS";
-  }
-
-  if (
-    lower.includes("naval") ||
-    lower.includes("carrier") ||
-    lower.includes("princeton") ||
-    lower.includes("hawkeye")
-  ) {
-    return "MILITARY_SENSOR";
-  }
-
-  return "FAA_RADAR";
-}
+import {
+  resolveSelectionIntelligence,
+} from "../manifold/selection/selectionIntelligenceResolver";
 
 // ============================================================
 // COMPONENT
@@ -65,201 +55,50 @@ function resolveNodeType(
 export default function RightPanel() {
 
   const {
-
-    events,
-
-    activeSurface,
-
-    selectedOperationalNode,
-
-    setSelectedOperationalNode,
-
-  } = useEventContext();
+    corpus,
+  } = useCorpus();
 
   const {
-    focusedEventId,
+    activeWorkspace,
   } = useWorkspace();
 
-  const activeEvent =
-    events.find(
-      event => event.id === focusedEventId
-    ) ?? null;
+  const {
+    selection,
+  } = useGraph();
 
   // ==========================================================
-  // NO ACTIVE EVENT
+  // GRAPH PROJECTION
   // ==========================================================
 
-  if (!activeEvent) {
-
-    return (
-
-      <div
-        style={{
-          padding: 16,
-
-          fontFamily:
-            "Consolas, monospace",
-
-          color: "#94a3b8",
-        }}
-      >
-        Awaiting active event
-      </div>
-    );
-  }
-
-  // ==========================================================
-  // CONTEXT
-  // ==========================================================
-
-  const clusterSize =
-    activeEvent.clusters || 1;
-
-  const eventType =
-    activeEvent.escalation || "LOW";
-
-  const fallbackAssets = [
-
-    "USS Princeton",
-    "USS Nimitz Carrier Group",
-    "E2 Hawkeye Sensor Grid",
-  ];
-
-  const assets =
-    activeEvent.facilities?.length
-      ? activeEvent.facilities.map(
-          (f: any) => f.name
-        )
-      : fallbackAssets;
-
-    // ==========================================================
-  // EVENT-BOUND NODE SYNCHRONIZATION
-  // ==========================================================
-
-  const firstAsset =
-    assets[0];
-
-  const expectedNodeName =
-    selectedOperationalNode?.name;
-
-  const eventHasSelectedNode =
-    assets.includes(
-      expectedNodeName || ""
+  const graph =
+    useMemo(
+      () =>
+        buildInvestigationGraph(
+          corpus,
+          activeWorkspace
+        ),
+      [
+        corpus,
+        activeWorkspace,
+      ]
     );
 
-  useEffect(() => {
-
-    if (
-      firstAsset &&
-      !eventHasSelectedNode
-    ) {
-
-      setSelectedOperationalNode({
-
-        name: firstAsset,
-
-        type:
-          resolveNodeType(
-            firstAsset
-          ),
-      });
-
-    }
-
-  }, [
-
-    firstAsset,
-
-    eventHasSelectedNode,
-
-    setSelectedOperationalNode,
-
-  ]);
-
   // ==========================================================
-  // HANDLERS
+  // SELECTION INTELLIGENCE
   // ==========================================================
 
-  const handleSelect = (
-    asset: string
-  ) => {
-
-    const nodeType =
-      resolveNodeType(asset);
-
-    setSelectedOperationalNode({
-
-      name: asset,
-
-      type: nodeType,
-    });
-  };
-
-  // ==========================================================
-  // INTELLIGENCE
-  // ==========================================================
-
-  const selectedIntel =
-    selectedOperationalNode
-      ? buildContextualIntel(
-
-          selectedOperationalNode.name,
-
-          eventType,
-
-          clusterSize
-        )
-      : null;
-
-  const selectedNode =
-    selectedOperationalNode
-      ? objectRegistry[
-          selectedOperationalNode.type
-        ]
-      : null;
-
-  // ==========================================================
-  // SURFACE TITLES
-  // ==========================================================
-
-  const surfaceTitleMap: Record<
-    string,
-    string
-  > = {
-
-    SUMMARY:
-      "Operational Intelligence",
-
-    NARRATIVES:
-      "Narrative Intelligence",
-
-    OVERLAP:
-      "Overlap Intelligence",
-
-    ENTANGLEMENT:
-      "Entanglement Intelligence",
-
-    RESIDUAL:
-      "Residual Intelligence",
-
-    CLUSTERS:
-      "Cluster Intelligence",
-
-    COLLAPSE:
-      "Collapse Residual Analysis",
-
-    CANDIDATES:
-      "Candidate Alignment Analysis",
-
-    CONTRADICTIONS:
-      "Contradiction Intelligence",
-
-    HOTSPOT:
-      "Hotspot Memory Intelligence",
-
-    GEO:
-      "Geo Infrastructure Context",
-  };
+  const intelligence =
+    useMemo(
+      () =>
+        resolveSelectionIntelligence(
+          selection,
+          graph
+        ),
+      [
+        selection,
+        graph,
+      ]
+    );
 
   // ==========================================================
   // RENDER
@@ -269,378 +108,429 @@ export default function RightPanel() {
 
     <div
       style={{
-        padding: 14,
+        width: "100%",
+
+        display: "flex",
+        flexDirection: "column",
 
         fontFamily:
           "Consolas, monospace",
 
-        color: "#e6edf3",
-
-        display: "flex",
-
-        flexDirection:
-          "column",
-
-        gap: 16,
+        color: "#e5e7eb",
       }}
     >
 
-      {/* ================================================= */}
-      {/* ACTIVE EVENT */}
-      {/* ================================================= */}
+      {/* ===================================================== */}
+      {/* NONE                                                  */}
+      {/* ===================================================== */}
 
-      <Panel title="Active Event">
+      {intelligence.kind === "NONE" && (
+
+        <EmptySelection />
+
+      )}
+
+      {/* ===================================================== */}
+      {/* NODE                                                  */}
+      {/* ===================================================== */}
+
+      {intelligence.kind === "NODE" && (
+
+        <NodeInspector
+          intelligence={
+            intelligence.intelligence
+          }
+        />
+
+      )}
+
+      {/* ===================================================== */}
+      {/* EDGE                                                  */}
+      {/* ===================================================== */}
+
+      {intelligence.kind === "EDGE" && (
+
+        <EdgeInspector
+          intelligence={
+            intelligence.intelligence
+          }
+        />
+
+      )}
+
+      {/* ===================================================== */}
+      {/* CLUSTER                                               */}
+      {/* ===================================================== */}
+
+      {intelligence.kind === "CLUSTER" && (
 
         <div
           style={{
-            fontSize: 18,
+            padding: 12,
 
-            fontWeight: 700,
+            color: "#94a3b8",
 
-            marginBottom: 8,
-          }}
-        >
-          {activeEvent.id}
-        </div>
-
-        <div
-          style={{
             fontSize: 12,
-
-            color: "#60a5fa",
-
-            marginBottom: 6,
+            lineHeight: 1.6,
           }}
         >
-          {activeEvent.location}
-        </div>
+          Cluster intelligence
+          projection is not yet
+          implemented.
 
-        <div
-          style={{
-            fontSize: 12,
+          <div
+            style={{
+              marginTop: 10,
 
-            color:
-              activeEvent.escalation ===
-              "HIGH"
-                ? "#f87171"
-                : "#86efac",
-          }}
-        >
-          Escalation:{" "}
-          {activeEvent.escalation}
-        </div>
-
-      </Panel>
-
-      {/* ================================================= */}
-      {/* OPERATIONAL NODE SELECTOR */}
-      {/* ================================================= */}
-
-      <Panel
-        title={
-          surfaceTitleMap[
-            activeSurface
-          ] || "Operational Intelligence"
-        }
-      >
-
-        <div
-          style={{
-            display: "flex",
-
-            flexDirection:
-              "column",
-
-            gap: 8,
-          }}
-        >
-
-          {assets.map(
-            (
-              asset: string
-            ) => {
-
-              const selected =
-                selectedOperationalNode?.name ===
-                asset;
-
-              return (
-
-                <div
-                  key={asset}
-
-                  onClick={() =>
-                    handleSelect(asset)
-                  }
-
-                  style={{
-
-                    cursor: "pointer",
-
-                    border:
-                      selected
-                        ? "1px solid #38bdf8"
-                        : "1px solid #1f2937",
-
-                    background:
-                      selected
-                        ? "#132238"
-                        : "#08101d",
-
-                    borderRadius: 6,
-
-                    padding: 10,
-
-                    transition:
-                      "all 0.15s ease",
-                  }}
-                >
-
-                  <div
-                    style={{
-                      fontSize: 13,
-
-                      fontWeight: 700,
-
-                      marginBottom: 4,
-                    }}
-                  >
-                    {asset}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 11,
-
-                      color: "#94a3b8",
-                    }}
-                  >
-                    Click for operational intelligence
-                  </div>
-
-                </div>
-              );
-            }
-          )}
-
-        </div>
-
-      </Panel>
-
-      {/* ================================================= */}
-      {/* FOCUSED NODE INTELLIGENCE */}
-      {/* ================================================= */}
-
-      {selectedIntel &&
-        selectedNode &&
-        selectedOperationalNode && (
-
-          <Panel
-            title={`Focused Node Intelligence — ${activeSurface}`}
+              color: "#64748b",
+            }}
           >
+            {intelligence.clusterId}
+          </div>
+        </div>
 
-            <div
-              style={{
-                fontSize: 18,
-
-                fontWeight: 700,
-
-                marginBottom: 16,
-              }}
-            >
-              {selectedOperationalNode.name}
-            </div>
-
-            {/* =========================================== */}
-            {/* CORE INTEL */}
-            {/* =========================================== */}
-
-            <IntelRow
-              label="Node Type"
-              value={
-                selectedNode.type
-              }
-            />
-
-            <IntelRow
-              label="Category"
-              value={
-                selectedNode.category
-              }
-            />
-
-            <IntelRow
-              label="Role"
-              value={
-                selectedNode.role
-              }
-            />
-
-            {/* =========================================== */}
-            {/* CONTACTS */}
-            {/* =========================================== */}
-
-            <SectionTitle title="Contacts" />
-
-            <IntelStack
-              rows={[
-
-                [
-                  "Facility ID",
-                  selectedNode.contacts?.facility_id ||
-                    "Unknown",
-                ],
-
-                [
-                  "Ops Phone",
-                  selectedNode.contacts?.ops_phone ||
-                    "Unknown",
-                ],
-
-                [
-                  "Tower Frequency",
-                  selectedNode.contacts?.tower_frequency ||
-                    "Unknown",
-                ],
-
-                [
-                  "Coordination",
-                  selectedNode.contacts?.coordination_line ||
-                    "Unknown",
-                ],
-
-                [
-                  "Reporting Chain",
-                  selectedNode.contacts?.reporting_chain ||
-                    "Unknown",
-                ],
-              ]}
-            />
-
-            {/* =========================================== */}
-            {/* SENSOR STACK */}
-            {/* =========================================== */}
-
-            <SectionTitle title="Sensor Stack" />
-
-            <SensorStack
-              stack={
-                selectedNode.sensor_stack
-              }
-            />
-
-            {/* =========================================== */}
-            {/* CAPABILITIES */}
-            {/* =========================================== */}
-
-            <SectionTitle title="Capabilities" />
-
-            <BulletList
-              items={
-                selectedNode.capabilities
-              }
-            />
-
-            {/* =========================================== */}
-            {/* LIMITATIONS */}
-            {/* =========================================== */}
-
-            <SectionTitle title="Limitations" />
-
-            <BulletList
-              items={
-                selectedNode.limitations
-              }
-            />
-
-            {/* =========================================== */}
-            {/* BLIND SPOTS */}
-            {/* =========================================== */}
-
-            <SectionTitle title="Blind Spots" />
-
-            <BulletList
-              items={
-                selectedNode.blind_spots
-              }
-            />
-
-            {/* =========================================== */}
-            {/* SURFACE-SPECIFIC */}
-            {/* =========================================== */}
-
-            {activeSurface ===
-              "CONTRADICTIONS" && (
-
-              <>
-
-                <SectionTitle title="Contradiction Vectors" />
-
-                <BulletList
-                  items={
-                    selectedNode.contradiction_vectors
-                  }
-                />
-
-              </>
-            )}
-
-            {activeSurface ===
-              "COLLAPSE" && (
-
-              <>
-
-                <SectionTitle title="Failure Modes" />
-
-                <BulletList
-                  items={
-                    selectedNode.collapse_failure_modes
-                  }
-                />
-
-              </>
-            )}
-
-            {activeSurface ===
-              "HOTSPOT" && (
-
-              <>
-
-                <SectionTitle title="Geo Constraints" />
-
-                <BulletList
-                  items={
-                    selectedNode.geo_constraints
-                  }
-                />
-
-              </>
-            )}
-
-            {/* =========================================== */}
-            {/* OPERATIONAL NOTES */}
-            {/* =========================================== */}
-
-            <SectionTitle title="Operational Notes" />
-
-            <BulletList
-              items={
-                selectedNode.operational_notes
-              }
-            />
-
-          </Panel>
-        )}
+      )}
 
     </div>
+
   );
 }
 
 // ============================================================
-// PANEL
+// EMPTY SELECTION
 // ============================================================
 
-function Panel({
+function EmptySelection() {
+
+  return (
+
+    <div
+      style={{
+        padding: "20px 12px",
+
+        color: "#94a3b8",
+
+        fontSize: 12,
+        lineHeight: 1.7,
+      }}
+    >
+
+      <div
+        style={{
+          color: "#e2e8f0",
+
+          fontSize: 13,
+          fontWeight: 700,
+
+          marginBottom: 8,
+        }}
+      >
+        Nothing selected
+      </div>
+
+      <div>
+        Select a node or edge in
+        the Investigation Manifold
+        to inspect its intelligence.
+      </div>
+
+    </div>
+
+  );
+}
+
+// ============================================================
+// NODE INSPECTOR
+// ============================================================
+
+function NodeInspector({
+  intelligence,
+}: {
+  intelligence: {
+    nodeId: string;
+    title: string;
+    sourceType: string;
+    confidence?: number;
+    connectionCount: number;
+    metadata?: Record<
+      string,
+      unknown
+    >;
+  };
+}) {
+
+  return (
+
+    <div>
+
+      {/* ===================================================== */}
+      {/* IDENTITY                                              */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Node"
+      >
+
+        <div
+          style={{
+            fontSize: 16,
+
+            fontWeight: 700,
+
+            color: "#f8fafc",
+
+            marginBottom: 14,
+          }}
+        >
+          {intelligence.title}
+        </div>
+
+        <IntelRow
+          label="Node ID"
+          value={
+            intelligence.nodeId
+          }
+        />
+
+        <IntelRow
+          label="Source"
+          value={
+            intelligence.sourceType
+          }
+        />
+
+        <IntelRow
+          label="Connections"
+          value={
+            intelligence.connectionCount
+          }
+        />
+
+        <IntelRow
+          label="Confidence"
+          value={
+            intelligence.confidence !==
+            undefined
+              ? `${(
+                  intelligence.confidence *
+                  100
+                ).toFixed(1)}%`
+              : "N/A"
+          }
+        />
+
+      </InspectorSection>
+
+      {/* ===================================================== */}
+      {/* METADATA                                              */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Metadata"
+      >
+
+        <MetadataRows
+          metadata={
+            intelligence.metadata
+          }
+        />
+
+      </InspectorSection>
+
+    </div>
+
+  );
+}
+
+// ============================================================
+// EDGE INSPECTOR
+// ============================================================
+
+function EdgeInspector({
+  intelligence,
+}: {
+  intelligence: {
+    edgeId: string;
+    sourceId: string;
+    sourceLabel: string;
+    targetId: string;
+    targetLabel: string;
+    relationship: string;
+    confidence: number;
+    narrative: number;
+    observability: number;
+    infrastructure: number;
+    topology: number;
+    geo: number;
+    rationale: string[];
+  };
+}) {
+
+  return (
+
+    <div>
+      {/* ===================================================== */}
+      {/* RELATIONSHIP                                         */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Relationship"
+      >
+
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: "#f8fafc",
+            marginBottom: 14,
+          }}
+        >
+          {intelligence.relationship}
+        </div>
+
+        <IntelRow
+          label="Edge ID"
+          value={
+            intelligence.edgeId
+          }
+        />
+
+        <IntelRow
+          label="Source"
+          value={
+            intelligence.sourceLabel
+          }
+        />
+
+        <IntelRow
+          label="Target"
+          value={
+            intelligence.targetLabel
+          }
+        />
+
+      </InspectorSection>
+      {/* ===================================================== */}
+      {/* METRICS                                              */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Metrics"
+      >
+
+        <PercentRow
+          label="Confidence"
+          value={
+            intelligence.confidence
+          }
+        />
+
+        <PercentRow
+          label="Narrative"
+          value={
+            intelligence.narrative
+          }
+        />
+
+        <PercentRow
+          label="Observability"
+          value={
+            intelligence.observability
+          }
+        />
+
+        <PercentRow
+          label="Infrastructure"
+          value={
+            intelligence.infrastructure
+          }
+        />
+
+        <PercentRow
+          label="Topology"
+          value={
+            intelligence.topology
+          }
+        />
+
+        <PercentRow
+          label="Geo"
+          value={
+            intelligence.geo
+          }
+        />
+
+      </InspectorSection>
+
+      {/* ===================================================== */}
+      {/* RATIONALE                                            */}
+      {/* ===================================================== */}
+
+      <InspectorSection
+        title="Rationale"
+      >
+
+        {intelligence.rationale.length >
+        0 ? (
+
+          intelligence.rationale.map(
+            (
+              rationale,
+              index
+            ) => (
+
+              <div
+                key={index}
+                style={{
+                  padding:
+                    "7px 0 7px 10px",
+
+                  borderLeft:
+                    "2px solid #263347",
+
+                  color: "#cbd5e1",
+
+                  fontSize: 12,
+                  lineHeight: 1.5,
+
+                  marginBottom: 8,
+                }}
+              >
+                {rationale}
+              </div>
+
+            )
+          )
+
+        ) : (
+
+          <div
+            style={{
+              color: "#64748b",
+
+              fontSize: 12,
+
+              fontStyle: "italic",
+            }}
+          >
+            No relationship rationale
+            available.
+          </div>
+
+        )}
+
+      </InspectorSection>
+
+    </div>
+
+  );
+}
+
+// ============================================================
+// INSPECTOR SECTION
+// ============================================================
+
+function InspectorSection({
   title,
   children,
 }: {
@@ -652,28 +542,25 @@ function Panel({
 
     <div
       style={{
+        padding: "14px 12px",
 
-        border:
-          "1px solid #1f2937",
-
-        borderRadius: 8,
-
-        padding: 12,
-
-        background: "#0b1220",
+        borderBottom:
+          "1px solid #182235",
       }}
     >
 
       <div
         style={{
-          fontSize: 11,
+          marginBottom: 12,
+
+          color: "#60a5fa",
+
+          fontSize: 10,
+
+          fontWeight: 700,
 
           textTransform:
             "uppercase",
-
-          color: "#94a3b8",
-
-          marginBottom: 12,
 
           letterSpacing: 1,
         }}
@@ -684,262 +571,96 @@ function Panel({
       {children}
 
     </div>
+
   );
 }
 
 // ============================================================
-// SECTION TITLE
+// METADATA
 // ============================================================
 
-function SectionTitle({
-  title,
+function MetadataRows({
+  metadata,
 }: {
-  title: string;
+  metadata?: Record<
+    string,
+    unknown
+  >;
 }) {
 
-  return (
-
-    <div
-      style={{
-        marginTop: 18,
-
-        marginBottom: 10,
-
-        fontSize: 11,
-
-        color: "#60a5fa",
-
-        textTransform:
-          "uppercase",
-
-        letterSpacing: 1,
-
-        fontWeight: 700,
-      }}
-    >
-      {title}
-    </div>
-  );
-}
-
-// ============================================================
-// SENSOR STACK
-// ============================================================
-
-function SensorStack({
-  stack,
-}: {
-  stack?: any[];
-}) {
-
-  if (!stack || stack.length === 0) {
+  if (
+    !metadata ||
+    Object.keys(metadata).length === 0
+  ) {
 
     return (
 
       <div
         style={{
-          fontSize: 12,
-
           color: "#64748b",
+
+          fontSize: 12,
 
           fontStyle: "italic",
         }}
       >
-        No sensor intelligence available
+        No metadata available.
       </div>
+
     );
   }
 
   return (
 
-    <div
-      style={{
-        display: "flex",
+    <>
 
-        flexDirection:
-          "column",
-
-        gap: 10,
-      }}
-    >
-
-      {stack.map(
-        (
-          sensor,
-          idx
-        ) => (
-
-          <div
-            key={idx}
-
-            style={{
-
-              border:
-                "1px solid #1f2937",
-
-              borderRadius: 6,
-
-              padding: 10,
-
-              background:
-                "#08101d",
-            }}
-          >
-
-            <div
-              style={{
-                fontWeight: 700,
-
-                marginBottom: 6,
-
-                fontSize: 13,
-              }}
-            >
-              {sensor.name}
-            </div>
-
-            <IntelStack
-              rows={[
-
-                [
-                  "Type",
-                  sensor.type,
-                ],
-
-                [
-                  "Range",
-                  sensor.range,
-                ],
-
-                [
-                  "Refresh",
-                  sensor.refresh_rate,
-                ],
-
-                [
-                  "Notes",
-                  sensor.notes,
-                ],
-              ]}
-            />
-
-          </div>
-        )
-      )}
-
-    </div>
-  );
-}
-
-// ============================================================
-// BULLET LIST
-// ============================================================
-
-function BulletList({
-  items,
-}: {
-  items?: string[];
-}) {
-
-  if (!items || items.length === 0) {
-
-    return (
-
-      <div
-        style={{
-          fontSize: 12,
-
-          color: "#64748b",
-
-          fontStyle: "italic",
-        }}
-      >
-        No operational intelligence available
-      </div>
-    );
-  }
-
-  return (
-
-    <div
-      style={{
-        display: "flex",
-
-        flexDirection:
-          "column",
-
-        gap: 8,
-      }}
-    >
-
-      {items.map((item, idx) => (
-
-        <div
-          key={idx}
-
-          style={{
-            fontSize: 12,
-
-            color: "#d1d5db",
-
-            lineHeight: 1.5,
-
-            paddingLeft: 10,
-
-            borderLeft:
-              "2px solid #1f2937",
-          }}
-        >
-          {item}
-        </div>
-      ))}
-
-    </div>
-  );
-}
-
-// ============================================================
-// INTEL STACK
-// ============================================================
-
-function IntelStack({
-  rows,
-}: {
-  rows: [string, string][];
-}) {
-
-  return (
-
-    <div
-      style={{
-        display: "flex",
-
-        flexDirection:
-          "column",
-
-        gap: 12,
-      }}
-    >
-
-      {rows.map(
-        ([label, value]) => (
+      {Object.entries(
+        metadata
+      ).map(
+        ([key, value]) => (
 
           <IntelRow
-            key={label}
-
-            label={label}
-
-            value={value}
+            key={key}
+            label={formatLabel(key)}
+            value={
+              formatValue(value)
+            }
           />
+
         )
       )}
 
-    </div>
+    </>
+
   );
 }
 
 // ============================================================
-// INTEL ROW
+// PERCENT ROW
+// ============================================================
+
+function PercentRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+
+  return (
+
+    <IntelRow
+      label={label}
+      value={`${(
+        value * 100
+      ).toFixed(1)}%`}
+    />
+
+  );
+}
+
+// ============================================================
+// INTELLIGENCE ROW
 // ============================================================
 
 function IntelRow({
@@ -947,32 +668,36 @@ function IntelRow({
   value,
 }: {
   label: string;
-  value: any;
+  value:
+    string |
+    number;
 }) {
 
   return (
 
     <div
       style={{
-        paddingBottom: 10,
+        display: "flex",
 
-        borderBottom:
-          "1px solid #182235",
+        justifyContent:
+          "space-between",
+
+        alignItems:
+          "flex-start",
+
+        gap: 12,
+
+        padding: "6px 0",
       }}
     >
 
       <div
         style={{
-          fontSize: 10,
-
-          textTransform:
-            "uppercase",
-
           color: "#94a3b8",
 
-          marginBottom: 4,
+          fontSize: 11,
 
-          letterSpacing: 0.5,
+          flexShrink: 0,
         }}
       >
         {label}
@@ -980,16 +705,69 @@ function IntelRow({
 
       <div
         style={{
-          fontSize: 13,
-
           color: "#e5e7eb",
 
-          lineHeight: 1.5,
+          fontSize: 11,
+
+          fontWeight: 600,
+
+          textAlign: "right",
+
+          overflowWrap:
+            "anywhere",
         }}
       >
         {String(value)}
       </div>
 
     </div>
+
   );
+}
+
+// ============================================================
+// FORMATTERS
+// ============================================================
+
+function formatLabel(
+  value: string
+): string {
+
+  return value
+    .replace(
+      /([a-z])([A-Z])/g,
+      "$1 $2"
+    )
+    .replace(
+      /_/g,
+      " "
+    )
+    .replace(
+      /\b\w/g,
+      character =>
+        character.toUpperCase()
+    );
+}
+
+function formatValue(
+  value: unknown
+): string {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "N/A";
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+
+    return JSON.stringify(
+      value
+    );
+  }
+
+  return String(value);
 }

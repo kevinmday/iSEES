@@ -53,7 +53,13 @@ export interface GraphEdgeIntelligence {
 
   sourceId: string;
 
+  sourceLabel: string;
+
   targetId: string;
+
+  targetLabel: string;
+
+  relationship: string;
 
   confidence: number;
 
