@@ -7,6 +7,8 @@
 
 import {
   useMemo,
+  useRef,
+  useState,
 } from "react";
 
 import {
@@ -38,6 +40,10 @@ from "./GraphStatistics";
 import ManifoldToolbar, {
   type ManifoldToolbarAction,
 } from "./ManifoldToolbar";
+
+import ManifoldCameraInstrument, {
+  type ManifoldCameraAction,
+} from "./ManifoldCameraInstrument";
 
 import GraphNodes
 from "./GraphNodes";
@@ -152,6 +158,124 @@ export default function InvestigationGraph({
   // Intelligence surface.
   //
   // ==========================================================
+
+  // ==========================================================
+  // CAMERA STATE
+  // ==========================================================
+
+  const [
+    camera,
+    setCamera,
+  ] = useState({
+    panX: 0,
+    panY: 0,
+    zoom: 1,
+  });
+
+  const cameraDragRef =
+    useRef<{
+      pointerId: number;
+      clientX: number;
+      clientY: number;
+    } | null>(
+      null
+    );
+  // ==========================================================
+  // CAMERA ACTIONS
+  // ==========================================================
+
+  function handleCameraAction(
+    action: ManifoldCameraAction,
+  ): void {
+
+    const PAN_STEP = 40;
+    const ZOOM_FACTOR = 1.2;
+
+    setCamera(
+      current => {
+
+        switch (action) {
+
+          case "ZOOM_IN":
+
+            return {
+              ...current,
+              zoom:
+                Math.min(
+                  current.zoom *
+                    ZOOM_FACTOR,
+                  6
+                ),
+            };
+
+          case "ZOOM_OUT":
+
+            return {
+              ...current,
+              zoom:
+                Math.max(
+                  current.zoom /
+                    ZOOM_FACTOR,
+                  0.5
+                ),
+            };
+
+          case "PAN_UP":
+
+            return {
+              ...current,
+              panY:
+                current.panY -
+                PAN_STEP /
+                  current.zoom,
+            };
+
+          case "PAN_DOWN":
+
+            return {
+              ...current,
+              panY:
+                current.panY +
+                PAN_STEP /
+                  current.zoom,
+            };
+
+          case "PAN_LEFT":
+
+            return {
+              ...current,
+              panX:
+                current.panX -
+                PAN_STEP /
+                  current.zoom,
+            };
+
+          case "PAN_RIGHT":
+
+            return {
+              ...current,
+              panX:
+                current.panX +
+                PAN_STEP /
+                  current.zoom,
+            };
+
+          case "CENTER":
+
+            return {
+              panX: 0,
+              panY: 0,
+              zoom: 1,
+            };
+
+          default:
+
+            return current;
+        }
+
+      }
+    );
+  }
 
    // ==========================================================
   // FOCUSED NODE
@@ -401,22 +525,215 @@ export default function InvestigationGraph({
 
           }
 
+            // ==================================================
+          // CAMERA PROJECTION
           // ==================================================
-          // VIEWBOX ORIGIN
+          //
+          // Camera state modifies only the visible projection.
+          //
+          // Deterministic topology coordinates remain
+          // unchanged.
+          //
           // ==================================================
 
-          const viewBoxX =
-            topologyCenterX -
-            viewBoxWidth / 2;
+          const cameraViewBoxWidth =
+            viewBoxWidth /
+            camera.zoom;
 
-          const viewBoxY =
-            topologyCenterY -
-            viewBoxHeight / 2;
+          const cameraViewBoxHeight =
+            viewBoxHeight /
+            camera.zoom;
+
+          const cameraViewBoxX =
+            topologyCenterX +
+            camera.panX -
+            cameraViewBoxWidth / 2;
+
+          const cameraViewBoxY =
+            topologyCenterY +
+            camera.panY -
+            cameraViewBoxHeight / 2;
+
+          // ==================================================
+          // DIRECT CAMERA INTERACTION
+          // ==================================================
+
+          function handleTopologyPointerDown(
+            event:
+              React.PointerEvent<SVGSVGElement>
+          ): void {
+
+            const target =
+              event.target as SVGElement;
+
+            if (
+              target.getAttribute(
+                "data-camera-surface"
+              ) !== "true"
+            ) {
+              return;
+            }
+
+            cameraDragRef.current = {
+              pointerId:
+                event.pointerId,
+
+              clientX:
+                event.clientX,
+
+              clientY:
+                event.clientY,
+            };
+
+            event.currentTarget.setPointerCapture(
+              event.pointerId
+            );
+          }
+
+          function handleTopologyPointerMove(
+            event:
+              React.PointerEvent<SVGSVGElement>
+          ): void {
+
+            const drag =
+              cameraDragRef.current;
+
+            if (
+              !drag ||
+              drag.pointerId !==
+                event.pointerId
+            ) {
+              return;
+            }
+
+            const rect =
+              event.currentTarget.getBoundingClientRect();
+
+            if (
+              rect.width === 0 ||
+              rect.height === 0
+            ) {
+              return;
+            }
+
+            const deltaX =
+              event.clientX -
+              drag.clientX;
+
+            const deltaY =
+              event.clientY -
+              drag.clientY;
+
+            const topologyDeltaX =
+              deltaX *
+              (
+                cameraViewBoxWidth /
+                rect.width
+              );
+
+            const topologyDeltaY =
+              deltaY *
+              (
+                cameraViewBoxHeight /
+                rect.height
+              );
+
+            cameraDragRef.current = {
+              pointerId:
+                event.pointerId,
+
+              clientX:
+                event.clientX,
+
+              clientY:
+                event.clientY,
+            };
+
+            setCamera(
+              current => ({
+                ...current,
+
+                panX:
+                  current.panX -
+                  topologyDeltaX,
+
+                panY:
+                  current.panY -
+                  topologyDeltaY,
+              })
+            );
+          }
+
+          function handleTopologyPointerUp(
+            event:
+              React.PointerEvent<SVGSVGElement>
+          ): void {
+
+            const drag =
+              cameraDragRef.current;
+
+            if (
+              !drag ||
+              drag.pointerId !==
+                event.pointerId
+            ) {
+              return;
+            }
+
+            cameraDragRef.current =
+              null;
+
+            if (
+              event.currentTarget.hasPointerCapture(
+                event.pointerId
+              )
+            ) {
+              event.currentTarget.releasePointerCapture(
+                event.pointerId
+              );
+            }
+          }
+
+          function handleTopologyWheel(
+            event:
+              React.WheelEvent<SVGSVGElement>
+          ): void {
+
+            event.preventDefault();
+
+            const ZOOM_FACTOR =
+              1.12;
+
+            setCamera(
+              current => {
+
+                const nextZoom =
+                  event.deltaY < 0
+                    ? current.zoom *
+                      ZOOM_FACTOR
+                    : current.zoom /
+                      ZOOM_FACTOR;
+
+                return {
+                  ...current,
+
+                  zoom:
+                    Math.min(
+                      6,
+                      Math.max(
+                        0.5,
+                        nextZoom
+                      )
+                    ),
+                };
+              }
+            );
+          }
 
           return (
 
             <>
-{/* ============================================== */}
+              {/* ============================================== */}
               {/* TOPOLOGY                                       */}
               {/* ============================================== */}
 
@@ -424,10 +741,56 @@ export default function InvestigationGraph({
                 width="100%"
                 height="100%"
                 viewBox={
-                  `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`
+                  `${cameraViewBoxX} ${cameraViewBoxY} ${cameraViewBoxWidth} ${cameraViewBoxHeight}`
                 }
                 preserveAspectRatio="xMidYMid meet"
+
+                onPointerDown={
+                  handleTopologyPointerDown
+                }
+
+                onPointerMove={
+                  handleTopologyPointerMove
+                }
+
+                onPointerUp={
+                  handleTopologyPointerUp
+                }
+
+                onPointerCancel={
+                  handleTopologyPointerUp
+                }
+
+                onWheel={
+                  handleTopologyWheel
+                }
+
+                             style={{
+                  cursor:
+                    cameraDragRef.current
+                      ? "grabbing"
+                      : "grab",
+
+                  touchAction: "none",
+
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                }}
               >
+
+                               {/* ============================================ */}
+                {/* BACKGROUND PAN SURFACE                       */}
+                {/* ============================================ */}
+
+                <rect
+                  data-camera-surface="true"
+                  x={cameraViewBoxX}
+                  y={cameraViewBoxY}
+                  width={cameraViewBoxWidth}
+                  height={cameraViewBoxHeight}
+                  fill="transparent"
+                  pointerEvents="all"
+                />
 
                 {/* ============================================ */}
                 {/* EDGES                                        */}
@@ -462,7 +825,6 @@ export default function InvestigationGraph({
                 />
 
               </svg>
-
               {/* ============================================== */}
               {/* MANIFOLD INSTRUMENT LAYER                     */}
               {/* ============================================== */}
@@ -489,22 +851,28 @@ export default function InvestigationGraph({
                 }}
               >
 
-                {/* ============================================ */}
-                {/* MANIFOLD INSTRUMENTS                         */}
-                {/* ============================================ */}
+                  {/* ============================================ */}
+              {/* MANIFOLD INSTRUMENTS                         */}
+              {/* ============================================ */}
 
-                <ManifoldToolbar
-                  onAction={onAction}
-                />
+              <ManifoldToolbar
+                onAction={onAction}
+              />
 
-              </div>
+              <ManifoldCameraInstrument
+                onAction={
+                  handleCameraAction
+                }
+              />
 
-            </>
+            </div>
 
-          );
+          </>
 
-        }}
-      </InvestigationViewport>
+        );
+
+      }}
+    </InvestigationViewport>
 {/* ==================================================== */}
 {/* EDGE INSPECTOR                                      */}
 {/* ==================================================== */}
