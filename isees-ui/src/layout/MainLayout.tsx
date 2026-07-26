@@ -342,9 +342,9 @@ export default function MainLayout({
               ? "none"
               : "flex",
 
-            width: 280,
-            minWidth: 280,
-            maxWidth: 280,
+            width: 220,
+            minWidth: 220,
+            maxWidth: 220,
 
             background: "#070d18",
 
@@ -372,7 +372,6 @@ export default function MainLayout({
             {left}
           </div>
         </div>
-
         {/* ================================================= */}
         {/* CENTER PANEL — WORKSPACE PROJECTION */}
         {/* ================================================= */}
