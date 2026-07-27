@@ -65,7 +65,6 @@ export interface GraphReference {
     string;
 
 }
-
 // ============================================================
 // RESEARCH ANCHOR
 // ============================================================
@@ -186,14 +185,32 @@ export interface ResearchDesk {
 
 export interface ResearchBridgeRequest {
 
+  /**
+   * Live Investigation Graph reference
+   * intentionally moved into Research.
+   */
+
   graph:
     GraphReference;
+
+  /**
+   * Investigation owning the
+   * referenced graph object.
+   */
 
   investigationId:
     string;
 
-}
+  /**
+   * Deterministic Manifold Runtime revision
+   * at the moment the bridge request
+   * was emitted.
+   */
 
+  graphRevision:
+    number;
+
+}
 // ============================================================
 // FUTURE
 // ============================================================

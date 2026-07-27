@@ -265,24 +265,57 @@ export class ResearchBridgeRuntime {
   // ==========================================================
 
   /**
-   * Future deterministic bridge.
+   * Deterministic bridge from the live
+   * Investigation Manifold into Research.
    *
-   * The Investigation Manifold will emit a
-   * ResearchBridgeRequest.
+   * The Manifold emits a ResearchBridgeRequest.
    *
-   * This runtime will construct the
-   * canonical ResearchAnchor.
+   * The Research Bridge constructs a canonical
+   * ResearchAnchor without copying the underlying
+   * graph object.
+   *
+   * Anchor identity is derived deterministically
+   * from investigation ownership and graph identity.
    */
 
   bridge(
-    _request:
+    request:
       ResearchBridgeRequest,
   ): void {
 
-    // P41A
-    //
-    // Implemented after
-    // drag/drop integration.
+    const anchorId =
+      [
+        "research",
+        request.investigationId,
+        request.graph.type,
+        request.graph.id,
+      ].join(":");
+
+    const anchor:
+      ResearchAnchor = {
+
+        anchorId,
+
+        investigationId:
+          request.investigationId,
+
+        graph:
+          request.graph,
+
+        graphRevision:
+          request.graphRevision,
+
+        createdAt:
+          new Date(),
+
+        pinned:
+          false,
+
+      };
+
+    this.createAnchor(
+      anchor,
+    );
 
   }
 
