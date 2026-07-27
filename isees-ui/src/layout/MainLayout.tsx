@@ -10,13 +10,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useEventContext } from "../context/EventContext";
 
-import {
-  useWorkspace,
-} from "../workspace/context/WorkspaceContext";
-
 import WorkspaceModeBar
   from "../components/workspace/WorkspaceModeBar";
-
 // ============================================================
 // MAIN LAYOUT
 // ============================================================
@@ -28,23 +23,23 @@ export default function MainLayout({
 }: any) {
 
   const {
-    events,
     operatorMode,
   } = useEventContext();
-
-  const {
-    focusedEventId,
-  } = useWorkspace();
-
   const [
     workspaceExpanded,
     setWorkspaceExpanded,
   ] = useState(false);
 
-  const activeEvent =
-    events.find(
-      event => event.id === focusedEventId
-    ) ?? null;
+  const [
+    leftPanelCollapsed,
+    setLeftPanelCollapsed,
+  ] = useState(false);
+
+  const [
+    rightPanelCollapsed,
+    setRightPanelCollapsed,
+  ] = useState(false);
+
 
   return (
 
@@ -213,104 +208,6 @@ export default function MainLayout({
       </div>
 
       {/* ===================================================== */}
-      {/* PRIMARY SIGNAL STRIP */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          minHeight: 58,
-
-          height: 58,
-
-          flexShrink: 0,
-
-          display: "flex",
-
-          flexDirection: "column",
-
-          justifyContent: "center",
-
-          paddingLeft: "var(--space-lg)",
-
-          paddingRight: "var(--space-lg)",
-
-          background: "var(--surface-1)",
-
-          borderBottom: "var(--surface-border)",
-        }}
-      >
-
-        <div
-          style={{
-            fontFamily: "var(--font-family-sans)",
-
-            fontSize: "var(--font-micro)",
-
-            fontWeight: "var(--weight-bold)",
-
-            letterSpacing: "var(--tracking-system)",
-
-            textTransform: "uppercase",
-
-            color: "var(--color-success)",
-          }}
-        >
-          Primary Signal · Event Acquired & Confirmed
-        </div>
-
-        <div
-          style={{
-            marginTop: "var(--space-xs)",
-
-            display: "flex",
-
-            flexWrap: "wrap",
-
-            gap: "var(--space-xl)",
-
-            fontFamily: "var(--font-family-mono)",
-
-            fontSize: "var(--font-meta)",
-
-            color: "var(--text-secondary)",
-          }}
-        >
-
-          <span>
-            EVENT&nbsp;
-            {activeEvent?.id || "NO ACTIVE EVENT"}
-          </span>
-
-          <span>
-            CONFIDENCE&nbsp;
-            {activeEvent?.confidence || "--"}
-          </span>
-
-          <span>
-            CLUSTERS&nbsp;
-            {activeEvent?.clusters || "--"}
-          </span>
-
-          <span>
-            REPORTS&nbsp;
-            {activeEvent?.reports || "--"}
-          </span>
-
-          <span>
-            STATUS&nbsp;
-            {activeEvent?.escalation || "--"}
-          </span>
-
-          <span>
-            RECURRENCE&nbsp;
-            {activeEvent?.recurrence || "--"}
-          </span>
-
-        </div>
-
-      </div>
-
-      {/* ===================================================== */}
       {/* MAIN OPERATOR BODY */}
       {/* ===================================================== */}
 
@@ -332,15 +229,49 @@ export default function MainLayout({
         }}
       >
   
-        {/* ================================================= */}
+               {/* ================================================= */}
         {/* LEFT PANEL — INVESTIGATION CONTROL */}
         {/* ================================================= */}
 
+        {/* =============================================== */}
+        {/* LEFT PANEL RESTORE CONTROL */}
+        {/* =============================================== */}
+
+        {!workspaceExpanded && leftPanelCollapsed && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={() =>
+                setLeftPanelCollapsed(false)
+              }
+              title="Restore Investigation Control"
+              style={{
+                background: "#070d18",
+                color: "#94a3b8",
+                border: "1px solid #182235",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontFamily: "Consolas, monospace",
+                fontSize: 14,
+                padding: "6px 7px",
+              }}
+            >
+              &gt;&gt;
+            </button>
+          </div>
+        )}
+
         <div
           style={{
-            display: workspaceExpanded
-              ? "none"
-              : "flex",
+            display:
+              workspaceExpanded || leftPanelCollapsed
+                ? "none"
+                : "flex",
 
             width: 220,
             minWidth: 220,
@@ -358,6 +289,37 @@ export default function MainLayout({
             flexShrink: 0,
           }}
         >
+          {/* =============================================== */}
+          {/* LEFT PANEL COLLAPSE CONTROL */}
+          {/* =============================================== */}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              padding: "6px 8px 0 8px",
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={() =>
+                setLeftPanelCollapsed(true)
+              }
+              title="Collapse Investigation Control"
+              style={{
+                background: "transparent",
+                color: "#94a3b8",
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "Consolas, monospace",
+                fontSize: 14,
+                padding: "2px 4px",
+              }}
+            >
+              &lt;&lt;
+            </button>
+          </div>
+
           <div
             style={{
               flex: 1,
@@ -377,10 +339,12 @@ export default function MainLayout({
         {/* ================================================= */}
 
         <div
-          style={{
+                   style={{
             flex: 1,
 
             minWidth: 0,
+
+            position: "relative",
 
             display: "flex",
             flexDirection: "column",
@@ -392,56 +356,44 @@ export default function MainLayout({
         >
 
           {/* =============================================== */}
-          {/* WORKSPACE TOOLBAR */}
+          {/* WORKSPACE LAYOUT CONTROL */}
           {/* =============================================== */}
 
-          <div
+          <button
+            onClick={() =>
+              setWorkspaceExpanded(
+                !workspaceExpanded
+              )
+            }
+            title={
+              workspaceExpanded
+                ? "Restore workspace panels"
+                : "Expand workspace"
+            }
             style={{
-              display: "flex",
+              position: "absolute",
+              top: 12,
+              right: 16,
+              zIndex: 20,
 
-              justifyContent: "flex-end",
+              padding: "6px 12px",
 
-              alignItems: "center",
+              background: "#162033",
+              color: "#e2e8f0",
 
-              padding: "12px 16px",
+              border: "1px solid #263347",
+              borderRadius: 6,
 
-              borderBottom: "1px solid #182235",
+              cursor: "pointer",
 
-              background: "#0b1220",
-
-              flexShrink: 0,
+              fontSize: 12,
+              fontWeight: 600,
             }}
           >
-            <button
-              onClick={() =>
-                setWorkspaceExpanded(
-                  !workspaceExpanded
-                )
-              }
-              style={{
-                padding: "6px 12px",
-
-                background: "#162033",
-
-                color: "#e2e8f0",
-
-                border: "1px solid #263347",
-
-                borderRadius: 6,
-
-                cursor: "pointer",
-
-                fontSize: 12,
-
-                fontWeight: 600,
-              }}
-            >
-              {workspaceExpanded
-                ? "Restore"
-                : "Expand"}
-            </button>
-          </div>
-
+            {workspaceExpanded
+              ? "Restore"
+              : "Expand"}
+          </button>
           {/* =============================================== */}
           {/* WORKSPACE PROJECTION HOST */}
           {/* Runtime-owned investigation workspace */}
@@ -489,15 +441,49 @@ export default function MainLayout({
           </div>
 
         </div>
-         {/* ================================================= */}
+        {/* ================================================= */}
         {/* RIGHT PANEL — SELECTION INTELLIGENCE */}
         {/* ================================================= */}
 
+        {/* =============================================== */}
+        {/* RIGHT PANEL RESTORE CONTROL */}
+        {/* =============================================== */}
+
+        {!workspaceExpanded && rightPanelCollapsed && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              flexShrink: 0,
+            }}
+          >
+            <button
+              onClick={() =>
+                setRightPanelCollapsed(false)
+              }
+              title="Restore Selection Intelligence"
+              style={{
+                background: "#070d18",
+                color: "#94a3b8",
+                border: "1px solid #182235",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontFamily: "Consolas, monospace",
+                fontSize: 14,
+                padding: "6px 7px",
+              }}
+            >
+              &lt;&lt;
+            </button>
+          </div>
+        )}
+
         <div
           style={{
-            display: workspaceExpanded
-              ? "none"
-              : "flex",
+            display:
+              workspaceExpanded || rightPanelCollapsed
+                ? "none"
+                : "flex",
 
             width: 300,
             minWidth: 300,
@@ -524,13 +510,40 @@ export default function MainLayout({
           >
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 700,
-                letterSpacing: 1,
-                textTransform: "uppercase",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
               }}
             >
-              Selection Intelligence
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                }}
+              >
+                Selection Intelligence
+              </div>
+
+              <button
+                onClick={() =>
+                  setRightPanelCollapsed(true)
+                }
+                title="Collapse Selection Intelligence"
+                style={{
+                  background: "transparent",
+                  color: "#94a3b8",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "Consolas, monospace",
+                  fontSize: 14,
+                  padding: "2px 4px",
+                }}
+              >
+                &gt;&gt;
+              </button>
             </div>
 
             <div
