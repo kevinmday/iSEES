@@ -357,8 +357,8 @@ export default function ResearchInboxInstrument() {
         Research Inbox
       </div>
 
-      {/* ===================================================== */}
-      {/* EMPTY STATE                                           */}
+            {/* ===================================================== */}
+      {/* RESEARCH CONTENT                                      */}
       {/* ===================================================== */}
 
       <div
@@ -371,42 +371,74 @@ export default function ResearchInboxInstrument() {
           color: "#cbd5e1",
 
           fontSize: 12,
-          lineHeight: 1.65,
+          lineHeight: 1.6,
         }}
       >
 
-        <div
-          style={{
-            marginBottom: 16,
+        {researchDesk.entries.length === 0 ? (
 
-            color: "#e2e8f0",
+          <>
 
-            fontWeight: 600,
-          }}
-        >
-          Nothing collected yet.
-        </div>
+            <div
+              style={{
+                marginBottom: 16,
+                color: "#e2e8f0",
+                fontWeight: 600,
+              }}
+            >
+              Nothing collected yet.
+            </div>
 
-        <div
-          style={{
-            color: "#94a3b8",
-          }}
-        >
-          Drag interesting investigation
-          artifacts here.
-        </div>
+            <div
+              style={{
+                color: "#94a3b8",
+              }}
+            >
+              Click interesting investigation
+              artifacts to collect them.
+            </div>
 
-        <div
-          style={{
-            marginTop: 10,
+          </>
 
-            color: "#64748b",
+        ) : (
 
-            fontSize: 11,
-          }}
-        >
-          Hover for collection guidance.
-        </div>
+          researchDesk.entries.map(
+            (entry) => (
+
+              <div
+                key={entry.anchor.anchorId}
+                style={{
+                  padding: "8px 0",
+                  borderBottom:
+                    "1px solid rgba(148,163,184,0.08)",
+                }}
+              >
+
+                <div
+                  style={{
+                    color: "#f8fafc",
+                    fontWeight: 600,
+                  }}
+                >
+                  {entry.anchor.graph.type}
+                </div>
+
+                <div
+                  style={{
+                    color: "#94a3b8",
+                    fontSize: 11,
+                  }}
+                >
+                  {entry.anchor.graph.id}
+                </div>
+
+              </div>
+
+            )
+
+          )
+
+        )}
 
       </div>
 

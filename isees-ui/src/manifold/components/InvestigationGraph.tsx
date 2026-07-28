@@ -31,6 +31,10 @@ import {
   useGraph,
 } from "../context/GraphContext";
 
+import type {
+  GraphNode,
+} from "../graphTypes";
+
 import InvestigationViewport
 from "./InvestigationViewport";
 
@@ -50,9 +54,16 @@ from "./GraphNodes";
 
 import GraphEdges
 from "./GraphEdges";
-// ============================================================
-// TYPES
-// ============================================================
+
+import {
+  researchBridgeRuntime,
+} from "../../research/ResearchBridgeRuntime";
+
+import {
+  ResearchAnchorType,
+} from "../../research/researchBridgeTypes";
+
+// ============================================================// TYPES
 
 interface InvestigationGraphProps {
   onAction: (
@@ -158,6 +169,47 @@ export default function InvestigationGraph({
   // Intelligence surface.
   //
   // ==========================================================
+
+// ==========================================================
+// GRAPH COLLECTION
+// ==========================================================
+//
+// GraphNodes owns interaction.
+//
+// InvestigationGraph owns integration with the deterministic
+// Research Bridge runtime.
+//
+// ==========================================================
+
+function handleCollectNode(
+  node: GraphNode,
+): void {
+
+  if (!focusedEventId) {
+    return;
+  }
+
+  researchBridgeRuntime.bridge({
+
+  investigationId:
+    focusedEventId,
+
+  graph: {
+
+    type:
+      ResearchAnchorType.NODE,
+
+    id:
+      node.id,
+
+  },
+
+  graphRevision:
+    1,
+
+});
+
+}
 
   // ==========================================================
   // CAMERA STATE
@@ -811,20 +863,23 @@ export default function InvestigationGraph({
                   }
                 />
 
-                {/* ============================================ */}
-                {/* NODES                                        */}
-                {/* ============================================ */}
+                             {/* ============================================ */}
+              {/* NODES                                        */}
+              {/* ============================================ */}
 
-                <GraphNodes
-                  nodes={positionedNodes}
-                  selection={selection}
-                  focusedNodeIds={focusedNodeIds}
-                  centerNodeId={centerNodeId}
-                  setCenterNodeId={setCenterNodeId}
-                  setSelection={setSelection}
-                />
+              <GraphNodes
+                nodes={positionedNodes}
+                selection={selection}
+                focusedNodeIds={focusedNodeIds}
+                centerNodeId={centerNodeId}
+                setCenterNodeId={setCenterNodeId}
+                setSelection={setSelection}
+                onCollectNode={
+                  handleCollectNode
+                }
+              />
 
-              </svg>
+            </svg>
               {/* ============================================== */}
               {/* MANIFOLD INSTRUMENT LAYER                     */}
               {/* ============================================== */}

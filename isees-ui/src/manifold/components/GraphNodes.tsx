@@ -57,6 +57,14 @@ export interface GraphNodesProps {
     selection: GraphSelection
   ) => void;
 
+  // ==========================================================
+  // OPTIONAL COLLECTION CALLBACK
+  // ==========================================================
+
+  onCollectNode?: (
+    node: GraphNode
+  ) => void;
+
 }
 
 // ============================================================
@@ -71,6 +79,7 @@ export default function GraphNodes({
   centerNodeId,
   setCenterNodeId,
   setSelection,
+  onCollectNode,
 
 }: GraphNodesProps) {
 
@@ -103,92 +112,101 @@ export default function GraphNodes({
                   ? 16
                   : 14;
 
-// ==========================================================
-// LABEL PROJECTION
-// ==========================================================
-//
-// Labels project away from the Manifold center so that
-// peripheral node labels consume exterior space rather than
-// crossing topology toward neighboring node territories.
-//
-// EVENT labels retain centered presentation because events
-// act as primary topology anchors.
-//
-// ==========================================================
+          // ==================================================
+          // LABEL PROJECTION
+          // ==================================================
+          //
+          // Labels project away from the Manifold center so that
+          // peripheral node labels consume exterior space rather
+          // than crossing topology toward neighboring node
+          // territories.
+          //
+          // EVENT labels retain centered presentation because
+          // events act as primary topology anchors.
+          //
+          // ==================================================
 
-const nodeX =
-  node.x ?? 0;
+          const nodeX =
+            node.x ?? 0;
 
+          const peripheralLabel =
+            node.type === "FACILITY";
 
-const peripheralLabel =
-  node.type === "FACILITY";
+          const horizontalThreshold =
+            24;
 
-const horizontalThreshold = 24;
+          const projectsLeft =
+            peripheralLabel &&
+            nodeX < -horizontalThreshold;
 
-const projectsLeft =
-  peripheralLabel &&
-  nodeX < -horizontalThreshold;
+          const projectsRight =
+            peripheralLabel &&
+            nodeX > horizontalThreshold;
 
-const projectsRight =
-  peripheralLabel &&
-  nodeX > horizontalThreshold;
+          const labelX =
+            projectsLeft
+              ? -(glyphSize + 10)
+              : projectsRight
+                ? glyphSize + 10
+                : 0;
 
-const labelX =
-  projectsLeft
-    ? -(glyphSize + 10)
-    : projectsRight
-      ? glyphSize + 10
-      : 0;
+          const labelY =
+            projectsLeft ||
+            projectsRight
+              ? 4
+              : glyphSize + 18;
 
-const labelY =
-  projectsLeft ||
-  projectsRight
-    ? 4
-    : glyphSize + 18;
-
-const labelAnchor =
-  projectsLeft
-    ? "end"
-    : projectsRight
-      ? "start"
-      : "middle";
+          const labelAnchor =
+            projectsLeft
+              ? "end"
+              : projectsRight
+                ? "start"
+                : "middle";
 
           return (
 
-           <g
-          key={node.id}
-          transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
-          onClick={() =>
-            setSelection({
+            <g
+              key={node.id}
+              transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
 
-              kind: "NODE",
+              onClick={() => {
 
-              nodeId:
-                node.id,
+                setSelection({
 
-              nodeType:
-                node.type,
+                  kind: "NODE",
 
-            })
-          }
-          onDoubleClick={() =>
-            setCenterNodeId(
-              node.id
-            )
-          }
-          style={{
-            cursor: "pointer",
-          }}
-        >
+                  nodeId:
+                    node.id,
 
-          <circle
-            r={16}
-            fill="transparent"
-            style={{
-              cursor: "pointer",
-            }}
-          >
-          </circle>
+                  nodeType:
+                    node.type,
+
+                });
+
+                onCollectNode?.(
+                  node
+                );
+
+              }}
+
+              onDoubleClick={() =>
+                setCenterNodeId(
+                  node.id
+                )
+              }
+
+              style={{
+                cursor: "pointer",
+              }}
+            >
+
+              <circle
+                r={16}
+                fill="transparent"
+                style={{
+                  cursor: "pointer",
+                }}
+              />
 
               <GraphNodeGlyph
                 type={node.type}
@@ -210,22 +228,22 @@ const labelAnchor =
 
               )}
 
-    <text
-  x={labelX}
-  y={labelY}
-  textAnchor={labelAnchor}
-  dominantBaseline={
-    projectsLeft ||
-    projectsRight
-      ? "middle"
-      : undefined
-  }
-  fill="#d1d5db"
-  fontSize="11"
-  fontWeight="600"
->
-  {node.label}
-</text>
+              <text
+                x={labelX}
+                y={labelY}
+                textAnchor={labelAnchor}
+                dominantBaseline={
+                  projectsLeft ||
+                  projectsRight
+                    ? "middle"
+                    : undefined
+                }
+                fill="#d1d5db"
+                fontSize="11"
+                fontWeight="600"
+              >
+                {node.label}
+              </text>
 
             </g>
 
