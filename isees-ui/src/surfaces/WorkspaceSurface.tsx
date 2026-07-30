@@ -35,6 +35,9 @@ import InvestigationWorkspace
 import ManifoldWorkspace
   from "../workspace/surfaces/ManifoldWorkspace";
 
+import ResearchWorkspace
+  from "../workspace/surfaces/ResearchWorkspace";
+
 // ============================================================
 // PLACEHOLDER SURFACE
 // ============================================================
@@ -148,13 +151,13 @@ case WorkspaceMode.MANIFOLD:
         />
       );
 
-    case WorkspaceMode.RESEARCH:
+case WorkspaceMode.RESEARCH:
 
-      return (
-        <PlaceholderSurface
-          title="Research Workspace"
-        />
-      );
+  return (
+
+    <ResearchWorkspace />
+
+  );
 
     default:
 
