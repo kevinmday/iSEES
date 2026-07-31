@@ -100,10 +100,31 @@ const MODES = [
 
 ] as const;
 
+const MODE_LABELS: Record<WorkspaceMode, string> = {
+
+  [WorkspaceMode.OVERVIEW]: "OVERVIEW",
+
+  [WorkspaceMode.MANIFOLD]: "MANIFOLD",
+
+  [WorkspaceMode.COMPARE]: "COMPARE",
+
+  [WorkspaceMode.NARRATIVE]: "NARRATIVE",
+
+  [WorkspaceMode.EVIDENCE]: "EVIDENCE",
+
+  [WorkspaceMode.TIMELINE]: "TIMELINE",
+
+  [WorkspaceMode.LAYERS]: "LAYERS",
+
+  [WorkspaceMode.INTENTION]: "INTENTION",
+
+  [WorkspaceMode.RESEARCH]: "STUDIO",
+
+};
+
 // ============================================================
 // COMPONENT
 // ============================================================
-
 export default function WorkspaceModeBar() {
 
   const runtime =
@@ -153,7 +174,7 @@ export default function WorkspaceModeBar() {
 
           }}
         >
-          {mode}
+          {MODE_LABELS[mode]}
         </div>
 
       ))}
