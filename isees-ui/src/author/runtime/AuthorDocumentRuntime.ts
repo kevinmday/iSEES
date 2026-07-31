@@ -22,7 +22,12 @@
 
 import type {
 
-  AuthorDocument,
+  ComputationalAuthorDocument,
+
+} from "../model/AuthorDocument";
+
+import type {
+
   AuthorDocumentRuntimeState,
 
 } from "./AuthorDocumentRuntimeTypes";
@@ -73,7 +78,7 @@ export class AuthorDocumentRuntime {
   }
 
   getActiveDocument():
-    AuthorDocument | undefined {
+    ComputationalAuthorDocument | undefined {
 
     return this.state.activeDocument;
 
@@ -135,7 +140,7 @@ export class AuthorDocumentRuntime {
 
   setActiveDocument(
     document:
-      AuthorDocument,
+      ComputationalAuthorDocument,
   ): void {
 
     if (

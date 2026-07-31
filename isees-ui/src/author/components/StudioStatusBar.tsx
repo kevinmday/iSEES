@@ -113,7 +113,7 @@ export default function StudioStatusBar() {
 
           {
             document
-              ? document.metadata.status
+              ? document.status
               : "No Document"
           }
 
