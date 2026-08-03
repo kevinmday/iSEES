@@ -113,13 +113,77 @@ export interface CitationNode
 }
 
 /**
- * External reference.
+ * Computational reference to an external
+ * knowledge object.
+ *
+ * The Author Document never owns Investigation
+ * data. Instead it stores deterministic
+ * references that projection runtimes may
+ * render as citations, cards, hyperlinks,
+ * expandable widgets, or other visual forms.
  */
 export interface ReferenceNode
   extends AuthorNode {
 
-  target:
+  /**
+   * Target object category.
+   */
+  targetType:
+    "NODE"
+    | "EDGE"
+    | "ARTIFACT"
+    | "DOCUMENT";
+
+  /**
+   * Stable identifier of the referenced object.
+   */
+  targetId:
     string;
+
+  /**
+   * Human-readable title captured at the time
+   * of insertion.
+   */
+  title:
+    string;
+
+  /**
+   * Corpus or provider.
+   */
+  source:
+    string;
+
+  /**
+   * External corpus identifier.
+   */
+  corpusId:
+    string;
+
+  /**
+   * Graph connectivity snapshot.
+   */
+  connections?:
+    number;
+
+  /**
+   * Confidence snapshot.
+   */
+  confidence?:
+    number;
+
+  /**
+   * Optional descriptive summary captured
+   * during insertion.
+   */
+  summary?:
+    string;
+
+  /**
+   * UTC timestamp indicating when this
+   * reference entered the document.
+   */
+  insertedAt:
+    Date;
 
 }
 

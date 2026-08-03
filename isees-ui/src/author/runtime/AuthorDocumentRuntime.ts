@@ -1,16 +1,16 @@
 // ============================================================
 // src/author/runtime/AuthorDocumentRuntime.ts
-// P49A
+// P51C
 // AUTHOR DOCUMENT RUNTIME
 //
 // Deterministic runtime owning the operator's active
-// Author Document.
+// Computational Author Document.
 //
 // React observes.
 //
 // Editors edit.
 //
-// Exporters publish.
+// Projection runtimes render.
 //
 // No React.
 // No Lexical.
@@ -25,6 +25,12 @@ import type {
   ComputationalAuthorDocument,
 
 } from "../model/AuthorDocument";
+
+import type {
+
+  AuthorNode,
+
+} from "../model/AuthorNodeTypes";
 
 import type {
 
@@ -121,7 +127,8 @@ export class AuthorDocumentRuntime {
 
   }
 
-  private notify(): void {
+  private notify():
+    void {
 
     for (
       const listener
@@ -202,6 +209,61 @@ export class AuthorDocumentRuntime {
 
   }
 
+  // ==========================================================
+  // DOCUMENT MUTATION
+  // ==========================================================
+
+  /**
+   * Inserts a computational node into the
+   * active Author Document.
+   *
+   * The runtime owns the mutation.
+   *
+   * Editors, the Research Inbox, REX, and
+   * future subsystems merely construct nodes
+   * and request insertion.
+   */
+  insertNode(
+    node:
+      AuthorNode,
+  ): void {
+
+    const document =
+      this.state.activeDocument;
+
+    if (
+      document ===
+      undefined
+    ) {
+
+      return;
+
+    }
+
+    document.nodes.push(
+      node,
+    );
+
+    this.state = {
+
+      ...this.state,
+
+      dirty:
+        true,
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // DOCUMENT STATE
+  // ==========================================================
+
   markDirty():
     void {
 
@@ -266,9 +328,9 @@ export class AuthorDocumentRuntime {
   // Save Manager
   // Publish Manager
   // Citation Manager
-  // Computational References
   // Embedded Graph Objects
-  // Lexical Integration
+  // Observation Nodes
+  // Lexical Projection
   // Collaboration
   //
   // ==========================================================

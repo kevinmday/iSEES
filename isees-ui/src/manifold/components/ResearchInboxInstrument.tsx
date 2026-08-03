@@ -35,6 +35,20 @@ import {
   useResearchDesk,
 } from "../../research/ResearchBridgeContext";
 
+import {
+
+  authorDocumentRuntime,
+
+} from "../../author/runtime/AuthorDocumentRuntime";
+
+import {
+
+  AuthorNodeTypes,
+
+  type ReferenceNode,
+
+} from "../../author/model/AuthorNodeTypes";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -272,6 +286,49 @@ export default function ResearchInboxInstrument() {
     setDragging(false);
   }
 
+// ==========================================================
+// AUTHOR DOCUMENT INSERTION
+// ==========================================================
+
+function handleInsert(
+  entry:
+    typeof researchDesk.entries[number],
+): void {
+
+  const node: ReferenceNode = {
+
+    id:
+      crypto.randomUUID(),
+
+    type:
+      AuthorNodeTypes.REFERENCE,
+
+    targetType:
+      entry.anchor.graph.type,
+
+    targetId:
+      entry.anchor.graph.id,
+
+    title:
+      entry.anchor.graph.id,
+
+    source:
+      "RESEARCH_BRIDGE",
+
+    corpusId:
+      entry.anchor.anchorId,
+
+    insertedAt:
+      new Date(),
+
+  };
+
+  authorDocumentRuntime.insertNode(
+    node,
+  );
+
+}
+
   // ==========================================================
   // RENDER
   // ==========================================================
@@ -403,16 +460,29 @@ export default function ResearchInboxInstrument() {
         ) : (
 
           researchDesk.entries.map(
-            (entry) => (
+          (entry) => (
 
-              <div
-                key={entry.anchor.anchorId}
-                style={{
-                  padding: "8px 0",
-                  borderBottom:
-                    "1px solid rgba(148,163,184,0.08)",
-                }}
-              >
+            <div
+              key={entry.anchor.anchorId}
+
+              onClick={() =>
+                handleInsert(
+                  entry,
+                )
+              }
+
+              style={{
+
+                padding: "8px 0",
+
+                borderBottom:
+                  "1px solid rgba(148,163,184,0.08)",
+
+                cursor:
+                  "pointer",
+
+              }}
+            >
 
                 <div
                   style={{

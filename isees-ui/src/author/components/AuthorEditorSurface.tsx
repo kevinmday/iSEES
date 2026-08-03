@@ -1,6 +1,6 @@
 // ============================================================
 // src/author/components/AuthorEditorSurface.tsx
-// P49B
+// P49C
 // AUTHOR EDITOR SURFACE
 //
 // Canonical editor host for the Authoring Studio.
@@ -15,14 +15,6 @@
 // The computational Author Document remains owned
 // entirely by the deterministic AuthorDocumentRuntime.
 //
-// Future:
-//
-// AuthorEditorSurface
-//          ↓
-// Lexical Projection
-//          ↓
-// AuthorDocumentRuntime
-//
 // ============================================================
 
 import type {
@@ -32,6 +24,14 @@ import type {
 import {
   useAuthorDocument,
 } from "../runtime/AuthorDocumentRuntimeContext";
+
+import {
+
+  AuthorNodeTypes,
+
+  type ReferenceNode,
+
+} from "../model/AuthorNodeTypes";
 
 import LexicalProjectionHost
   from "../projection/lexical/LexicalProjectionHost";
@@ -138,11 +138,99 @@ export default function AuthorEditorSurface() {
 
       )}
 
-     {document && (
+      {document && (
 
-  <LexicalProjectionHost />
+        document.nodes.length === 0 ? (
 
-)}
+          <LexicalProjectionHost />
+
+        ) : (
+
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              overflow: "auto",
+              padding: 32,
+              color: "#e2e8f0",
+              fontFamily: "monospace",
+            }}
+          >
+
+            <h2>
+
+              Computational Author Document
+
+            </h2>
+
+            {document.nodes.map(
+              (node) => (
+
+                <div
+                  key={node.id}
+                  style={{
+                    marginBottom: 20,
+                    padding: 16,
+                    border: "1px solid #334155",
+                    borderRadius: 8,
+                    background: "#0f172a",
+                  }}
+                >
+
+                  <div>
+
+                    <strong>Type:</strong>{" "}
+                    {node.type}
+
+                  </div>
+
+                  {node.type === AuthorNodeTypes.REFERENCE && (
+
+                    <>
+
+                      <div>
+
+                        <strong>Target:</strong>{" "}
+                        {(node as ReferenceNode).targetType}
+
+                      </div>
+
+                      <div>
+
+                        <strong>ID:</strong>{" "}
+                        {(node as ReferenceNode).targetId}
+
+                      </div>
+
+                      <div>
+
+                        <strong>Title:</strong>{" "}
+                        {(node as ReferenceNode).title}
+
+                      </div>
+
+                      <div>
+
+                        <strong>Source:</strong>{" "}
+                        {(node as ReferenceNode).source}
+
+                      </div>
+
+                    </>
+
+                  )}
+
+                </div>
+
+              )
+
+            )}
+
+          </div>
+
+        )
+
+      )}
 
     </div>
 
