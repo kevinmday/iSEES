@@ -32,8 +32,6 @@
 // ============================================================
 import InvestigationGraph from "./InvestigationGraph";
 
-import ResearchInboxInstrument from "./ResearchInboxInstrument";
-
 import type {
   ManifoldToolbarAction,
 } from "./ManifoldToolbar";
@@ -41,6 +39,7 @@ import type {
 import {
   manifoldRuntime,
 } from "../engine/manifoldRuntime";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -100,12 +99,6 @@ export default function PrimaryInvestigationManifold({
         position: "relative",
       }}
     >
-
-      {/* ===================================================== */}
-      {/* RESEARCH INBOX INSTRUMENT                             */}
-      {/* ===================================================== */}
-
-      <ResearchInboxInstrument />
 
       {/* ===================================================== */}
       {/* INVESTIGATION MANIFOLD                                */}

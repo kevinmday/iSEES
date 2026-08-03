@@ -1,6 +1,6 @@
 // ============================================================
 // src/surfaces/WorkspaceSurface.tsx
-// P36
+// P51A
 // WORKSPACE SURFACE
 //
 // Runtime-owned workspace projection router.
@@ -15,8 +15,8 @@
 // Active Workspace Mode
 //      ↓
 // Workspace Surface
-//      ↓
-// Projection Surface
+//      ├── Persistent Workspace Instruments
+//      └── Projection Surface
 //
 // Computational ownership remains below the Workspace Runtime.
 // ============================================================
@@ -37,6 +37,9 @@ import ManifoldWorkspace
 
 import ResearchWorkspace
   from "../workspace/surfaces/ResearchWorkspace";
+
+import ResearchInboxInstrument
+  from "../manifold/components/ResearchInboxInstrument";
 
 // ============================================================
 // PLACEHOLDER SURFACE
@@ -77,10 +80,10 @@ function PlaceholderSurface({
 }
 
 // ============================================================
-// COMPONENT
+// ACTIVE WORKSPACE
 // ============================================================
 
-export default function WorkspaceSurface() {
+function ActiveWorkspace() {
 
   const runtime =
     useWorkspaceRuntime();
@@ -97,11 +100,11 @@ export default function WorkspaceSurface() {
         />
       );
 
-case WorkspaceMode.MANIFOLD:
+    case WorkspaceMode.MANIFOLD:
 
-  return (
-    <ManifoldWorkspace />
-  );
+      return (
+        <ManifoldWorkspace />
+      );
 
     case WorkspaceMode.COMPARE:
 
@@ -151,13 +154,11 @@ case WorkspaceMode.MANIFOLD:
         />
       );
 
-case WorkspaceMode.RESEARCH:
+    case WorkspaceMode.RESEARCH:
 
-  return (
-
-    <ResearchWorkspace />
-
-  );
+      return (
+        <ResearchWorkspace />
+      );
 
     default:
 
@@ -166,5 +167,33 @@ case WorkspaceMode.RESEARCH:
       );
 
   }
+
+}
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
+export default function WorkspaceSurface() {
+
+  return (
+
+    <>
+
+      {/* ===================================================== */}
+      {/* PERSISTENT WORKSPACE INSTRUMENTS                      */}
+      {/* ===================================================== */}
+
+      <ResearchInboxInstrument />
+
+      {/* ===================================================== */}
+      {/* ACTIVE WORKSPACE                                      */}
+      {/* ===================================================== */}
+
+      <ActiveWorkspace />
+
+    </>
+
+  );
 
 }
