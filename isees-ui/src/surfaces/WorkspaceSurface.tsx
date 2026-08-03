@@ -35,8 +35,12 @@ import InvestigationWorkspace
 import ManifoldWorkspace
   from "../workspace/surfaces/ManifoldWorkspace";
 
-import ResearchWorkspace
-  from "../workspace/surfaces/ResearchWorkspace";
+import StudioShell
+  from "../author/components/StudioShell";
+
+import {
+  AuthorDocumentRuntimeProvider,
+} from "../author/runtime/AuthorDocumentRuntimeContext";
 
 import ResearchInboxInstrument
   from "../manifold/components/ResearchInboxInstrument";
@@ -157,7 +161,13 @@ function ActiveWorkspace() {
     case WorkspaceMode.RESEARCH:
 
       return (
-        <ResearchWorkspace />
+
+        <AuthorDocumentRuntimeProvider>
+
+          <StudioShell />
+
+        </AuthorDocumentRuntimeProvider>
+
       );
 
     default:
