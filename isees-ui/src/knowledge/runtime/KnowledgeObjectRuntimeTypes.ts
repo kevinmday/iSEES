@@ -1,10 +1,20 @@
 // ============================================================
 // src/knowledge/runtime/KnowledgeObjectRuntimeTypes.ts
-// P53
+// P53A
 // COMPUTATIONAL KNOWLEDGE RUNTIME TYPES
 //
 // Shared runtime contracts for the deterministic Knowledge
 // Runtime.
+//
+// Owns operator navigation.
+//
+// Owns operator selection.
+//
+// Owns operator inspection.
+//
+// Owns computational state.
+//
+// React observes.
 //
 // No React.
 // No persistence.
@@ -37,16 +47,100 @@ export type KnowledgeRuntimeStatus =
   (typeof KnowledgeRuntimeStatus)[keyof typeof KnowledgeRuntimeStatus];
 
 // ============================================================
+// VIEW MODE
+// ============================================================
+
+export const KnowledgeViewMode = {
+
+  LIST: "LIST",
+
+  GRAPH: "GRAPH",
+
+  HIERARCHY: "HIERARCHY",
+
+  TIMELINE: "TIMELINE",
+
+} as const;
+
+export type KnowledgeViewMode =
+  (typeof KnowledgeViewMode)[keyof typeof KnowledgeViewMode];
+
+// ============================================================
+// SORT MODE
+// ============================================================
+
+export const KnowledgeSortMode = {
+
+  TITLE: "TITLE",
+
+  TYPE: "TYPE",
+
+  CREATED: "CREATED",
+
+  UPDATED: "UPDATED",
+
+} as const;
+
+export type KnowledgeSortMode =
+  (typeof KnowledgeSortMode)[keyof typeof KnowledgeSortMode];
+
+// ============================================================
+// FILTER
+// ============================================================
+
+export interface KnowledgeRuntimeFilter {
+
+  types: string[];
+
+  statuses: string[];
+
+  tags: string[];
+
+}
+
+// ============================================================
 // RUNTIME STATE
 // ============================================================
 
 export interface KnowledgeRuntimeState {
 
+  // ----------------------------------------------------------
+  // Runtime
+  // ----------------------------------------------------------
+
   status: KnowledgeRuntimeStatus;
+
+  revision: number;
+
+  // ----------------------------------------------------------
+  // Knowledge Objects
+  // ----------------------------------------------------------
 
   objects: KnowledgeObject[];
 
-  revision: number;
+  // ----------------------------------------------------------
+  // Operator Navigation
+  // ----------------------------------------------------------
+
+  activeObjectId?: string;
+
+  inspectionObjectId?: string;
+
+  selectedObjectIds: string[];
+
+  expandedObjectIds: string[];
+
+  // ----------------------------------------------------------
+  // Presentation
+  // ----------------------------------------------------------
+
+  searchText: string;
+
+  viewMode: KnowledgeViewMode;
+
+  sortMode: KnowledgeSortMode;
+
+  filter: KnowledgeRuntimeFilter;
 
 }
 
@@ -56,7 +150,7 @@ export interface KnowledgeRuntimeState {
 
 export type KnowledgeRuntimeListener = (
 
-  state: KnowledgeRuntimeState
+  state: KnowledgeRuntimeState,
 
 ) => void;
 
@@ -76,7 +170,17 @@ export interface KnowledgeRuntimeSubscription {
 
 export interface KnowledgeRuntime {
 
+  // ----------------------------------------------------------
+  // State
+  // ----------------------------------------------------------
+
   getState(): KnowledgeRuntimeState;
+
+  getRevision(): number;
+
+  // ----------------------------------------------------------
+  // Knowledge Objects
+  // ----------------------------------------------------------
 
   getObjects(): readonly KnowledgeObject[];
 
@@ -118,7 +222,103 @@ export interface KnowledgeRuntime {
 
   clear(): void;
 
-  getRevision(): number;
+  // ----------------------------------------------------------
+  // Navigation
+  // ----------------------------------------------------------
+
+  getActiveObjectId(): string | undefined;
+
+  setActiveObject(
+
+    id?: string,
+
+  ): void;
+
+  getInspectionObjectId(): string | undefined;
+
+  setInspectionObject(
+
+    id?: string,
+
+  ): void;
+
+  getSelectedObjectIds(): readonly string[];
+
+  selectObject(
+
+    id: string,
+
+  ): void;
+
+  deselectObject(
+
+    id: string,
+
+  ): void;
+
+  clearSelection(): void;
+
+  getExpandedObjectIds(): readonly string[];
+
+  expandObject(
+
+    id: string,
+
+  ): void;
+
+  collapseObject(
+
+    id: string,
+
+  ): void;
+
+  toggleExpandedObject(
+
+    id: string,
+
+  ): void;
+
+  // ----------------------------------------------------------
+  // Presentation
+  // ----------------------------------------------------------
+
+  getSearchText(): string;
+
+  setSearchText(
+
+    text: string,
+
+  ): void;
+
+  getViewMode(): KnowledgeViewMode;
+
+  setViewMode(
+
+    mode: KnowledgeViewMode,
+
+  ): void;
+
+  getSortMode(): KnowledgeSortMode;
+
+  setSortMode(
+
+    mode: KnowledgeSortMode,
+
+  ): void;
+
+  getFilter(): KnowledgeRuntimeFilter;
+
+  setFilter(
+
+    filter: KnowledgeRuntimeFilter,
+
+  ): void;
+
+  clearFilter(): void;
+
+  // ----------------------------------------------------------
+  // Events
+  // ----------------------------------------------------------
 
   subscribe(
 

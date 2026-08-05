@@ -1,10 +1,16 @@
 // ============================================================
 // src/knowledge/runtime/KnowledgeObjectRuntime.ts
-// P53
+// P53A
 // COMPUTATIONAL KNOWLEDGE OBJECT RUNTIME
 //
-// Deterministic runtime owning the operator's active
+// Deterministic runtime owning the operator's
 // Computational Knowledge Objects.
+//
+// Owns navigation.
+//
+// Owns selection.
+//
+// Owns inspection.
 //
 // React observes.
 //
@@ -26,8 +32,11 @@ import type {
 import {
 
   KnowledgeRuntimeStatus,
+  KnowledgeSortMode,
+  KnowledgeViewMode,
 
   type KnowledgeRuntime,
+  type KnowledgeRuntimeFilter,
   type KnowledgeRuntimeListener,
   type KnowledgeRuntimeState,
   type KnowledgeRuntimeSubscription,
@@ -42,15 +51,56 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
 
   private state: KnowledgeRuntimeState = {
 
-    status: KnowledgeRuntimeStatus.READY,
+    // --------------------------------------------------------
+    // Runtime
+    // --------------------------------------------------------
 
-    objects: [],
+    status: KnowledgeRuntimeStatus.READY,
 
     revision: 0,
 
+    // --------------------------------------------------------
+    // Objects
+    // --------------------------------------------------------
+
+    objects: [],
+
+    // --------------------------------------------------------
+    // Navigation
+    // --------------------------------------------------------
+
+    activeObjectId: undefined,
+
+    inspectionObjectId: undefined,
+
+    selectedObjectIds: [],
+
+    expandedObjectIds: [],
+
+    // --------------------------------------------------------
+    // Presentation
+    // --------------------------------------------------------
+
+    searchText: "",
+
+    viewMode: KnowledgeViewMode.LIST,
+
+    sortMode: KnowledgeSortMode.TITLE,
+
+    filter: {
+
+      types: [],
+
+      statuses: [],
+
+      tags: [],
+
+    },
+
   };
 
-  private readonly listeners = new Set<KnowledgeRuntimeListener>();
+  private readonly listeners =
+    new Set<KnowledgeRuntimeListener>();
 
   // ==========================================================
   // STATE
@@ -61,6 +111,16 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
     return this.state;
 
   }
+
+  public getRevision(): number {
+
+    return this.state.revision;
+
+  }
+
+  // ==========================================================
+  // OBJECTS
+  // ==========================================================
 
   public getObjects(): readonly KnowledgeObject[] {
 
@@ -91,10 +151,6 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
     return this.getObject(id) !== undefined;
 
   }
-
-  // ==========================================================
-  // MUTATION
-  // ==========================================================
 
   public setObjects(
 
@@ -159,7 +215,6 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
           existing.identity.id === object.identity.id
 
             ? object
-
             : existing,
 
       ),
@@ -188,6 +243,38 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
 
       ),
 
+      activeObjectId:
+
+        this.state.activeObjectId === id
+
+          ? undefined
+
+          : this.state.activeObjectId,
+
+      inspectionObjectId:
+
+        this.state.inspectionObjectId === id
+
+          ? undefined
+
+          : this.state.inspectionObjectId,
+
+      selectedObjectIds:
+
+        this.state.selectedObjectIds.filter(
+
+          value => value !== id,
+
+        ),
+
+      expandedObjectIds:
+
+        this.state.expandedObjectIds.filter(
+
+          value => value !== id,
+
+        ),
+
       revision: this.state.revision + 1,
 
     };
@@ -204,6 +291,14 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
 
       objects: [],
 
+      activeObjectId: undefined,
+
+      inspectionObjectId: undefined,
+
+      selectedObjectIds: [],
+
+      expandedObjectIds: [],
+
       revision: this.state.revision + 1,
 
     };
@@ -212,9 +307,389 @@ export class KnowledgeObjectRuntime implements KnowledgeRuntime {
 
   }
 
-  public getRevision(): number {
+  // ==========================================================
+  // ACTIVE
+  // ==========================================================
 
-    return this.state.revision;
+  public getActiveObjectId(): string | undefined {
+
+    return this.state.activeObjectId;
+
+  }
+
+  public setActiveObject(
+
+    id?: string,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      activeObjectId: id,
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // INSPECTION
+  // ==========================================================
+
+  public getInspectionObjectId(): string | undefined {
+
+    return this.state.inspectionObjectId;
+
+  }
+
+  public setInspectionObject(
+
+    id?: string,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      inspectionObjectId: id,
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // SELECTION
+  // ==========================================================
+
+  public getSelectedObjectIds(): readonly string[] {
+
+    return this.state.selectedObjectIds;
+
+  }
+
+  public selectObject(
+
+    id: string,
+
+  ): void {
+
+    if (
+
+      this.state.selectedObjectIds.includes(id)
+
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      selectedObjectIds: [
+
+        ...this.state.selectedObjectIds,
+
+        id,
+
+      ],
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  public deselectObject(
+
+    id: string,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      selectedObjectIds:
+
+        this.state.selectedObjectIds.filter(
+
+          value => value !== id,
+
+        ),
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  public clearSelection(): void {
+
+    this.state = {
+
+      ...this.state,
+
+      selectedObjectIds: [],
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // EXPANSION
+  // ==========================================================
+
+  public getExpandedObjectIds(): readonly string[] {
+
+    return this.state.expandedObjectIds;
+
+  }
+
+  public expandObject(
+
+    id: string,
+
+  ): void {
+
+    if (
+
+      this.state.expandedObjectIds.includes(id)
+
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      expandedObjectIds: [
+
+        ...this.state.expandedObjectIds,
+
+        id,
+
+      ],
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  public collapseObject(
+
+    id: string,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      expandedObjectIds:
+
+        this.state.expandedObjectIds.filter(
+
+          value => value !== id,
+
+        ),
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  public toggleExpandedObject(
+
+    id: string,
+
+  ): void {
+
+    if (
+
+      this.state.expandedObjectIds.includes(id)
+
+    ) {
+
+      this.collapseObject(id);
+
+      return;
+
+    }
+
+    this.expandObject(id);
+
+  }
+
+  // ==========================================================
+  // SEARCH
+  // ==========================================================
+
+  public getSearchText(): string {
+
+    return this.state.searchText;
+
+  }
+
+  public setSearchText(
+
+    text: string,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      searchText: text,
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // VIEW
+  // ==========================================================
+
+  public getViewMode(): KnowledgeViewMode {
+
+    return this.state.viewMode;
+
+  }
+
+  public setViewMode(
+
+    mode: KnowledgeViewMode,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      viewMode: mode,
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // SORT
+  // ==========================================================
+
+  public getSortMode(): KnowledgeSortMode {
+
+    return this.state.sortMode;
+
+  }
+
+  public setSortMode(
+
+    mode: KnowledgeSortMode,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      sortMode: mode,
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // FILTER
+  // ==========================================================
+
+  public getFilter(): KnowledgeRuntimeFilter {
+
+    return this.state.filter;
+
+  }
+
+  public setFilter(
+
+    filter: KnowledgeRuntimeFilter,
+
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      filter,
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  public clearFilter(): void {
+
+    this.state = {
+
+      ...this.state,
+
+      filter: {
+
+        types: [],
+
+        statuses: [],
+
+        tags: [],
+
+      },
+
+      revision: this.state.revision + 1,
+
+    };
+
+    this.notify();
 
   }
 
