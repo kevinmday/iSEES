@@ -30,6 +30,12 @@ import type {
 
 } from "./OperatorSessionRuntimeTypes";
 
+import {
+
+  operatorInstrumentResolver,
+
+} from "../services/OperatorInstrumentResolver";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -170,6 +176,14 @@ export class OperatorSessionRuntime {
 
     }
 
+    const instruments =
+
+      operatorInstrumentResolver.resolve(
+
+        session,
+
+      );
+
     this.state = {
 
       ...this.state,
@@ -183,6 +197,12 @@ export class OperatorSessionRuntime {
       startedAt:
         new Date(),
 
+      leftInstruments:
+        instruments.left,
+
+      rightInstruments:
+        instruments.right,
+
       revision:
         this.state.revision + 1,
 
@@ -191,7 +211,6 @@ export class OperatorSessionRuntime {
     this.notify();
 
   }
-
   // ==========================================================
   // INSTRUMENTS
   // ==========================================================

@@ -147,6 +147,30 @@ export function useActiveOperatorSession() {
 
 }
 
+export function usePreviousOperatorSession() {
+
+  return useOperatorSession()
+
+    .previousSession;
+
+}
+
+export function useLeftOperatorInstruments() {
+
+  return useOperatorSession()
+
+    .leftInstruments;
+
+}
+
+export function useRightOperatorInstruments() {
+
+  return useOperatorSession()
+
+    .rightInstruments;
+
+}
+
 export function useOperatorSessionRevision() {
 
   return useOperatorSession()
