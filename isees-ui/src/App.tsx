@@ -57,6 +57,12 @@ import {
 } from "./workspace/runtime";
 
 import {
+
+  OperatorSessionRuntimeProvider,
+
+} from "./session/runtime/OperatorSessionRuntimeContext";
+
+import {
   FederationProvider,
 } from "./federation/context/FederationContext";
 
@@ -90,7 +96,9 @@ function OperatorUI() {
 
         <WorkspaceRuntimeProvider>
 
-          <ResearchBridgeProvider>
+  <OperatorSessionRuntimeProvider>
+
+    <ResearchBridgeProvider>
 
             <FederationProvider>
 
@@ -124,9 +132,11 @@ function OperatorUI() {
 
             </FederationProvider>
 
-          </ResearchBridgeProvider>
+                  </ResearchBridgeProvider>
 
-        </WorkspaceRuntimeProvider>
+      </OperatorSessionRuntimeProvider>
+
+    </WorkspaceRuntimeProvider>
 
       </WorkspaceProvider>
 
