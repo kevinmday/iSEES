@@ -58,6 +58,12 @@ import {
   ResolveEngine,
 } from "../../src/resolve/engine/ResolveEngine";
 
+import {
+  createResolveReplayBaseline,
+  verifyResolveReplay,
+  ResolveReplayStatus,
+} from "../../src/resolve/engine/ResolveReplay";
+
 // ============================================================
 // ASSERTION UTILITIES
 // ============================================================
@@ -651,6 +657,123 @@ assertThrows(
 
 console.log(
   "PASS 6 — empty Investigation identities are rejected",
+);
+
+// ============================================================
+// TEST 7
+// SEMANTICALLY EQUIVALENT REPLAY
+// ============================================================
+//
+// inputA and inputB differ in:
+//
+//   • Knowledge Object insertion order
+//   • Active Layer insertion order
+//   • duplicate Active Layers
+//   • property insertion order within T
+//   • property insertion order within S
+//
+// They represent the same computational universe.
+//
+// Replay MUST verify.
+//
+// ============================================================
+
+const replayBaseline =
+  createResolveReplayBaseline(
+    inputA,
+  );
+
+const equivalentReplay =
+  verifyResolveReplay(
+    replayBaseline,
+    inputB,
+  );
+
+assert(
+
+  equivalentReplay.verified === true,
+
+  "Semantically equivalent Resolve input must verify against the replay baseline.",
+
+);
+
+assert(
+
+  equivalentReplay.status ===
+    ResolveReplayStatus.VERIFIED,
+
+  "Equivalent Resolve replay must report VERIFIED.",
+
+);
+
+console.log(
+  "PASS 7 — semantically equivalent computation replay is VERIFIED",
+);
+
+// ============================================================
+// TEST 8
+// COMPUTATIONAL DIVERGENCE DETECTION
+// ============================================================
+//
+// Change an actual computational dimension.
+//
+// Here L changes by activating ONTOLOGICAL.
+//
+// This is no longer equivalent to the baseline universe.
+//
+// Replay MUST detect divergence.
+//
+// ============================================================
+
+const divergentInput:
+  ResolveComputationInput = {
+
+    ...inputA,
+
+    activeLayers: [
+
+      ...inputA.activeLayers,
+
+      "ONTOLOGICAL",
+
+    ],
+
+  };
+
+const divergentReplay =
+  verifyResolveReplay(
+    replayBaseline,
+    divergentInput,
+  );
+
+assert(
+
+  divergentReplay.verified === false,
+
+  "Changed computational state must not verify against the original replay baseline.",
+
+);
+
+assert(
+
+  divergentReplay.status ===
+    ResolveReplayStatus.DIVERGED,
+
+  "Changed computational state must report DIVERGED.",
+
+);
+
+assert(
+
+  divergentReplay.actualCanonicalRepresentation !==
+    divergentReplay.expectedCanonicalRepresentation,
+
+  "Divergent computation must produce a different canonical representation.",
+
+);
+
+console.log(
+  "PASS 8 — meaningful computational change is detected as DIVERGED",
 );
 
 // ============================================================
