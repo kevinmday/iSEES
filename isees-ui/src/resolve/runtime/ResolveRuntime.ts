@@ -1,20 +1,36 @@
 // ============================================================
 // src/resolve/runtime/ResolveRuntime.ts
 //
-// P55A
+// P55B
 // RESOLVE RUNTIME
 //
-// Canonical runtime responsible for deterministic execution of
-// Resolve–Dissolve Computation (RDC).
+// Canonical runtime responsible for execution lifecycle around
+// deterministic Resolve-Dissolve Computation (RDC).
 //
-// Responsibilities
+// ARCHITECTURAL BOUNDARY
 //
-//   • Own execution lifecycle
-//   • Own execution history
-//   • Publish runtime state
-//   • Execute deterministic computations
+// ResolveRuntime owns:
 //
-// Responsibilities explicitly NOT owned
+//   • execution identity
+//   • execution timestamps
+//   • execution lifecycle
+//   • execution history
+//   • runtime publication
+//   • Runtime → Engine delegation
+//
+// ResolveEngine owns:
+//
+//   • deterministic computation
+//   • canonical manifold construction
+//   • canonical result serialization
+//
+// GOVERNING COMPUTATION
+//
+//                 M = g(L,T,S)
+//
+// Runtime metadata MUST NOT participate in computation.
+//
+// Responsibilities explicitly NOT owned:
 //
 //   • React
 //   • UI
@@ -24,26 +40,29 @@
 //   • Persistence
 //   • Networking
 //   • AI Inference
+//   • Heuristic Reasoning
 //
 // ============================================================
 
 import {
-
   ResolveRuntimeStatus,
-
 } from "./ResolveRuntimeTypes";
 
 import type {
-
   ResolveRuntimeState,
-
   ResolveComputationInput,
-
   ResolveComputationResult,
-
   ResolveExecutionRecord,
-
 } from "./ResolveRuntimeTypes";
+
+import {
+  ResolveEngine,
+} from "../engine/ResolveEngine";
+
+import {
+  buildCanonicalComputationalUniverse,
+} from "../engine/CanonicalUniverse";
+
 // ============================================================
 // LISTENER
 // ============================================================
@@ -55,6 +74,20 @@ type Listener = () => void;
 // ============================================================
 
 export class ResolveRuntime {
+
+  // ----------------------------------------------------------
+  // ENGINE
+  // ----------------------------------------------------------
+  //
+  // ResolveEngine is stateless.
+  //
+  // Runtime owns the engine instance only as the execution
+  // boundary through which deterministic computation occurs.
+  //
+  // ----------------------------------------------------------
+
+  private readonly engine =
+    new ResolveEngine();
 
   // ----------------------------------------------------------
   // STATE
@@ -74,7 +107,8 @@ export class ResolveRuntime {
   // SUBSCRIPTIONS
   // ----------------------------------------------------------
 
-  private readonly listeners = new Set<Listener>();
+  private readonly listeners =
+    new Set<Listener>();
 
   // ==========================================================
   // INITIALIZATION
@@ -86,9 +120,11 @@ export class ResolveRuntime {
 
       ...this.state,
 
-      status: ResolveRuntimeStatus.READY,
+      status:
+        ResolveRuntimeStatus.READY,
 
-      revision: this.state.revision + 1,
+      revision:
+        this.state.revision + 1,
 
     };
 
@@ -99,91 +135,201 @@ export class ResolveRuntime {
   // ==========================================================
   // EXECUTION
   // ==========================================================
+  //
+  // Runtime execution pipeline:
+  //
+  //   ResolveComputationInput
+  //            ↓
+  //   execution metadata
+  //            ↓
+  //   Canonical Computational Universe
+  //            ↓
+  //       ResolveEngine
+  //            ↓
+  //        g(L,T,S)
+  //            ↓
+  //   Canonical Manifold
+  //            ↓
+  //   execution record/history
+  //
+  // Runtime metadata is created outside the engine and does
+  // not participate in deterministic computation.
+  //
+  // ==========================================================
 
   execute(
-
     input: ResolveComputationInput,
-
   ): ResolveComputationResult {
 
-    const startedAt = new Date();
+    // --------------------------------------------------------
+    // Runtime-owned execution metadata
+    // --------------------------------------------------------
+
+    const startedAt =
+      new Date();
 
     const executionId =
-
       crypto.randomUUID();
 
-    const record: ResolveExecutionRecord = {
+    const record:
+      ResolveExecutionRecord = {
 
-      executionId,
+        executionId,
 
-      startedAt,
+        startedAt,
 
-      input,
+        input,
 
-    };
+      };
+
+    // --------------------------------------------------------
+    // Publish EXECUTING state
+    // --------------------------------------------------------
 
     this.state = {
 
       ...this.state,
 
-      status: ResolveRuntimeStatus.EXECUTING,
+      status:
+        ResolveRuntimeStatus.EXECUTING,
 
-      currentExecution: record,
-
-      revision: this.state.revision + 1,
-
-    };
-
-    this.publish();
-
-    // --------------------------------------------------------
-    // P55A
-    //
-    // Deterministic computation engine introduced
-    // in subsequent engineering package.
-    // --------------------------------------------------------
-
-    const result: ResolveComputationResult = {
-
-      success: true,
-
-      executionId,
-
-      startedAt,
-
-      completedAt: new Date(),
-
-      manifold: undefined,
-
-    };
-
-    record.completedAt = result.completedAt;
-
-    record.result = result;
-
-    this.state = {
-
-      ...this.state,
-
-      status: ResolveRuntimeStatus.COMPLETE,
-
-      currentExecution: record,
-
-      history: [
-
-        ...this.state.history,
-
+      currentExecution:
         record,
 
-      ],
-
-      revision: this.state.revision + 1,
+      revision:
+        this.state.revision + 1,
 
     };
 
     this.publish();
 
-    return result;
+    // --------------------------------------------------------
+    // Deterministic computation
+    // --------------------------------------------------------
+
+    try {
+
+      // ------------------------------------------------------
+      // Runtime input → Canonical Computational Universe
+      // ------------------------------------------------------
+
+      const universe =
+        buildCanonicalComputationalUniverse(
+          input,
+        );
+
+      // ------------------------------------------------------
+      // Canonical Computational Universe → Resolve Engine
+      //
+      // Everything below this boundary is deterministic.
+      // ------------------------------------------------------
+
+      const engineOutput =
+        this.engine.execute({
+
+          universe,
+
+        });
+
+      // ------------------------------------------------------
+      // Runtime-owned completion metadata
+      // ------------------------------------------------------
+
+      const completedAt =
+        new Date();
+
+      const result:
+        ResolveComputationResult = {
+
+          success: true,
+
+          executionId,
+
+          startedAt,
+
+          completedAt,
+
+          manifold:
+            engineOutput.manifold,
+
+          canonicalRepresentation:
+            engineOutput.canonicalRepresentation,
+
+        };
+
+      // ------------------------------------------------------
+      // Complete execution record
+      // ------------------------------------------------------
+
+      record.completedAt =
+        completedAt;
+
+      record.result =
+        result;
+
+      // ------------------------------------------------------
+      // Publish COMPLETE state
+      // ------------------------------------------------------
+
+      this.state = {
+
+        ...this.state,
+
+        status:
+          ResolveRuntimeStatus.COMPLETE,
+
+        currentExecution:
+          record,
+
+        history: [
+
+          ...this.state.history,
+
+          record,
+
+        ],
+
+        revision:
+          this.state.revision + 1,
+
+      };
+
+      this.publish();
+
+      return result;
+
+    } catch (error) {
+
+      // ------------------------------------------------------
+      // Runtime failure state
+      //
+      // Failed executions remain inspectable through
+      // currentExecution.
+      //
+      // They are not added to successful execution history
+      // until a canonical failure-record model is introduced.
+      // ------------------------------------------------------
+
+      this.state = {
+
+        ...this.state,
+
+        status:
+          ResolveRuntimeStatus.ERROR,
+
+        currentExecution:
+          record,
+
+        revision:
+          this.state.revision + 1,
+
+      };
+
+      this.publish();
+
+      throw error;
+
+    }
 
   }
 
@@ -202,23 +348,17 @@ export class ResolveRuntime {
   // ==========================================================
 
   subscribe(
-
     listener: Listener,
-
   ): () => void {
 
     this.listeners.add(
-
       listener,
-
     );
 
     return () => {
 
       this.listeners.delete(
-
         listener,
-
       );
 
     };
@@ -242,11 +382,8 @@ export class ResolveRuntime {
   private publish(): void {
 
     for (
-
       const listener
-
       of this.listeners
-
     ) {
 
       listener();
@@ -256,3 +393,7 @@ export class ResolveRuntime {
   }
 
 }
+
+// ============================================================
+// END
+// ============================================================

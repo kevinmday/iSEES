@@ -1,80 +1,111 @@
 // ============================================================
 // src/resolve/engine/ResolveEngine.ts
 //
-// P55A
+// P55B
 // RESOLVE ENGINE
 //
 // Canonical deterministic computation engine.
 //
-// Responsibilities
+// The Resolve Engine owns computation only.
 //
-//   • Execute Resolve–Dissolve Computation
-//   • Produce deterministic Investigation Manifolds
-//   • Remain completely stateless
-//   • Remain completely replayable
+// It receives a Canonical Computational Universe and produces
+// a deterministic Canonical Manifold.
 //
-// Responsibilities explicitly NOT owned
+// GOVERNING COMPUTATION
 //
-//   • Runtime lifecycle
+//                 M = g(L,T,S)
+//
+// ENGINE INVARIANT
+//
+//   equivalent canonical input
+//            ↓
+//   equivalent canonical output
+//
+// The engine therefore owns:
+//
+//   • deterministic computation
+//   • canonical manifold construction
+//   • canonical result serialization
+//
+// The engine explicitly does NOT own:
+//
+//   • execution identity
+//   • timestamps
+//   • runtime lifecycle
+//   • runtime history
 //   • React
 //   • UI
-//   • Graph rendering
-//   • Persistence
-//   • Networking
+//   • graph rendering
+//   • persistence
+//   • networking
 //   • AI inference
+//   • heuristic reasoning
+//
+// No clocks.
+// No random values.
+// No external mutable state.
 //
 // ============================================================
 
 import type {
+  ResolveEngineContract,
+  ResolveEngineInput,
+  ResolveEngineOutput,
+} from "./ResolveEngineTypes";
 
-  ResolveComputationInput,
-
-  ResolveComputationResult,
-
-} from "../runtime/ResolveRuntimeTypes";
+import {
+  computeCanonicalManifoldRepresentation,
+} from "./CanonicalManifold";
 
 // ============================================================
 // ENGINE
 // ============================================================
 
-export class ResolveEngine {
+export class ResolveEngine
+implements ResolveEngineContract {
 
- // ==========================================================
-// EXECUTE
-// ==========================================================
+  // ==========================================================
+  // EXECUTE
+  // ==========================================================
+  //
+  // Pure deterministic computation:
+  //
+  //     Canonical Computational Universe
+  //                  ↓
+  //              g(L,T,S)
+  //                  ↓
+  //          Canonical Manifold
+  //                  ↓
+  //       Canonical Representation
+  //
+  // No runtime metadata is introduced here.
+  //
+  // ==========================================================
 
-execute(
+  execute(
+    input: ResolveEngineInput,
+  ): ResolveEngineOutput {
 
-  _input: ResolveComputationInput,
-
-): ResolveComputationResult {
-
-  const startedAt = new Date();
-
-    // --------------------------------------------------------
-    // P55A
-    //
-    // Canonical deterministic computation
-    //
-    //           M = g(L,T,S)
-    //
-    // introduced in subsequent engineering packages.
-    // --------------------------------------------------------
+    const {
+      manifold,
+      canonicalRepresentation,
+    } =
+      computeCanonicalManifoldRepresentation(
+        input.universe,
+      );
 
     return {
 
-      success: true,
+      manifold,
 
-      executionId: crypto.randomUUID(),
-
-      startedAt,
-
-      completedAt: new Date(),
-
-      manifold: undefined,
+      canonicalRepresentation,
 
     };
 
   }
 
 }
+
+// ============================================================
+// END
+// ============================================================
