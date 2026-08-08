@@ -82,6 +82,12 @@ import {
   ResearchBridgeProvider,
 } from "./research/ResearchBridgeContext";
 
+import {
+
+  ResolveRuntimeProvider,
+
+} from "./resolve/runtime/ResolveRuntimeContext";
+
 // ============================================================
 // OPERATOR UI
 // ============================================================
@@ -96,47 +102,51 @@ function OperatorUI() {
 
         <WorkspaceRuntimeProvider>
 
-  <OperatorSessionRuntimeProvider>
+          <OperatorSessionRuntimeProvider>
 
-    <ResearchBridgeProvider>
+            <ResolveRuntimeProvider>
 
-            <FederationProvider>
+              <ResearchBridgeProvider>
 
-              <IntelligenceBriefProvider>
+                <FederationProvider>
 
-                <GraphProvider>
+                  <IntelligenceBriefProvider>
 
-                  <EventProvider>
+                    <GraphProvider>
 
-                    <MainLayout
+                      <EventProvider>
 
-                      left={
-                        <InvestigationControl />
-                      }
+                        <MainLayout
 
-                      center={
-                        <PrimarySurface />
-                      }
+                          left={
+                            <InvestigationControl />
+                          }
 
-                      right={
-                        <RightPanel />
-                      }
+                          center={
+                            <PrimarySurface />
+                          }
 
-                    />
+                          right={
+                            <RightPanel />
+                          }
 
-                  </EventProvider>
+                        />
 
-                </GraphProvider>
+                      </EventProvider>
 
-              </IntelligenceBriefProvider>
+                    </GraphProvider>
 
-            </FederationProvider>
+                  </IntelligenceBriefProvider>
 
-                  </ResearchBridgeProvider>
+                </FederationProvider>
 
-      </OperatorSessionRuntimeProvider>
+              </ResearchBridgeProvider>
 
-    </WorkspaceRuntimeProvider>
+            </ResolveRuntimeProvider>
+
+          </OperatorSessionRuntimeProvider>
+
+        </WorkspaceRuntimeProvider>
 
       </WorkspaceProvider>
 
@@ -145,7 +155,6 @@ function OperatorUI() {
   );
 
 }
-
 // ============================================================
 // ROOT APPLICATION
 // ============================================================
