@@ -64,6 +64,11 @@ import {
   ResolveReplayStatus,
 } from "../../src/resolve/engine/ResolveReplay";
 
+import {
+  createResolveProvenance,
+  areResolveProvenanceEquivalent,
+} from "../../src/resolve/engine/ResolveProvenance";
+
 // ============================================================
 // ASSERTION UTILITIES
 // ============================================================
@@ -774,6 +779,183 @@ assert(
 
 console.log(
   "PASS 8 — meaningful computational change is detected as DIVERGED",
+);
+
+// ============================================================
+// TEST 9
+// EQUIVALENT COMPUTATION PRODUCES EQUIVALENT PROVENANCE
+// ============================================================
+
+const provenanceUniverseA =
+  buildCanonicalComputationalUniverse(
+    inputA,
+  );
+
+const provenanceUniverseB =
+  buildCanonicalComputationalUniverse(
+    inputB,
+  );
+
+const provenanceEngine =
+  new ResolveEngine();
+
+const provenanceOutputA =
+  provenanceEngine.execute({
+
+    universe:
+      provenanceUniverseA,
+
+  });
+
+const provenanceOutputB =
+  provenanceEngine.execute({
+
+    universe:
+      provenanceUniverseB,
+
+  });
+
+const provenanceA =
+  createResolveProvenance({
+
+    universe:
+      provenanceUniverseA,
+
+    manifold:
+      provenanceOutputA.manifold,
+
+    canonicalRepresentation:
+      provenanceOutputA.canonicalRepresentation,
+
+  });
+
+const provenanceB =
+  createResolveProvenance({
+
+    universe:
+      provenanceUniverseB,
+
+    manifold:
+      provenanceOutputB.manifold,
+
+    canonicalRepresentation:
+      provenanceOutputB.canonicalRepresentation,
+
+  });
+
+assert(
+
+  areResolveProvenanceEquivalent(
+    provenanceA,
+    provenanceB,
+  ),
+
+  "Semantically equivalent computation must produce equivalent deterministic provenance.",
+
+);
+
+console.log(
+  "PASS 9 — equivalent computation produces equivalent deterministic provenance",
+);
+
+// ============================================================
+// TEST 10
+// PROVENANCE REJECTS MISMATCHED COMPUTATIONAL LINEAGE
+// ============================================================
+//
+// Forge a manifold claiming to belong to another investigation.
+//
+// Provenance construction MUST reject the mismatch rather than
+// record false computational lineage.
+//
+// ============================================================
+
+assertThrows(
+
+  () => {
+
+    createResolveProvenance({
+
+      universe:
+        provenanceUniverseA,
+
+      manifold: {
+
+        ...provenanceOutputA.manifold,
+
+        investigationId:
+          "investigation:forged",
+
+      },
+
+      canonicalRepresentation:
+        provenanceOutputA.canonicalRepresentation,
+
+    });
+
+  },
+
+  "mismatched universe and manifold investigation identities",
+
+  "Resolve provenance must reject mismatched computational lineage.",
+
+);
+
+console.log(
+  "PASS 10 — forged investigation lineage is rejected by provenance validation",
+);
+
+// ============================================================
+// TEST 11
+// PROVENANCE REJECTS MISMATCHED KNOWLEDGE POPULATION
+// ============================================================
+//
+// Forge the manifold population while retaining the original
+// investigation identity.
+//
+// Provenance MUST reject it.
+//
+// ============================================================
+
+assertThrows(
+
+  () => {
+
+    createResolveProvenance({
+
+      universe:
+        provenanceUniverseA,
+
+      manifold: {
+
+        ...provenanceOutputA.manifold,
+
+        knowledgeObjectIds: [
+
+          ...provenanceOutputA.manifold
+            .knowledgeObjectIds,
+
+          "knowledge:forged",
+
+        ],
+
+      },
+
+      canonicalRepresentation:
+        provenanceOutputA.canonicalRepresentation,
+
+    });
+
+  },
+
+  "mismatched Knowledge Object populations",
+
+  "Resolve provenance must reject mismatched Knowledge Object populations.",
+
+);
+
+console.log(
+  "PASS 11 — forged Knowledge Object population is rejected by provenance validation",
 );
 
 // ============================================================
