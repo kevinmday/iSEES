@@ -25,6 +25,8 @@
 //
 //   • Canonical computational universe input
 //   • Canonical manifold output
+//   • Canonical computational representation
+//   • Deterministic computational provenance
 //   • Deterministic computation contracts
 //
 // Resolve Engine explicitly does NOT own:
@@ -50,6 +52,10 @@ import type {
   KnowledgeObject,
 } from "../../knowledge/model/KnowledgeObject";
 
+import type {
+  ResolveProvenance,
+} from "./ResolveProvenance";
+
 // ============================================================
 // GOVERNING EQUATION
 // ============================================================
@@ -73,7 +79,7 @@ export type ResolveGoverningEquation =
 // It contains no timestamps.
 // It contains no lifecycle information.
 //
-// Runtime input will be transformed into this structure before
+// Runtime input is transformed into this structure before
 // deterministic manifold computation.
 //
 // ============================================================
@@ -91,9 +97,8 @@ export interface CanonicalComputationalUniverse {
   //
   // Retained as canonical computational source material.
   //
-  // P55B canonicalization will determine which investigation
-  // properties participate in deterministic serialization and
-  // manifold construction.
+  // Canonicalization determines which investigation properties
+  // participate in deterministic computation.
   // ----------------------------------------------------------
 
   investigation: Investigation;
@@ -102,7 +107,8 @@ export interface CanonicalComputationalUniverse {
   // Computational knowledge
   // ----------------------------------------------------------
 
-  knowledgeObjects: readonly KnowledgeObject[];
+  knowledgeObjects:
+    readonly KnowledgeObject[];
 
   // ----------------------------------------------------------
   // Active computational layers
@@ -114,7 +120,8 @@ export interface CanonicalComputationalUniverse {
   // Canonical ordering is established before computation.
   // ----------------------------------------------------------
 
-  activeLayers: readonly string[];
+  activeLayers:
+    readonly string[];
 
   // ----------------------------------------------------------
   // Temporal context
@@ -128,7 +135,8 @@ export interface CanonicalComputationalUniverse {
   // introduced.
   // ----------------------------------------------------------
 
-  temporalContext: unknown;
+  temporalContext:
+    unknown;
 
   // ----------------------------------------------------------
   // Investigative scale
@@ -142,7 +150,8 @@ export interface CanonicalComputationalUniverse {
   // introduced.
   // ----------------------------------------------------------
 
-  investigativeScale: unknown;
+  investigativeScale:
+    unknown;
 
 }
 
@@ -171,43 +180,46 @@ export interface CanonicalManifold {
   // Governing computational identity
   // ----------------------------------------------------------
 
-  equation: ResolveGoverningEquation;
+  equation:
+    ResolveGoverningEquation;
 
   // ----------------------------------------------------------
   // Investigation identity
   // ----------------------------------------------------------
 
-  investigationId: string;
+  investigationId:
+    string;
 
   // ----------------------------------------------------------
   // L — Active computational layers
   // ----------------------------------------------------------
 
-  layers: readonly string[];
+  layers:
+    readonly string[];
 
   // ----------------------------------------------------------
   // T — Temporal computational context
   // ----------------------------------------------------------
 
-  temporalContext: unknown;
+  temporalContext:
+    unknown;
 
   // ----------------------------------------------------------
   // S — Investigative scale
   // ----------------------------------------------------------
 
-  investigativeScale: unknown;
+  investigativeScale:
+    unknown;
 
   // ----------------------------------------------------------
   // Computational population
   //
   // Canonically ordered identifiers of Knowledge Objects
   // participating in the manifold.
-  //
-  // P55B will derive these deterministically from the
-  // Computational Universe.
   // ----------------------------------------------------------
 
-  knowledgeObjectIds: readonly string[];
+  knowledgeObjectIds:
+    readonly string[];
 
 }
 
@@ -223,7 +235,8 @@ export interface CanonicalManifold {
 
 export interface ResolveEngineInput {
 
-  universe: CanonicalComputationalUniverse;
+  universe:
+    CanonicalComputationalUniverse;
 
 }
 
@@ -239,8 +252,18 @@ export interface ResolveEngineInput {
 //   NO startedAt
 //   NO completedAt
 //   NO random values
+//   NO runtime revision
 //
 // Those belong to ResolveRuntime.
+//
+// The complete deterministic result consists of:
+//
+//   • manifold
+//   • canonical representation
+//   • computational provenance
+//
+// Equivalent canonical input MUST produce equivalent values
+// for all three.
 //
 // ============================================================
 
@@ -250,24 +273,39 @@ export interface ResolveEngineOutput {
   // Deterministic Investigation Manifold
   // ----------------------------------------------------------
 
-  manifold: CanonicalManifold;
+  manifold:
+    CanonicalManifold;
 
   // ----------------------------------------------------------
   // Canonical representation
   //
-  // Stable serialization of the deterministic engine result.
+  // Stable serialization of the deterministic manifold.
   //
-  // This becomes the substrate for:
+  // This is the byte-comparable substrate for:
   //
-  //   • deterministic fingerprints
-  //   • provenance
   //   • replay verification
+  //   • provenance
   //   • computation comparison
+  //   • future fingerprints
   //
-  // in subsequent P55B steps.
   // ----------------------------------------------------------
 
-  canonicalRepresentation: string;
+  canonicalRepresentation:
+    string;
+
+  // ----------------------------------------------------------
+  // Deterministic computational provenance
+  //
+  // Describes WHAT computational state produced this result
+  // and under WHICH deterministic engine contract.
+  //
+  // This is deliberately distinct from runtime execution
+  // history.
+  //
+  // ----------------------------------------------------------
+
+  provenance:
+    ResolveProvenance;
 
 }
 
@@ -277,12 +315,20 @@ export interface ResolveEngineOutput {
 //
 // ResolveEngine implementations MUST satisfy:
 //
-//   execute(A) === execute(A)
+//   execute(A) ≡ execute(A)
 //
 // for equivalent canonical computational input A.
 //
-// Equality here refers to deterministic computational content,
+// Equivalence refers to deterministic computational content,
 // not JavaScript object identity.
+//
+// Therefore:
+//
+//   manifold(A)                ≡ manifold(A)
+//   representation(A)          ≡ representation(A)
+//   provenance(A)              ≡ provenance(A)
+//
+// Runtime execution metadata is outside this contract.
 //
 // ============================================================
 
@@ -293,3 +339,7 @@ export interface ResolveEngineContract {
   ): ResolveEngineOutput;
 
 }
+
+// ============================================================
+// END
+// ============================================================

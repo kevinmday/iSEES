@@ -23,6 +23,8 @@
 //   • deterministic computation
 //   • canonical manifold construction
 //   • canonical result serialization
+//   • deterministic computational provenance
+//   • computational lineage validation
 //
 // GOVERNING COMPUTATION
 //
@@ -30,8 +32,14 @@
 //
 // Runtime metadata MUST NOT participate in computation.
 //
+// The runtime preserves the complete deterministic engine
+// product but does not create or modify its computational
+// provenance.
+//
 // Responsibilities explicitly NOT owned:
 //
+//   • manifold computation
+//   • computational provenance generation
 //   • React
 //   • UI
 //   • Graph Rendering
@@ -95,7 +103,8 @@ export class ResolveRuntime {
 
   private state: ResolveRuntimeState = {
 
-    status: ResolveRuntimeStatus.INITIALIZING,
+    status:
+      ResolveRuntimeStatus.INITIALIZING,
 
     history: [],
 
@@ -149,6 +158,10 @@ export class ResolveRuntime {
   //        g(L,T,S)
   //            ↓
   //   Canonical Manifold
+  //            ↓
+  //   Canonical Representation
+  //            ↓
+  //   Computational Provenance
   //            ↓
   //   execution record/history
   //
@@ -222,6 +235,13 @@ export class ResolveRuntime {
       // Canonical Computational Universe → Resolve Engine
       //
       // Everything below this boundary is deterministic.
+      //
+      // Engine returns the complete deterministic product:
+      //
+      //   • manifold
+      //   • canonicalRepresentation
+      //   • provenance
+      //
       // ------------------------------------------------------
 
       const engineOutput =
@@ -238,10 +258,20 @@ export class ResolveRuntime {
       const completedAt =
         new Date();
 
+      // ------------------------------------------------------
+      // Construct Runtime Result
+      //
+      // Runtime wraps the deterministic engine product with
+      // execution metadata.
+      //
+      // It does NOT regenerate or modify provenance.
+      // ------------------------------------------------------
+
       const result:
         ResolveComputationResult = {
 
-          success: true,
+          success:
+            true,
 
           executionId,
 
@@ -254,6 +284,9 @@ export class ResolveRuntime {
 
           canonicalRepresentation:
             engineOutput.canonicalRepresentation,
+
+          provenance:
+            engineOutput.provenance,
 
         };
 

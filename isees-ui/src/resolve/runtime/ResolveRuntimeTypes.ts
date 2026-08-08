@@ -6,9 +6,19 @@
 //
 // Canonical runtime contracts for Resolve-Dissolve Computation.
 //
-// Resolve Runtime owns deterministic computation lifecycle.
+// Resolve Runtime owns execution lifecycle around deterministic
+// Resolve Engine computation.
 //
-// Runtime responsibilities:
+// ARCHITECTURAL BOUNDARY
+//
+// Resolve Engine owns:
+//
+//   • deterministic computation
+//   • canonical manifold construction
+//   • canonical computational representation
+//   • deterministic computational provenance
+//
+// Resolve Runtime owns:
 //
 //   • execution identity
 //   • execution timestamps
@@ -19,6 +29,8 @@
 //
 // Runtime explicitly owns NO:
 //
+//   • manifold computation
+//   • computational provenance generation
 //   • UI
 //   • graph rendering
 //   • persistence
@@ -26,7 +38,12 @@
 //   • AI inference
 //   • heuristic reasoning
 //
-// Computation itself belongs to Resolve Engine.
+// GOVERNING COMPUTATION
+//
+//                 M = g(L,T,S)
+//
+// Runtime metadata MUST NOT participate in deterministic
+// computation.
 //
 // ============================================================
 
@@ -41,6 +58,10 @@ import type {
 import type {
   CanonicalManifold,
 } from "../engine/ResolveEngineTypes";
+
+import type {
+  ResolveProvenance,
+} from "../engine/ResolveProvenance";
 
 // ============================================================
 // RUNTIME STATUS
@@ -68,18 +89,33 @@ export type ResolveRuntimeStatus =
 // ============================================================
 // COMPUTATIONAL INPUT
 // ============================================================
+//
+// This is the runtime-facing Resolve input.
+//
+// Before entering ResolveEngine, this input is transformed into
+// a CanonicalComputationalUniverse.
+//
+// Runtime collection ordering MUST NOT determine computational
+// output.
+//
+// ============================================================
 
 export interface ResolveComputationInput {
 
-  investigation: Investigation;
+  investigation:
+    Investigation;
 
-  knowledgeObjects: readonly KnowledgeObject[];
+  knowledgeObjects:
+    readonly KnowledgeObject[];
 
-  activeLayers: readonly string[];
+  activeLayers:
+    readonly string[];
 
-  temporalContext: unknown;
+  temporalContext:
+    unknown;
 
-  investigativeScale: unknown;
+  investigativeScale:
+    unknown;
 
 }
 
@@ -87,53 +123,171 @@ export interface ResolveComputationInput {
 // COMPUTATIONAL RESULT
 // ============================================================
 //
-// Runtime result combines:
+// ResolveComputationResult combines two intentionally separate
+// classes of information:
 //
-//   deterministic computational output
+//   DETERMINISTIC COMPUTATIONAL PRODUCT
 //
-// with:
+//     • manifold
+//     • canonicalRepresentation
+//     • provenance
 //
-//   nondeterministic execution metadata.
+//   RUNTIME EXECUTION METADATA
 //
-// The manifold itself is produced exclusively by ResolveEngine.
+//     • success
+//     • executionId
+//     • startedAt
+//     • completedAt
 //
-// canonicalRepresentation is the stable serialized form of the
-// deterministic manifold and becomes the substrate for P55B
-// fingerprinting and replay verification.
+// This distinction is fundamental.
+//
+// Two separate runtime executions may have different:
+//
+//   • execution IDs
+//   • start times
+//   • completion times
+//
+// while still containing exactly equivalent deterministic:
+//
+//   • manifolds
+//   • canonical representations
+//   • provenance
 //
 // ============================================================
 
 export interface ResolveComputationResult {
 
-  success: boolean;
+  // ----------------------------------------------------------
+  // Runtime execution outcome
+  // ----------------------------------------------------------
 
-  executionId: string;
+  success:
+    boolean;
 
-  startedAt: Date;
+  // ----------------------------------------------------------
+  // Runtime execution identity
+  //
+  // Nondeterministic.
+  //
+  // MUST NOT participate in Resolve Engine computation.
+  // ----------------------------------------------------------
 
-  completedAt: Date;
+  executionId:
+    string;
 
-  manifold: CanonicalManifold;
+  // ----------------------------------------------------------
+  // Runtime timestamps
+  //
+  // Nondeterministic.
+  //
+  // MUST NOT participate in Resolve Engine computation.
+  // ----------------------------------------------------------
 
-  canonicalRepresentation: string;
+  startedAt:
+    Date;
+
+  completedAt:
+    Date;
+
+  // ----------------------------------------------------------
+  // Deterministic manifold
+  //
+  // Produced exclusively by ResolveEngine.
+  // ----------------------------------------------------------
+
+  manifold:
+    CanonicalManifold;
+
+  // ----------------------------------------------------------
+  // Canonical computational representation
+  //
+  // Stable byte-comparable representation of the deterministic
+  // manifold.
+  //
+  // Used by:
+  //
+  //   • replay verification
+  //   • computation comparison
+  //   • provenance
+  //   • future fingerprints
+  //
+  // ----------------------------------------------------------
+
+  canonicalRepresentation:
+    string;
+
+  // ----------------------------------------------------------
+  // Deterministic computational provenance
+  //
+  // Produced and validated exclusively inside ResolveEngine.
+  //
+  // Describes:
+  //
+  //   • engine contract
+  //   • governing equation
+  //   • investigation identity
+  //   • Knowledge Object population
+  //   • active computational layers
+  //   • temporal context
+  //   • investigative scale
+  //   • canonical result
+  //
+  // This is computational lineage.
+  //
+  // It is NOT runtime execution history.
+  // ----------------------------------------------------------
+
+  provenance:
+    ResolveProvenance;
 
 }
 
 // ============================================================
 // EXECUTION RECORD
 // ============================================================
+//
+// ExecutionRecord belongs exclusively to Resolve Runtime.
+//
+// It wraps deterministic computation with runtime lifecycle
+// information.
+//
+// ============================================================
 
 export interface ResolveExecutionRecord {
 
-  executionId: string;
+  // ----------------------------------------------------------
+  // Runtime execution identity
+  // ----------------------------------------------------------
 
-  startedAt: Date;
+  executionId:
+    string;
 
-  completedAt?: Date;
+  // ----------------------------------------------------------
+  // Runtime lifecycle timestamps
+  // ----------------------------------------------------------
 
-  input: ResolveComputationInput;
+  startedAt:
+    Date;
 
-  result?: ResolveComputationResult;
+  completedAt?:
+    Date;
+
+  // ----------------------------------------------------------
+  // Original runtime-facing computation input
+  // ----------------------------------------------------------
+
+  input:
+    ResolveComputationInput;
+
+  // ----------------------------------------------------------
+  // Completed computation result
+  //
+  // Absent while execution is in progress or if execution
+  // fails before producing a valid deterministic result.
+  // ----------------------------------------------------------
+
+  result?:
+    ResolveComputationResult;
 
 }
 
@@ -143,13 +297,37 @@ export interface ResolveExecutionRecord {
 
 export interface ResolveRuntimeState {
 
-  status: ResolveRuntimeStatus;
+  // ----------------------------------------------------------
+  // Current lifecycle state
+  // ----------------------------------------------------------
 
-  currentExecution?: ResolveExecutionRecord;
+  status:
+    ResolveRuntimeStatus;
 
-  history: readonly ResolveExecutionRecord[];
+  // ----------------------------------------------------------
+  // Current or most recently completed execution
+  // ----------------------------------------------------------
 
-  revision: number;
+  currentExecution?:
+    ResolveExecutionRecord;
+
+  // ----------------------------------------------------------
+  // Completed execution history
+  // ----------------------------------------------------------
+
+  history:
+    readonly ResolveExecutionRecord[];
+
+  // ----------------------------------------------------------
+  // Runtime publication revision
+  //
+  // This is runtime state only.
+  //
+  // It MUST NOT participate in deterministic computation.
+  // ----------------------------------------------------------
+
+  revision:
+    number;
 
 }
 
@@ -159,19 +337,55 @@ export interface ResolveRuntimeState {
 
 export interface ResolveRuntime {
 
-  initialize(): void;
+  // ----------------------------------------------------------
+  // Initialize runtime lifecycle
+  // ----------------------------------------------------------
+
+  initialize():
+    void;
+
+  // ----------------------------------------------------------
+  // Execute Resolve computation
+  //
+  // Runtime:
+  //
+  //   input
+  //     ↓
+  //   canonical universe
+  //     ↓
+  //   ResolveEngine
+  //     ↓
+  //   deterministic computational product
+  //     ↓
+  //   runtime execution record
+  //
+  // ----------------------------------------------------------
 
   execute(
     input: ResolveComputationInput,
   ): ResolveComputationResult;
 
-  getState(): ResolveRuntimeState;
+  // ----------------------------------------------------------
+  // Read runtime state
+  // ----------------------------------------------------------
+
+  getState():
+    ResolveRuntimeState;
+
+  // ----------------------------------------------------------
+  // Subscribe to runtime publication
+  // ----------------------------------------------------------
 
   subscribe(
     listener: () => void,
   ): () => void;
 
-  dispose(): void;
+  // ----------------------------------------------------------
+  // Dispose runtime subscriptions/resources
+  // ----------------------------------------------------------
+
+  dispose():
+    void;
 
 }
 
