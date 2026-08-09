@@ -1,36 +1,54 @@
 // ============================================================
 // src/manifold/components/PrimaryInvestigationManifold.tsx
-// P34C
+// P56
 // PRIMARY INVESTIGATION WORKSPACE
 //
-// The Primary Investigation Workspace is the central projection
-// host for an Investigation Session.
+// Central projection host for an Investigation Session.
 //
-// The Workspace Runtime owns the active Workspace Mode.
-// This component renders the deterministic projection
-// associated with that mode.
+// The Workspace Runtime owns:
+// • Active Workspace Mode
+// • Active Investigation
+// • Computational Configuration C = (L, T, S)
 //
-// Every workspace mode is a projection of the same underlying
-// Investigation Session.
+// KnowledgeObjectRuntime owns:
+// • Canonical Knowledge Object population K
 //
-// Ownership:
+// ResolveRuntime owns:
+// • Resolve execution lifecycle
+// • Canonical universe construction
+// • Deterministic Resolve execution
+// • Canonical manifold result
+// • Provenance
+// • Execution history
+//
+// ManifoldRuntime continues to own manifold-facing operator
+// orchestration and presentation operations.
+//
+// Resolve path:
 //
 // Operator
 //      ↓
-// Workspace Runtime
+// RESOLVE
 //      ↓
-// Active Workspace Mode
-//      ↓
-// Primary Investigation Workspace
-//      ↓
-// Projection Surface
-//      ↓
-// Manifold Runtime
-//      ↓
-// Resolve–Dissolve Computation (RDC)
+// Primary Investigation Manifold
+//      ├── Investigation
+//      ├── K — Knowledge Objects
+//      ├── L — Active Layers
+//      ├── T — Temporal Context
+//      └── S — Investigative Scale
+//              ↓
+//         ResolveRuntime
+//              ↓
+//      Canonical Universe
+//              ↓
+//        Resolve Engine
+//              ↓
+//      Canonical Manifold
 //
 // ============================================================
-import InvestigationGraph from "./InvestigationGraph";
+
+import InvestigationGraph
+from "./InvestigationGraph";
 
 import type {
   ManifoldToolbarAction,
@@ -40,12 +58,28 @@ import {
   manifoldRuntime,
 } from "../engine/manifoldRuntime";
 
+import {
+  useKnowledgeObjectRuntime,
+} from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+
+import {
+  useWorkspaceRuntime,
+} from "../../workspace/runtime/WorkspaceRuntimeContext";
+
+import {
+  useResolveRuntime,
+  useResolveRuntimeState,
+} from "../../resolve/runtime/ResolveRuntimeContext";
+
 // ============================================================
 // TYPES
 // ============================================================
 
 interface PrimaryInvestigationManifoldProps {
-  focusedEventId: string;
+
+  focusedEventId:
+    string;
+
 }
 
 // ============================================================
@@ -53,25 +87,178 @@ interface PrimaryInvestigationManifoldProps {
 // ============================================================
 
 export default function PrimaryInvestigationManifold({
-  focusedEventId: _focusedEventId,
+  focusedEventId:
+    _focusedEventId,
 }: PrimaryInvestigationManifoldProps) {
+
+  // ==========================================================
+  // CANONICAL RUNTIME INPUT SOURCES
+  // ==========================================================
+
+  const knowledgeRuntime =
+    useKnowledgeObjectRuntime();
+
+  const workspaceRuntime =
+    useWorkspaceRuntime();
+
+  const resolveRuntime =
+    useResolveRuntime();
+
+  // ----------------------------------------------------------
+  // Resolve state is observed only for the temporary P56
+  // execution diagnostic.
+  //
+  // The diagnostic performs no computation and owns no state.
+  // It will be removed after the end-to-end Resolve execution
+  // boundary has been verified.
+  // ----------------------------------------------------------
+
+  const resolveState =
+    useResolveRuntimeState();
 
   // ==========================================================
   // OPERATOR ACTIONS
   // ==========================================================
 
   function handleToolbarAction(
-    action: ManifoldToolbarAction,
+    action:
+      ManifoldToolbarAction,
   ): void {
 
     // --------------------------------------------------------
-    // The Primary Investigation Manifold owns operator intent.
+    // RESOLVE
+    // --------------------------------------------------------
     //
-    // The Manifold Runtime performs the deterministic
-    // orchestration of the requested operation.
+    // RESOLVE crosses the operator-intent boundary into the
+    // canonical P55B Resolve Runtime.
+    //
+    // The UI does not perform computation.
+    //
+    // It gathers the current deterministic runtime-owned
+    // inputs and submits them to ResolveRuntime.
+    //
+    // The active Investigation is owned by WorkspaceRuntime.
+    // No separate Investigation React context is required.
+    //
     // --------------------------------------------------------
 
-    manifoldRuntime.dispatch(action);
+    if (
+      action ===
+      "RESOLVE"
+    ) {
+
+      const activeInvestigation =
+        workspaceRuntime.getActiveInvestigation();
+
+      // ------------------------------------------------------
+      // RESOLVE PRECONDITION
+      // ------------------------------------------------------
+      //
+      // ResolveComputationInput requires a canonical active
+      // Investigation.
+      //
+      // If none exists, terminate the operator command at
+      // this boundary.
+      //
+      // We deliberately do NOT:
+      //
+      // • manufacture an Investigation
+      // • cast undefined into Investigation
+      // • infer Investigation state
+      // • fall back to parallel React-owned state
+      //
+      // ------------------------------------------------------
+
+      if (
+        activeInvestigation ===
+        undefined
+      ) {
+
+        console.warn(
+          "RESOLVE ignored: no active Investigation.",
+        );
+
+        return;
+
+      }
+
+      // ------------------------------------------------------
+      // K — CANONICAL KNOWLEDGE POPULATION
+      // ------------------------------------------------------
+
+      const knowledgeObjects =
+        knowledgeRuntime.getObjects();
+
+      // ------------------------------------------------------
+      // L — ACTIVE COMPUTATIONAL LAYERS
+      // ------------------------------------------------------
+
+      const activeLayers =
+        workspaceRuntime.getActiveLayers();
+
+      // ------------------------------------------------------
+      // T — TEMPORAL CONTEXT
+      // ------------------------------------------------------
+
+      const temporalContext =
+        workspaceRuntime.getTemporalContext();
+
+      // ------------------------------------------------------
+      // S — INVESTIGATIVE SCALE
+      // ------------------------------------------------------
+
+      const investigativeScale =
+        workspaceRuntime.getInvestigativeScale();
+
+      // ------------------------------------------------------
+      // CANONICAL RESOLVE EXECUTION
+      // ------------------------------------------------------
+      //
+      // At this boundary:
+      //
+      //     I + K + L + T + S
+      //
+      // become the deterministic Resolve computation input.
+      //
+      // ------------------------------------------------------
+
+      resolveRuntime.execute({
+
+        investigation:
+          activeInvestigation,
+
+        knowledgeObjects,
+
+        activeLayers,
+
+        temporalContext,
+
+        investigativeScale,
+
+      });
+
+      return;
+
+    }
+
+    // --------------------------------------------------------
+    // MANIFOLD OPERATIONS
+    // --------------------------------------------------------
+    //
+    // DISSOLVE
+    // COLLAPSE
+    // VIEW_2D
+    // VIEW_3D
+    //
+    // remain owned by the existing Manifold Runtime until
+    // their canonical P56/P57 integration boundaries are
+    // realized.
+    //
+    // --------------------------------------------------------
+
+    manifoldRuntime.dispatch(
+      action,
+    );
 
   }
 
@@ -83,51 +270,176 @@ export default function PrimaryInvestigationManifold({
 
     <section
       style={{
-        width: "100%",
-        height: "100%",
+        width:
+          "100%",
 
-        flex: 1,
-        minWidth: 0,
-        minHeight: 0,
+        height:
+          "100%",
 
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
+        flex:
+          1,
 
-        overflow: "hidden",
+        minWidth:
+          0,
 
-        position: "relative",
+        minHeight:
+          0,
+
+        display:
+          "flex",
+
+        flexDirection:
+          "column",
+
+        gap:
+          16,
+
+        overflow:
+          "hidden",
+
+        position:
+          "relative",
       }}
     >
 
-      {/* ===================================================== */}
-      {/* INVESTIGATION MANIFOLD                                */}
-      {/* ===================================================== */}
+      {/* =================================================== */}
+      {/* TEMPORARY P56 RESOLVE DIAGNOSTIC                   */}
+      {/* =================================================== */}
+      {/*
+          This instrument exists only to verify the live
+          end-to-end Resolve execution boundary.
+
+          It observes ResolveRuntime state.
+
+          It performs no computation.
+          It owns no computational state.
+      */}
 
       <div
         style={{
-          flex: 1,
-          width: "100%",
+          position:
+            "absolute",
 
-          minWidth: 0,
-          minHeight: 0,
+          top:
+            12,
 
-          display: "flex",
-          flexDirection: "column",
+          right:
+            12,
 
-          overflow: "hidden",
+          zIndex:
+            1000,
+
+          padding:
+            "8px 10px",
+
+          border:
+            "1px solid rgba(148,163,184,0.28)",
+
+          borderRadius:
+            6,
+
+          background:
+            "rgba(2,6,23,0.94)",
+
+          color:
+            "#e2e8f0",
+
+          fontFamily:
+            "monospace",
+
+          fontSize:
+            11,
+
+          lineHeight:
+            1.5,
+
+          pointerEvents:
+            "none",
+        }}
+      >
+
+        <div>
+          Resolve: {
+            resolveState.status
+          }
+        </div>
+
+        <div>
+          Revision: {
+            resolveState.revision
+          }
+        </div>
+
+        <div>
+          History: {
+            resolveState.history.length
+          }
+        </div>
+
+        <div>
+          Current: {
+            resolveState.currentExecution
+              ? resolveState
+                  .currentExecution
+                  .executionId
+              : "none"
+          }
+        </div>
+
+        <div>
+          Result: {
+            resolveState
+              .currentExecution
+              ?.result
+              ? "YES"
+              : "NO"
+          }
+        </div>
+
+      </div>
+
+      {/* =================================================== */}
+      {/* INVESTIGATION MANIFOLD                              */}
+      {/* =================================================== */}
+
+      <div
+        style={{
+          flex:
+            1,
+
+          width:
+            "100%",
+
+          minWidth:
+            0,
+
+          minHeight:
+            0,
+
+          display:
+            "flex",
+
+          flexDirection:
+            "column",
+
+          overflow:
+            "hidden",
 
           border:
             "1px solid rgba(148,163,184,0.12)",
 
-          borderRadius: 12,
+          borderRadius:
+            12,
 
-          background: "#020617",
+          background:
+            "#020617",
         }}
       >
 
         <InvestigationGraph
-          onAction={handleToolbarAction}
+          onAction={
+            handleToolbarAction
+          }
         />
 
       </div>

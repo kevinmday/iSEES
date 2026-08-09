@@ -1,15 +1,26 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntime.ts
-// P36
+// P56
 // RUNTIME-OWNED INVESTIGATION STATE
 //
 // The Workspace Runtime is the deterministic owner of the
 // operator's active Investigation Session.
 //
-// It owns investigation state and operator state while
-// composing deterministic runtime subsystems.
+// It owns:
 //
-// The Workspace Runtime performs no computation.
+// • Active Workspace
+// • Active Investigation
+// • Focused Event
+// • Operator State
+// • Computational Configuration C = (L, T, S)
+//
+// The Workspace Runtime performs no mathematical computation.
+//
+// Computational execution remains owned by:
+//
+// • Manifold Runtime
+// • ResolveRuntime
+// • ResolveEngine
 //
 // Ownership:
 //
@@ -22,14 +33,14 @@
 //      ├── Active Investigation
 //      ├── Focused Event
 //      ├── Operator State
+//      ├── Computational Configuration
+//      │       ├── L — Active Layers
+//      │       ├── T — Temporal Context
+//      │       └── S — Investigative Scale
 //      ├── Manifold Runtime
 //      ├── Corpus
-//      ├── Artifacts
-//      └── Future Runtime Services
+//      └── Artifacts
 //
-// Computational ownership remains inside the Manifold Runtime
-// and Resolve–Dissolve Computation (RDC).
-
 // ============================================================
 
 import {
@@ -39,6 +50,14 @@ import {
 import type {
   Workspace,
 } from "../workspaceTypes";
+
+import type {
+  Investigation,
+} from "../../investigation/investigationTypes";
+
+import {
+  DEFAULT_INVESTIGATION,
+} from "../../investigation/defaultInvestigation";
 
 import {
   WorkspaceMode,
@@ -50,6 +69,7 @@ import type {
   WorkspaceOperatorState,
   WorkspaceMode as WorkspaceModeType,
   WorkspaceSelection,
+  WorkspaceComputationalConfiguration,
 } from "./WorkspaceRuntimeTypes";
 
 // ============================================================
@@ -60,6 +80,34 @@ type WorkspaceRuntimeListener =
   () => void;
 
 // ============================================================
+// DEFAULT COMPUTATIONAL CONFIGURATION
+// ============================================================
+//
+// T and S intentionally remain opaque.
+//
+// Their mathematical representations are owned by later
+// canonical realization work.
+//
+// The Workspace Runtime merely owns and transports their
+// deterministic configuration values.
+//
+// ============================================================
+
+const DEFAULT_COMPUTATIONAL_CONFIGURATION:
+WorkspaceComputationalConfiguration = {
+
+  activeLayers:
+    [],
+
+  temporalContext:
+    undefined,
+
+  investigativeScale:
+    undefined,
+
+};
+
+// ============================================================
 // RUNTIME
 // ============================================================
 
@@ -68,96 +116,69 @@ export class WorkspaceRuntime {
   private state:
     WorkspaceRuntimeState = {
 
-      status: "INITIALIZING",
+      status:
+        "INITIALIZING",
 
       session: {
 
-        workspace: undefined,
+        workspace:
+          undefined,
 
-        investigation: undefined,
+       investigation:
+  DEFAULT_INVESTIGATION,
 
-        focusedEvent: undefined,
+        focusedEvent:
+          undefined,
 
-        artifacts: [],
+        artifacts:
+          [],
 
       },
 
-     operator: {
+      operator: {
 
-  activeMode:
-    WorkspaceMode.MANIFOLD,
+        activeMode:
+          WorkspaceMode.MANIFOLD,
 
-  layoutMode:
-    WorkspaceLayoutMode.NORMAL,
+        layoutMode:
+          WorkspaceLayoutMode.NORMAL,
 
-},
+      },
 
-      revision: 0,
+      computational: {
+
+        activeLayers: [
+          ...DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .activeLayers,
+        ],
+
+        temporalContext:
+          DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .temporalContext,
+
+        investigativeScale:
+          DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .investigativeScale,
+
+      },
+
+      revision:
+        0,
 
     };
 
-  /**
-   * Runtime listeners.
-   *
-   * React observes runtime changes through this lightweight
-   * notification mechanism.
-   *
-   * All mutable investigation state remains owned by the
-   * Workspace Runtime.
-   */
-  private listeners =
-    new Set<WorkspaceRuntimeListener>();
-
-  // ==========================================================
-  // ACCESSORS
-  // ==========================================================
-
-  getState():
-    Readonly<WorkspaceRuntimeState> {
-
-    return this.state;
-
-  }
-
-  getManifoldRuntime() {
-
-    return manifoldRuntime;
-
-  }
-
-  getOperatorState():
-    Readonly<WorkspaceOperatorState> {
-
-    return this.state.operator;
-
-  }
-
-  getWorkspace():
-    Workspace | undefined {
-
-    return this.state.session.workspace;
-
-  }
-
-  getActiveInvestigation() {
-
-    return this.state.session.investigation;
-
-  }
-
-  getFocusedEvent() {
-
-    return this.state.session.focusedEvent;
-
-  }
-
- 
   // ==========================================================
   // OBSERVERS
   // ==========================================================
 
+  private listeners =
+    new Set<
+      WorkspaceRuntimeListener
+    >();
+
   subscribe(
-    listener: WorkspaceRuntimeListener,
+    listener:
+      WorkspaceRuntimeListener,
   ): () => void {
 
     this.listeners.add(
@@ -174,7 +195,8 @@ export class WorkspaceRuntime {
 
   }
 
-  private notify(): void {
+  private notify():
+    void {
 
     for (
       const listener
@@ -188,22 +210,148 @@ export class WorkspaceRuntime {
   }
 
   // ==========================================================
+  // ACCESSORS
+  // ==========================================================
+
+  getState():
+    Readonly<
+      WorkspaceRuntimeState
+    > {
+
+    return this.state;
+
+  }
+
+  getManifoldRuntime() {
+
+    return manifoldRuntime;
+
+  }
+
+  getOperatorState():
+    Readonly<
+      WorkspaceOperatorState
+    > {
+
+    return this.state.operator;
+
+  }
+
+  getWorkspace():
+    Workspace | undefined {
+
+    return this.state.session.workspace;
+
+  }
+
+  /**
+   * Returns the active canonical Investigation.
+   *
+   * WorkspaceRuntime is the runtime ownership boundary for
+   * the Investigation consumed by ResolveRuntime.
+   */
+  getActiveInvestigation():
+    Investigation | undefined {
+
+    return this.state
+      .session
+      .investigation;
+
+  }
+
+  getFocusedEvent():
+    unknown {
+
+    return this.state
+      .session
+      .focusedEvent;
+
+  }
+
+  // ==========================================================
+  // COMPUTATIONAL CONFIGURATION ACCESSORS
+  // ==========================================================
+
+  /**
+   * Returns the current runtime-owned computational
+   * configuration.
+   */
+  getComputationalConfiguration():
+    Readonly<
+      WorkspaceComputationalConfiguration
+    > {
+
+    return this.state.computational;
+
+  }
+
+  /**
+   * L in:
+   *
+   *     M = g(L, T, S)
+   */
+  getActiveLayers():
+    readonly string[] {
+
+    return this.state
+      .computational
+      .activeLayers;
+
+  }
+
+  /**
+   * T in:
+   *
+   *     M = g(L, T, S)
+   *
+   * T remains intentionally opaque.
+   */
+  getTemporalContext():
+    unknown {
+
+    return this.state
+      .computational
+      .temporalContext;
+
+  }
+
+  /**
+   * S in:
+   *
+   *     M = g(L, T, S)
+   *
+   * S remains intentionally opaque.
+   */
+  getInvestigativeScale():
+    unknown {
+
+    return this.state
+      .computational
+      .investigativeScale;
+
+  }
+
+  // ==========================================================
   // OPERATOR STATE
   // ==========================================================
 
   getActiveMode():
     WorkspaceModeType {
 
-    return this.state.operator.activeMode;
+    return this.state
+      .operator
+      .activeMode;
 
   }
 
   setActiveMode(
-    mode: WorkspaceModeType,
+    mode:
+      WorkspaceModeType,
   ): void {
 
     if (
-      this.state.operator.activeMode === mode
+      this.state.operator.activeMode ===
+      mode
     ) {
 
       return;
@@ -218,7 +366,8 @@ export class WorkspaceRuntime {
 
         ...this.state.operator,
 
-        activeMode: mode,
+        activeMode:
+          mode,
 
       },
 
@@ -238,7 +387,9 @@ export class WorkspaceRuntime {
   getLayoutMode():
     WorkspaceLayoutMode {
 
-    return this.state.operator.layoutMode;
+    return this.state
+      .operator
+      .layoutMode;
 
   }
 
@@ -253,7 +404,8 @@ export class WorkspaceRuntime {
   }
 
   setFocusMode(
-    enabled: boolean,
+    enabled:
+      boolean,
   ): void {
 
     const layoutMode =
@@ -295,9 +447,7 @@ export class WorkspaceRuntime {
     void {
 
     this.setFocusMode(
-
-      !this.isFocusMode()
-
+      !this.isFocusMode(),
     );
 
   }
@@ -308,16 +458,20 @@ export class WorkspaceRuntime {
 
   getSelection() {
 
-    return this.state.operator.selection;
+    return this.state
+      .operator
+      .selection;
 
   }
 
   setSelection(
-    selection: WorkspaceSelection,
+    selection:
+      WorkspaceSelection,
   ): void {
 
     if (
-      this.state.operator.selection === selection
+      this.state.operator.selection ===
+      selection
     ) {
 
       return;
@@ -345,7 +499,17 @@ export class WorkspaceRuntime {
 
   }
 
-  clearSelection(): void {
+  clearSelection():
+    void {
+
+    if (
+      this.state.operator.selection ===
+      undefined
+    ) {
+
+      return;
+
+    }
 
     this.state = {
 
@@ -355,7 +519,229 @@ export class WorkspaceRuntime {
 
         ...this.state.operator,
 
-        selection: undefined,
+        selection:
+          undefined,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // COMPUTATIONAL CONFIGURATION
+  // ==========================================================
+  //
+  // The Workspace Runtime owns configuration only.
+  //
+  // It does NOT execute Resolve.
+  //
+  // ResolveRuntime receives a deterministic snapshot of this
+  // state when the operator issues RESOLVE.
+  //
+  // ==========================================================
+
+  setComputationalConfiguration(
+    configuration:
+      WorkspaceComputationalConfiguration,
+  ): void {
+
+    this.state = {
+
+      ...this.state,
+
+      computational: {
+
+        activeLayers: [
+          ...configuration.activeLayers,
+        ],
+
+        temporalContext:
+          configuration.temporalContext,
+
+        investigativeScale:
+          configuration.investigativeScale,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // ACTIVE LAYERS — L
+  // ==========================================================
+
+  setActiveLayers(
+    activeLayers:
+      readonly string[],
+  ): void {
+
+    const nextLayers = [
+      ...activeLayers,
+    ];
+
+    const currentLayers =
+      this.state
+        .computational
+        .activeLayers;
+
+    if (
+      currentLayers.length ===
+        nextLayers.length &&
+      currentLayers.every(
+        (
+          layer,
+          index,
+        ) =>
+          layer ===
+          nextLayers[index],
+      )
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      computational: {
+
+        ...this.state.computational,
+
+        activeLayers:
+          nextLayers,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // TEMPORAL CONTEXT — T
+  // ==========================================================
+
+  setTemporalContext(
+    temporalContext:
+      unknown,
+  ): void {
+
+    if (
+      this.state
+        .computational
+        .temporalContext ===
+      temporalContext
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      computational: {
+
+        ...this.state.computational,
+
+        temporalContext,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // INVESTIGATIVE SCALE — S
+  // ==========================================================
+
+  setInvestigativeScale(
+    investigativeScale:
+      unknown,
+  ): void {
+
+    if (
+      this.state
+        .computational
+        .investigativeScale ===
+      investigativeScale
+    ) {
+
+      return;
+
+    }
+
+    this.state = {
+
+      ...this.state,
+
+      computational: {
+
+        ...this.state.computational,
+
+        investigativeScale,
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
+  // ==========================================================
+  // RESET COMPUTATIONAL CONFIGURATION
+  // ==========================================================
+
+  resetComputationalConfiguration():
+    void {
+
+    this.state = {
+
+      ...this.state,
+
+      computational: {
+
+        activeLayers: [
+          ...DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .activeLayers,
+        ],
+
+        temporalContext:
+          DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .temporalContext,
+
+        investigativeScale:
+          DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .investigativeScale,
 
       },
 
@@ -372,12 +758,21 @@ export class WorkspaceRuntime {
   // INVESTIGATION OWNERSHIP
   // ==========================================================
 
+  /**
+   * Installs the canonical active Investigation.
+   *
+   * No casts or parallel Investigation context are required
+   * downstream. ResolveRuntime receives this same canonical
+   * Investigation contract.
+   */
   setActiveInvestigation(
-    investigation: unknown,
+    investigation:
+      Investigation,
   ): void {
 
     if (
-      this.state.session.investigation === investigation
+      this.state.session.investigation ===
+      investigation
     ) {
 
       return;
@@ -405,7 +800,17 @@ export class WorkspaceRuntime {
 
   }
 
-  clearActiveInvestigation(): void {
+  clearActiveInvestigation():
+    void {
+
+    if (
+      this.state.session.investigation ===
+      undefined
+    ) {
+
+      return;
+
+    }
 
     this.state = {
 
@@ -415,7 +820,8 @@ export class WorkspaceRuntime {
 
         ...this.state.session,
 
-        investigation: undefined,
+        investigation:
+          undefined,
 
       },
 
@@ -433,11 +839,13 @@ export class WorkspaceRuntime {
   // ==========================================================
 
   setFocusedEvent(
-    focusedEvent: unknown,
+    focusedEvent:
+      unknown,
   ): void {
 
     if (
-      this.state.session.focusedEvent === focusedEvent
+      this.state.session.focusedEvent ===
+      focusedEvent
     ) {
 
       return;
@@ -465,7 +873,17 @@ export class WorkspaceRuntime {
 
   }
 
-  clearFocusedEvent(): void {
+  clearFocusedEvent():
+    void {
+
+    if (
+      this.state.session.focusedEvent ===
+      undefined
+    ) {
+
+      return;
+
+    }
 
     this.state = {
 
@@ -475,7 +893,8 @@ export class WorkspaceRuntime {
 
         ...this.state.session,
 
-        focusedEvent: undefined,
+        focusedEvent:
+          undefined,
 
       },
 
@@ -492,13 +911,27 @@ export class WorkspaceRuntime {
   // LIFECYCLE
   // ==========================================================
 
-  initialize(): void {
+  initialize():
+    void {
+
+    if (
+      this.state.status ===
+      "READY"
+    ) {
+
+      return;
+
+    }
 
     this.state = {
 
       ...this.state,
 
-      status: "READY",
+      status:
+        "READY",
+
+      revision:
+        this.state.revision + 1,
 
     };
 
@@ -507,20 +940,40 @@ export class WorkspaceRuntime {
   }
 
   activate(
-    workspace: Workspace,
+    workspace:
+      Workspace,
   ): void {
 
     this.state = {
 
       ...this.state,
 
-      status: "ACTIVE",
+      status:
+        "ACTIVE",
 
       session: {
 
         ...this.state.session,
 
         workspace,
+
+      },
+
+      // ------------------------------------------------------
+      // Workspace active_layers becomes the initial runtime
+      // computational layer configuration.
+      //
+      // From this point forward the Workspace Runtime owns
+      // the live computational configuration.
+      // ------------------------------------------------------
+
+      computational: {
+
+        ...this.state.computational,
+
+        activeLayers: [
+          ...workspace.active_layers,
+        ],
 
       },
 
@@ -533,23 +986,46 @@ export class WorkspaceRuntime {
 
   }
 
-  deactivate(): void {
+  deactivate():
+    void {
 
     this.state = {
 
       ...this.state,
 
-      status: "READY",
+      status:
+        "READY",
 
       session: {
 
-        workspace: undefined,
+        workspace:
+          undefined,
 
-        investigation: undefined,
+        investigation:
+          undefined,
 
-        focusedEvent: undefined,
+        focusedEvent:
+          undefined,
 
-        artifacts: [],
+        artifacts:
+          [],
+
+      },
+
+      computational: {
+
+        activeLayers: [
+          ...DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .activeLayers,
+        ],
+
+        temporalContext:
+          DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .temporalContext,
+
+        investigativeScale:
+          DEFAULT_COMPUTATIONAL_CONFIGURATION
+            .investigativeScale,
 
       },
 
@@ -576,6 +1052,16 @@ export class WorkspaceRuntime {
   // Projection Runtime
   // Collaboration Runtime
   // Export Runtime
+  //
+  // Future Computational Configuration
+  // ------------------------------------
+  //
+  // Canonical TemporalContext
+  // Canonical InvestigativeScale
+  // Layer Taxonomy
+  // Compute Profiles
+  // Compute Presets
+  // Configuration Snapshots
   //
   // Future Operator State
   // ---------------------

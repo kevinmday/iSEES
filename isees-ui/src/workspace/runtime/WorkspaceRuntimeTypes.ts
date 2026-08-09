@@ -1,16 +1,37 @@
 // ============================================================
 // src/workspace/runtime/WorkspaceRuntimeTypes.ts
-// P38B
+// P56
 // RUNTIME-OWNED INVESTIGATION TYPES
 //
 // Canonical contracts for the deterministic Workspace Runtime.
 //
-// The Workspace Runtime owns the active Investigation Session
-// and active Operator State while composing deterministic
-// runtime subsystems without performing computation.
+// The Workspace Runtime owns:
 //
-// Computational ownership remains within Resolve–Dissolve
-// Computation (RDC) and the Manifold Runtime.
+// • Active Investigation Session
+// • Active Operator State
+// • Active Computational Configuration
+//
+// The Workspace Runtime performs no mathematical computation.
+//
+// Computational execution remains owned by:
+//
+// • Resolve–Dissolve Computation (RDC)
+// • ResolveRuntime
+// • ResolveEngine
+//
+// The computational configuration establishes the runtime
+// ownership boundary for:
+//
+//     C = (L, T, S)
+//
+// where:
+//
+//     L = active computational layers
+//     T = temporal computational context
+//     S = investigative scale
+//
+// T and S remain intentionally opaque until their canonical
+// mathematical representations are formally introduced.
 //
 // Ownership:
 //
@@ -20,10 +41,15 @@
 //      ├── Active Workspace
 //      ├── Active Investigation
 //      ├── Focused Event
-//      └── Operator State
-//              ├── Active Workspace Mode
-//              ├── Active Layout Mode
-//              └── Active Selection
+//      ├── Operator State
+//      │       ├── Active Workspace Mode
+//      │       ├── Active Layout Mode
+//      │       └── Active Selection
+//      │
+//      └── Computational Configuration
+//              ├── L — Active Layers
+//              ├── T — Temporal Context
+//              └── S — Investigative Scale
 //
 // ============================================================
 
@@ -34,6 +60,10 @@ import type {
 import type {
   Artifact,
 } from "../../artifacts/artifactTypes";
+
+import type {
+  Investigation,
+} from "../../investigation/investigationTypes";
 
 // ============================================================
 // STATUS
@@ -50,23 +80,32 @@ export type WorkspaceRuntimeStatus =
 
 export const WorkspaceMode = {
 
-  OVERVIEW: "OVERVIEW",
+  OVERVIEW:
+    "OVERVIEW",
 
-  MANIFOLD: "MANIFOLD",
+  MANIFOLD:
+    "MANIFOLD",
 
-  COMPARE: "COMPARE",
+  COMPARE:
+    "COMPARE",
 
-  NARRATIVE: "NARRATIVE",
+  NARRATIVE:
+    "NARRATIVE",
 
-  EVIDENCE: "EVIDENCE",
+  EVIDENCE:
+    "EVIDENCE",
 
-  TIMELINE: "TIMELINE",
+  TIMELINE:
+    "TIMELINE",
 
-  LAYERS: "LAYERS",
+  LAYERS:
+    "LAYERS",
 
-  INTENTION: "INTENTION",
+  INTENTION:
+    "INTENTION",
 
-  RESEARCH: "RESEARCH",
+  RESEARCH:
+    "RESEARCH",
 
 } as const;
 
@@ -83,22 +122,25 @@ export type WorkspaceMode =
  * Canonical workspace presentation state.
  *
  * NORMAL
- *     Standard operational workspace.
+ *
+ * Standard operational workspace.
  *
  * FOCUS
- *     Workspace expands while surrounding
- *     operator chrome is temporarily hidden.
+ *
+ * Workspace expands while surrounding
+ * operator chrome is temporarily hidden.
  *
  * Layout ownership belongs to the Workspace Runtime
  * because it represents operator state rather than
  * investigation state.
  */
-
 export const WorkspaceLayoutMode = {
 
-  NORMAL: "NORMAL",
+  NORMAL:
+    "NORMAL",
 
-  FOCUS: "FOCUS",
+  FOCUS:
+    "FOCUS",
 
 } as const;
 
@@ -120,9 +162,11 @@ export interface WorkspaceSelection {
    * these generic fields as Investigation Graph ownership
    * moves into the Workspace Runtime.
    */
-  type: string;
+  type:
+    string;
 
-  id: string;
+  id:
+    string;
 
 }
 
@@ -135,22 +179,32 @@ export interface WorkspaceRuntimeSession {
   /**
    * Active workspace container.
    */
-  workspace?: Workspace;
+  workspace?:
+    Workspace;
 
   /**
-   * Active investigation owned by the runtime.
+   * Active canonical Investigation owned by the runtime.
+   *
+   * WorkspaceRuntime is the runtime ownership boundary for
+   * the Investigation consumed by deterministic computation.
    */
-  investigation?: unknown;
+  investigation?:
+    Investigation;
 
   /**
    * Currently focused event.
+   *
+   * This remains intentionally opaque until focused-event
+   * ownership is migrated onto its canonical contract.
    */
-  focusedEvent?: unknown;
+  focusedEvent?:
+    unknown;
 
   /**
    * Imported artifacts.
    */
-  artifacts: Artifact[];
+  artifacts:
+    Artifact[];
 
 }
 
@@ -190,6 +244,80 @@ export interface WorkspaceOperatorState {
 }
 
 // ============================================================
+// COMPUTATIONAL CONFIGURATION
+// ============================================================
+//
+// Runtime-owned configuration consumed by deterministic
+// Resolve–Dissolve Computation.
+//
+// This object DOES NOT perform computation.
+//
+// It establishes a single canonical ownership boundary for
+// the operator-selected computational universe:
+//
+//     C = (L, T, S)
+//
+// Resolve consumes a snapshot of this configuration together
+// with the active Investigation and canonical Knowledge Object
+// population.
+//
+// ============================================================
+
+export interface WorkspaceComputationalConfiguration {
+
+  // ----------------------------------------------------------
+  // L — ACTIVE COMPUTATIONAL LAYERS
+  // ----------------------------------------------------------
+  //
+  // Layers participating in the next Resolve computation.
+  //
+  // The Workspace Runtime owns the live configuration.
+  //
+  // Resolve receives a deterministic snapshot.
+  //
+  // ----------------------------------------------------------
+
+  activeLayers:
+    readonly string[];
+
+  // ----------------------------------------------------------
+  // T — TEMPORAL COMPUTATIONAL CONTEXT
+  // ----------------------------------------------------------
+  //
+  // Intentionally opaque.
+  //
+  // The Resolve architecture currently preserves temporal
+  // context without imposing a premature mathematical
+  // representation.
+  //
+  // A canonical TemporalContext contract can replace unknown
+  // later without changing the ownership architecture.
+  //
+  // ----------------------------------------------------------
+
+  temporalContext:
+    unknown;
+
+  // ----------------------------------------------------------
+  // S — INVESTIGATIVE SCALE
+  // ----------------------------------------------------------
+  //
+  // Intentionally opaque.
+  //
+  // The Resolve architecture currently preserves investigative
+  // scale without imposing a premature mathematical model.
+  //
+  // A canonical InvestigativeScale contract can replace unknown
+  // later without changing the ownership architecture.
+  //
+  // ----------------------------------------------------------
+
+  investigativeScale:
+    unknown;
+
+}
+
+// ============================================================
 // STATE
 // ============================================================
 
@@ -214,7 +342,17 @@ export interface WorkspaceRuntimeState {
     WorkspaceOperatorState;
 
   /**
+   * Runtime-owned computational configuration.
+   *
+   * This configuration supplies L, T, and S to RDC.
+   */
+  computational:
+    WorkspaceComputationalConfiguration;
+
+  /**
    * Monotonically increasing runtime revision.
+   *
+   * Any canonical runtime state change increments this value.
    */
   revision:
     number;
@@ -234,6 +372,25 @@ export interface WorkspaceRuntimeState {
 // • Workspace chrome
 // • Multi-monitor layouts
 // • Immersive presentation modes
+//
+// Computational configuration will later gain canonical:
+//
+// • TemporalContext
+// • InvestigativeScale
+// • Layer taxonomy
+// • Compute profiles
+// • Compute presets
+// • Parameter validation
+// • Configuration snapshots
+//
+// Those extensions MUST preserve the current ownership rule:
+//
+//     Workspace Runtime owns configuration.
+//
+//     Resolve Runtime consumes immutable computational
+//     snapshots.
+//
+//     Resolve Engine performs deterministic computation.
 //
 // export interface WorkspaceViewport {}
 //

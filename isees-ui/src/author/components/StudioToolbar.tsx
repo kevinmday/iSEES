@@ -719,31 +719,42 @@ export default function StudioToolbar() {
         </div>
 
         {
+  ingestionStatus.message
+    ? (
+
+      <div
+        style={{
+          ...(
+            ingestionStatus.kind ===
+            "ERROR"
+              ? ingestionErrorStyle
+              : ingestionStatusStyle
+          ),
+
+          maxWidth: 520,
+
+          whiteSpace: "normal",
+
+          overflow: "visible",
+
+          textOverflow: "clip",
+
+          lineHeight: 1.35,
+        }}
+        title={
           ingestionStatus.message
-            ? (
+        }
+      >
 
-              <div
-                style={
-                  ingestionStatus.kind ===
-                  "ERROR"
-                    ? ingestionErrorStyle
-                    : ingestionStatusStyle
-                }
-                title={
-                  ingestionStatus.message
-                }
-              >
-
-                {
-                  ingestionStatus.message
-                }
-
-              </div>
-
-            )
-            : null
+        {
+          ingestionStatus.message
         }
 
+      </div>
+
+    )
+    : null
+}
       </div>
 
       <div style={rightStyle}>
