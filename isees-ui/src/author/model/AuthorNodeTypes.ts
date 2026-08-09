@@ -1,14 +1,32 @@
 // ============================================================
+// src/author/model/AuthorNodeTypes.ts
+// P56
 // AUTHOR NODE TYPES
+//
+// Canonical semantic node vocabulary for Computational Author
+// Documents.
+//
+// These nodes describe computational document meaning
+// independently of Lexical, Markdown, DOCX, PDF, HTML, or any
+// other projection.
+//
+// P56:
+//
+// • REFERENCE represents knowledge already known or addressed
+//   by the investigation.
+//
+// • OBSERVATION represents new knowledge explicitly asserted
+//   by the researcher.
+//
+// • OBSERVATION may deterministically identify the existing
+//   references to which the assertion relates.
+//
 // ============================================================
 
-/**
- * Canonical semantic node types.
- *
- * These describe the computational structure
- * of the document independently of any editor
- * implementation or export format.
- */
+// ============================================================
+// NODE TYPES
+// ============================================================
+
 export const AuthorNodeTypes = {
 
   PARAGRAPH:
@@ -38,6 +56,9 @@ export const AuthorNodeTypes = {
   REFERENCE:
     "REFERENCE",
 
+  OBSERVATION:
+    "OBSERVATION",
+
   DIVIDER:
     "DIVIDER",
 
@@ -50,6 +71,10 @@ export type AuthorNodeType =
   typeof AuthorNodeTypes[
     keyof typeof AuthorNodeTypes
   ];
+
+// ============================================================
+// BASE NODE
+// ============================================================
 
 /**
  * Every computational document node derives
@@ -65,8 +90,20 @@ export interface AuthorNode {
 
 }
 
+// ============================================================
+// PARAGRAPH
+// ============================================================
+
 /**
  * Textual content.
+ *
+ * Paragraph text is authored narrative.
+ *
+ * It is NOT automatically considered a computational
+ * observation merely because it exists in a document.
+ *
+ * Future semantic processing may inspect paragraph content
+ * and propose computational knowledge candidates.
  */
 export interface ParagraphNode
   extends AuthorNode {
@@ -75,6 +112,10 @@ export interface ParagraphNode
     string;
 
 }
+
+// ============================================================
+// HEADING
+// ============================================================
 
 /**
  * Section heading.
@@ -90,6 +131,10 @@ export interface HeadingNode
 
 }
 
+// ============================================================
+// QUOTE
+// ============================================================
+
 /**
  * Quoted content.
  */
@@ -100,6 +145,10 @@ export interface QuoteNode
     string;
 
 }
+
+// ============================================================
+// CITATION
+// ============================================================
 
 /**
  * Source citation.
@@ -112,6 +161,10 @@ export interface CitationNode
 
 }
 
+// ============================================================
+// REFERENCE
+// ============================================================
+
 /**
  * Computational reference to an external
  * knowledge object.
@@ -121,6 +174,8 @@ export interface CitationNode
  * references that projection runtimes may
  * render as citations, cards, hyperlinks,
  * expandable widgets, or other visual forms.
+ *
+ * A REFERENCE does not itself assert new knowledge.
  */
 export interface ReferenceNode
   extends AuthorNode {
@@ -187,6 +242,88 @@ export interface ReferenceNode
 
 }
 
+// ============================================================
+// OBSERVATION
+// ============================================================
+
+/**
+ * Explicit researcher-authored computational observation.
+ *
+ * OBSERVATION is semantically different from PARAGRAPH.
+ *
+ * PARAGRAPH:
+ *
+ *   narrative authored text
+ *
+ * OBSERVATION:
+ *
+ *   an explicit assertion intended to enter the
+ *   computational knowledge pipeline
+ *
+ * During Author artifact ingestion, an ObservationNode may
+ * therefore be compiled into a candidate Knowledge Object
+ * without treating ordinary narrative prose as established
+ * computational knowledge.
+ */
+export interface ObservationNode
+  extends AuthorNode {
+
+  /**
+   * Canonical natural-language assertion supplied
+   * by the researcher.
+   *
+   * The original assertion is preserved verbatim so
+   * downstream computation retains provenance.
+   */
+  text:
+    string;
+
+  /**
+   * Origin of the observation.
+   *
+   * Initial P56 authored observations use:
+   *
+   *   AUTHOR
+   *
+   * The field remains a string so later canonical
+   * provenance sources can be introduced without
+   * coupling this model to a UI implementation.
+   */
+  source:
+    string;
+
+  /**
+   * Stable identifiers of existing objects explicitly
+   * associated with this observation at authoring time.
+   *
+   * Example:
+   *
+   * [
+   *   "facility:RAF Woodbridge"
+   * ]
+   *
+   * These are deterministic author-declared relations.
+   *
+   * They are NOT entities inferred from the observation
+   * text. Semantic discovery of previously unrecognized
+   * entities belongs to later investigative expansion.
+   */
+  relatedReferences:
+    string[];
+
+  /**
+   * UTC timestamp indicating when the researcher
+   * created the observation.
+   */
+  createdAt:
+    Date;
+
+}
+
+// ============================================================
+// IMAGE
+// ============================================================
+
 /**
  * Image placeholder.
  */
@@ -197,6 +334,10 @@ export interface ImageNode
     string;
 
 }
+
+// ============================================================
+// TABLE
+// ============================================================
 
 /**
  * Table placeholder.
