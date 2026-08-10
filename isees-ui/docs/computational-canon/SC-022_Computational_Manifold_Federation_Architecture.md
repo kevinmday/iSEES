@@ -1,4 +1,4 @@
-\# SC-016 — Computational Manifold Federation Architecture
+\# SC-022 — Computational Manifold Federation Architecture
 
 
 
@@ -22,9 +22,9 @@
 
 \- SC-013 Computational Observation Architecture
 
-\- SC-014 Computational Knowledge Curation and Promotion Architecture
+\- SC-019 Computational Knowledge Curation and Promotion Architecture
 
-\- SC-015 Computational Operator Session Architecture
+\- SC-021 Computational Operator Session Architecture
 
 
 

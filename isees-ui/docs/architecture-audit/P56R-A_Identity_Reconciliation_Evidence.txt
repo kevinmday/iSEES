@@ -1,0 +1,247 @@
+﻿# P56R-A — CANONICAL IDENTITY RECONCILIATION EVIDENCE
+Generated: 2026-08-10 15:08:47
+Repo: C:\dev\IntentionalTradingSystem\isees-ui
+
+PURPOSE: Capture title, substantive status, declared dependencies, implementation references, and historical origin for every SC-014 through SC-018 claimant before stable identity assignment.
+
+NO CANONICAL IDENTITIES CHANGED.
+
+
+================================================================
+FILE: docs/computational-canon/SC-014_Computational_Authoring_and_Narrative_Architecture.md
+================================================================
+BYTES: 9865
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-014 â€” Computational Authoring and Narrative Architecture
+  L9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-010 Investigative Provenance and Graph Revision Architecture, SC-011 Investigative Expansion and Event-Space Reconstruction, SC-012 Computational Projection Architecture, SC-013 Computational Observation Architecture
+  L489: SC-012 establishes that every representation of a computational document is a projection.
+  L531: SC-013 defines computational observations.
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+================================================================
+BYTES: 9175
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+DEPENDENCY / CANON DECLARATIONS:
+  L3: \# SC-014
+  L103: Neither supports long-term computational reasoning.
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+================================================================
+BYTES: 9305
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+DEPENDENCY / CANON DECLARATIONS:
+  L3: \# SC-015
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-015_Computational_Operator_Session_Architecture.md
+================================================================
+BYTES: 8872
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 6bd31a917d3ae6385a4717af44f7fa01f22f7d8b|2026-08-05T05:53:35-07:00|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-015 â€” Computational Operator Session Architecture
+  L11: \*\*Depends On:\*\*
+  L15: \- SC-001 Computational Runtime Architecture
+  L17: \- SC-006 Workspace Runtime Architecture
+  L19: \- SC-009 Computational Instrument Architecture
+  L21: \- SC-010 Investigative Provenance Architecture
+  L23: \- SC-012 Computational Projection Architecture
+  L25: \- SC-013 Computational Observation Architecture
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+================================================================
+BYTES: 8413
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-015 â€” Computational Publication and Knowledge Dissemination Architecture
+  L9: \*\*Depends On:\*\* SC-012 Computational Projection Architecture, SC-014 Computational Authoring and Narrative Architecture
+  L503: SC-012 establishes that computational artifacts may possess multiple projections.
+  L523: SC-014 defines how computational knowledge is intentionally constructed.
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-016_Computational_Manifold_Federation_Architecture.md
+================================================================
+BYTES: 9535
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-016 â€” Computational Manifold Federation Architecture
+  L11: \*\*Depends On:\*\*
+  L15: \- SC-001 Computational Runtime Architecture
+  L17: \- SC-006 Workspace Runtime Architecture
+  L19: \- SC-009 Computational Instrument Architecture
+  L21: \- SC-010 Investigative Provenance Architecture
+  L23: \- SC-013 Computational Observation Architecture
+  L25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  L27: \- SC-015 Computational Operator Session Architecture
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+================================================================
+BYTES: 9245
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-016 â€” Human-Computational Collaborative Authoring Architecture
+  L9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  L267: Studio supports specialized computational instruments rather than a monolithic artificial intelligence.
+  L515: SC-014 establishes that computational observations become authored knowledge.
+  L531: SC-015 governs dissemination of canonical knowledge.
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+================================================================
+BYTES: 54732
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-016 â€” Temporal Manifold Deformation and Latent Intention Resolution
+  L59: SC-016 also establishes the theoretical foundation of INTENTION mode.
+  L253: SC-016 distinguishes two temporal quantities that MUST NOT be conflated.
+  L509: Therefore SC-016 distinguishes:
+  L643: SC-016 establishes the requirement that topology be representable as a comparable state across legitimate temporal and investigative windows.
+  L715: The derivative notation is therefore conceptual shorthand unless the underlying computational representation supports continuous estimation.
+  L739: SC-016 introduces manifold acceleration as an exploratory quantity:
+  L839: SC-016 extends this formulation by making temporal manifold deformation explicit:
+  L985: SC-016 explicitly separates multiple properties of a candidate intention.
+  L1293: SC-016 introduces an important computational interpretation.
+  L1379: A central implication of SC-016 is that latent dynamics may be invisible at short observational scales.
+  L1487: SC-016 applies the same epistemic principle to investigation manifolds.
+  L1525: SC-016 introduces the concept of an Intention Detectability Horizon.
+  L1803: SC-016 provides a potential computational interpretation of the Bellâ€“Drake Threshold.
+  L2035: SC-016 introduces Intention Robustness.
+  L2153: SC-016 therefore permits representation of a robustness envelope:
+  L2219: Resolveâ€“Dissolve Computation provides the natural computational mechanism for SC-016.
+  L2529: SC-016 establishes the following mandatory epistemic chain:
+  L2609: The UAP phenomenon provides an obvious investigative domain for SC-016 because observations span long temporal intervals and contain heterogeneous:
+  L2657: SC-016 does not privilege any answer.
+  L2661: However, SC-016 is domain-independent.
+  L2701: The computational objective introduced by SC-016 is:
+  L2781: SC-016 proposes the following extended computational form for investigation and future validation:
+  L2821: SC-016 additionally recognizes that future implementations may require explicit terms representing:
+  L2855: SC-016 intentionally does not overload the canonical equation before those quantities are formally defined.
+  L2867: SC-016 establishes a clarified purpose for the iSEES INTENTION workspace mode.
+  L4109: SC-016 explicitly rejects reduction of intention analysis to a single unexplained scalar.
+  L4225: SC-016 is compatible with future AI-assisted interpretation but does not require AI inference.
+  L4277: SC-016 establishes Temporal Manifold Deformation and Intention Resolution as first-class computational concerns within iSEES.
+  L4365: SC-016 establishes the following operational definition:
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-017_Computational_Epistemic_Binding_Architecture.md
+================================================================
+BYTES: 8280
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-017 â€” Computational Epistemic Binding Architecture
+  L11: \*\*Depends On:\*\*
+  L15: \- SC-001 Computational Runtime Architecture
+  L17: \- SC-009 Computational Instrument Architecture
+  L19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  L21: \- SC-015 Computational Operator Session Architecture
+  L23: \- SC-016 Computational Manifold Federation Architecture
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-017_Computational_Intelligence_and_Context_Architecture.md
+================================================================
+BYTES: 8629
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-017 â€” Computational Intelligence and Context Architecture
+  L9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  L535: SC-014 establishes computational authoring.
+  L555: SC-016 defines collaboration between researchers and computational instruments.
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+================================================================
+BYTES: 0
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+DEPENDENCY / CANON DECLARATIONS:
+  NONE
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FILE: docs/computational-canon/SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+================================================================
+BYTES: 8685
+TITLE: NONE
+FIRST EXACT-PATH COMMIT: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+DEPENDENCY / CANON DECLARATIONS:
+  L1: \# SC-018 â€” Computational Provenance and Epistemic Lineage Architecture
+  L11: \*\*Depends On:\*\*
+  L15: \- SC-001 Computational Runtime Architecture
+  L17: \- SC-010 Investigative Provenance Architecture
+  L19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  L21: \- SC-015 Computational Operator Session Architecture
+  L23: \- SC-016 Computational Manifold Federation Architecture
+  L25: \- SC-017 Computational Epistemic Binding Architecture
+
+EXACT FILENAME REFERENCES:
+  NONE
+
+================================================================
+FORENSIC FINDING
+================================================================
+SC-018_Computational_Knowledge_Artifact_Architecture.md is a zero-byte P52 placeholder.
+Its apparent pre-P52 --follow history resulted from Git C100 similarity across unrelated empty files.
+It contains no substantive canonical content and therefore receives no identity priority solely from its filename.
+
+================================================================
+END
+================================================================
+P56R-A remains discovery-only.

@@ -16,13 +16,13 @@
 
 \- SC-010 Investigative Provenance Architecture
 
-\- SC-014 Computational Knowledge Curation and Promotion Architecture
+\- SC-019 Computational Knowledge Curation and Promotion Architecture
 
-\- SC-015 Computational Operator Session Architecture
+\- SC-021 Computational Operator Session Architecture
 
-\- SC-016 Computational Manifold Federation Architecture
+\- SC-022 Computational Manifold Federation Architecture
 
-\- SC-017 Computational Epistemic Binding Architecture
+\- SC-023 Computational Epistemic Binding Architecture
 
 
 

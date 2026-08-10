@@ -4,7 +4,7 @@
 
 \*\*Status:\*\* Engineering Design  
 
-\*\*Implements:\*\* SC-015 Computational Operator Session Architecture  
+\*\*Implements:\*\* SC-021 Computational Operator Session Architecture  
 
 \*\*Session:\*\* P54  
 

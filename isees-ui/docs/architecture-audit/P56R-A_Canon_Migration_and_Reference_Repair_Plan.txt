@@ -1,0 +1,557 @@
+﻿# P56R-A — CANON MIGRATION & REFERENCE-REPAIR PLAN
+Generated: 2026-08-10 15:12:31
+Repo: C:\dev\IntentionalTradingSystem\isees-ui
+
+PURPOSE: Produce the exact migration and semantic reference-repair plan before any canonical file mutation.
+
+THIS REPORT DOES NOT RENAME, MOVE, DELETE, OR MODIFY CANON SOURCE FILES.
+
+================================================================
+PATH MIGRATION MAP
+================================================================
+
+
+SC-014 -> SC-019
+TITLE: Computational Knowledge Curation and Promotion Architecture
+OLD: docs/computational-canon/SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+NEW: docs/computational-canon/SC-019_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+OLD EXISTS: True
+NEW ALREADY EXISTS: False
+
+SC-015 -> SC-020
+TITLE: Canonical Computational Artifact and File Extension Architecture
+OLD: docs/computational-canon/SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+NEW: docs/computational-canon/SC-020_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+OLD EXISTS: True
+NEW ALREADY EXISTS: False
+
+SC-015 -> SC-021
+TITLE: Computational Operator Session Architecture
+OLD: docs/computational-canon/SC-015_Computational_Operator_Session_Architecture.md
+NEW: docs/computational-canon/SC-021_Computational_Operator_Session_Architecture.md
+OLD EXISTS: True
+NEW ALREADY EXISTS: False
+
+SC-016 -> SC-022
+TITLE: Computational Manifold Federation Architecture
+OLD: docs/computational-canon/SC-016_Computational_Manifold_Federation_Architecture.md
+NEW: docs/computational-canon/SC-022_Computational_Manifold_Federation_Architecture.md
+OLD EXISTS: True
+NEW ALREADY EXISTS: False
+
+SC-017 -> SC-023
+TITLE: Computational Epistemic Binding Architecture
+OLD: docs/computational-canon/SC-017_Computational_Epistemic_Binding_Architecture.md
+NEW: docs/computational-canon/SC-023_Computational_Epistemic_Binding_Architecture.md
+OLD EXISTS: True
+NEW ALREADY EXISTS: False
+
+SC-016 -> SC-024
+TITLE: Temporal Manifold Deformation and Latent Intention Resolution
+OLD: docs/computational-canon/SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+NEW: docs/computational-canon/SC-024_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+OLD EXISTS: True
+NEW ALREADY EXISTS: False
+
+================================================================
+TITLE-AWARE REFERENCE REPAIRS
+================================================================
+
+
+--- SC-019 — Computational Knowledge Curation and Promotion Architecture ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:27: |SC-014|SC-019|Computational Knowledge Curation and Promotion Architecture|P55-ARCH|
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:32: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:35: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:38: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:104: L25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:181: L19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:229: L19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md:5: \# COMPUTATIONAL KNOWLEDGE CURATION AND PROMOTION ARCHITECTURE
+  docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+
+--- SC-020 — Canonical Computational Artifact and File Extension Architecture ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:28: |SC-015|SC-020|Canonical Computational Artifact and File Extension Architecture|P55-ARCH|
+
+--- SC-021 — Computational Operator Session Architecture ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:29: |SC-015|SC-021|Computational Operator Session Architecture|P54|
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:48: Created/first tracked: 6bd31a917d3ae6385a4717af44f7fa01f22f7d8b|2026-08-05T05:53:35-07:00|Kevin Day|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:49: Latest tracked change: 6bd31a917d3ae6385a4717af44f7fa01f22f7d8b|2026-08-05T05:53:35-07:00|Kevin Day|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:52: 6bd31a9|2026-08-05|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:168: 6bd31a9 P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:64: docs\computational-canon\ED_Operator_Session_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:66: docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md:1: \# SC-015 — Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:68: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:27: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:71: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:72: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:58: FIRST EXACT-PATH COMMIT: 6bd31a917d3ae6385a4717af44f7fa01f22f7d8b|2026-08-05T05:53:35-07:00|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:61: L1: \# SC-015 â€” Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:105: L27: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:182: L21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:230: L21: \- SC-015 Computational Operator Session Architecture
+  docs\computational-canon\ED_Operator_Session_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-015 Computational Operator Session Architecture
+  docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md:1: \# SC-015 — Computational Operator Session Architecture
+  docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:27: \- SC-015 Computational Operator Session Architecture
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+
+--- SC-022 — Computational Manifold Federation Architecture ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:30: |SC-016|SC-022|Computational Manifold Federation Architecture|P54A|
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:96: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:1: \# SC-016 — Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:128: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:131: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:97: L1: \# SC-016 â€” Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:183: L23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:231: L23: \- SC-016 Computational Manifold Federation Architecture
+  docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:1: \# SC-016 — Computational Manifold Federation Architecture
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+
+--- SC-023 — Computational Epistemic Binding Architecture ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:31: |SC-017|SC-023|Computational Epistemic Binding Architecture|P54A|
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:151: docs\computational-canon\ED_Epistemic_Reference_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-017 Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:152: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:1: \# SC-017 — Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:154: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:25: \- SC-017 Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:177: L1: \# SC-017 â€” Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:232: L25: \- SC-017 Computational Epistemic Binding Architecture
+  docs\computational-canon\ED_Epistemic_Reference_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-017 Computational Epistemic Binding Architecture
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:1: \# SC-017 — Computational Epistemic Binding Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:25: \- SC-017 Computational Epistemic Binding Architecture
+
+--- SC-024 — Temporal Manifold Deformation and Latent Intention Resolution ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:32: |SC-016|SC-024|Temporal Manifold Deformation and Latent Intention Resolution|P55-ARCH|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:65: SC-024 Temporal Manifold Deformation and Latent Intention Resolution
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:98: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1: \# SC-016 — Temporal Manifold Deformation and Latent Intention Resolution
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:135: L1: \# SC-016 â€” Temporal Manifold Deformation and Latent Intention Resolution
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1: \# SC-016 — Temporal Manifold Deformation and Latent Intention Resolution
+
+================================================================
+AMBIGUOUS NUMERIC REFERENCES — MANUAL SEMANTIC RESOLUTION REQUIRED
+================================================================
+
+
+--- SC-014 ---
+  docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:667: \## SC-014
+  docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:837: SC-014
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:17: |SC-014|Computational Authoring and Narrative Architecture|P52|RETAIN|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:27: |SC-014|SC-019|Computational Knowledge Curation and Promotion Architecture|P55-ARCH|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:46: SC-014 Authoring and Narrative
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:11: FILE: docs/computational-canon/SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:22: FILE: docs/computational-canon/SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:158: --- SC-014 ---
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:9: SC-014
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:13: docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:14: docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:17: docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:667: \## SC-014
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:18: docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:837: SC-014
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:19: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:43: SC-014 docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md                  9865 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:20: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:44: SC-014 docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md         9175 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:21: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:74: [SC-014] 2 FILES
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:22: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:75: docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:23: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:76: docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:24: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:115: SC-014 docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:25: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:116: SC-014 docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:26: docs\computational-canon\KOM_Computational_Knowledge_Curation_Engineering_Design.md:33: SC-014.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:27: docs\computational-canon\KOM_Computational_Knowledge_Curation_Engineering_Design.md:37: Where SC-014 defines the conceptual architecture and operator
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:28: docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md:1: \# SC-014 — Computational Authoring and Narrative Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:29: docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md:3: \# SC-014
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:30: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:9: \*\*Depends On:\*\* SC-012 Computational Projection Architecture, SC-014 Computational Authoring and Narrative Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:31: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:523: SC-014 defines how computational knowledge is intentionally constructed.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:32: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:33: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:34: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:515: SC-014 establishes that computational observations become authored knowledge.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:35: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:36: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:37: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:535: SC-014 establishes computational authoring.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:38: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:69: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:129: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:183: SC-014: 2 claimant file(s), 22 repository reference(s)
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:43: SC-014 docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md                  9865 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:44: SC-014 docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md         9175 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:74: [SC-014] 2 FILES
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:75: docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:76: docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:115: SC-014 docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:116: SC-014 docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:5: PURPOSE: Capture title, substantive status, declared dependencies, implementation references, and historical origin for every SC-014 through SC-018 claimant before stable identity assignment.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:11: FILE: docs/computational-canon/SC-014_Computational_Authoring_and_Narrative_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:18: L1: \# SC-014 â€” Computational Authoring and Narrative Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:27: FILE: docs/computational-canon/SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:34: L3: \# SC-014
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:82: L9: \*\*Depends On:\*\* SC-012 Computational Projection Architecture, SC-014 Computational Authoring and Narrative Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:84: L523: SC-014 defines how computational knowledge is intentionally constructed.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:104: L25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:119: L9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:121: L515: SC-014 establishes that computational observations become authored knowledge.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:181: L19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:197: L9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:198: L535: SC-014 establishes computational authoring.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:229: L19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\computational-canon\KOM_Computational_Knowledge_Curation_Engineering_Design.md:33: SC-014.
+  docs\computational-canon\KOM_Computational_Knowledge_Curation_Engineering_Design.md:37: Where SC-014 defines the conceptual architecture and operator
+  docs\computational-canon\SC-014_Computational_Authoring_and_Narrative_Architecture.md:1: \# SC-014 — Computational Authoring and Narrative Architecture
+  docs\computational-canon\SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md:3: \# SC-014
+  docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:9: \*\*Depends On:\*\* SC-012 Computational Projection Architecture, SC-014 Computational Authoring and Narrative Architecture
+  docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:523: SC-014 defines how computational knowledge is intentionally constructed.
+  docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:515: SC-014 establishes that computational observations become authored knowledge.
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:535: SC-014 establishes computational authoring.
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+
+--- SC-015 ---
+  docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:711: \## SC-015
+  docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:843: SC-015
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:18: |SC-015|Computational Publication and Knowledge Dissemination Architecture|P52|RETAIN|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:28: |SC-015|SC-020|Canonical Computational Artifact and File Extension Architecture|P55-ARCH|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:29: |SC-015|SC-021|Computational Operator Session Architecture|P54|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:47: → SC-015 Publication and Dissemination
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:33: FILE: docs/computational-canon/SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:44: FILE: docs/computational-canon/SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:55: FILE: docs/computational-canon/SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:164: --- SC-015 ---
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:30: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:9: \*\*Depends On:\*\* SC-012 Computational Projection Architecture, SC-014 Computational Authoring and Narrative Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:31: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:523: SC-014 defines how computational knowledge is intentionally constructed.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:33: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:43: SC-015
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:47: docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:48: docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:49: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:52: docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:711: \## SC-015
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:53: docs\architecture-audit\AA-008_Canon_Dependency_Matrix.md:843: SC-015
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:54: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:45: SC-015 docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md    9305 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:55: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:46: SC-015 docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md                         8872 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:56: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:47: SC-015 docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md  8413 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:57: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:78: [SC-015] 3 FILES
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:58: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:79: docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:59: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:80: docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:60: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:81: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:61: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:117: SC-015 docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:62: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:118: SC-015 docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:63: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:119: SC-015 docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:64: docs\computational-canon\ED_Operator_Session_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:65: docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md:3: \# SC-015
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:66: docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md:1: \# SC-015 — Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:67: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:1: \# SC-015 — Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:68: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:27: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:69: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:70: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:531: SC-015 governs dissemination of canonical knowledge.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:71: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:72: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:184: SC-015: 3 claimant file(s), 21 repository reference(s)
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:45: SC-015 docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md    9305 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:46: SC-015 docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md                         8872 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:47: SC-015 docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md  8413 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:78: [SC-015] 3 FILES
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:79: docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:80: docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:81: docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:117: SC-015 docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:118: SC-015 docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:119: SC-015 docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:41: FILE: docs/computational-canon/SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:48: L3: \# SC-015
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:54: FILE: docs/computational-canon/SC-015_Computational_Operator_Session_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:61: L1: \# SC-015 â€” Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:74: FILE: docs/computational-canon/SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:81: L1: \# SC-015 â€” Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:105: L27: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:119: L9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:122: L531: SC-015 governs dissemination of canonical knowledge.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:182: L21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:230: L21: \- SC-015 Computational Operator Session Architecture
+  docs\computational-canon\ED_Operator_Session_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-015 Computational Operator Session Architecture
+  docs\computational-canon\SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md:3: \# SC-015
+  docs\computational-canon\SC-015_Computational_Operator_Session_Architecture.md:1: \# SC-015 — Computational Operator Session Architecture
+  docs\computational-canon\SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md:1: \# SC-015 — Computational Publication and Knowledge Dissemination Architecture
+  docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:27: \- SC-015 Computational Operator Session Architecture
+  docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:531: SC-015 governs dissemination of canonical knowledge.
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+
+--- SC-016 ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:19: |SC-016|Human-Computational Collaborative Authoring Architecture|P52|RETAIN|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:30: |SC-016|SC-022|Computational Manifold Federation Architecture|P54A|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:32: |SC-016|SC-024|Temporal Manifold Deformation and Latent Intention Resolution|P55-ARCH|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:48: → SC-016 Human-Computational Collaborative Authoring
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:66: FILE: docs/computational-canon/SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:77: FILE: docs/computational-canon/SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:88: FILE: docs/computational-canon/SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:171: --- SC-016 ---
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:32: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:25: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:33: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:34: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:515: SC-014 establishes that computational observations become authored knowledge.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:36: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:68: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:27: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:69: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:9: \*\*Depends On:\*\* SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-015 Computational Publication and Knowledge Dissemination Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:70: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:531: SC-015 governs dissemination of canonical knowledge.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:77: SC-016
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:81: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:82: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:83: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:86: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:48: SC-016 docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md                      9535 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:87: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:49: SC-016 docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md            9245 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:88: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:50: SC-016 docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md      54732 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:89: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:83: [SC-016] 3 FILES
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:90: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:84: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:91: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:85: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:92: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:86: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:93: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:120: SC-016 docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:94: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:121: SC-016 docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:95: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:122: SC-016 docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:96: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:1: \# SC-016 — Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:97: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:1: \# SC-016 — Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:98: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1: \# SC-016 — Temporal Manifold Deformation and Latent Intention Resolution
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:99: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:59: SC-016 also establishes the theoretical foundation of INTENTION mode.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:100: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:253: SC-016 distinguishes two temporal quantities that MUST NOT be conflated.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:101: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:509: Therefore SC-016 distinguishes:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:102: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:643: SC-016 establishes the requirement that topology be representable as a comparable state across legitimate temporal and investigative windows.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:103: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:739: SC-016 introduces manifold acceleration as an exploratory quantity:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:104: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:839: SC-016 extends this formulation by making temporal manifold deformation explicit:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:105: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:985: SC-016 explicitly separates multiple properties of a candidate intention.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:106: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1293: SC-016 introduces an important computational interpretation.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:107: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1379: A central implication of SC-016 is that latent dynamics may be invisible at short observational scales.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:108: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1487: SC-016 applies the same epistemic principle to investigation manifolds.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:109: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1525: SC-016 introduces the concept of an Intention Detectability Horizon.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:110: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1803: SC-016 provides a potential computational interpretation of the Bell–Drake Threshold.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:111: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2035: SC-016 introduces Intention Robustness.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:112: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2153: SC-016 therefore permits representation of a robustness envelope:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:113: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2219: Resolve–Dissolve Computation provides the natural computational mechanism for SC-016.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:114: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2529: SC-016 establishes the following mandatory epistemic chain:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:115: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2609: The UAP phenomenon provides an obvious investigative domain for SC-016 because observations span long temporal intervals and contain heterogeneous:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:116: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2657: SC-016 does not privilege any answer.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:117: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2661: However, SC-016 is domain-independent.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:118: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2701: The computational objective introduced by SC-016 is:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:119: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2781: SC-016 proposes the following extended computational form for investigation and future validation:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:120: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2821: SC-016 additionally recognizes that future implementations may require explicit terms representing:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:121: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2855: SC-016 intentionally does not overload the canonical equation before those quantities are formally defined.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:122: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2867: SC-016 establishes a clarified purpose for the iSEES INTENTION workspace mode.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:123: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4109: SC-016 explicitly rejects reduction of intention analysis to a single unexplained scalar.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:124: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4225: SC-016 is compatible with future AI-assisted interpretation but does not require AI inference.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:125: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4277: SC-016 establishes Temporal Manifold Deformation and Intention Resolution as first-class computational concerns within iSEES.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:126: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4365: SC-016 establishes the following operational definition:
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:127: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4457: The deepest implication of SC-016 is temporal and epistemic.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:128: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:129: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:130: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:555: SC-016 defines collaboration between researchers and computational instruments.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:131: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:185: SC-016: 3 claimant file(s), 46 repository reference(s)
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:48: SC-016 docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md                      9535 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:49: SC-016 docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md            9245 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:50: SC-016 docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md      54732 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:83: [SC-016] 3 FILES
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:84: docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:85: docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:86: docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:120: SC-016 docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:121: SC-016 docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:122: SC-016 docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:90: FILE: docs/computational-canon/SC-016_Computational_Manifold_Federation_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:97: L1: \# SC-016 â€” Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:111: FILE: docs/computational-canon/SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:118: L1: \# SC-016 â€” Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:128: FILE: docs/computational-canon/SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:135: L1: \# SC-016 â€” Temporal Manifold Deformation and Latent Intention Resolution
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:136: L59: SC-016 also establishes the theoretical foundation of INTENTION mode.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:137: L253: SC-016 distinguishes two temporal quantities that MUST NOT be conflated.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:138: L509: Therefore SC-016 distinguishes:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:139: L643: SC-016 establishes the requirement that topology be representable as a comparable state across legitimate temporal and investigative windows.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:141: L739: SC-016 introduces manifold acceleration as an exploratory quantity:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:142: L839: SC-016 extends this formulation by making temporal manifold deformation explicit:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:143: L985: SC-016 explicitly separates multiple properties of a candidate intention.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:144: L1293: SC-016 introduces an important computational interpretation.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:145: L1379: A central implication of SC-016 is that latent dynamics may be invisible at short observational scales.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:146: L1487: SC-016 applies the same epistemic principle to investigation manifolds.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:147: L1525: SC-016 introduces the concept of an Intention Detectability Horizon.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:148: L1803: SC-016 provides a potential computational interpretation of the Bellâ€“Drake Threshold.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:149: L2035: SC-016 introduces Intention Robustness.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:150: L2153: SC-016 therefore permits representation of a robustness envelope:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:151: L2219: Resolveâ€“Dissolve Computation provides the natural computational mechanism for SC-016.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:152: L2529: SC-016 establishes the following mandatory epistemic chain:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:153: L2609: The UAP phenomenon provides an obvious investigative domain for SC-016 because observations span long temporal intervals and contain heterogeneous:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:154: L2657: SC-016 does not privilege any answer.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:155: L2661: However, SC-016 is domain-independent.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:156: L2701: The computational objective introduced by SC-016 is:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:157: L2781: SC-016 proposes the following extended computational form for investigation and future validation:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:158: L2821: SC-016 additionally recognizes that future implementations may require explicit terms representing:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:159: L2855: SC-016 intentionally does not overload the canonical equation before those quantities are formally defined.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:160: L2867: SC-016 establishes a clarified purpose for the iSEES INTENTION workspace mode.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:161: L4109: SC-016 explicitly rejects reduction of intention analysis to a single unexplained scalar.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:162: L4225: SC-016 is compatible with future AI-assisted interpretation but does not require AI inference.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:163: L4277: SC-016 establishes Temporal Manifold Deformation and Intention Resolution as first-class computational concerns within iSEES.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:164: L4365: SC-016 establishes the following operational definition:
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:183: L23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:197: L9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:199: L555: SC-016 defines collaboration between researchers and computational instruments.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:231: L23: \- SC-016 Computational Manifold Federation Architecture
+  docs\computational-canon\SC-016_Computational_Manifold_Federation_Architecture.md:1: \# SC-016 — Computational Manifold Federation Architecture
+  docs\computational-canon\SC-016_Human-Computational_Collaborative_Authoring_Architecture.md:1: \# SC-016 — Human-Computational Collaborative Authoring Architecture
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1: \# SC-016 — Temporal Manifold Deformation and Latent Intention Resolution
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:59: SC-016 also establishes the theoretical foundation of INTENTION mode.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:253: SC-016 distinguishes two temporal quantities that MUST NOT be conflated.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:509: Therefore SC-016 distinguishes:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:643: SC-016 establishes the requirement that topology be representable as a comparable state across legitimate temporal and investigative windows.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:739: SC-016 introduces manifold acceleration as an exploratory quantity:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:839: SC-016 extends this formulation by making temporal manifold deformation explicit:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:985: SC-016 explicitly separates multiple properties of a candidate intention.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1293: SC-016 introduces an important computational interpretation.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1379: A central implication of SC-016 is that latent dynamics may be invisible at short observational scales.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1487: SC-016 applies the same epistemic principle to investigation manifolds.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1525: SC-016 introduces the concept of an Intention Detectability Horizon.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:1803: SC-016 provides a potential computational interpretation of the Bell–Drake Threshold.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2035: SC-016 introduces Intention Robustness.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2153: SC-016 therefore permits representation of a robustness envelope:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2219: Resolve–Dissolve Computation provides the natural computational mechanism for SC-016.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2529: SC-016 establishes the following mandatory epistemic chain:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2609: The UAP phenomenon provides an obvious investigative domain for SC-016 because observations span long temporal intervals and contain heterogeneous:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2657: SC-016 does not privilege any answer.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2661: However, SC-016 is domain-independent.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2701: The computational objective introduced by SC-016 is:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2781: SC-016 proposes the following extended computational form for investigation and future validation:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2821: SC-016 additionally recognizes that future implementations may require explicit terms representing:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2855: SC-016 intentionally does not overload the canonical equation before those quantities are formally defined.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:2867: SC-016 establishes a clarified purpose for the iSEES INTENTION workspace mode.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4109: SC-016 explicitly rejects reduction of intention analysis to a single unexplained scalar.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4225: SC-016 is compatible with future AI-assisted interpretation but does not require AI inference.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4277: SC-016 establishes Temporal Manifold Deformation and Intention Resolution as first-class computational concerns within iSEES.
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4365: SC-016 establishes the following operational definition:
+  docs\computational-canon\SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md:4457: The deepest implication of SC-016 is temporal and epistemic.
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:555: SC-016 defines collaboration between researchers and computational instruments.
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+
+--- SC-017 ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:20: |SC-017|Computational Intelligence and Context Architecture|P52|RETAIN|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:31: |SC-017|SC-023|Computational Epistemic Binding Architecture|P54A|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:49: → SC-017 Computational Intelligence and Context
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:99: FILE: docs/computational-canon/SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:110: FILE: docs/computational-canon/SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:176: --- SC-017 ---
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:35: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:36: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:37: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:535: SC-014 establishes computational authoring.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:71: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:128: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:129: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:9: \*\*Depends On:\*\* SC-003 Investigation Manifold, SC-009 Manifold Instrument Architecture, SC-013 Computational Observation Architecture, SC-014 Computational Authoring and Narrative Architecture, SC-016 Human-Computational Collaborative Authoring Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:130: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:555: SC-016 defines collaboration between researchers and computational instruments.
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:136: SC-017
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:140: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:141: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:144: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:51: SC-017 docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md                        8280 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:145: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:52: SC-017 docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md                 8629 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:146: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:88: [SC-017] 2 FILES
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:147: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:89: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:148: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:90: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:149: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:123: SC-017 docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:150: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:124: SC-017 docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:151: docs\computational-canon\ED_Epistemic_Reference_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-017 Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:152: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:1: \# SC-017 — Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:153: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:1: \# SC-017 — Computational Intelligence and Context Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:154: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:25: \- SC-017 Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:186: SC-017: 2 claimant file(s), 11 repository reference(s)
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:51: SC-017 docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md                        8280 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:52: SC-017 docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md                 8629 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:88: [SC-017] 2 FILES
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:89: docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:90: docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:123: SC-017 docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:124: SC-017 docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:170: FILE: docs/computational-canon/SC-017_Computational_Epistemic_Binding_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:177: L1: \# SC-017 â€” Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:189: FILE: docs/computational-canon/SC-017_Computational_Intelligence_and_Context_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:196: L1: \# SC-017 â€” Computational Intelligence and Context Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:232: L25: \- SC-017 Computational Epistemic Binding Architecture
+  docs\computational-canon\ED_Epistemic_Reference_Runtime_Architecture.md:7: \*\*Implements:\*\* SC-017 Computational Epistemic Binding Architecture
+  docs\computational-canon\SC-017_Computational_Epistemic_Binding_Architecture.md:1: \# SC-017 — Computational Epistemic Binding Architecture
+  docs\computational-canon\SC-017_Computational_Intelligence_and_Context_Architecture.md:1: \# SC-017 — Computational Intelligence and Context Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:25: \- SC-017 Computational Epistemic Binding Architecture
+
+--- SC-018 ---
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:21: |SC-018|Computational Provenance and Epistemic Lineage Architecture|P54A|RETAIN|
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:36: SC-018\_Computational\_Knowledge\_Artifact\_Architecture.md
+  docs\architecture-audit\P56R-A_Canonical_Identity_Reconciliation_Matrix.md:61: → SC-018 Provenance and Epistemic Lineage
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:121: FILE: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:143: FILE: docs/computational-canon/SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Identity_Provenance.txt:180: --- SC-018 ---
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:38: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:19: \- SC-014 Computational Knowledge Curation and Promotion Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:72: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:21: \- SC-015 Computational Operator Session Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:131: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:23: \- SC-016 Computational Manifold Federation Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:154: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:25: \- SC-017 Computational Epistemic Binding Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:159: SC-018
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:163: docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:164: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:167: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:53: SC-018 docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md                          0 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:168: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:54: SC-018 docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md         8685 2...
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:169: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:92: [SC-018] 2 FILES
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:170: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:93: docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:171: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:94: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:172: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:125: SC-018 docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:173: docs\architecture-audit\P56R-A_Corpus_Inventory.txt:126: SC-018 docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:174: docs\computational-canon\ED_Epistemic_Reference_Runtime_Architecture.md:9: \*\*Supports:\*\* SC-018 Computational Provenance and Epistemic Lineage Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:175: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:1: \# SC-018 — Computational Provenance and Epistemic Lineage Architecture
+  docs\architecture-audit\P56R-A_Canon_Reference_Discovery.txt:187: SC-018: 2 claimant file(s), 9 repository reference(s)
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:53: SC-018 docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md                          0 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:54: SC-018 docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md         8685 2...
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:92: [SC-018] 2 FILES
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:93: docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:94: docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:125: SC-018 docs\computational-canon\SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Corpus_Inventory.txt:126: SC-018 docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:5: PURPOSE: Capture title, substantive status, declared dependencies, implementation references, and historical origin for every SC-014 through SC-018 claimant before stable identity assignment.
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:205: FILE: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:218: FILE: docs/computational-canon/SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:225: L1: \# SC-018 â€” Computational Provenance and Epistemic Lineage Architecture
+  docs\architecture-audit\P56R-A_Identity_Reconciliation_Evidence.txt:240: SC-018_Computational_Knowledge_Artifact_Architecture.md is a zero-byte P52 placeholder.
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:1: # P56R-A — SC-018 KNOWLEDGE ARTIFACT FORENSIC AUDIT
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:5: PURPOSE: Determine whether the zero-byte SC-018 Knowledge Artifact file has genuine historical canonical identity or misleading Git --follow ancestry.
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:7: CURRENT FILE: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:18: C100	isees-ui/p40-inspection/InvestigationGraph.tsx	isees-ui/docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:55: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:56: docs/computational-canon/SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+  docs\architecture-audit\P56R-A_SC-018_Forensic_Audit.txt:61: TREE: 100644 blob e69de29bb2d1d6434b8b29ae775ad8c2e48c5391	docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  docs\computational-canon\ED_Epistemic_Reference_Runtime_Architecture.md:9: \*\*Supports:\*\* SC-018 Computational Provenance and Epistemic Lineage Architecture
+  docs\computational-canon\SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md:1: \# SC-018 — Computational Provenance and Epistemic Lineage Architecture
+
+================================================================
+UNCHANGED STABLE IDENTITIES
+================================================================
+SC-014 = Computational Authoring and Narrative Architecture
+SC-015 = Computational Publication and Knowledge Dissemination Architecture
+SC-016 = Human-Computational Collaborative Authoring Architecture
+SC-017 = Computational Intelligence and Context Architecture
+SC-018 = Computational Provenance and Epistemic Lineage Architecture
+
+================================================================
+NON-CANONICAL PLACEHOLDER
+================================================================
+docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+Disposition: EMPTY HISTORICAL PLACEHOLDER — no new SC identity assigned.
+Do not delete until historical-preservation disposition is explicitly reviewed.
+
+================================================================
+REQUIRED MIGRATION ORDER
+================================================================
+1. Review this report.
+2. Resolve every ambiguous numeric-only reference semantically.
+3. Prepare exact content substitutions by title/meaning.
+4. Rename six displaced files using git mv.
+5. Update each renamed document's internal canonical ID.
+6. Repair dependency references using semantic mapping.
+7. Re-run corpus inventory and collision audit.
+8. Verify exactly one active claimant exists for every SC-001 through SC-024 identity.
+9. Run npm build and deterministic verification where applicable.
+10. Commit migration as one auditable architectural change.
+
+================================================================
+SAFETY
+================================================================
+NO CANON SOURCE FILES RENAMED.
+NO CANON SOURCE FILES MOVED.
+NO CANON SOURCE CONTENT MODIFIED.
+P56R-A remains discovery/planning-only.

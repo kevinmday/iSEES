@@ -1,0 +1,72 @@
+﻿# P56R-A — SC-018 KNOWLEDGE ARTIFACT FORENSIC AUDIT
+Generated: 2026-08-10 15:05:48
+Repo: C:\dev\IntentionalTradingSystem\isees-ui
+
+PURPOSE: Determine whether the zero-byte SC-018 Knowledge Artifact file has genuine historical canonical identity or misleading Git --follow ancestry.
+
+CURRENT FILE: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+Current bytes: 0
+
+=== RAW PATH HISTORY — NO --follow ===
+
+03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+=== NAME-STATUS HISTORY WITH --follow ===
+
+COMMIT 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+C100	isees-ui/p40-inspection/InvestigationGraph.tsx	isees-ui/docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+COMMIT dbb89b2fbeaff17eec04d2768190aa6f843d78ad|2026-07-17T05:43:14-07:00|P40B refine production manifold presentation and inspection baseline
+
+C100	isees-ui/src/graph/InvestigationGraph.tsx	isees-ui/p40-inspection/InvestigationGraph.tsx
+COMMIT 22c3af4d4ed1a39e3ccef78761f6cdc7bf445738|2026-06-23T04:45:54-07:00|P25.3 establish operational investigation topology and dynamic center node
+
+C100	isees-ui/src/overlays/contracts/authorityContracts.ts	isees-ui/src/graph/InvestigationGraph.tsx
+COMMIT 7c45ec03707f0017d209b633b2b2bd6494fdbdd5|2026-05-24T05:01:02-07:00|HF deployment hydration 2026-05-24 05:01:02
+
+C100	isees_uap/__init__.py	isees-ui/src/overlays/contracts/authorityContracts.ts
+COMMIT 28f136eb34b0d422ffcf51b1482c3e123331cd12|2026-04-30T06:05:58-07:00|Phase: Full intel pipeline complete (geo persistence + real clustering + investigation integration)
+
+C100	isees_uap/geo/__init__.py	isees_uap/__init__.py
+COMMIT dabbfeeacf38362c5cbf1b594dc63fdd722d862b|2026-04-24T08:42:13-07:00|Phase 2 complete: geo resolution + ranking + target fusion + API endpoint (/geo/targets)
+
+C100	marketmind_engine/__init__.py	isees_uap/geo/__init__.py
+COMMIT 916d39d182dbd8f583e4b178186f08560ccd8c48|2026-02-10T06:09:13-08:00|Phase-9B complete: DecisionResult persistence and contract-aligned test
+
+C100	marketmind_engine/adapters/__init__.py	marketmind_engine/__init__.py
+COMMIT d0443afc61f293f8a71892971df0c0124618c84a|2026-02-05T09:28:04-08:00|Phase-2: NarrativeAdapter with legacy-compatible NarrativeContext
+
+C100	marketmind_engine/decision/rules/__init__.py	marketmind_engine/adapters/__init__.py
+COMMIT c4ec03477c3b1ee35dcba6607e484c6572804a19|2026-02-04T18:04:48-08:00|Add VolatilityCompressionRule and LiquidityParticipationRule (Rules 2ΓÇô3)
+
+C100	marketmind_engine/policy/__init__.py	marketmind_engine/decision/rules/__init__.py
+COMMIT 6d0dca43d261ee4848c26636daa29aac3a559df7|2026-02-04T04:28:31-08:00|Add canonical policy framework (PolicyEngine, BasePolicy, PolicyResult)
+
+C100	marketmind_flask/__init__.py	marketmind_engine/policy/__init__.py
+COMMIT 4490973230c830243381306952d696cf26a245df|2026-02-01T05:07:55-08:00|engine api stub + flask adapter delegation
+
+C100	marketmind_engine/intention/drift.py	marketmind_flask/__init__.py
+COMMIT 65b5c2291b9a73335234c7532b1864902b6f30f4|2026-01-30T05:44:46-08:00|Add marketmind_engine scaffold and establish engine-first architecture
+
+A	marketmind_engine/intention/drift.py
+
+=== CURRENT TREE MATCHES ===
+
+docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+docs/computational-canon/SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+
+=== COMMITS TOUCHING EXACT CURRENT PATH ===
+
+03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+  TREE: 100644 blob e69de29bb2d1d6434b8b29ae775ad8c2e48c5391	docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+  BLOB SIZE: 0
+
+=== CONTENT SEARCH IN ALL REFS FOR KNOWLEDGE ARTIFACT TITLE ===
+
+NONE
+
+=== SAFETY ===
+NO FILES RENAMED.
+NO FILES MOVED.
+NO CANON CONTENT MODIFIED.
+P56R-A remains discovery-only.

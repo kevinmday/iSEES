@@ -4,7 +4,7 @@
 
 \*\*Status:\*\* Engineering Design  
 
-\*\*Implements:\*\* SC-017 Computational Epistemic Binding Architecture  
+\*\*Implements:\*\* SC-023 Computational Epistemic Binding Architecture  
 
 \*\*Supports:\*\* SC-018 Computational Provenance and Epistemic Lineage Architecture  
 

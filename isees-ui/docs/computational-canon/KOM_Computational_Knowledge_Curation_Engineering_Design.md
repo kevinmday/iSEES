@@ -30,11 +30,11 @@ This document defines the engineering realization of the
 
 Computational Knowledge Curation Architecture established in
 
-SC-014.
+SC-019.
 
 
 
-Where SC-014 defines the conceptual architecture and operator
+Where SC-019 defines the conceptual architecture and operator
 
 workflow, this document specifies the runtime ownership,
 

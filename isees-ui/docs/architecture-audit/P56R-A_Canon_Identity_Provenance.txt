@@ -1,0 +1,186 @@
+﻿# P56R-A — CANON IDENTITY PROVENANCE AUDIT
+Generated: 2026-08-10 15:03:53
+Repo: C:\dev\IntentionalTradingSystem\isees-ui
+
+PURPOSE: Establish historical provenance for each colliding SC claimant before canonical identity reconciliation.
+
+NO FILES RENAMED. NO FILES MOVED. NO CANON CONTENT MODIFIED.
+
+
+================================================================
+FILE: docs/computational-canon/SC-014_Computational_Authoring_and_Narrative_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 9865
+Created/first tracked: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+Latest tracked change: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+GIT HISTORY:
+  03d5df7|2026-08-04|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+================================================================
+FILE: docs/computational-canon/SC-014_Computational_Knowledge_Curation_and_Promotion_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 9175
+Created/first tracked: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|Kevin Day|P55-ARCH preserve computational canon, innovation review, and REX runtime
+Latest tracked change: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|Kevin Day|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+GIT HISTORY:
+  d9b8cba|2026-08-08|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+================================================================
+FILE: docs/computational-canon/SC-015_Canonical_Computational_Artifact_and_File_Extension_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 9305
+Created/first tracked: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|Kevin Day|P55-ARCH preserve computational canon, innovation review, and REX runtime
+Latest tracked change: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|Kevin Day|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+GIT HISTORY:
+  d9b8cba|2026-08-08|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+================================================================
+FILE: docs/computational-canon/SC-015_Computational_Operator_Session_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 8872
+Created/first tracked: 6bd31a917d3ae6385a4717af44f7fa01f22f7d8b|2026-08-05T05:53:35-07:00|Kevin Day|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+Latest tracked change: 6bd31a917d3ae6385a4717af44f7fa01f22f7d8b|2026-08-05T05:53:35-07:00|Kevin Day|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+
+GIT HISTORY:
+  6bd31a9|2026-08-05|P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+
+================================================================
+FILE: docs/computational-canon/SC-015_Computational_Publication_and_Knowledge_Dissemination_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 8413
+Created/first tracked: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+Latest tracked change: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+GIT HISTORY:
+  03d5df7|2026-08-04|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+================================================================
+FILE: docs/computational-canon/SC-016_Computational_Manifold_Federation_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 9535
+Created/first tracked: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|Kevin Day|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+Latest tracked change: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|Kevin Day|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+GIT HISTORY:
+  3c8953b|2026-08-05|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+================================================================
+FILE: docs/computational-canon/SC-016_Human-Computational_Collaborative_Authoring_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 9245
+Created/first tracked: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+Latest tracked change: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+GIT HISTORY:
+  03d5df7|2026-08-04|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+================================================================
+FILE: docs/computational-canon/SC-016_Temporal_Manifold_Deformation_and_Latent_Intention_Resolution.md
+================================================================
+Declared heading: 
+Bytes: 54732
+Created/first tracked: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|Kevin Day|P55-ARCH preserve computational canon, innovation review, and REX runtime
+Latest tracked change: d9b8cba5dd55fb4c3d5927a4f2f00b1453d34e47|2026-08-08T04:58:59-07:00|Kevin Day|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+GIT HISTORY:
+  d9b8cba|2026-08-08|P55-ARCH preserve computational canon, innovation review, and REX runtime
+
+================================================================
+FILE: docs/computational-canon/SC-017_Computational_Epistemic_Binding_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 8280
+Created/first tracked: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|Kevin Day|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+Latest tracked change: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|Kevin Day|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+GIT HISTORY:
+  3c8953b|2026-08-05|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+================================================================
+FILE: docs/computational-canon/SC-017_Computational_Intelligence_and_Context_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 8629
+Created/first tracked: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+Latest tracked change: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+GIT HISTORY:
+  03d5df7|2026-08-04|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+================================================================
+FILE: docs/computational-canon/SC-018_Computational_Knowledge_Artifact_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 0
+Created/first tracked: 65b5c2291b9a73335234c7532b1864902b6f30f4|2026-01-30T05:44:46-08:00|Kevin Day|Add marketmind_engine scaffold and establish engine-first architecture
+Latest tracked change: 03d5df7ff8b6a570cb7c737182aee8afae00217e|2026-08-04T05:19:56-07:00|Kevin Day|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+GIT HISTORY:
+  03d5df7|2026-08-04|P52 establish Computational Knowledge Object Model (KOM) engineering design package
+  dbb89b2|2026-07-17|P40B refine production manifold presentation and inspection baseline
+  22c3af4|2026-06-23|P25.3 establish operational investigation topology and dynamic center node
+  7c45ec0|2026-05-24|HF deployment hydration 2026-05-24 05:01:02
+  28f136e|2026-04-30|Phase: Full intel pipeline complete (geo persistence + real clustering + investigation integration)
+  dabbfee|2026-04-24|Phase 2 complete: geo resolution + ranking + target fusion + API endpoint (/geo/targets)
+  916d39d|2026-02-10|Phase-9B complete: DecisionResult persistence and contract-aligned test
+  d0443af|2026-02-05|Phase-2: NarrativeAdapter with legacy-compatible NarrativeContext
+  c4ec034|2026-02-04|Add VolatilityCompressionRule and LiquidityParticipationRule (Rules 2ΓÇô3)
+  6d0dca4|2026-02-04|Add canonical policy framework (PolicyEngine, BasePolicy, PolicyResult)
+  4490973|2026-02-01|engine api stub + flask adapter delegation
+  65b5c22|2026-01-30|Add marketmind_engine scaffold and establish engine-first architecture
+
+================================================================
+FILE: docs/computational-canon/SC-018_Computational_Provenance_and_Epistemic_Lineage_Architecture.md
+================================================================
+Declared heading: 
+Bytes: 8685
+Created/first tracked: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|Kevin Day|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+Latest tracked change: 3c8953bf0919e80c9db6dbdbf40f4b78d716492e|2026-08-05T07:15:18-07:00|Kevin Day|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+GIT HISTORY:
+  3c8953b|2026-08-05|P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+================================================================
+CROSS-IDENTIFIER HISTORY
+================================================================
+
+
+--- SC-014 ---
+  d9b8cba P55-ARCH preserve computational canon, innovation review, and REX runtime
+  de77178 P55-ARCH establish Architectural Audit framework and engineering review tooling
+  3c8953b P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+  03d5df7 P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+--- SC-015 ---
+  d9b8cba P55-ARCH preserve computational canon, innovation review, and REX runtime
+  de77178 P55-ARCH establish Architectural Audit framework and engineering review tooling
+  3c8953b P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+  6bd31a9 P54 establish Computational Operator Session Architecture and initial Knowledge Promotion runtime
+  03d5df7 P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+--- SC-016 ---
+  d9b8cba P55-ARCH preserve computational canon, innovation review, and REX runtime
+  3c8953b P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+  03d5df7 P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+--- SC-017 ---
+  3c8953b P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+  03d5df7 P52 establish Computational Knowledge Object Model (KOM) engineering design package
+
+--- SC-018 ---
+  3c8953b P54A establish Computational Manifold Federation, Epistemic Binding, Provenance Lineage, and Epistemic Reference Runtime architecture
+
+================================================================
+END
+================================================================
+P56R-A remains discovery-only.
