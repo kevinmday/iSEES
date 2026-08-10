@@ -88,6 +88,11 @@ import {
 
 } from "./resolve/runtime/ResolveRuntimeContext";
 
+import {
+
+  KnowledgeObjectRuntimeProvider,
+
+} from "./knowledge/runtime/KnowledgeObjectRuntimeContext";
 // ============================================================
 // OPERATOR UI
 // ============================================================
@@ -106,41 +111,45 @@ function OperatorUI() {
 
             <ResolveRuntimeProvider>
 
-              <ResearchBridgeProvider>
+              <KnowledgeObjectRuntimeProvider>
 
-                <FederationProvider>
+                <ResearchBridgeProvider>
 
-                  <IntelligenceBriefProvider>
+                  <FederationProvider>
 
-                    <GraphProvider>
+                    <IntelligenceBriefProvider>
 
-                      <EventProvider>
+                      <GraphProvider>
 
-                        <MainLayout
+                        <EventProvider>
 
-                          left={
-                            <InvestigationControl />
-                          }
+                          <MainLayout
 
-                          center={
-                            <PrimarySurface />
-                          }
+                            left={
+                              <InvestigationControl />
+                            }
 
-                          right={
-                            <RightPanel />
-                          }
+                            center={
+                              <PrimarySurface />
+                            }
 
-                        />
+                            right={
+                              <RightPanel />
+                            }
 
-                      </EventProvider>
+                          />
 
-                    </GraphProvider>
+                        </EventProvider>
 
-                  </IntelligenceBriefProvider>
+                      </GraphProvider>
 
-                </FederationProvider>
+                    </IntelligenceBriefProvider>
 
-              </ResearchBridgeProvider>
+                  </FederationProvider>
+
+                </ResearchBridgeProvider>
+
+              </KnowledgeObjectRuntimeProvider>
 
             </ResolveRuntimeProvider>
 
