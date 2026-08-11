@@ -286,28 +286,61 @@ export interface CanonicalInfrastructureFeatures {
 // TOPOLOGY FEATURES
 // ============================================================
 //
-// These fields preserve the historical topology dimensions
-// required for initial migration parity.
+// Canonical computational topology consumed by the historical
+// deterministic Resolve similarity computation.
+//
+// The initial topology vector is:
+//
+//     T = (Dc, Ri, Es, Fc)
+//
+// where:
+//
+//   Dc = contradiction density
+//   Ri = residual instability
+//   Es = entanglement score
+//   Fc = cluster fragmentation
+//
+// These values originate from canonical event topology state.
 //
 // They are computational features, NOT rendered topology.
 //
-// Future RDC packages may replace or enrich this representation
-// without coupling Resolve operators to legacy Corpus objects.
+// IMPORTANT:
+//
+// Missing topology state is NOT equivalent to a zero-valued
+// topology vector.
+//
+// P56C-A.1 corrects the provisional P56C-A topology vocabulary
+// against the actual P24.2 Resolve computation contract.
 //
 // ============================================================
-
 export interface CanonicalTopologyState {
 
-  corridorCentrality:
+  // ----------------------------------------------------------
+  // CONTRADICTION DENSITY
+  // ----------------------------------------------------------
+
+  contradictionDensity:
     number;
 
-  proximityToRestrictedAirspace:
+  // ----------------------------------------------------------
+  // RESIDUAL INSTABILITY
+  // ----------------------------------------------------------
+
+  residualInstability:
     number;
 
-  sensorCoverageDensity:
+  // ----------------------------------------------------------
+  // ENTANGLEMENT SCORE
+  // ----------------------------------------------------------
+
+  entanglementScore:
     number;
 
-  infrastructureDensity:
+  // ----------------------------------------------------------
+  // CLUSTER FRAGMENTATION
+  // ----------------------------------------------------------
+
+  clusterFragmentation:
     number;
 
 }

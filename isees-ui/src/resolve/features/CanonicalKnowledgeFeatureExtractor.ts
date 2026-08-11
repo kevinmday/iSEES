@@ -809,55 +809,146 @@ function extractInfrastructure(
 // ============================================================
 
 function extractTopologyState(
-  _object: KnowledgeObject,
+  object: KnowledgeObject,
 ): CanonicalFeatureValue<
   CanonicalTopologyState
 > {
 
   // ----------------------------------------------------------
-  // P56C-A
-  // TOPOLOGY FEATURE DEFERRED
+  // P56C-A.1
+  // CANONICAL TOPOLOGY FEATURE EXTRACTION
   // ----------------------------------------------------------
   //
-  // The historical Corpus similarity engine consumed:
+  // Historical deterministic Resolve topology similarity
+  // consumes the canonical topology vector:
   //
-  //   • corridor_centrality
-  //   • proximity_to_restricted_airspace
-  //   • sensor_coverage_density
-  //   • infrastructure_density
+  //     T = (Dc, Ri, Es, Fc)
   //
-  // Those values are NOT members of the current canonical
-  // Knowledge / CanonicalReplayEvent topology contract.
+  // where:
   //
-  // Current canonical topology instead represents:
+  //   Dc = contradiction_density
+  //   Ri = residual_instability
+  //   Es = entanglement_score
+  //   Fc = cluster_fragmentation
   //
-  //   • stability_state
-  //   • ambiguity_state
-  //   • contradiction_density
-  //   • residual_instability
-  //   • entanglement_score
-  //   • cluster_fragmentation
+  // These values are represented directly by the canonical
+  // EVENT topology contract carried by the Knowledge payload.
   //
-  // These are semantically different computational features.
+  // IMPORTANT:
   //
-  // P56C-A therefore MUST NOT:
+  // Missing topology MUST NOT be represented as:
   //
-  //   • alias one topology model to the other
-  //   • manufacture missing values
-  //   • substitute zero
-  //   • import legacy Corpus state
+  //     (0, 0, 0, 0)
   //
-  // A future RDC topology feature contract will determine how
-  // canonical topology participates in Resolve computation.
+  // Zero is a legitimate computational value.
   //
-  // Until then:
+  // Therefore topology is AVAILABLE only when all four
+  // numerical dimensions are explicitly present and finite.
   //
-  //             topology = UNAVAILABLE
+  // This preserves the canonical feature invariant:
+  //
+  //     UNAVAILABLE != 0
+  //
+  // No legacy Corpus state is imported.
+  // No missing values are manufactured.
+  // No absent values are substituted with zero.
   //
   // ----------------------------------------------------------
 
-  return unavailableFeature(
-    "Legacy similarity topology dimensions are not represented by the current canonical Knowledge topology contract.",
+  if (
+    !isSystemCanonEventPayload(
+      object.payload,
+    )
+  ) {
+
+    return unavailableFeature(
+      "Knowledge Object does not contain a canonical System Canon EVENT payload.",
+    );
+
+  }
+
+  const topology =
+    object
+      .payload
+      .canonicalEvent
+      .topology
+      ?.topology_state;
+
+  if (
+    topology === undefined
+  ) {
+
+    return unavailableFeature(
+      "Canonical EVENT does not contain topology state.",
+    );
+
+  }
+
+  const contradictionDensity =
+    topology
+      .contradiction_density;
+
+  const residualInstability =
+    topology
+      .residual_instability;
+
+  const entanglementScore =
+    topology
+      .entanglement_score;
+
+  const clusterFragmentation =
+    topology
+      .cluster_fragmentation;
+
+  if (
+    typeof contradictionDensity !==
+      "number" ||
+    !Number.isFinite(
+      contradictionDensity,
+    ) ||
+    typeof residualInstability !==
+      "number" ||
+    !Number.isFinite(
+      residualInstability,
+    ) ||
+    typeof entanglementScore !==
+      "number" ||
+    !Number.isFinite(
+      entanglementScore,
+    ) ||
+    typeof clusterFragmentation !==
+      "number" ||
+    !Number.isFinite(
+      clusterFragmentation,
+    )
+  ) {
+
+    return unavailableFeature(
+      "Canonical EVENT topology state is incomplete or non-finite.",
+    );
+
+  }
+
+  return availableFeature(
+    {
+
+      contradictionDensity,
+
+      residualInstability,
+
+      entanglementScore,
+
+      clusterFragmentation,
+
+    },
+    createLineage(
+      CanonicalFeatureSource
+        .KNOWLEDGE_PAYLOAD,
+      [
+        object.identity.id,
+      ],
+      [],
+    ),
   );
 
 }

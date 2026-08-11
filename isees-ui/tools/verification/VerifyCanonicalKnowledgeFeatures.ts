@@ -477,47 +477,117 @@ function main(): void {
     "PASS — AVAILABLE numeric features contain finite values",
   );
 
-  // ==========================================================
-  // TOPOLOGY SEMANTIC DISCONTINUITY
-  // ==========================================================
-  //
-  // Historical similarity topology:
-  //
-  //   corridor_centrality
-  //   proximity_to_restricted_airspace
-  //   sensor_coverage_density
-  //   infrastructure_density
-  //
-  // is NOT the current canonical topology contract.
-  //
-  // Therefore topology MUST remain UNAVAILABLE rather than
-  // being silently fabricated as zero.
-  //
-  // ==========================================================
+// ==========================================================
+// CANONICAL TOPOLOGY FEATURE CONTRACT
+// P56C-A.1
+// ==========================================================
+//
+// P56C-A.1 reconciles the canonical feature boundary with
+// the actual historical deterministic Resolve topology
+// computation.
+//
+// Resolve consumes:
+//
+//     T = (Dc, Ri, Es, Fc)
+//
+// where:
+//
+//   Dc = contradiction density
+//   Ri = residual instability
+//   Es = entanglement score
+//   Fc = cluster fragmentation
+//
+// Canonical EVENT topology may legitimately be unavailable.
+//
+// When AVAILABLE, all four dimensions MUST be explicit finite
+// numerical values.
+//
+// Missing topology MUST remain UNAVAILABLE and MUST NOT be
+// manufactured as the zero vector:
+//
+//     UNAVAILABLE != (0, 0, 0, 0)
+//
+// ==========================================================
 
-  for (
-    const feature
-    of eventFeatures
+let availableTopologyCount = 0;
+
+let unavailableTopologyCount = 0;
+
+for (
+  const feature
+  of eventFeatures
+) {
+
+  const topology =
+    feature
+      .topology
+      .state;
+
+  if (
+    topology.availability ===
+      CanonicalFeatureAvailability.AVAILABLE
   ) {
 
+    availableTopologyCount += 1;
+
     assert(
-      feature
-        .topology
-        .state
-        .availability ===
-        CanonicalFeatureAvailability.UNAVAILABLE,
-      `${feature.knowledgeObjectId} topology must remain UNAVAILABLE in P56C-A.`,
+      Number.isFinite(
+        topology.value
+          .contradictionDensity,
+      ),
+      `${feature.knowledgeObjectId} contradiction density must be finite when topology is AVAILABLE.`,
     );
+
+    assert(
+      Number.isFinite(
+        topology.value
+          .residualInstability,
+      ),
+      `${feature.knowledgeObjectId} residual instability must be finite when topology is AVAILABLE.`,
+    );
+
+    assert(
+      Number.isFinite(
+        topology.value
+          .entanglementScore,
+      ),
+      `${feature.knowledgeObjectId} entanglement score must be finite when topology is AVAILABLE.`,
+    );
+
+    assert(
+      Number.isFinite(
+        topology.value
+          .clusterFragmentation,
+      ),
+      `${feature.knowledgeObjectId} cluster fragmentation must be finite when topology is AVAILABLE.`,
+    );
+
+    continue;
 
   }
 
-  console.log(
-    "PASS — canonical topology discontinuity is preserved",
+  unavailableTopologyCount += 1;
+
+  assert(
+    topology.availability ===
+      CanonicalFeatureAvailability.UNAVAILABLE,
+    `${feature.knowledgeObjectId} topology availability must be canonical.`,
   );
 
-  console.log(
-    "PASS — UNAVAILABLE != 0",
-  );
+}
+
+assert(
+  availableTopologyCount > 0,
+  "Expected at least one EVENT with AVAILABLE canonical topology.",
+);
+
+console.log(
+  `PASS — canonical topology contract (${availableTopologyCount} AVAILABLE, ${unavailableTopologyCount} UNAVAILABLE)`,
+);
+
+console.log(
+  "PASS — missing topology is never manufactured as a zero vector",
+);
 
   // ==========================================================
   // HETEROGENEOUS KNOWLEDGE SAFETY
@@ -584,7 +654,7 @@ function main(): void {
     "============================================================",
   );
   console.log(
-    "P56C-A VERIFICATION PASSED",
+    "P56C-A.1 VERIFICATION PASSED",
   );
   console.log(
     "============================================================",
@@ -612,10 +682,13 @@ function main(): void {
     "  explicit feature availability",
   );
   console.log(
-    "  topology semantic discontinuity",
+    "  canonical topology extraction",
   );
   console.log(
-    "  UNAVAILABLE != 0",
+    "  topology availability semantics",
+  );
+  console.log(
+    "  missing topology != zero topology",
   );
   console.log(
     "  heterogeneous Knowledge safety",
