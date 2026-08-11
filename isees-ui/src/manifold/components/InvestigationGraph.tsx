@@ -4,7 +4,6 @@
 // PRIMARY INVESTIGATION SURFACE
 // DETERMINISTIC INVESTIGATION TOPOLOGY
 // ============================================================
-
 import {
   useMemo,
   useRef,
@@ -12,16 +11,20 @@ import {
 } from "react";
 
 import {
-  useCorpus,
-} from "../../corpus/context/CorpusContext";
-
-import {
   useWorkspace,
 } from "../../workspace/context/WorkspaceContext";
 
 import {
-  buildInvestigationGraph,
-} from "../graphBuilder";
+  useKnowledgeObjects,
+} from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+
+import {
+  buildKnowledgeTopology,
+} from "../../knowledge/topology/KnowledgeTopologyBuilder";
+
+import {
+  adaptKnowledgeTopology,
+} from "../../knowledge/topology/KnowledgeTopologyAdapter";
 
 import {
   applyCircularManifoldLayout,
@@ -80,28 +83,62 @@ export default function InvestigationGraph({
 }: InvestigationGraphProps) {
 
   const {
-    corpus,
-  } = useCorpus();
-
-  const {
-    activeWorkspace,
     focusedEventId,
   } = useWorkspace();
 
+  const knowledgeObjects =
+    useKnowledgeObjects();
+
   // ==========================================================
-  // GRAPH CONSTRUCTION
+  // P56B
+  // KNOWLEDGE-DERIVED OPERATIONAL TOPOLOGY
+  // ==========================================================
+  //
+  // Canonical Knowledge K is now the explicit topology
+  // authority for the live Investigation Manifold.
+  //
+  //   K
+  //   ↓
+  //   KnowledgeTopologyBuilder
+  //   ↓
+  //   G₀(K)
+  //   ↓
+  //   KnowledgeTopologyAdapter
+  //   ↓
+  //   InvestigationGraph
+  //
+  // React observes Knowledge runtime state through
+  // useKnowledgeObjects().
+  //
+  // A Knowledge runtime mutation therefore causes deterministic
+  // reconstruction of G₀ and rerendering of the Manifold.
+  //
+  // Legacy graph construction remains available as a migration
+  // oracle/fallback but no longer owns explicit live Manifold
+  // topology through this component.
+  //
+  // Computed topology such as SIMILARITY relationships is not
+  // manufactured here. Gcomputed remains the responsibility of
+  // the appropriate RDC / Discovery computational layer.
+  //
   // ==========================================================
 
   const graph =
     useMemo(
-      () =>
-        buildInvestigationGraph(
-          corpus,
-          activeWorkspace
-        ),
+      () => {
+
+        const topology =
+          buildKnowledgeTopology(
+            knowledgeObjects
+          );
+
+        return adaptKnowledgeTopology(
+          topology
+        );
+
+      },
       [
-        corpus,
-        activeWorkspace,
+        knowledgeObjects,
       ]
     );
 
