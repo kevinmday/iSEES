@@ -59,6 +59,10 @@ import {
   type KnowledgeTag,
 } from "../model/KnowledgeObjectTypes";
 
+import {
+  CANONICAL_REGISTRY,
+} from "../../canonical/canonicalRegistry";
+
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -84,6 +88,57 @@ const SYSTEM_CANON_REVISION =
 
 const CANONICAL_UNSPECIFIED_TIMESTAMP =
   "1970-01-01T00:00:00.000Z";
+
+// ============================================================
+// CANONICAL OBSERVABILITY REGIME RESOLUTION
+// ============================================================
+//
+// P56C-B2
+//
+// CanonicalReplayEvent contains quantitative event
+// observability data.
+//
+// The canonical categorical observational regime belongs to
+// CanonicalMetadata in CANONICAL_REGISTRY.
+//
+// Join strictly by canonical event identity.
+//
+// No regime is inferred from:
+//
+//   • year
+//   • event classification
+//   • sensor references
+//   • narrative content
+//
+// Missing registry metadata remains missing.
+//
+// ============================================================
+
+function resolveCanonicalObservabilityRegime(
+  eventId: string,
+): string | undefined {
+
+  const metadata =
+    CANONICAL_REGISTRY.find(
+      (entry) =>
+        entry.event_id === eventId,
+    );
+
+  const regime =
+    metadata?.observability_profile;
+
+  if (
+    typeof regime !== "string" ||
+    regime.trim().length === 0
+  ) {
+
+    return undefined;
+
+  }
+
+  return regime;
+
+}
 
 // ============================================================
 // CANONICAL STRING COMPARISON
@@ -113,7 +168,6 @@ function compareCanonicalStrings(
   return 0;
 
 }
-
 // ============================================================
 // ID COMPONENT NORMALIZATION
 // ============================================================
@@ -530,99 +584,141 @@ function createEventObject(
     [];
 
   const domains =
-    event.operational_intelligence
-      ?.domain_inference ??
-    [];
+  event.operational_intelligence
+    ?.domain_inference ??
+  [];
 
-  return {
+// ------------------------------------------------------------
+// CANONICAL OBSERVABILITY REGIME
+// ------------------------------------------------------------
+//
+// P56C-B2
+//
+// Preserve the categorical observational regime supplied by
+// CanonicalMetadata.
+//
+// No regime is inferred when canonical metadata is absent.
+//
+// ------------------------------------------------------------
 
-    identity: {
+const observabilityRegime =
+  resolveCanonicalObservabilityRegime(
+    event.event_id,
+  );
 
+return {
+
+  identity: {
+
+    id,
+
+    createdAt:
+      CANONICAL_UNSPECIFIED_TIMESTAMP,
+
+  },
+
+  metadata: {
+
+    title:
+      event.event_name,
+
+    description:
+      `System Canon event: ${event.classification}`,
+
+    version:
+      SYSTEM_CANON_VERSION,
+
+  },
+
+  lifecycle:
+    createLifecycle(),
+
+  type:
+    KnowledgeObjectType.EVENT,
+
+  status:
+    KnowledgeObjectStatus.KNOWLEDGE,
+
+  confidence: {
+
+    value:
+      confidence,
+
+    rationale:
+      "Inherited from System Canon observability profile.",
+
+  },
+
+  provenance:
+    createProvenance(
+      event.event_id,
+    ),
+
+  revision:
+    createRevision(),
+
+  graph:
+    [] as KnowledgeGraphReference[],
+
+  relationships:
+    createEventRelationships(
+      event,
+    ),
+
+  tags:
+    createTags(
       id,
+      [
+        event.classification,
+        ...traits,
+        ...domains,
+      ],
+    ),
 
-      createdAt:
-        CANONICAL_UNSPECIFIED_TIMESTAMP,
+  capabilities:
+    createCapabilities(),
 
-    },
+  payload: {
 
-    metadata: {
+    source:
+      "SYSTEM_CANON",
 
-      title:
-        event.event_name,
+    sourceKind:
+      "CANONICAL_REPLAY_EVENT",
 
-      description:
-        `System Canon event: ${event.classification}`,
+    canonicalEvent:
+      event,
 
-      version:
-        SYSTEM_CANON_VERSION,
+    // --------------------------------------------------------
+    // P56C-B2
+    // CANONICAL OBSERVABILITY REGIME
+    //
+    // This is canonical categorical evidence carried forward
+    // from CanonicalMetadata.
+    //
+    // Examples include:
+    //
+    //   multi_sensor
+    //   radar_visual
+    //   mass_visual
+    //   historical_narrative
+    //   ancient_textual
+    //
+    // It is NOT:
+    //
+    //   • a similarity score
+    //   • an inferred sensor capability
+    //   • a classification derived from event year
+    //
+    // --------------------------------------------------------
 
-    },
+    observabilityRegime,
 
-    lifecycle:
-      createLifecycle(),
+  },
 
-    type:
-      KnowledgeObjectType.EVENT,
-
-    status:
-      KnowledgeObjectStatus.KNOWLEDGE,
-
-    confidence: {
-
-      value:
-        confidence,
-
-      rationale:
-        "Inherited from System Canon observability profile.",
-
-    },
-
-    provenance:
-      createProvenance(
-        event.event_id,
-      ),
-
-    revision:
-      createRevision(),
-
-    graph:
-      [] as KnowledgeGraphReference[],
-
-    relationships:
-      createEventRelationships(
-        event,
-      ),
-
-    tags:
-      createTags(
-        id,
-        [
-          event.classification,
-          ...traits,
-          ...domains,
-        ],
-      ),
-
-    capabilities:
-      createCapabilities(),
-
-    payload: {
-
-      source:
-        "SYSTEM_CANON",
-
-      sourceKind:
-        "CANONICAL_REPLAY_EVENT",
-
-      canonicalEvent:
-        event,
-
-    },
-
-  };
+};
 
 }
-
 // ============================================================
 // LOCATION OBJECT
 // ============================================================

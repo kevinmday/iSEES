@@ -245,8 +245,40 @@ export interface CanonicalObservabilityFeatures {
   durationMinutes:
     CanonicalFeatureValue<number>;
 
-}
+  // ----------------------------------------------------------
+  // OBSERVATION REGIME
+  // ----------------------------------------------------------
+  //
+  // Canonical categorical description of the observational
+  // regime represented by the source Knowledge Object.
+  //
+  // Examples originate from canonical Knowledge and may include:
+  //
+  //   multi_sensor
+  //   radar_visual
+  //   mass_visual
+  //   historical_narrative
+  //   ancient_textual
+  //
+  // This value is NOT itself a similarity score.
+  //
+  // P56C-B2 introduces regime as canonical evidence required by
+  // downstream pairwise comparability resolution.
+  //
+  // Regime therefore supports the future distinction:
+  //
+  //     feature availability
+  //              ≠
+  //     pairwise comparability
+  //
+  // The extractor preserves canonical vocabulary verbatim and
+  // performs no historical, technological, or epistemic inference.
+  // ----------------------------------------------------------
 
+  regime:
+    CanonicalFeatureValue<string>;
+
+}
 // ============================================================
 // INFRASTRUCTURE FEATURE
 // ============================================================

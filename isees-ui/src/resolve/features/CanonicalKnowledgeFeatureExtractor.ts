@@ -94,6 +94,9 @@ interface SystemCanonEventPayload {
   canonicalEvent:
     CanonicalReplayEvent;
 
+  observabilityRegime?:
+    string;
+
 }
 
 interface CanonicalLocationPayload {
@@ -611,6 +614,80 @@ function extractDurationMinutes(
 
 }
 
+// ============================================================
+// OBSERVABILITY REGIME
+// ============================================================
+//
+// P56C-B2
+//
+// Extract the canonical categorical observational regime
+// preserved by SystemCanonKnowledgeAdapter.
+//
+// This feature represents source evidence about the regime
+// under which the event entered the canonical record.
+//
+// Examples may include:
+//
+//   multi_sensor
+//   radar_visual
+//   mass_visual
+//   historical_narrative
+//   ancient_textual
+//
+// IMPORTANT:
+//
+// This extractor performs no inference from:
+//
+//   • event year
+//   • classification
+//   • narrative content
+//   • sensor references
+//
+// Missing canonical regime remains explicitly unavailable.
+//
+// ============================================================
+
+function extractObservabilityRegime(
+  object: KnowledgeObject,
+): CanonicalFeatureValue<string> {
+
+  const payload =
+    object.payload;
+
+  if (
+    isSystemCanonEventPayload(
+      payload,
+    )
+  ) {
+
+    const regime =
+      payload.observabilityRegime;
+
+    if (
+      typeof regime === "string" &&
+      regime.trim().length > 0
+    ) {
+
+      return availableFeature(
+        regime,
+        createLineage(
+          CanonicalFeatureSource
+            .KNOWLEDGE_PAYLOAD,
+          [
+            object.identity.id,
+          ],
+        ),
+      );
+
+    }
+
+  }
+
+  return unavailableFeature(
+    "Canonical observability regime is unavailable.",
+  );
+
+}
 // ============================================================
 // INFRASTRUCTURE
 // ============================================================
@@ -1157,6 +1234,11 @@ export function extractCanonicalKnowledgeFeatures(
 
       durationMinutes:
         extractDurationMinutes(
+          object,
+        ),
+
+      regime:
+        extractObservabilityRegime(
           object,
         ),
 
