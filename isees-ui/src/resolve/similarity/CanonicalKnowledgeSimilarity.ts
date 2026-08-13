@@ -29,7 +29,6 @@
 // No randomness.
 //
 // ============================================================
-
 import {
   CanonicalFeatureAvailability,
   CanonicalFeatureDimension,
@@ -58,6 +57,14 @@ import type {
   CanonicalSimilarityWeights,
 } from "./CanonicalKnowledgeSimilarityTypes";
 
+import {
+  resolveCanonicalFeatureComparability,
+} from "./CanonicalKnowledgeComparability";
+
+import {
+  CanonicalFeatureComparability,
+} from "./CanonicalKnowledgeComparabilityTypes";
+
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -79,6 +86,21 @@ export function compareCanonicalKnowledgeFeatures(
       DEFAULT_CANONICAL_SIMILARITY_WEIGHTS,
 ): CanonicalKnowledgeSimilarityResolution {
 
+  // ==========================================================
+  // OBSERVABILITY COMPARABILITY GATE
+  // ==========================================================
+
+  const observabilityComparability =
+    resolveCanonicalFeatureComparability(
+      source,
+      target,
+      CanonicalFeatureDimension.OBSERVABILITY,
+    );
+
+  // ==========================================================
+  // DIMENSION SIMILARITY
+  // ==========================================================
+
   const dimensions:
     CanonicalSimilarityDimensions = {
 
@@ -90,14 +112,19 @@ export function compareCanonicalKnowledgeFeatures(
       ),
 
     observability:
-      compareObservability(
-        source.observability.confidence,
-        source.observability.durationMinutes,
-        target.observability.confidence,
-        target.observability.durationMinutes,
-        weights.observability,
-      ),
-
+      observabilityComparability.comparability ===
+        CanonicalFeatureComparability.COMPARABLE
+        ? compareObservability(
+            source.observability.confidence,
+            source.observability.durationMinutes,
+            target.observability.confidence,
+            target.observability.durationMinutes,
+            weights.observability,
+          )
+        : unavailableDimension(
+            CanonicalFeatureDimension.OBSERVABILITY,
+            observabilityComparability.reason,
+          ),
     infrastructure:
       compareInfrastructure(
         source.infrastructure.entities,

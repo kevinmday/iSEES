@@ -1,7 +1,7 @@
 // ============================================================
 // tools/verification/VerifyCanonicalKnowledgeSimilarity.ts
 //
-// P56C-B
+// P56C-C
 // CANONICAL KNOWLEDGE SIMILARITY VERIFICATION
 //
 // Verifies the deterministic computational boundary:
@@ -26,6 +26,8 @@
 //   • geography preserves availability semantics
 //   • unavailable dimensions do not become zero
 //   • aggregate weights renormalize over participating dimensions
+//   • feature availability is distinct from pairwise comparability
+//   • heterogeneous observability regime does not become similarity zero
 //   • completely unavailable comparison remains UNAVAILABLE
 //   • ranking is deterministic
 //   • lexical tie-breaking is deterministic
@@ -145,7 +147,7 @@ const TEST_LINEAGE:
   source:
     "KNOWLEDGE_OBJECT",
 
-  knowledgeObjectIds: [
+  sourceKnowledgeObjectIds: [
     "verification:fixture",
   ],
 
@@ -216,15 +218,13 @@ interface FixtureOptions {
   confidence?:
     CanonicalFeatureValue<number>;
 
-  durationMinutes?:
+   durationMinutes?:
     CanonicalFeatureValue<number>;
 
-  reports?:
-    CanonicalFeatureValue<number>;
+  regime?:
+    CanonicalFeatureValue<string>;
 
-  clusters?:
-    CanonicalFeatureValue<number>;
-
+ 
   infrastructure?:
     CanonicalFeatureValue<
       readonly CanonicalInfrastructureEntityFeature[]
@@ -281,16 +281,10 @@ function createFixture(
           10,
         ),
 
-      reports:
-        options.reports ??
+      regime:
+        options.regime ??
         available(
-          2,
-        ),
-
-      clusters:
-        options.clusters ??
-        available(
-          1,
+          "multi_sensor",
         ),
 
     },
@@ -1053,10 +1047,7 @@ function verifyCompletelyUnavailable(): void {
         durationMinutes:
           unavailable(),
 
-        reports:
-          unavailable(),
-
-        clusters:
+        regime:
           unavailable(),
 
         infrastructure:
@@ -1352,6 +1343,184 @@ function verifyIdentityPreservation(): void {
 }
 
 // ============================================================
+// TEST 14
+// SAME OBSERVABILITY REGIME
+// ============================================================
+//
+// Equal canonical observation regimes establish a homogeneous
+// observational basis for the existing confidence / duration
+// similarity operator.
+//
+// ============================================================
+
+function verifySameObservabilityRegime(): void {
+
+  const source =
+    createFixture({
+      id:
+        "event:observability-same-source",
+
+      regime:
+        available(
+          "multi_sensor",
+        ),
+    });
+
+  const target =
+    createFixture({
+      id:
+        "event:observability-same-target",
+
+      regime:
+        available(
+          "multi_sensor",
+        ),
+    });
+
+  const result =
+    compareCanonicalKnowledgeFeatures(
+      source,
+      target,
+    );
+
+  const observability =
+    result
+      .dimensions
+      .observability;
+
+  assert(
+    observability.availability ===
+      CanonicalSimilarityAvailability.AVAILABLE,
+    "Equal canonical observation regimes must permit observability similarity.",
+  );
+
+  if (
+    observability.availability !==
+    CanonicalSimilarityAvailability.AVAILABLE
+  ) {
+
+    return;
+
+  }
+
+  assertApproximatelyEqual(
+    observability.similarity,
+    1,
+    "Equal regimes with identical confidence and duration must produce observability similarity 1.",
+  );
+
+  console.log(
+    "PASS — same canonical observation regime permits observability similarity",
+  );
+
+}
+
+// ============================================================
+// TEST 15
+// HETEROGENEOUS OBSERVABILITY REGIME
+// ============================================================
+//
+// Different canonical observation regimes do not establish
+// direct observability comparability.
+//
+// Critically:
+//
+//   heterogeneous regime != similarity zero
+//
+// The observability dimension becomes UNAVAILABLE while other
+// legitimately comparable dimensions remain eligible for the
+// aggregate.
+//
+// ============================================================
+
+function verifyHeterogeneousObservabilityRegime(): void {
+
+  const source =
+    createFixture({
+      id:
+        "event:observability-cross-source",
+
+      regime:
+        available(
+          "multi_sensor",
+        ),
+    });
+
+  const target =
+    createFixture({
+      id:
+        "event:observability-cross-target",
+
+      regime:
+        available(
+          "historical_narrative",
+        ),
+    });
+
+  const result =
+    compareCanonicalKnowledgeFeatures(
+      source,
+      target,
+    );
+
+  assert(
+    result
+      .dimensions
+      .observability
+      .availability ===
+      CanonicalSimilarityAvailability.UNAVAILABLE,
+    "Different canonical observation regimes must not produce an observability similarity score.",
+  );
+
+  assert(
+    result.aggregate.availability ===
+      CanonicalSimilarityAvailability.AVAILABLE,
+    "Cross-regime observability must not invalidate otherwise comparable dimensions.",
+  );
+
+  if (
+    result.aggregate.availability !==
+    CanonicalSimilarityAvailability.AVAILABLE
+  ) {
+
+    return;
+
+  }
+
+  assert(
+    !result.aggregate
+      .participatingDimensions
+      .includes(
+        CanonicalFeatureDimension.OBSERVABILITY,
+      ),
+    "Cross-regime observability must be excluded from aggregate participation.",
+  );
+
+  assert(
+    result.aggregate.participatingDimensions.length ===
+      4,
+    "The remaining four comparable dimensions must continue participating.",
+  );
+
+  assertApproximatelyEqual(
+    result.aggregate.participatingWeight,
+    0.80,
+    "Cross-regime observability must remove its 0.20 weight from aggregate participation.",
+  );
+
+  assertApproximatelyEqual(
+    result.aggregate.score,
+    1,
+    "Remaining identical dimensions must renormalize to aggregate similarity 1.",
+  );
+
+  console.log(
+    "PASS — heterogeneous observation regime becomes unavailable, not zero",
+  );
+
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 
@@ -1362,7 +1531,7 @@ function main(): void {
     "============================================================",
   );
   console.log(
-    "P56C-B — CANONICAL KNOWLEDGE SIMILARITY VERIFICATION",
+    "P56C-C — CANONICAL KNOWLEDGE SIMILARITY VERIFICATION",
   );
   console.log(
     "============================================================",
@@ -1395,6 +1564,10 @@ function main(): void {
 
   verifyIdentityPreservation();
 
+  verifySameObservabilityRegime();
+
+  verifyHeterogeneousObservabilityRegime();
+
   // ==========================================================
   // SUMMARY
   // ==========================================================
@@ -1404,7 +1577,7 @@ function main(): void {
     "============================================================",
   );
   console.log(
-    "P56C-B VERIFICATION PASSED",
+    "P56C-C VERIFICATION PASSED",
   );
   console.log(
     "============================================================",
@@ -1451,6 +1624,15 @@ function main(): void {
   );
   console.log(
     "  deterministic lexical tie-breaking",
+  );
+  console.log(
+    "  feature availability != pairwise comparability",
+  );
+  console.log(
+    "  same observability regime permits measurement",
+  );
+  console.log(
+    "  heterogeneous observability regime becomes UNAVAILABLE, not zero",
   );
   console.log(
     "  canonical Knowledge identity preservation",
