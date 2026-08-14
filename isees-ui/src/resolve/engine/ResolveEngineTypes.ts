@@ -1,7 +1,7 @@
 // ============================================================
 // src/resolve/engine/ResolveEngineTypes.ts
 //
-// P55B
+// P56D-B
 // RESOLVE ENGINE TYPES
 //
 // Canonical deterministic types owned by the Resolve Engine.
@@ -53,6 +53,10 @@ import type {
 } from "../../knowledge/model/KnowledgeObject";
 
 import type {
+  CanonicalKnowledgeSimilarityMatrix,
+} from "../similarity/CanonicalKnowledgeSimilarityMatrixTypes";
+
+import type {
   ResolveProvenance,
 } from "./ResolveProvenance";
 
@@ -90,7 +94,8 @@ export interface CanonicalComputationalUniverse {
   // Investigation identity
   // ----------------------------------------------------------
 
-  investigationId: string;
+  investigationId:
+    string;
 
   // ----------------------------------------------------------
   // Investigation source
@@ -101,7 +106,8 @@ export interface CanonicalComputationalUniverse {
   // participate in deterministic computation.
   // ----------------------------------------------------------
 
-  investigation: Investigation;
+  investigation:
+    Investigation;
 
   // ----------------------------------------------------------
   // Computational knowledge
@@ -172,6 +178,25 @@ export interface CanonicalComputationalUniverse {
 //
 //                 M = g(L,T,S)
 //
+// P56D-B enriches the manifold with the deterministic pairwise
+// similarity structure computed across participating canonical
+// event Knowledge.
+//
+// IMPORTANT:
+//
+// Similarity is a computed manifold product.
+//
+// It does NOT become a new independent input to the governing
+// equation.
+//
+// Therefore the governing computation remains:
+//
+//                 M = g(L,T,S)
+//
+// and NOT:
+//
+//                 M = g(L,T,S,Similarity)
+//
 // ============================================================
 
 export interface CanonicalManifold {
@@ -220,6 +245,49 @@ export interface CanonicalManifold {
 
   knowledgeObjectIds:
     readonly string[];
+
+  // ----------------------------------------------------------
+  // CANONICAL PAIRWISE SIMILARITY STRUCTURE
+  //
+  // Deterministic universe-wide similarity measurement across
+  // participating canonical event feature sets.
+  //
+  // Conceptually:
+  //
+  //     K[]
+  //      ↓
+  //     F[]
+  //      ↓
+  //     C_ij
+  //      ↓
+  //     S_ij
+  //      ↓
+  //     {S_ij | i < j}
+  //
+  // This structure contains each unordered canonical event
+  // pair exactly once.
+  //
+  // It is:
+  //
+  //   • deterministic
+  //   • identity ordered
+  //   • comparability aware
+  //   • availability aware
+  //   • part of canonical manifold state
+  //
+  // It is NOT:
+  //
+  //   • a graph edge collection
+  //   • candidate generation
+  //   • a similarity threshold
+  //   • a ranking policy
+  //   • a heuristic decision
+  //   • AI inference
+  //
+  // ----------------------------------------------------------
+
+  similarityMatrix:
+    CanonicalKnowledgeSimilarityMatrix;
 
 }
 
@@ -288,6 +356,10 @@ export interface ResolveEngineOutput {
   //   • computation comparison
   //   • future fingerprints
   //
+  // Because similarityMatrix is now part of CanonicalManifold,
+  // its deterministic pairwise measurements automatically
+  // participate in this canonical representation.
+  //
   // ----------------------------------------------------------
 
   canonicalRepresentation:
@@ -335,7 +407,8 @@ export interface ResolveEngineOutput {
 export interface ResolveEngineContract {
 
   execute(
-    input: ResolveEngineInput,
+    input:
+      ResolveEngineInput,
   ): ResolveEngineOutput;
 
 }

@@ -1,17 +1,40 @@
 // ============================================================
 // src/resolve/engine/CanonicalManifold.ts
 //
-// P55B
+// P56D-B
 // CANONICAL MANIFOLD COMPUTATION
 //
-// First executable deterministic realization of:
+// Deterministic realization of:
 //
 //                 M = g(L,T,S)
+//
+// P56D-B integrates the canonical universe-wide pairwise
+// similarity structure into the deterministic manifold.
 //
 // This module transforms a canonical Computational Universe
 // into a canonical Investigation Manifold.
 //
+// COMPUTATIONAL FLOW
+//
+//     Canonical Computational Universe
+//                  ↓
+//        canonical Knowledge population
+//                  ↓
+//        canonical EVENT feature sets
+//                  ↓
+//        pairwise comparability gates
+//                  ↓
+//        deterministic similarity matrix
+//                  ↓
+//          Canonical Manifold
+//
 // IMPORTANT
+//
+// Similarity is a computed manifold product.
+//
+// It does NOT become a new independent input to:
+//
+//                 M = g(L,T,S)
 //
 // This is computational state.
 //
@@ -24,6 +47,9 @@
 //   • networking
 //   • AI inference
 //   • heuristic reasoning
+//   • candidate generation
+//   • similarity thresholding
+//   • graph-edge generation
 //
 // DETERMINISTIC INVARIANT
 //
@@ -49,28 +75,55 @@ import {
   getCanonicalKnowledgeObjectIds,
 } from "./CanonicalUniverse";
 
+import {
+  extractCanonicalEventFeatureSets,
+} from "../features/CanonicalKnowledgeFeatureExtractor";
+
+import {
+  computeCanonicalKnowledgeSimilarityMatrix,
+} from "../similarity/CanonicalKnowledgeSimilarityMatrix";
+
 // ============================================================
 // COMPUTE CANONICAL MANIFOLD
 // ============================================================
 //
-// P55B establishes the first executable form of:
+// The deterministic manifold is produced from:
 //
 //                 M = g(L,T,S)
 //
-// At this stage:
+// where:
 //
 //   L → canonically ordered active layers
 //   T → canonical universe temporal context
 //   S → canonical universe investigative scale
 //
 // The Knowledge Object population defines the computational
-// entities participating in the resulting manifold.
+// entities participating in the manifold.
+//
+// P56D-B additionally realizes the canonical similarity
+// structure of participating EVENT Knowledge:
+//
+//     K[]
+//      ↓
+//     F[]
+//      ↓
+//     C_ij
+//      ↓
+//     S_ij
+//      ↓
+//     {S_ij | i < j}
+//
+// Only canonical EVENT feature sets participate in this
+// similarity matrix.
+//
+// Other Knowledge Object types remain legitimate members of the
+// manifold population but are not silently coerced into event
+// similarity comparisons.
 //
 // Later packages may enrich g() with:
 //
 //   • relationships
 //   • observations
-//   • topology
 //   • temporal deformation
 //   • latent intention resolution
 //   • dissolve operations
@@ -81,15 +134,72 @@ import {
 // ============================================================
 
 export function computeCanonicalManifold(
-  universe: CanonicalComputationalUniverse,
+  universe:
+    CanonicalComputationalUniverse,
 ): CanonicalManifold {
+
+  // ----------------------------------------------------------
+  // CANONICAL KNOWLEDGE POPULATION
+  // ----------------------------------------------------------
 
   const knowledgeObjectIds =
     getCanonicalKnowledgeObjectIds(
       universe,
     );
 
-  const manifold: CanonicalManifold = {
+  // ----------------------------------------------------------
+  // CANONICAL EVENT FEATURE POPULATION
+  // ----------------------------------------------------------
+  //
+  // Feature extraction remains owned by the canonical feature
+  // layer.
+  //
+  // The Engine does not reproduce or reinterpret feature
+  // semantics.
+  //
+  // extractCanonicalEventFeatureSets() establishes the EVENT
+  // feature population eligible for pairwise similarity.
+  //
+  // ----------------------------------------------------------
+
+  const eventFeatureSets =
+    extractCanonicalEventFeatureSets(
+      universe.knowledgeObjects,
+    );
+
+  // ----------------------------------------------------------
+  // CANONICAL SIMILARITY MATRIX
+  // ----------------------------------------------------------
+  //
+  // P56D-A owns universe-wide pair construction and pairwise
+  // similarity resolution.
+  //
+  // It guarantees:
+  //
+  //   • n(n - 1) / 2 unique unordered pairs
+  //   • no self-pairs
+  //   • no reverse duplicates
+  //   • lexical pair orientation
+  //   • canonical pair ordering
+  //   • input-order invariance
+  //   • pairwise comparability gates
+  //   • UNAVAILABLE != zero
+  //
+  // No similarity mathematics is implemented here.
+  //
+  // ----------------------------------------------------------
+
+  const similarityMatrix =
+    computeCanonicalKnowledgeSimilarityMatrix(
+      eventFeatureSets,
+    );
+
+  // ----------------------------------------------------------
+  // CANONICAL MANIFOLD PRODUCT
+  // ----------------------------------------------------------
+
+  const manifold:
+    CanonicalManifold = {
 
     equation:
       RESOLVE_GOVERNING_EQUATION,
@@ -110,6 +220,8 @@ export function computeCanonicalManifold(
     knowledgeObjectIds: [
       ...knowledgeObjectIds,
     ],
+
+    similarityMatrix,
 
   };
 
@@ -139,14 +251,25 @@ export function computeCanonicalManifold(
 // this boundary are expected to have already been canonicalized
 // when their semantics are set-like.
 //
+// The P56D-A similarity matrix satisfies this requirement:
+//
+//   • feature population is canonicalized
+//   • pair orientation is canonical
+//   • pair traversal order is canonical
+//
+// Therefore matrix pair order is intentionally preserved during
+// serialization.
+//
 // ============================================================
 
 function normalizeCanonicalValue(
-  value: unknown,
+  value:
+    unknown,
 ): unknown {
 
   if (
-    value === null
+    value ===
+      null
   ) {
 
     return null;
@@ -154,7 +277,8 @@ function normalizeCanonicalValue(
   }
 
   if (
-    typeof value !== "object"
+    typeof value !==
+      "object"
   ) {
 
     return value;
@@ -162,7 +286,9 @@ function normalizeCanonicalValue(
   }
 
   if (
-    Array.isArray(value)
+    Array.isArray(
+      value,
+    )
   ) {
 
     return value.map(
@@ -172,13 +298,21 @@ function normalizeCanonicalValue(
   }
 
   const source =
-    value as Record<string, unknown>;
+    value as Record<
+      string,
+      unknown
+    >;
 
   const normalized:
-    Record<string, unknown> = {};
+    Record<
+      string,
+      unknown
+    > = {};
 
   const keys =
-    Object.keys(source).sort(
+    Object.keys(
+      source,
+    ).sort(
       compareCanonicalStrings,
     );
 
@@ -188,17 +322,22 @@ function normalizeCanonicalValue(
   ) {
 
     const propertyValue =
-      source[key];
+      source[
+        key
+      ];
 
     if (
-      propertyValue === undefined
+      propertyValue ===
+        undefined
     ) {
 
       continue;
 
     }
 
-    normalized[key] =
+    normalized[
+      key
+    ] =
       normalizeCanonicalValue(
         propertyValue,
       );
@@ -218,12 +357,15 @@ function normalizeCanonicalValue(
 // ============================================================
 
 function compareCanonicalStrings(
-  left: string,
-  right: string,
+  left:
+    string,
+  right:
+    string,
 ): number {
 
   if (
-    left < right
+    left <
+      right
   ) {
 
     return -1;
@@ -231,7 +373,8 @@ function compareCanonicalStrings(
   }
 
   if (
-    left > right
+    left >
+      right
   ) {
 
     return 1;
@@ -252,13 +395,24 @@ function compareCanonicalStrings(
 // Equivalent manifold state must produce the same serialized
 // representation.
 //
-// This representation becomes the basis for deterministic
-// fingerprints and replay verification.
+// This representation becomes the basis for:
+//
+//   • deterministic fingerprints
+//   • replay verification
+//   • provenance
+//   • computation comparison
+//
+// P56D-B consequence:
+//
+// Because similarityMatrix is part of CanonicalManifold, the
+// complete deterministic pairwise similarity structure now
+// participates automatically in canonical serialization.
 //
 // ============================================================
 
 export function serializeCanonicalManifold(
-  manifold: CanonicalManifold,
+  manifold:
+    CanonicalManifold,
 ): string {
 
   const normalized =
@@ -272,7 +426,8 @@ export function serializeCanonicalManifold(
     );
 
   if (
-    serialized === undefined
+    serialized ===
+      undefined
   ) {
 
     throw new Error(
@@ -289,7 +444,7 @@ export function serializeCanonicalManifold(
 // COMPUTE + SERIALIZE
 // ============================================================
 //
-// Convenience operation representing the deterministic core:
+// Deterministic core:
 //
 //     U
 //     ↓
@@ -299,15 +454,27 @@ export function serializeCanonicalManifold(
 //     ↓
 //     canonical representation
 //
+// P56D-B:
+//
+//     M
+//     ├── Knowledge population
+//     └── canonical similarity matrix
+//
+// Therefore similarity measurements are now part of the
+// byte-comparable deterministic Resolve product.
+//
 // ============================================================
 
 export function computeCanonicalManifoldRepresentation(
-  universe: CanonicalComputationalUniverse,
+  universe:
+    CanonicalComputationalUniverse,
 ): {
 
-  manifold: CanonicalManifold;
+  manifold:
+    CanonicalManifold;
 
-  canonicalRepresentation: string;
+  canonicalRepresentation:
+    string;
 
 } {
 
