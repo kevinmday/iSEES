@@ -1,11 +1,11 @@
 // ============================================================
 // src/resolve/engine/ResolveReplay.ts
 //
-// P55B
+// P56D-C
 // DETERMINISTIC RESOLVE REPLAY
 //
-// Provides first-class replay verification for canonical
-// Resolve computation.
+// Provides first-class replay verification for the complete
+// deterministic Resolve computational product.
 //
 // PURPOSE
 //
@@ -15,10 +15,29 @@
 //              ↓
 //           Resolve
 //              ↓
-//     equivalent canonical output
+//     equivalent deterministic output
 //
-// Replay verification therefore compares the canonical
-// computational representation produced by two executions.
+// Resolve now produces two distinct deterministic computational
+// layers:
+//
+//   • Canonical Manifold
+//   • Canonical Similarity Candidates
+//
+// The manifold remains governed by:
+//
+//                 M = g(L,T,S)
+//
+// Candidate derivation occurs strictly downstream:
+//
+//                 C = h(M.similarityMatrix)
+//
+// Therefore deterministic replay must verify BOTH:
+//
+//   • manifold canonical representation
+//   • canonical similarity candidate representation
+//
+// A replay is VERIFIED only when both deterministic products
+// are byte-equivalent.
 //
 // IMPORTANT
 //
@@ -35,9 +54,14 @@
 // Those values are runtime metadata and MUST NOT affect
 // deterministic replay.
 //
-// GOVERNING COMPUTATION
+// Replay does NOT:
 //
-//                 M = g(L,T,S)
+//   • recompute similarity independently
+//   • apply candidate thresholds
+//   • rank candidates
+//   • mutate topology
+//   • mutate Knowledge
+//   • perform AI inference
 //
 // No React.
 // No UI.
@@ -53,6 +77,10 @@
 import type {
   ResolveComputationInput,
 } from "../runtime/ResolveRuntimeTypes";
+
+import type {
+  CanonicalSimilarityCandidateCollection,
+} from "../candidates/CanonicalSimilarityCandidateTypes";
 
 import {
   buildCanonicalComputationalUniverse,
@@ -82,11 +110,48 @@ export type ResolveReplayStatus =
   ];
 
 // ============================================================
+// CANONICAL CANDIDATE REPRESENTATION
+// ============================================================
+//
+// similarityCandidates are already produced in deterministic
+// canonical pair order by the candidate generator.
+//
+// The complete collection contains only deterministic
+// computational content.
+//
+// JSON serialization is therefore intentionally used here as
+// the byte-comparable replay representation of that canonical
+// candidate collection.
+//
+// This representation is separate from the manifold's
+// canonicalRepresentation because candidates are deliberately
+// a sibling Resolve product rather than part of
+// CanonicalManifold.
+//
+// ============================================================
+
+export function computeCanonicalSimilarityCandidateRepresentation(
+  candidates:
+    CanonicalSimilarityCandidateCollection,
+): string {
+
+  return JSON.stringify(
+    candidates,
+  );
+
+}
+
+// ============================================================
 // REPLAY BASELINE
 // ============================================================
 //
-// A baseline is the deterministic computational representation
-// against which a later execution is verified.
+// A baseline captures the complete deterministic Resolve product
+// required for replay verification.
+//
+// It contains:
+//
+//   • canonical manifold representation
+//   • canonical candidate representation
 //
 // This is intentionally NOT a runtime execution record.
 //
@@ -96,23 +161,120 @@ export type ResolveReplayStatus =
 
 export interface ResolveReplayBaseline {
 
-  canonicalRepresentation: string;
+  canonicalRepresentation:
+    string;
+
+  similarityCandidateRepresentation:
+    string;
 
 }
 
 // ============================================================
 // REPLAY RESULT
 // ============================================================
+//
+// Replay exposes component equivalence as well as aggregate
+// verification.
+//
+// This allows a caller to distinguish:
+//
+//   manifold divergence
+//
+// from:
+//
+//   candidate-product divergence
+//
+// without weakening the aggregate replay contract.
+//
+// ============================================================
 
 export interface ResolveReplayResult {
 
-  status: ResolveReplayStatus;
+  status:
+    ResolveReplayStatus;
 
-  verified: boolean;
+  verified:
+    boolean;
 
-  expectedCanonicalRepresentation: string;
+  manifoldVerified:
+    boolean;
 
-  actualCanonicalRepresentation: string;
+  similarityCandidatesVerified:
+    boolean;
+
+  expectedCanonicalRepresentation:
+    string;
+
+  actualCanonicalRepresentation:
+    string;
+
+  expectedSimilarityCandidateRepresentation:
+    string;
+
+  actualSimilarityCandidateRepresentation:
+    string;
+
+}
+
+// ============================================================
+// CREATE REPLAY RESULT
+// ============================================================
+//
+// Centralizes the deterministic equivalence rule.
+//
+// A Resolve replay is VERIFIED iff:
+//
+//     manifoldEquivalent
+//             AND
+//     candidateProductEquivalent
+//
+// ============================================================
+
+function createResolveReplayResult(
+  expectedCanonicalRepresentation:
+    string,
+  actualCanonicalRepresentation:
+    string,
+  expectedSimilarityCandidateRepresentation:
+    string,
+  actualSimilarityCandidateRepresentation:
+    string,
+): ResolveReplayResult {
+
+  const manifoldVerified =
+    expectedCanonicalRepresentation ===
+    actualCanonicalRepresentation;
+
+  const similarityCandidatesVerified =
+    expectedSimilarityCandidateRepresentation ===
+    actualSimilarityCandidateRepresentation;
+
+  const verified =
+    manifoldVerified &&
+    similarityCandidatesVerified;
+
+  return {
+
+    status:
+      verified
+        ? ResolveReplayStatus.VERIFIED
+        : ResolveReplayStatus.DIVERGED,
+
+    verified,
+
+    manifoldVerified,
+
+    similarityCandidatesVerified,
+
+    expectedCanonicalRepresentation,
+
+    actualCanonicalRepresentation,
+
+    expectedSimilarityCandidateRepresentation,
+
+    actualSimilarityCandidateRepresentation,
+
+  };
 
 }
 
@@ -121,7 +283,7 @@ export interface ResolveReplayResult {
 // ============================================================
 //
 // Executes the deterministic Resolve pipeline and captures the
-// canonical result as a replay baseline.
+// complete deterministic result required for replay.
 //
 // Pipeline:
 //
@@ -133,12 +295,24 @@ export interface ResolveReplayResult {
 //            ↓
 //         g(L,T,S)
 //            ↓
-//    Canonical Representation
+//    Canonical Manifold
+//       ↙          ↘
+//      ↓            ↓
+// Canonical       Similarity
+// Representation   Matrix
+//                   ↓
+//                C = h(S)
+//                   ↓
+//          Similarity Candidates
+//                   ↓
+//          Canonical Candidate
+//            Representation
 //
 // ============================================================
 
 export function createResolveReplayBaseline(
-  input: ResolveComputationInput,
+  input:
+    ResolveComputationInput,
 ): ResolveReplayBaseline {
 
   const universe =
@@ -156,10 +330,17 @@ export function createResolveReplayBaseline(
 
     });
 
+  const similarityCandidateRepresentation =
+    computeCanonicalSimilarityCandidateRepresentation(
+      output.similarityCandidates,
+    );
+
   return {
 
     canonicalRepresentation:
       output.canonicalRepresentation,
+
+    similarityCandidateRepresentation,
 
   };
 
@@ -169,19 +350,33 @@ export function createResolveReplayBaseline(
 // VERIFY REPLAY
 // ============================================================
 //
-// Recomputes Resolve from supplied input and compares its
-// canonical representation against the expected baseline.
+// Recomputes Resolve from supplied input and compares BOTH
+// deterministic output layers against the expected baseline.
 //
 // Byte equality is intentional.
 //
-// If canonical representations differ by even one byte, the
-// computation is considered divergent.
+// A replay is VERIFIED only when:
+//
+//   expected manifold bytes
+//            ===
+//   actual manifold bytes
+//
+// AND
+//
+//   expected candidate bytes
+//            ===
+//   actual candidate bytes
+//
+// Divergence in either product causes the complete Resolve
+// replay to report DIVERGED.
 //
 // ============================================================
 
 export function verifyResolveReplay(
-  baseline: ResolveReplayBaseline,
-  input: ResolveComputationInput,
+  baseline:
+    ResolveReplayBaseline,
+  input:
+    ResolveComputationInput,
 ): ResolveReplayResult {
 
   const universe =
@@ -205,64 +400,101 @@ export function verifyResolveReplay(
   const actualCanonicalRepresentation =
     output.canonicalRepresentation;
 
-  const verified =
-    expectedCanonicalRepresentation ===
-    actualCanonicalRepresentation;
+  const expectedSimilarityCandidateRepresentation =
+    baseline.similarityCandidateRepresentation;
 
-  return {
+  const actualSimilarityCandidateRepresentation =
+    computeCanonicalSimilarityCandidateRepresentation(
+      output.similarityCandidates,
+    );
 
-    status:
-      verified
-        ? ResolveReplayStatus.VERIFIED
-        : ResolveReplayStatus.DIVERGED,
-
-    verified,
-
+  return createResolveReplayResult(
     expectedCanonicalRepresentation,
-
     actualCanonicalRepresentation,
-
-  };
+    expectedSimilarityCandidateRepresentation,
+    actualSimilarityCandidateRepresentation,
+  );
 
 }
 
 // ============================================================
-// VERIFY REPRESENTATIONS DIRECTLY
+// VERIFY COMPLETE REPRESENTATIONS DIRECTLY
 // ============================================================
 //
 // Lower-level verification utility.
 //
-// Useful when both canonical representations have already been
-// computed or loaded from a future persistence/provenance
-// boundary.
+// Useful when both deterministic representations have already
+// been computed or loaded from a future persistence boundary.
 //
 // No recomputation occurs here.
 //
 // ============================================================
 
-export function verifyCanonicalRepresentations(
-  expectedCanonicalRepresentation: string,
-  actualCanonicalRepresentation: string,
+export function verifyResolveRepresentations(
+  expectedCanonicalRepresentation:
+    string,
+  actualCanonicalRepresentation:
+    string,
+  expectedSimilarityCandidateRepresentation:
+    string,
+  actualSimilarityCandidateRepresentation:
+    string,
 ): ResolveReplayResult {
 
-  const verified =
-    expectedCanonicalRepresentation ===
-    actualCanonicalRepresentation;
-
-  return {
-
-    status:
-      verified
-        ? ResolveReplayStatus.VERIFIED
-        : ResolveReplayStatus.DIVERGED,
-
-    verified,
-
+  return createResolveReplayResult(
     expectedCanonicalRepresentation,
-
     actualCanonicalRepresentation,
+    expectedSimilarityCandidateRepresentation,
+    actualSimilarityCandidateRepresentation,
+  );
 
-  };
+}
+
+// ============================================================
+// VERIFY MANIFOLD REPRESENTATIONS DIRECTLY
+// ============================================================
+//
+// Backward-compatible lower-level utility for callers that
+// intentionally verify ONLY CanonicalManifold representation.
+//
+// IMPORTANT:
+//
+// This function does NOT claim complete Resolve-product replay
+// equivalence.
+//
+// It verifies only the supplied manifold representations.
+//
+// Candidate representations are intentionally represented by
+// the same deterministic empty sentinel on both sides so that
+// the returned aggregate result describes ONLY this explicitly
+// scoped manifold comparison.
+//
+// Complete Resolve replay should use:
+//
+//   verifyResolveReplay()
+//
+// or:
+//
+//   verifyResolveRepresentations()
+//
+// ============================================================
+
+export function verifyCanonicalRepresentations(
+  expectedCanonicalRepresentation:
+    string,
+  actualCanonicalRepresentation:
+    string,
+): ResolveReplayResult {
+
+  const emptyCandidateRepresentation =
+    "";
+
+  return createResolveReplayResult(
+    expectedCanonicalRepresentation,
+    actualCanonicalRepresentation,
+    emptyCandidateRepresentation,
+    emptyCandidateRepresentation,
+  );
 
 }
 
@@ -273,12 +505,13 @@ export function verifyCanonicalRepresentations(
 // Strict replay assertion for engineering verification and
 // future integrity-sensitive computation paths.
 //
-// Throws if deterministic replay diverges.
+// Throws if either deterministic Resolve product diverges.
 //
 // ============================================================
 
 export function assertResolveReplayVerified(
-  result: ResolveReplayResult,
+  result:
+    ResolveReplayResult,
 ): void {
 
   if (
@@ -287,7 +520,7 @@ export function assertResolveReplayVerified(
   ) {
 
     throw new Error(
-      "Resolve deterministic replay verification failed: canonical computation diverged.",
+      "Resolve deterministic replay verification failed: canonical computation or similarity candidate product diverged.",
     );
 
   }

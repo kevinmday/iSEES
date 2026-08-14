@@ -57,6 +57,10 @@ import type {
 } from "../similarity/CanonicalKnowledgeSimilarityMatrixTypes";
 
 import type {
+  CanonicalSimilarityCandidateCollection,
+} from "../candidates/CanonicalSimilarityCandidateTypes";
+
+import type {
   ResolveProvenance,
 } from "./ResolveProvenance";
 
@@ -327,11 +331,25 @@ export interface ResolveEngineInput {
 // The complete deterministic result consists of:
 //
 //   • manifold
+//   • canonical similarity candidates
 //   • canonical representation
 //   • computational provenance
 //
+// Candidate propositions are a sibling deterministic product.
+//
+// They are derived FROM measured manifold similarity state but
+// are deliberately NOT embedded inside CanonicalManifold.
+//
+// This preserves the epistemic boundary:
+//
+//   manifold
+//       = computed world state
+//
+//   similarityCandidates
+//       = downstream propositions eligible for evaluation
+//
 // Equivalent canonical input MUST produce equivalent values
-// for all three.
+// for all four.
 //
 // ============================================================
 
@@ -343,6 +361,44 @@ export interface ResolveEngineOutput {
 
   manifold:
     CanonicalManifold;
+
+  // ----------------------------------------------------------
+  // Canonical similarity candidates
+  //
+  // Deterministically derived from:
+  //
+  //     manifold.similarityMatrix
+  //
+  // Candidate presence means only that an AVAILABLE canonical
+  // similarity measurement exists for the pair.
+  //
+  // It does NOT mean:
+  //
+  //   • canonical relationship
+  //   • topology edge
+  //   • accepted proposition
+  //   • causal inference
+  //   • same phenomenon
+  //
+  // Candidate eligibility is availability-based.
+  //
+  // No numerical similarity threshold participates here.
+  //
+  // Candidates are deliberately a sibling Resolve product,
+  // not part of CanonicalManifold.
+  //
+  // This preserves the epistemic boundary:
+  //
+  //   manifold
+  //       = computed world state
+  //
+  //   similarityCandidates
+  //       = downstream propositions eligible for evaluation
+  //
+  // ----------------------------------------------------------
+
+  similarityCandidates:
+    CanonicalSimilarityCandidateCollection;
 
   // ----------------------------------------------------------
   // Canonical representation
@@ -359,6 +415,10 @@ export interface ResolveEngineOutput {
   // Because similarityMatrix is now part of CanonicalManifold,
   // its deterministic pairwise measurements automatically
   // participate in this canonical representation.
+  //
+  // similarityCandidates are deliberately NOT included in this
+  // manifold representation. They are a sibling deterministic
+  // Resolve product derived from manifold similarity state.
   //
   // ----------------------------------------------------------
 
@@ -397,6 +457,7 @@ export interface ResolveEngineOutput {
 // Therefore:
 //
 //   manifold(A)                ≡ manifold(A)
+//   similarityCandidates(A)    ≡ similarityCandidates(A)
 //   representation(A)          ≡ representation(A)
 //   provenance(A)              ≡ provenance(A)
 //
