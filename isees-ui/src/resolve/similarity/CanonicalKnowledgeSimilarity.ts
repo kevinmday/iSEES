@@ -87,8 +87,15 @@ export function compareCanonicalKnowledgeFeatures(
 ): CanonicalKnowledgeSimilarityResolution {
 
   // ==========================================================
-  // OBSERVABILITY COMPARABILITY GATE
+  // PAIRWISE COMPARABILITY GATES
   // ==========================================================
+
+  const narrativeComparability =
+    resolveCanonicalFeatureComparability(
+      source,
+      target,
+      CanonicalFeatureDimension.NARRATIVE,
+    );
 
   const observabilityComparability =
     resolveCanonicalFeatureComparability(
@@ -97,6 +104,26 @@ export function compareCanonicalKnowledgeFeatures(
       CanonicalFeatureDimension.OBSERVABILITY,
     );
 
+  const infrastructureComparability =
+    resolveCanonicalFeatureComparability(
+      source,
+      target,
+      CanonicalFeatureDimension.INFRASTRUCTURE,
+    );
+
+  const topologyComparability =
+    resolveCanonicalFeatureComparability(
+      source,
+      target,
+      CanonicalFeatureDimension.TOPOLOGY,
+    );
+
+  const geographyComparability =
+    resolveCanonicalFeatureComparability(
+      source,
+      target,
+      CanonicalFeatureDimension.GEOGRAPHY,
+    );
   // ==========================================================
   // DIMENSION SIMILARITY
   // ==========================================================
@@ -105,11 +132,17 @@ export function compareCanonicalKnowledgeFeatures(
     CanonicalSimilarityDimensions = {
 
     narrative:
-      compareNarrative(
-        source.narrative.traits,
-        target.narrative.traits,
-        weights.narrative,
-      ),
+      narrativeComparability.comparability ===
+        CanonicalFeatureComparability.COMPARABLE
+        ? compareNarrative(
+            source.narrative.traits,
+            target.narrative.traits,
+            weights.narrative,
+          )
+        : unavailableDimension(
+            CanonicalFeatureDimension.NARRATIVE,
+            narrativeComparability.reason,
+          ),
 
     observability:
       observabilityComparability.comparability ===
@@ -125,26 +158,45 @@ export function compareCanonicalKnowledgeFeatures(
             CanonicalFeatureDimension.OBSERVABILITY,
             observabilityComparability.reason,
           ),
+
     infrastructure:
-      compareInfrastructure(
-        source.infrastructure.entities,
-        target.infrastructure.entities,
-        weights.infrastructure,
-      ),
+      infrastructureComparability.comparability ===
+        CanonicalFeatureComparability.COMPARABLE
+        ? compareInfrastructure(
+            source.infrastructure.entities,
+            target.infrastructure.entities,
+            weights.infrastructure,
+          )
+        : unavailableDimension(
+            CanonicalFeatureDimension.INFRASTRUCTURE,
+            infrastructureComparability.reason,
+          ),
 
     topology:
-      compareTopology(
-        source.topology.state,
-        target.topology.state,
-        weights.topology,
-      ),
+      topologyComparability.comparability ===
+        CanonicalFeatureComparability.COMPARABLE
+        ? compareTopology(
+            source.topology.state,
+            target.topology.state,
+            weights.topology,
+          )
+        : unavailableDimension(
+            CanonicalFeatureDimension.TOPOLOGY,
+            topologyComparability.reason,
+          ),
 
     geography:
-      compareGeography(
-        source.geography.location,
-        target.geography.location,
-        weights.geography,
-      ),
+      geographyComparability.comparability ===
+        CanonicalFeatureComparability.COMPARABLE
+        ? compareGeography(
+            source.geography.location,
+            target.geography.location,
+            weights.geography,
+          )
+        : unavailableDimension(
+            CanonicalFeatureDimension.GEOGRAPHY,
+            geographyComparability.reason,
+          ),
 
   };
 
@@ -174,7 +226,6 @@ export function compareCanonicalKnowledgeFeatures(
   };
 
 }
-
 // ============================================================
 // COLLECTION COMPARISON
 // ============================================================

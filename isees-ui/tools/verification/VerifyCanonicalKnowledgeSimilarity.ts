@@ -1,7 +1,7 @@
 // ============================================================
 // tools/verification/VerifyCanonicalKnowledgeSimilarity.ts
 //
-// P56C-C
+// P56C-D
 // CANONICAL KNOWLEDGE SIMILARITY VERIFICATION
 //
 // Verifies the deterministic computational boundary:
@@ -1521,6 +1521,193 @@ function verifyHeterogeneousObservabilityRegime(): void {
 }
 
 // ============================================================
+// TEST 16
+// MULTIDIMENSIONAL PAIRWISE COMPARABILITY GATES
+// ============================================================
+//
+// P56C-D regression boundary.
+//
+// Narrative, infrastructure, topology, and geography must
+// pass through the same pairwise comparability operator already
+// governing observability.
+//
+// For each dimension:
+//
+//   unavailable canonical evidence
+//          ↓
+//      INDETERMINATE
+//          ↓
+//   similarity UNAVAILABLE
+//
+// Critically:
+//
+//   unavailable evidence != similarity zero
+//
+// Other legitimately comparable dimensions remain eligible
+// and aggregate weights renormalize over those dimensions.
+//
+// ============================================================
+
+function verifyMultidimensionalComparabilityGates(): void {
+
+  const cases = [
+
+    {
+      dimension:
+        CanonicalFeatureDimension.NARRATIVE,
+
+      target:
+        createFixture({
+          id:
+            "event:gate-narrative",
+
+          traits:
+            unavailable(),
+        }),
+    },
+
+    {
+      dimension:
+        CanonicalFeatureDimension.INFRASTRUCTURE,
+
+      target:
+        createFixture({
+          id:
+            "event:gate-infrastructure",
+
+          infrastructure:
+            unavailable(),
+        }),
+    },
+
+    {
+      dimension:
+        CanonicalFeatureDimension.TOPOLOGY,
+
+      target:
+        createFixture({
+          id:
+            "event:gate-topology",
+
+          topology:
+            unavailable(),
+        }),
+    },
+
+    {
+      dimension:
+        CanonicalFeatureDimension.GEOGRAPHY,
+
+      target:
+        createFixture({
+          id:
+            "event:gate-geography",
+
+          geography:
+            unavailable(),
+        }),
+    },
+
+  ] as const;
+
+  for (
+    const testCase
+    of cases
+  ) {
+
+    const source =
+      createFixture({
+        id:
+          `event:gate-source-${testCase.dimension}`,
+      });
+
+    const result =
+      compareCanonicalKnowledgeFeatures(
+        source,
+        testCase.target,
+      );
+
+    const candidate =
+      testCase.dimension ===
+        CanonicalFeatureDimension.NARRATIVE
+        ? result.dimensions.narrative
+        : testCase.dimension ===
+            CanonicalFeatureDimension.INFRASTRUCTURE
+          ? result.dimensions.infrastructure
+          : testCase.dimension ===
+              CanonicalFeatureDimension.TOPOLOGY
+            ? result.dimensions.topology
+            : result.dimensions.geography;
+
+    assert(
+      candidate.availability ===
+        CanonicalSimilarityAvailability.UNAVAILABLE,
+      `${testCase.dimension} must become UNAVAILABLE when pairwise comparability is indeterminate.`,
+    );
+
+    assert(
+      result.aggregate.availability ===
+        CanonicalSimilarityAvailability.AVAILABLE,
+      `${testCase.dimension} unavailability must not invalidate otherwise comparable dimensions.`,
+    );
+
+    if (
+      result.aggregate.availability !==
+      CanonicalSimilarityAvailability.AVAILABLE
+    ) {
+
+      continue;
+
+    }
+
+    assert(
+      !result.aggregate
+        .participatingDimensions
+        .includes(
+          testCase.dimension,
+        ),
+      `${testCase.dimension} must be excluded from aggregate participation when not comparable.`,
+    );
+
+    assert(
+      result.aggregate.participatingDimensions.length ===
+        4,
+      `${testCase.dimension} gating must leave the remaining four dimensions participating.`,
+    );
+
+    const excludedWeight =
+      testCase.dimension ===
+        CanonicalFeatureDimension.NARRATIVE
+        ? 0.30
+        : testCase.dimension ===
+            CanonicalFeatureDimension.INFRASTRUCTURE
+          ? 0.15
+          : testCase.dimension ===
+              CanonicalFeatureDimension.TOPOLOGY
+            ? 0.25
+            : 0.10;
+
+    assertApproximatelyEqual(
+      result.aggregate.participatingWeight,
+      1 - excludedWeight,
+      `${testCase.dimension} gating must remove only that dimension's canonical weight.`,
+    );
+
+    assertApproximatelyEqual(
+      result.aggregate.score,
+      1,
+      `${testCase.dimension} gating must preserve similarity 1 across the remaining identical dimensions.`,
+    );
+
+  }
+
+  console.log(
+    "PASS — narrative, infrastructure, topology, and geography obey pairwise comparability gates",
+  );
+
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 
@@ -1531,7 +1718,7 @@ function main(): void {
     "============================================================",
   );
   console.log(
-    "P56C-C — CANONICAL KNOWLEDGE SIMILARITY VERIFICATION",
+    "P56C-D — CANONICAL KNOWLEDGE SIMILARITY VERIFICATION",
   );
   console.log(
     "============================================================",
@@ -1568,6 +1755,8 @@ function main(): void {
 
   verifyHeterogeneousObservabilityRegime();
 
+  verifyMultidimensionalComparabilityGates();
+
   // ==========================================================
   // SUMMARY
   // ==========================================================
@@ -1577,7 +1766,7 @@ function main(): void {
     "============================================================",
   );
   console.log(
-    "P56C-C VERIFICATION PASSED",
+    "P56C-D VERIFICATION PASSED",
   );
   console.log(
     "============================================================",
@@ -1633,6 +1822,21 @@ function main(): void {
   );
   console.log(
     "  heterogeneous observability regime becomes UNAVAILABLE, not zero",
+  );
+  console.log(
+    "  narrative pairwise comparability gate",
+  );
+  console.log(
+    "  infrastructure pairwise comparability gate",
+  );
+  console.log(
+    "  topology pairwise comparability gate",
+  );
+  console.log(
+    "  geography pairwise comparability gate",
+  );
+  console.log(
+    "  multidimensional gate-aware aggregate renormalization",
   );
   console.log(
     "  canonical Knowledge identity preservation",
