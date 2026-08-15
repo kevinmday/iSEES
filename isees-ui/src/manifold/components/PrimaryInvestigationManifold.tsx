@@ -1,30 +1,62 @@
 // ============================================================
 // src/manifold/components/PrimaryInvestigationManifold.tsx
-// P56
+// P56D-H
 // PRIMARY INVESTIGATION WORKSPACE
 //
 // Central projection host for an Investigation Session.
 //
-// The Workspace Runtime owns:
+// WorkspaceRuntime owns:
+//
 // • Active Workspace Mode
 // • Active Investigation
 // • Computational Configuration C = (L, T, S)
+// • Canonical Operator Selection
 //
 // KnowledgeObjectRuntime owns:
+//
 // • Canonical Knowledge Object population K
 //
 // ResolveRuntime owns:
+//
 // • Resolve execution lifecycle
 // • Canonical universe construction
 // • Deterministic Resolve execution
 // • Canonical manifold result
+// • Candidate generation
+// • Candidate evaluation
 // • Provenance
 // • Execution history
 //
-// ManifoldRuntime continues to own manifold-facing operator
-// orchestration and presentation operations.
+// Resolve Candidate Intelligence provides:
 //
-// Resolve path:
+// • deterministic E -> Ic projection
+// • operator-inspectable candidate explanation
+//
+// Workspace Candidate Selection provides:
+//
+// • deterministic Ic -> Sc projection
+//
+// GOVERNING COMPUTATION
+//
+//                 M = g(L,T,S)
+//
+// Candidate derivation:
+//
+//                 C = h(M.similarityMatrix)
+//
+// Candidate evaluation:
+//
+//                 E = q(C)
+//
+// Candidate Intelligence:
+//
+//                 Ic = p(E)
+//
+// Candidate selection:
+//
+//                 Sc = s(Ic)
+//
+// LIVE OPERATOR PATH
 //
 // Operator
 //      ↓
@@ -43,9 +75,45 @@
 //              ↓
 //        Resolve Engine
 //              ↓
-//      Canonical Manifold
+//        M -> C -> E
+//              ↓
+//             Ic[]
+//              ↓
+//     Resolve Candidate Surface
+//              ↓
+//         operator click
+//              ↓
+//              Sc
+//              ↓
+//       WorkspaceRuntime
+//              ↓
+//          RightPanel
+//
+// CRITICAL EPISTEMIC BOUNDARY
+//
+//                 CANDIDATE != EDGE
+//
+// Candidate affordances represent potential relationships.
+//
+// They do NOT:
+//
+// • establish relationships
+// • create GraphEdges
+// • mutate graph topology
+// • promote Knowledge
+// • generate Research Vectors
+// • execute REX
+// • recompute similarity
+// • recompute evaluation
+// • rank candidates
+// • threshold candidates
+// • introduce AI inference
 //
 // ============================================================
+
+import {
+  useMemo,
+} from "react";
 
 import InvestigationGraph
 from "./InvestigationGraph";
@@ -70,6 +138,18 @@ import {
   useResolveRuntime,
   useResolveRuntimeState,
 } from "../../resolve/runtime/ResolveRuntimeContext";
+
+import {
+  resolveCandidateIntelligenceCollection,
+} from "../../resolve/intelligence/ResolveCandidateIntelligenceResolver";
+
+import {
+  createWorkspaceCandidateSelection,
+} from "../../resolve/intelligence/ResolveCandidateSelection";
+
+import type {
+  ResolveCandidateIntelligence,
+} from "../../resolve/intelligence/ResolveCandidateIntelligenceTypes";
 
 // ============================================================
 // TYPES
@@ -104,17 +184,113 @@ export default function PrimaryInvestigationManifold({
   const resolveRuntime =
     useResolveRuntime();
 
-  // ----------------------------------------------------------
-  // Resolve state is observed only for the temporary P56
-  // execution diagnostic.
-  //
-  // The diagnostic performs no computation and owns no state.
-  // It will be removed after the end-to-end Resolve execution
-  // boundary has been verified.
-  // ----------------------------------------------------------
-
   const resolveState =
     useResolveRuntimeState();
+
+  // ==========================================================
+  // LATEST CANONICAL CANDIDATE EVALUATION PRODUCT
+  // ==========================================================
+  //
+  // Candidate evaluations are produced by ResolveEngine and
+  // preserved by ResolveRuntime.
+  //
+  // This component does not compute or alter them.
+  //
+  // ==========================================================
+
+  const candidateEvaluations =
+    resolveState
+      .currentExecution
+      ?.result
+      ?.candidateEvaluations;
+
+  // ==========================================================
+  // CANDIDATE INTELLIGENCE PROJECTION
+  // ==========================================================
+  //
+  //                 E -> Ic
+  //
+  // This is the same deterministic explanatory projection
+  // consumed by RightPanel.
+  //
+  // IMPORTANT:
+  //
+  // The collection preserves canonical evaluation ordering.
+  //
+  // This surface deliberately does NOT:
+  //
+  // • sort
+  // • rank
+  // • threshold
+  // • filter by score
+  // • reinterpret evidence
+  //
+  // ==========================================================
+
+  const candidateIntelligenceCollection =
+    useMemo(
+      () => {
+
+        if (
+          candidateEvaluations ===
+          undefined
+        ) {
+
+          return undefined;
+
+        }
+
+        return resolveCandidateIntelligenceCollection(
+          candidateEvaluations.evaluations,
+        );
+
+      },
+      [
+        candidateEvaluations,
+      ],
+    );
+
+  // ==========================================================
+  // WORKSPACE OPERATOR SELECTION
+  // ==========================================================
+  //
+  // WorkspaceRuntime owns canonical operator selection.
+  //
+  // GraphContext remains responsible only for graph-local
+  // NODE / EDGE / NONE selection.
+  //
+  // ==========================================================
+
+  const workspaceSelection =
+    workspaceRuntime.getSelection();
+
+  // ==========================================================
+  // CANDIDATE SELECTION
+  // ==========================================================
+  //
+  //                 Ic -> Sc
+  //
+  // Candidate selection is inspection state only.
+  //
+  // It creates no topology.
+  //
+  // ==========================================================
+
+  function handleCandidateSelection(
+    intelligence:
+      ResolveCandidateIntelligence,
+  ): void {
+
+    const selection =
+      createWorkspaceCandidateSelection(
+        intelligence,
+      );
+
+    workspaceRuntime.setSelection(
+      selection,
+    );
+
+  }
 
   // ==========================================================
   // OPERATOR ACTIONS
@@ -126,20 +302,21 @@ export default function PrimaryInvestigationManifold({
   ): void {
 
     // --------------------------------------------------------
-    // RESOLVE
+    // P56D-H OPERATOR-GESTURE DIAGNOSTIC
     // --------------------------------------------------------
     //
-    // RESOLVE crosses the operator-intent boundary into the
-    // canonical P55B Resolve Runtime.
+    // Retained temporarily while live P56D-H integration is
+    // verified.
     //
-    // The UI does not perform computation.
-    //
-    // It gathers the current deterministic runtime-owned
-    // inputs and submits them to ResolveRuntime.
-    //
-    // The active Investigation is owned by WorkspaceRuntime.
-    // No separate Investigation React context is required.
-    //
+    // --------------------------------------------------------
+
+    console.log(
+      "P56D-H MANIFOLD ACTION RECEIVED:",
+      action,
+    );
+
+    // --------------------------------------------------------
+    // RESOLVE
     // --------------------------------------------------------
 
     if (
@@ -147,26 +324,20 @@ export default function PrimaryInvestigationManifold({
       "RESOLVE"
     ) {
 
+      console.log(
+        "P56D-H LIVE RESOLVE CLICK RECEIVED",
+      );
+
       const activeInvestigation =
         workspaceRuntime.getActiveInvestigation();
 
+      console.log(
+        "P56D-H ACTIVE INVESTIGATION:",
+        activeInvestigation,
+      );
+
       // ------------------------------------------------------
       // RESOLVE PRECONDITION
-      // ------------------------------------------------------
-      //
-      // ResolveComputationInput requires a canonical active
-      // Investigation.
-      //
-      // If none exists, terminate the operator command at
-      // this boundary.
-      //
-      // We deliberately do NOT:
-      //
-      // • manufacture an Investigation
-      // • cast undefined into Investigation
-      // • infer Investigation state
-      // • fall back to parallel React-owned state
-      //
       // ------------------------------------------------------
 
       if (
@@ -211,16 +382,35 @@ export default function PrimaryInvestigationManifold({
         workspaceRuntime.getInvestigativeScale();
 
       // ------------------------------------------------------
+      // INPUT DIAGNOSTIC
+      // ------------------------------------------------------
+
+      console.log(
+        "P56D-H RESOLVE INPUT READY:",
+        {
+
+          investigationId:
+            activeInvestigation.id,
+
+          knowledgeObjectCount:
+            knowledgeObjects.length,
+
+          activeLayers,
+
+          temporalContext,
+
+          investigativeScale,
+
+        },
+      );
+
+      // ------------------------------------------------------
       // CANONICAL RESOLVE EXECUTION
       // ------------------------------------------------------
-      //
-      // At this boundary:
-      //
-      //     I + K + L + T + S
-      //
-      // become the deterministic Resolve computation input.
-      //
-      // ------------------------------------------------------
+
+      console.log(
+        "P56D-H CALLING ResolveRuntime.execute()",
+      );
 
       resolveRuntime.execute({
 
@@ -237,23 +427,16 @@ export default function PrimaryInvestigationManifold({
 
       });
 
+      console.log(
+        "P56D-H ResolveRuntime.execute() RETURNED",
+      );
+
       return;
 
     }
 
     // --------------------------------------------------------
     // MANIFOLD OPERATIONS
-    // --------------------------------------------------------
-    //
-    // DISSOLVE
-    // COLLAPSE
-    // VIEW_2D
-    // VIEW_3D
-    //
-    // remain owned by the existing Manifold Runtime until
-    // their canonical P56/P57 integration boundaries are
-    // realized.
-    //
     // --------------------------------------------------------
 
     manifoldRuntime.dispatch(
@@ -305,15 +488,6 @@ export default function PrimaryInvestigationManifold({
       {/* =================================================== */}
       {/* TEMPORARY P56 RESOLVE DIAGNOSTIC                   */}
       {/* =================================================== */}
-      {/*
-          This instrument exists only to verify the live
-          end-to-end Resolve execution boundary.
-
-          It observes ResolveRuntime state.
-
-          It performs no computation.
-          It owns no computational state.
-      */}
 
       <div
         style={{
@@ -396,7 +570,371 @@ export default function PrimaryInvestigationManifold({
           }
         </div>
 
+        <div>
+          Candidates: {
+            candidateIntelligenceCollection
+              ?.intelligenceCount ??
+            0
+          }
+        </div>
+
       </div>
+
+      {/* =================================================== */}
+      {/* RESOLVE CANDIDATE AFFORDANCE                       */}
+      {/* =================================================== */}
+      {/*
+          Operator inspection surface only.
+
+          This is NOT graph topology.
+
+          Candidate order remains canonical evaluation order.
+          No ranking or threshold is applied.
+      */}
+
+      {candidateIntelligenceCollection !==
+        undefined &&
+        candidateIntelligenceCollection
+          .intelligenceCount > 0 && (
+
+        <div
+          style={{
+            position:
+              "absolute",
+
+            top:
+              118,
+
+            right:
+              12,
+
+            zIndex:
+              999,
+
+            width:
+              320,
+
+            maxHeight:
+              "calc(100% - 150px)",
+
+            overflowY:
+              "auto",
+
+            padding:
+              10,
+
+            border:
+              "1px solid rgba(56,189,248,0.30)",
+
+            borderRadius:
+              8,
+
+            background:
+              "rgba(2,6,23,0.96)",
+
+            boxShadow:
+              "0 12px 32px rgba(0,0,0,0.38)",
+
+            fontFamily:
+              "Consolas, monospace",
+          }}
+        >
+
+          <div
+            style={{
+              display:
+                "flex",
+
+              justifyContent:
+                "space-between",
+
+              alignItems:
+                "center",
+
+              marginBottom:
+                8,
+
+              color:
+                "#7dd3fc",
+
+              fontSize:
+                11,
+
+              fontWeight:
+                700,
+
+              letterSpacing:
+                "0.08em",
+            }}
+          >
+
+            <span>
+              RESOLVE CANDIDATES
+            </span>
+
+            <span
+              style={{
+                color:
+                  "#94a3b8",
+              }}
+            >
+              {
+                candidateIntelligenceCollection
+                  .intelligenceCount
+              }
+            </span>
+
+          </div>
+
+          <div
+            style={{
+              marginBottom:
+                8,
+
+              color:
+                "#64748b",
+
+              fontSize:
+                10,
+
+              lineHeight:
+                1.4,
+            }}
+          >
+            Potential relationships — inspect only
+          </div>
+
+          <div
+            style={{
+              display:
+                "flex",
+
+              flexDirection:
+                "column",
+
+              gap:
+                6,
+            }}
+          >
+
+            {candidateIntelligenceCollection
+              .intelligence
+              .map(
+                (
+                  intelligence,
+                  index,
+                ) => {
+
+                 const isSelected =
+  workspaceSelection
+    ?.kind ===
+    "CANDIDATE" &&
+  workspaceSelection.candidateId ===
+    intelligence
+      .identity
+      .candidateId;
+
+                  return (
+
+                    <button
+                      key={
+                        intelligence
+                          .identity
+                          .candidateId
+                      }
+                      type="button"
+                      onClick={
+                        () =>
+                          handleCandidateSelection(
+                            intelligence,
+                          )
+                      }
+                      style={{
+                        width:
+                          "100%",
+
+                        padding:
+                          "8px 9px",
+
+                        border:
+                          isSelected
+                            ? "1px solid rgba(56,189,248,0.85)"
+                            : "1px solid rgba(148,163,184,0.20)",
+
+                        borderRadius:
+                          6,
+
+                        background:
+                          isSelected
+                            ? "rgba(14,116,144,0.24)"
+                            : "rgba(15,23,42,0.72)",
+
+                        color:
+                          "#e2e8f0",
+
+                        textAlign:
+                          "left",
+
+                        cursor:
+                          "pointer",
+
+                        fontFamily:
+                          "Consolas, monospace",
+                      }}
+                    >
+
+                      <div
+                        style={{
+                          display:
+                            "flex",
+
+                          justifyContent:
+                            "space-between",
+
+                          alignItems:
+                            "center",
+
+                          gap:
+                            8,
+
+                          marginBottom:
+                            5,
+                        }}
+                      >
+
+                        <span
+                          style={{
+                            color:
+                              "#7dd3fc",
+
+                            fontSize:
+                              10,
+
+                            fontWeight:
+                              700,
+                          }}
+                        >
+                          CANDIDATE {
+                            index + 1
+                          }
+                        </span>
+
+                        <span
+                          style={{
+                            color:
+                              "#cbd5e1",
+
+                            fontSize:
+                              10,
+                          }}
+                        >
+                          S={
+                            intelligence
+                              .explanation
+                              .aggregate
+                              .aggregateSimilarity
+                              .toFixed(3)
+                          }
+                        </span>
+
+                      </div>
+
+                      <div
+                        style={{
+                          color:
+                            "#f8fafc",
+
+                          fontSize:
+                            10,
+
+                          lineHeight:
+                            1.4,
+
+                          overflowWrap:
+                            "anywhere",
+                        }}
+                      >
+                        {
+                          intelligence
+                            .identity
+                            .leftKnowledgeObjectId
+                        }
+                      </div>
+
+                      <div
+                        style={{
+                          color:
+                            "#64748b",
+
+                          fontSize:
+                            10,
+
+                          lineHeight:
+                            1.2,
+                        }}
+                      >
+                        ↕ potential relationship
+                      </div>
+
+                      <div
+                        style={{
+                          color:
+                            "#f8fafc",
+
+                          fontSize:
+                            10,
+
+                          lineHeight:
+                            1.4,
+
+                          overflowWrap:
+                            "anywhere",
+                        }}
+                      >
+                        {
+                          intelligence
+                            .identity
+                            .rightKnowledgeObjectId
+                        }
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop:
+                            6,
+
+                          color:
+                            "#94a3b8",
+
+                          fontSize:
+                            9,
+                        }}
+                      >
+                        Evidence {
+                          intelligence
+                            .explanation
+                            .evidence
+                            .availableDimensionCount
+                        }/{
+                          intelligence
+                            .explanation
+                            .evidence
+                            .totalDimensionCount
+                        } dimensions
+                      </div>
+
+                    </button>
+
+                  );
+
+                },
+              )}
+
+          </div>
+
+        </div>
+
+      )}
 
       {/* =================================================== */}
       {/* INVESTIGATION MANIFOLD                              */}
@@ -449,3 +987,7 @@ export default function PrimaryInvestigationManifold({
   );
 
 }
+
+// ============================================================
+// END
+// ============================================================
