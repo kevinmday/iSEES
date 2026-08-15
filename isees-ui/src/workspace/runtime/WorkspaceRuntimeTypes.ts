@@ -152,24 +152,146 @@ export type WorkspaceLayoutMode =
 // ============================================================
 // OPERATOR SELECTION
 // ============================================================
+//
+// P56D-G
+// CANONICAL WORKSPACE OPERATOR SELECTION
+//
+// Workspace Runtime owns operator-facing selection.
+//
+// GraphContext may continue to own graph-local interaction
+// state during migration, while WorkspaceSelection provides
+// the canonical runtime vocabulary for operator selection.
+//
+// CRITICAL EPISTEMIC DISTINCTION
+//
+//   EDGE
+//     = an established Investigation Graph relationship
+//
+//   CANDIDATE
+//     = a deterministic Resolve candidate representing a
+//       potential relationship available for inspection
+//
+// Therefore:
+//
+//                 CANDIDATE != EDGE
+//
+// Selecting a candidate does NOT:
+//
+//   • establish a relationship
+//   • create a GraphEdge
+//   • mutate topology
+//   • promote Knowledge
+//   • generate a Research Vector
+//   • execute REX
+//
+// ============================================================
 
-export interface WorkspaceSelection {
+export const WorkspaceSelectionKind = {
 
-  /**
-   * Runtime-owned operator selection.
-   *
-   * A concrete deterministic selection contract will replace
-   * these generic fields as Investigation Graph ownership
-   * moves into the Workspace Runtime.
-   */
-  type:
-    string;
+  NONE:
+    "NONE",
 
-  id:
+  NODE:
+    "NODE",
+
+  EDGE:
+    "EDGE",
+
+  CANDIDATE:
+    "CANDIDATE",
+
+} as const;
+
+export type WorkspaceSelectionKind =
+  typeof WorkspaceSelectionKind[
+    keyof typeof WorkspaceSelectionKind
+  ];
+
+// ============================================================
+// NONE
+// ============================================================
+
+export interface WorkspaceNoneSelection {
+
+  kind:
+    typeof WorkspaceSelectionKind.NONE;
+
+}
+
+// ============================================================
+// NODE
+// ============================================================
+
+export interface WorkspaceNodeSelection {
+
+  kind:
+    typeof WorkspaceSelectionKind.NODE;
+
+  nodeId:
     string;
 
 }
 
+// ============================================================
+// EDGE
+// ============================================================
+
+export interface WorkspaceEdgeSelection {
+
+  kind:
+    typeof WorkspaceSelectionKind.EDGE;
+
+  edgeId:
+    string;
+
+}
+
+// ============================================================
+// RESOLVE CANDIDATE
+// ============================================================
+//
+// Candidate identity carries sufficient deterministic lineage
+// for downstream inspection to resolve Candidate Intelligence:
+//
+//                 E -> Ic
+//
+// Candidate selection identifies which Ic the operator wants
+// to inspect.
+//
+// It does not transform that candidate into established graph
+// topology.
+//
+// ============================================================
+
+export interface WorkspaceCandidateSelection {
+
+  kind:
+    typeof WorkspaceSelectionKind.CANDIDATE;
+
+  candidateId:
+    string;
+
+  evaluationId:
+    string;
+
+  leftKnowledgeObjectId:
+    string;
+
+  rightKnowledgeObjectId:
+    string;
+
+}
+
+// ============================================================
+// CANONICAL OPERATOR SELECTION UNION
+// ============================================================
+
+export type WorkspaceSelection =
+
+  | WorkspaceNoneSelection
+  | WorkspaceNodeSelection
+  | WorkspaceEdgeSelection
+  | WorkspaceCandidateSelection;
 // ============================================================
 // INVESTIGATION SESSION
 // ============================================================
