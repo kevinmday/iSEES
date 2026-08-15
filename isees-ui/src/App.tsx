@@ -4,29 +4,22 @@
 // P35
 // WORKSPACE RUNTIME INTEGRATION
 //
-// The Workspace Runtime is now introduced as the deterministic
-// Investigation Session owner.
+// P56D-I1
+// OPERATOR IDENTITY ENTRY INTEGRATION
 //
-// Ownership:
+// Identity is established before the operational application
+// mounts.
 //
-// Corpus
-//      ↓
-// Workspace
-//      ↓
-// Workspace Runtime
-//      ↓
-// Federation
-//      ↓
-// Intelligence
-//      ↓
-// Graph
-//      ↓
-// Event
-//      ↓
-// MainLayout
+// NONE
+//   -> Operator Entry Screen
 //
-// The Workspace Runtime composes deterministic runtime
-// subsystems while remaining independent of computation.
+// GUEST
+//   -> Full operational iSEES
+//
+// ACCOUNT
+//   -> Full operational iSEES
+//
+// Account changes persistence, not capability.
 //
 // ============================================================
 
@@ -43,6 +36,18 @@ import {
 
 import PublicIntake from "./pages/PublicIntake";
 import SystemBriefing from "./pages/SystemBriefing";
+
+import {
+
+  OperatorIdentityRuntimeProvider,
+
+} from "./identity/runtime/OperatorIdentityRuntimeContext";
+
+import {
+
+  OperatorEntryGate,
+
+} from "./identity/components/OperatorEntryGate";
 
 import {
   EventProvider,
@@ -93,6 +98,8 @@ import {
   KnowledgeObjectRuntimeProvider,
 
 } from "./knowledge/runtime/KnowledgeObjectRuntimeContext";
+
+
 // ============================================================
 // OPERATOR UI
 // ============================================================
@@ -164,6 +171,44 @@ function OperatorUI() {
   );
 
 }
+
+
+// ============================================================
+// OPERATOR APPLICATION
+// ============================================================
+//
+// The identity runtime and gate exist outside the operational
+// provider stack.
+//
+// NONE:
+//   OperatorUI is not mounted.
+//
+// GUEST / ACCOUNT:
+//   The exact same OperatorUI is mounted.
+//
+// There is no Guest-specific application tree.
+//
+// ============================================================
+
+function OperatorApplication() {
+
+  return (
+
+    <OperatorIdentityRuntimeProvider>
+
+      <OperatorEntryGate>
+
+        <OperatorUI />
+
+      </OperatorEntryGate>
+
+    </OperatorIdentityRuntimeProvider>
+
+  );
+
+}
+
+
 // ============================================================
 // ROOT APPLICATION
 // ============================================================
@@ -191,7 +236,7 @@ export default function App() {
       <Route
         path="/*"
         element={
-          <OperatorUI />
+          <OperatorApplication />
         }
       />
 
