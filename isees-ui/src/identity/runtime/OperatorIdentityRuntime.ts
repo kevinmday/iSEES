@@ -1,6 +1,6 @@
 // ============================================================
 // src/identity/runtime/OperatorIdentityRuntime.ts
-// P56D-I1
+// P56D-I1-G1
 // DETERMINISTIC OPERATOR IDENTITY RUNTIME
 //
 // Canonical mutable owner of operator identity state.
@@ -21,7 +21,7 @@
 //     -> later account phase
 //
 //   Workspace persistence implementation
-//     -> persistence boundary
+//     -> workspace persistence boundary
 //
 // Architectural invariants:
 //
@@ -31,6 +31,19 @@
 //
 // Guest operation is the real iSEES application.
 // Guest differs from Account only by persistence policy.
+//
+// P56D-I1-G1:
+//
+//   Guest identity is persisted for the browser session.
+//
+//   initialize()
+//       -> restore validated Guest identity when present
+//
+//   continueAsGuest()
+//       -> establish + persist Guest identity
+//
+//   clearIdentity()
+//       -> clear persisted Guest identity
 //
 // ============================================================
 
@@ -46,6 +59,14 @@ import type {
   OperatorIdentityState,
 
 } from "./OperatorIdentityRuntimeTypes";
+
+import {
+
+  clearGuestIdentitySession,
+  restoreGuestIdentityFromSession,
+  saveGuestIdentityToSession,
+
+} from "../persistence/OperatorIdentitySessionPersistence";
 
 
 // ============================================================
@@ -123,12 +144,21 @@ export class OperatorIdentityRuntime {
   // INITIALIZATION
   // ==========================================================
   //
-  // Initialization deliberately does NOT create a Guest.
+  // Initialization does NOT manufacture a Guest identity.
   //
-  // Absence of an authenticated account must not silently mean
-  // Guest operation.
+  // It may, however, restore a Guest identity that the human
+  // explicitly established earlier in the SAME browser session.
   //
-  // The human explicitly chooses an entry path.
+  // Therefore:
+  //
+  //   no persisted identity
+  //       -> READY / NONE
+  //
+  //   valid persisted Guest identity
+  //       -> READY / GUEST / SESSION
+  //
+  // Browser storage is validated by the persistence boundary
+  // before it can enter runtime state.
   //
   // ==========================================================
 
@@ -144,12 +174,49 @@ export class OperatorIdentityRuntime {
 
     }
 
+
+    const restoredGuestIdentity =
+      restoreGuestIdentityFromSession();
+
+
+    if (
+
+      restoredGuestIdentity !== null
+
+    ) {
+
+      this.publish({
+
+        ...this.state,
+
+        status:
+          "READY",
+
+        identity:
+          restoredGuestIdentity,
+
+        persistence:
+          "SESSION",
+
+      });
+
+      return;
+
+    }
+
+
     this.publish({
 
       ...this.state,
 
       status:
         "READY",
+
+      identity:
+        null,
+
+      persistence:
+        "NONE",
 
     });
 
@@ -232,6 +299,17 @@ export class OperatorIdentityRuntime {
     };
 
 
+    // Persist before publishing the identity.
+    //
+    // If browser persistence throws unexpectedly, runtime state
+    // must not claim SESSION persistence that was never actually
+    // established.
+
+    saveGuestIdentityToSession(
+      identity,
+    );
+
+
     this.publish({
 
       ...this.state,
@@ -252,10 +330,11 @@ export class OperatorIdentityRuntime {
   //
   // Returns the runtime to READY / NONE.
   //
-  // This is identity-state cleanup only.
+  // Persisted Guest identity is removed before runtime state is
+  // published as identity-free.
   //
-  // It does NOT currently destroy or persist Workspace state.
-  // Those semantics belong to the persistence boundary.
+  // Workspace destruction/preservation semantics remain outside
+  // this runtime.
   //
   // ==========================================================
 
@@ -268,9 +347,18 @@ export class OperatorIdentityRuntime {
 
     ) {
 
+      // Defensive cleanup handles stale browser state without
+      // creating a runtime revision for an otherwise unchanged
+      // identity state.
+
+      clearGuestIdentitySession();
+
       return;
 
     }
+
+
+    clearGuestIdentitySession();
 
 
     this.publish({
@@ -292,10 +380,13 @@ export class OperatorIdentityRuntime {
   // PUBLICATION
   // ==========================================================
   //
-  // All mutable state publication flows through this boundary.
+  // All mutable runtime-state publication flows through this
+  // boundary.
   //
-  // revision increments exactly once for each material state
-  // transition.
+  // revision increments exactly once for each material runtime
+  // state transition.
+  //
+  // Browser persistence itself does not increment revision.
   //
   // ==========================================================
 
@@ -334,15 +425,14 @@ export class OperatorIdentityRuntime {
   // GUEST OPERATOR IDENTITY
   // ==========================================================
   //
-  // Guest identity needs to remain stable for the lifetime of
-  // the active Guest context.
+  // A newly established Guest receives a unique operator ID.
   //
-  // Persistence/restoration of that identity across browser
-  // refresh belongs to the session persistence phase.
+  // P56D-I1-G1 then preserves this SAME identity across page
+  // refreshes during the browser session.
   //
-  // crypto.randomUUID() supplies identity uniqueness.
+  // The UUID and timestamp are identity metadata only.
   //
-  // The UUID has no computational meaning and must never enter
+  // They have no computational meaning and must never enter
   // canonical Resolve mathematics.
   //
   // ==========================================================
