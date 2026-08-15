@@ -1,7 +1,7 @@
 // ============================================================
 // src/resolve/engine/ResolveEngineTypes.ts
 //
-// P56D-B
+// P56D-D
 // RESOLVE ENGINE TYPES
 //
 // Canonical deterministic types owned by the Resolve Engine.
@@ -25,6 +25,8 @@
 //
 //   • Canonical computational universe input
 //   • Canonical manifold output
+//   • Canonical similarity candidate output
+//   • Canonical similarity candidate evaluation output
 //   • Canonical computational representation
 //   • Deterministic computational provenance
 //   • Deterministic computation contracts
@@ -59,6 +61,10 @@ import type {
 import type {
   CanonicalSimilarityCandidateCollection,
 } from "../candidates/CanonicalSimilarityCandidateTypes";
+
+import type {
+  CanonicalSimilarityCandidateEvaluationCollection,
+} from "../evaluation/CanonicalSimilarityCandidateEvaluationTypes";
 
 import type {
   ResolveProvenance,
@@ -332,15 +338,17 @@ export interface ResolveEngineInput {
 //
 //   • manifold
 //   • canonical similarity candidates
+//   • canonical similarity candidate evaluations
 //   • canonical representation
 //   • computational provenance
 //
-// Candidate propositions are a sibling deterministic product.
+// Candidate propositions and candidate evaluations are sibling
+// deterministic products.
 //
 // They are derived FROM measured manifold similarity state but
 // are deliberately NOT embedded inside CanonicalManifold.
 //
-// This preserves the epistemic boundary:
+// This preserves the epistemic boundaries:
 //
 //   manifold
 //       = computed world state
@@ -348,8 +356,26 @@ export interface ResolveEngineInput {
 //   similarityCandidates
 //       = downstream propositions eligible for evaluation
 //
+//   candidateEvaluations
+//       = deterministic explanations of why those propositions
+//         surfaced
+//
+// Evaluation does NOT convert a candidate into a relationship.
+//
+// Therefore:
+//
+//   measurement
+//      !=
+//   candidate
+//      !=
+//   evaluation
+//      !=
+//   relationship
+//      !=
+//   accepted Knowledge
+//
 // Equivalent canonical input MUST produce equivalent values
-// for all four.
+// for all deterministic Resolve products.
 //
 // ============================================================
 
@@ -387,18 +413,56 @@ export interface ResolveEngineOutput {
   // Candidates are deliberately a sibling Resolve product,
   // not part of CanonicalManifold.
   //
-  // This preserves the epistemic boundary:
-  //
-  //   manifold
-  //       = computed world state
-  //
-  //   similarityCandidates
-  //       = downstream propositions eligible for evaluation
-  //
   // ----------------------------------------------------------
 
   similarityCandidates:
     CanonicalSimilarityCandidateCollection;
+
+  // ----------------------------------------------------------
+  // Canonical similarity candidate evaluations
+  //
+  // Deterministically derived from:
+  //
+  //     similarityCandidates
+  //
+  // Conceptually:
+  //
+  //     C = h(M.similarityMatrix)
+  //
+  //     E = q(C)
+  //
+  // Evaluation answers:
+  //
+  //     "Why did this candidate surface?"
+  //
+  // It preserves:
+  //
+  //   • candidate identity
+  //   • Knowledge pair lineage
+  //   • dimensional similarity evidence
+  //   • AVAILABLE / UNAVAILABLE distinction
+  //   • legitimate AVAILABLE score zero
+  //   • aggregate similarity
+  //   • participating dimensions
+  //   • canonical similarity rationale
+  //
+  // It does NOT:
+  //
+  //   • create a relationship
+  //   • create a topology edge
+  //   • promote Knowledge
+  //   • generate a Research Vector
+  //   • execute REX
+  //   • recommend a research action
+  //   • perform AI inference
+  //
+  // Evaluations are deliberately a sibling Resolve product,
+  // not part of CanonicalManifold.
+  //
+  // ----------------------------------------------------------
+
+  candidateEvaluations:
+    CanonicalSimilarityCandidateEvaluationCollection;
 
   // ----------------------------------------------------------
   // Canonical representation
@@ -407,18 +471,23 @@ export interface ResolveEngineOutput {
   //
   // This is the byte-comparable substrate for:
   //
-  //   • replay verification
+  //   • manifold replay verification
   //   • provenance
-  //   • computation comparison
+  //   • manifold computation comparison
   //   • future fingerprints
   //
-  // Because similarityMatrix is now part of CanonicalManifold,
+  // Because similarityMatrix is part of CanonicalManifold,
   // its deterministic pairwise measurements automatically
   // participate in this canonical representation.
   //
-  // similarityCandidates are deliberately NOT included in this
-  // manifold representation. They are a sibling deterministic
-  // Resolve product derived from manifold similarity state.
+  // similarityCandidates and candidateEvaluations are
+  // deliberately NOT included in this manifold representation.
+  //
+  // They are sibling deterministic Resolve products derived
+  // downstream from manifold similarity state.
+  //
+  // Complete-product replay may verify these sibling products
+  // independently from manifold byte identity.
   //
   // ----------------------------------------------------------
 
@@ -456,12 +525,32 @@ export interface ResolveEngineOutput {
 //
 // Therefore:
 //
-//   manifold(A)                ≡ manifold(A)
-//   similarityCandidates(A)    ≡ similarityCandidates(A)
-//   representation(A)          ≡ representation(A)
-//   provenance(A)              ≡ provenance(A)
+//   manifold(A)
+//       ≡ manifold(A)
+//
+//   similarityCandidates(A)
+//       ≡ similarityCandidates(A)
+//
+//   candidateEvaluations(A)
+//       ≡ candidateEvaluations(A)
+//
+//   representation(A)
+//       ≡ representation(A)
+//
+//   provenance(A)
+//       ≡ provenance(A)
 //
 // Runtime execution metadata is outside this contract.
+//
+// Complete deterministic derivation:
+//
+//   U
+//   ↓
+//   M = g(L,T,S)
+//   ↓
+//   C = h(M.similarityMatrix)
+//   ↓
+//   E = q(C)
 //
 // ============================================================
 

@@ -1,7 +1,7 @@
 // ============================================================
 // src/resolve/engine/ResolveEngine.ts
 //
-// P56D-C
+// P56D-D
 // RESOLVE ENGINE
 //
 // Canonical deterministic computation engine.
@@ -12,6 +12,7 @@
 //
 //   • a deterministic Canonical Manifold
 //   • deterministic canonical similarity candidates
+//   • deterministic canonical candidate evaluations
 //   • a canonical computational representation
 //   • validated deterministic computational provenance
 //
@@ -23,14 +24,28 @@
 //
 //                 C = h(M.similarityMatrix)
 //
+// Candidate evaluation:
+//
+//                 E = q(C)
+//
+// Complete deterministic derivation:
+//
+//                 U -> M -> C -> E
+//
 // where:
 //
+//   U = canonical computational universe
 //   M = deterministic computed world state
 //   C = deterministic downstream candidate population
+//   E = deterministic explanatory evaluation population
 //
-// Candidate derivation does NOT alter the governing manifold
-// equation. Candidates are derived downstream from measurements
-// already present in the canonical manifold.
+// Candidate derivation and candidate evaluation do NOT alter
+// the governing manifold equation.
+//
+// Candidates are derived downstream from measurements already
+// present in the canonical manifold.
+//
+// Evaluations are derived downstream from candidates.
 //
 // ENGINE INVARIANT
 //
@@ -42,6 +57,7 @@
 //
 //   manifold(A)             ≡ manifold(A)
 //   similarityCandidates(A) ≡ similarityCandidates(A)
+//   candidateEvaluations(A) ≡ candidateEvaluations(A)
 //   representation(A)       ≡ representation(A)
 //   provenance(A)           ≡ provenance(A)
 //
@@ -50,6 +66,7 @@
 //   • deterministic computation
 //   • canonical manifold construction
 //   • canonical similarity candidate derivation
+//   • canonical candidate evaluation
 //   • canonical result serialization
 //   • computational provenance
 //   • computational lineage validation
@@ -68,6 +85,8 @@
 //   • networking
 //   • AI inference
 //   • heuristic reasoning
+//   • Research Vector generation
+//   • REX execution
 //
 // No clocks.
 // No random values.
@@ -88,6 +107,10 @@ import {
 import {
   generateCanonicalSimilarityCandidates,
 } from "../candidates/CanonicalSimilarityCandidateGenerator";
+
+import {
+  evaluateCanonicalSimilarityCandidates,
+} from "../evaluation/CanonicalSimilarityCandidateEvaluator";
 
 import {
   createResolveProvenance,
@@ -118,11 +141,22 @@ implements ResolveEngineContract {
   //   Candidate Generator     ↓
   //            ↓          Computational
   //   Similarity Candidates  Provenance
+  //            ↓
+  //   Candidate Evaluator
+  //            ↓
+  //   Candidate Evaluations
+  //
+  // More compactly:
+  //
+  //          U -> M -> C -> E
   //
   // Candidate generation consumes similarity measurements
   // already computed inside the canonical manifold.
   //
-  // It does not modify the manifold or its canonical
+  // Candidate evaluation consumes candidates and their
+  // authoritative similarity resolutions.
+  //
+  // Neither operation modifies the manifold or its canonical
   // representation.
   //
   // No runtime metadata is introduced anywhere in this path.
@@ -171,6 +205,10 @@ implements ResolveEngineContract {
     //            ↓
     //     similarityCandidates
     //
+    // Or:
+    //
+    //     C = h(M.similarityMatrix)
+    //
     // The candidate generator consumes the already-computed
     // canonical similarity matrix.
     //
@@ -216,6 +254,64 @@ implements ResolveEngineContract {
       );
 
     // --------------------------------------------------------
+    // EVALUATE CANONICAL SIMILARITY CANDIDATES
+    // --------------------------------------------------------
+    //
+    // Candidate evaluation occurs strictly downstream of
+    // candidate generation:
+    //
+    //     similarityCandidates
+    //            ↓
+    //     candidateEvaluations
+    //
+    // Or:
+    //
+    //     E = q(C)
+    //
+    // Evaluation answers:
+    //
+    //     "Why did this candidate surface?"
+    //
+    // The evaluator consumes deterministic facts already
+    // preserved by each candidate and its authoritative
+    // similarity resolution.
+    //
+    // It does NOT:
+    //
+    //   • recompute similarity
+    //   • alter candidate identity
+    //   • alter Knowledge pair lineage
+    //   • modify the manifold
+    //   • modify topology
+    //   • create a graph edge
+    //   • assert a relationship
+    //   • promote Knowledge
+    //   • generate a Research Vector
+    //   • execute REX
+    //   • recommend a research action
+    //   • perform AI inference
+    //   • perform heuristic reasoning
+    //
+    // The epistemic boundary therefore remains:
+    //
+    //   measurement
+    //      !=
+    //   candidate
+    //      !=
+    //   evaluation
+    //      !=
+    //   relationship
+    //      !=
+    //   accepted Knowledge
+    //
+    // --------------------------------------------------------
+
+    const candidateEvaluations =
+      evaluateCanonicalSimilarityCandidates(
+        similarityCandidates.candidates,
+      );
+
+    // --------------------------------------------------------
     // COMPUTE PROVENANCE
     // --------------------------------------------------------
     //
@@ -235,11 +331,20 @@ implements ResolveEngineContract {
     //      ↓
     //   canonical representation
     //
-    // similarityCandidates are a sibling deterministic product
-    // derived from manifold similarity state.
+    // similarityCandidates and candidateEvaluations are sibling
+    // deterministic products derived downstream from manifold
+    // similarity state.
     //
     // They are deliberately NOT inserted into the manifold's
     // canonical representation at this stage.
+    //
+    // This allows complete-product replay to verify:
+    //
+    //   • manifold bytes
+    //   • candidate product
+    //   • evaluation product
+    //
+    // independently.
     //
     // createResolveProvenance() validates that the manifold
     // remains consistent with its source universe before the
@@ -265,7 +370,7 @@ implements ResolveEngineContract {
     //
     // Every property returned here is deterministic.
     //
-    // The product now contains two deliberately distinct
+    // The product now contains three deliberately distinct
     // computational layers:
     //
     //   manifold
@@ -275,9 +380,16 @@ implements ResolveEngineContract {
     //       = downstream propositions made eligible by
     //         available similarity measurements
     //
-    // A candidate is NOT a canonical relationship.
-    // A candidate is NOT a topology edge.
-    // A candidate is NOT an accepted proposition.
+    //   candidateEvaluations
+    //       = deterministic explanatory state describing why
+    //         those candidate propositions surfaced
+    //
+    // Neither a candidate nor an evaluation is a canonical
+    // relationship.
+    //
+    // Neither is a topology edge.
+    //
+    // Neither is accepted Knowledge.
     //
     // There are deliberately no:
     //
@@ -294,6 +406,8 @@ implements ResolveEngineContract {
       manifold,
 
       similarityCandidates,
+
+      candidateEvaluations,
 
       canonicalRepresentation,
 

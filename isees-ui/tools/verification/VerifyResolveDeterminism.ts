@@ -1,7 +1,7 @@
 // ============================================================
 // tools/verification/VerifyResolveDeterminism.ts
 //
-// P56D-C
+// P56D-D
 // RESOLVE DETERMINISM VERIFICATION
 //
 // Zero-dependency engineering verification harness.
@@ -26,18 +26,25 @@
 //  12. Equivalent computation produces identical canonical
 //      similarity candidates.
 //  13. Replay baseline captures the candidate product.
-//  14. Complete replay verifies both manifold and candidate
-//      products.
+//  14. Complete replay verifies manifold and candidate products.
 //  15. Candidate-only divergence is independently detected.
 //  16. Manifold-only divergence is independently detected.
 //  17. Direct complete-product comparison verifies equivalent
 //      Resolve outputs.
 //  18. Legacy manifold-only comparison remains explicitly
 //      manifold-scoped.
+//  19. Equivalent computation produces identical canonical
+//      candidate evaluations.
+//  20. Replay baseline captures the evaluation product.
+//  21. Complete replay verifies manifold, candidate, and
+//      evaluation products.
+//  22. Evaluation-only divergence is independently detected.
+//  23. Direct complete-product comparison requires equivalent
+//      manifold, candidate, and evaluation products.
 //
-// P56D-C COMPLETE RESOLVE PRODUCT
+// P56D-D COMPLETE RESOLVE PRODUCT
 //
-// Resolve now produces two distinct deterministic layers:
+// Resolve now produces three distinct deterministic layers:
 //
 //                 U
 //                 ↓
@@ -52,6 +59,10 @@
 //                 C = h(M.similarityMatrix)
 //                       ↓
 //              Similarity Candidates
+//                       ↓
+//                    E = q(C)
+//                       ↓
+//              Candidate Evaluations
 //
 // Therefore:
 //
@@ -60,14 +71,16 @@
 //   equivalent manifold
 //            AND
 //   equivalent candidate product
+//            AND
+//   equivalent evaluation product
 //
-// Candidate generation does NOT alter the governing manifold
-// equation:
+// Candidate generation and evaluation do NOT alter the
+// governing manifold equation:
 //
 //                 M = g(L,T,S)
 //
-// Candidates are a sibling deterministic product downstream of
-// measured manifold similarity state.
+// Candidates and evaluations are sibling deterministic products
+// downstream of measured manifold similarity state.
 //
 // This is NOT production runtime code.
 //
@@ -112,6 +125,7 @@ import {
 
 import {
   computeCanonicalSimilarityCandidateRepresentation,
+  computeCanonicalCandidateEvaluationRepresentation,
   createResolveReplayBaseline,
   verifyCanonicalRepresentations,
   verifyResolveReplay,
@@ -209,7 +223,7 @@ function createWorkspace(): Workspace {
       "Resolve Determinism Verification",
 
     description:
-      "P56D-C deterministic computation verification workspace.",
+      "P56D-D deterministic computation verification workspace.",
 
     imported_events:
       [],
@@ -249,7 +263,7 @@ function createInvestigation(
       "Resolve Determinism Verification",
 
     description:
-      "P56D-C canonical computation verification investigation.",
+      "P56D-D canonical computation verification investigation.",
 
     createdAt:
       "2026-08-08T00:00:00.000Z",
@@ -258,7 +272,7 @@ function createInvestigation(
       "2026-08-08T00:00:00.000Z",
 
     createdBy:
-      "P56D_C_VERIFY",
+      "P56D_D_VERIFY",
 
     status:
       "ACTIVE",
@@ -301,7 +315,7 @@ function createKnowledgeObject(
         "Deterministic verification fixture.",
 
       author:
-        "P56D_C_VERIFY",
+        "P56D_D_VERIFY",
 
       version:
         "1.0.0",
@@ -734,20 +748,6 @@ console.log(
 // TEST 7
 // SEMANTICALLY EQUIVALENT REPLAY
 // ============================================================
-//
-// inputA and inputB differ in:
-//
-//   • Knowledge Object insertion order
-//   • Active Layer insertion order
-//   • duplicate Active Layers
-//   • property insertion order within T
-//   • property insertion order within S
-//
-// They represent the same computational universe.
-//
-// Replay MUST verify.
-//
-// ============================================================
 
 const replayBaseline =
   createResolveReplayBaseline(
@@ -784,16 +784,6 @@ console.log(
 // ============================================================
 // TEST 8
 // COMPUTATIONAL DIVERGENCE DETECTION
-// ============================================================
-//
-// Change an actual computational dimension.
-//
-// Here L changes by activating ONTOLOGICAL.
-//
-// This is no longer equivalent to the baseline universe.
-//
-// Replay MUST detect divergence.
-//
 // ============================================================
 
 const divergentInput:
@@ -928,13 +918,6 @@ console.log(
 // TEST 10
 // PROVENANCE REJECTS MISMATCHED COMPUTATIONAL LINEAGE
 // ============================================================
-//
-// Forge a manifold claiming to belong to another investigation.
-//
-// Provenance construction MUST reject the mismatch rather than
-// record false computational lineage.
-//
-// ============================================================
 
 assertThrows(
 
@@ -974,13 +957,6 @@ console.log(
 // ============================================================
 // TEST 11
 // PROVENANCE REJECTS MISMATCHED KNOWLEDGE POPULATION
-// ============================================================
-//
-// Forge the manifold population while retaining the original
-// investigation identity.
-//
-// Provenance MUST reject it.
-//
 // ============================================================
 
 assertThrows(
@@ -1028,14 +1004,6 @@ console.log(
 // TEST 12
 // EQUIVALENT COMPUTATION PRODUCES EQUIVALENT CANDIDATES
 // ============================================================
-//
-// similarityCandidates are a sibling deterministic Resolve
-// product.
-//
-// Equivalent canonical universes must therefore produce
-// byte-identical candidate representations.
-//
-// ============================================================
 
 const candidateRepresentationA =
   computeCanonicalSimilarityCandidateRepresentation(
@@ -1082,7 +1050,7 @@ console.log(
 
 // ============================================================
 // TEST 14
-// COMPLETE EQUIVALENT REPLAY VERIFIES BOTH PRODUCTS
+// COMPLETE EQUIVALENT REPLAY VERIFIES MANIFOLD + CANDIDATES
 // ============================================================
 
 assert(
@@ -1110,27 +1078,42 @@ assert(
 );
 
 console.log(
-  "PASS 14 — equivalent replay verifies both manifold and candidate products",
+  "PASS 14 — equivalent replay verifies manifold and candidate products",
 );
+
+// ============================================================
+// EVALUATION REPRESENTATIONS
+// ============================================================
+//
+// P56D-D adds E as the third deterministic Resolve product.
+//
+// Compute these here so the existing P56D-C divergence tests can
+// now explicitly hold E constant while varying M or C.
+//
+// ============================================================
+
+const evaluationRepresentationA =
+  computeCanonicalCandidateEvaluationRepresentation(
+    provenanceOutputA.candidateEvaluations,
+  );
+
+const evaluationRepresentationB =
+  computeCanonicalCandidateEvaluationRepresentation(
+    provenanceOutputB.candidateEvaluations,
+  );
 
 // ============================================================
 // TEST 15
 // CANDIDATE-ONLY DIVERGENCE DETECTION
 // ============================================================
 //
-// Critical P56D-C invariant:
-//
 //     M1 = M2
 //     C1 != C2
+//     E1 = E2
 //
 // must imply:
 //
 //     replay = DIVERGED
-//
-// Candidates are deliberately outside CanonicalManifold.
-//
-// Therefore replay must detect candidate divergence
-// independently from manifold divergence.
 //
 // ============================================================
 
@@ -1147,6 +1130,10 @@ const candidateOnlyDivergence =
     candidateRepresentationA,
 
     forgedCandidateRepresentation,
+
+    evaluationRepresentationA,
+
+    evaluationRepresentationA,
 
   );
 
@@ -1168,6 +1155,14 @@ assert(
 
 assert(
 
+  candidateOnlyDivergence.candidateEvaluationsVerified === true,
+
+  "Candidate-only divergence fixture must retain evaluation equivalence.",
+
+);
+
+assert(
+
   candidateOnlyDivergence.verified === false,
 
   "Candidate-only divergence must fail complete Resolve replay verification.",
@@ -1184,12 +1179,22 @@ assert(
 );
 
 console.log(
-  "PASS 15 — candidate-only divergence is detected even when manifold bytes are identical",
+  "PASS 15 — candidate-only divergence is detected even when manifold and evaluation bytes are identical",
 );
 
 // ============================================================
 // TEST 16
 // MANIFOLD-ONLY DIVERGENCE DETECTION
+// ============================================================
+//
+//     M1 != M2
+//     C1 = C2
+//     E1 = E2
+//
+// must imply:
+//
+//     replay = DIVERGED
+//
 // ============================================================
 
 const manifoldOnlyDivergence =
@@ -1202,6 +1207,10 @@ const manifoldOnlyDivergence =
     candidateRepresentationA,
 
     candidateRepresentationA,
+
+    evaluationRepresentationA,
+
+    evaluationRepresentationA,
 
   );
 
@@ -1218,6 +1227,14 @@ assert(
   manifoldOnlyDivergence.similarityCandidatesVerified === true,
 
   "Manifold-only divergence fixture must retain candidate equivalence.",
+
+);
+
+assert(
+
+  manifoldOnlyDivergence.candidateEvaluationsVerified === true,
+
+  "Manifold-only divergence fixture must retain evaluation equivalence.",
 
 );
 
@@ -1258,6 +1275,10 @@ const completeEquivalentRepresentations =
 
     candidateRepresentationB,
 
+    evaluationRepresentationA,
+
+    evaluationRepresentationB,
+
   );
 
 assert(
@@ -1273,6 +1294,14 @@ assert(
   completeEquivalentRepresentations.similarityCandidatesVerified === true,
 
   "Direct complete-product verification must recognize equivalent candidate representations.",
+
+);
+
+assert(
+
+  completeEquivalentRepresentations.candidateEvaluationsVerified === true,
+
+  "Direct complete-product verification must recognize equivalent evaluation representations.",
 
 );
 
@@ -1305,18 +1334,9 @@ console.log(
 // verifyCanonicalRepresentations() remains intentionally
 // backward-compatible.
 //
-// It verifies only the supplied CanonicalManifold
-// representations.
+// It verifies only supplied CanonicalManifold representations.
 //
-// It does NOT compare an external candidate product.
-//
-// Complete Resolve replay verification belongs to:
-//
-//   verifyResolveReplay()
-//
-// or:
-//
-//   verifyResolveRepresentations()
+// It does NOT compare external candidate or evaluation products.
 //
 // ============================================================
 
@@ -1339,6 +1359,22 @@ assert(
 
 assert(
 
+  manifoldOnlyEquivalent.similarityCandidatesVerified === true,
+
+  "Legacy manifold-only comparison must use equal candidate sentinels.",
+
+);
+
+assert(
+
+  manifoldOnlyEquivalent.candidateEvaluationsVerified === true,
+
+  "Legacy manifold-only comparison must use equal evaluation sentinels.",
+
+);
+
+assert(
+
   manifoldOnlyEquivalent.verified === true,
 
   "Explicitly scoped manifold-only comparison must remain backward-compatible.",
@@ -1350,6 +1386,317 @@ console.log(
 );
 
 // ============================================================
+// TEST 19
+// EQUIVALENT COMPUTATION PRODUCES EQUIVALENT EVALUATIONS
+// ============================================================
+//
+// Equivalent canonical universes must produce byte-identical
+// E products.
+//
+// This proves evaluation determinism through the full engine
+// path rather than only through the isolated evaluator harness.
+//
+// ============================================================
+
+assertEqual(
+
+  evaluationRepresentationA,
+
+  evaluationRepresentationB,
+
+  "Equivalent computation must produce byte-identical canonical candidate evaluation representations.",
+
+);
+
+console.log(
+  "PASS 19 — equivalent computation produces identical canonical candidate evaluations",
+);
+
+// ============================================================
+// TEST 20
+// REPLAY BASELINE CAPTURES EVALUATION PRODUCT
+// ============================================================
+
+assertEqual(
+
+  replayBaseline.candidateEvaluationRepresentation,
+
+  evaluationRepresentationA,
+
+  "Resolve replay baseline must capture the deterministic candidate evaluation representation.",
+
+);
+
+console.log(
+  "PASS 20 — replay baseline captures canonical candidate evaluation representation",
+);
+
+// ============================================================
+// TEST 21
+// COMPLETE EQUIVALENT REPLAY VERIFIES M + C + E
+// ============================================================
+
+assert(
+
+  equivalentReplay.manifoldVerified === true,
+
+  "Complete replay must verify manifold representation.",
+
+);
+
+assert(
+
+  equivalentReplay.similarityCandidatesVerified === true,
+
+  "Complete replay must verify candidate representation.",
+
+);
+
+assert(
+
+  equivalentReplay.candidateEvaluationsVerified === true,
+
+  "Complete replay must verify evaluation representation.",
+
+);
+
+assert(
+
+  equivalentReplay.verified === true,
+
+  "Complete replay must verify M + C + E together.",
+
+);
+
+assert(
+
+  equivalentReplay.status ===
+    ResolveReplayStatus.VERIFIED,
+
+  "Equivalent M + C + E replay must report VERIFIED.",
+
+);
+
+console.log(
+  "PASS 21 — equivalent replay verifies manifold, candidate, and evaluation products",
+);
+
+// ============================================================
+// TEST 22
+// EVALUATION-ONLY DIVERGENCE DETECTION
+// ============================================================
+//
+// Critical P56D-D invariant:
+//
+//     M1 = M2
+//     C1 = C2
+//     E1 != E2
+//
+// must imply:
+//
+//     replay = DIVERGED
+//
+// Evaluations are deliberately outside CanonicalManifold and
+// outside the candidate representation.
+//
+// Therefore complete replay must detect E divergence
+// independently.
+//
+// ============================================================
+
+const forgedEvaluationRepresentation =
+  `${evaluationRepresentationA}#FORGED-EVALUATION-DIVERGENCE`;
+
+const evaluationOnlyDivergence =
+  verifyResolveRepresentations(
+
+    representationA,
+
+    representationA,
+
+    candidateRepresentationA,
+
+    candidateRepresentationA,
+
+    evaluationRepresentationA,
+
+    forgedEvaluationRepresentation,
+
+  );
+
+assert(
+
+  evaluationOnlyDivergence.manifoldVerified === true,
+
+  "Evaluation-only divergence fixture must retain manifold equivalence.",
+
+);
+
+assert(
+
+  evaluationOnlyDivergence.similarityCandidatesVerified === true,
+
+  "Evaluation-only divergence fixture must retain candidate equivalence.",
+
+);
+
+assert(
+
+  evaluationOnlyDivergence.candidateEvaluationsVerified === false,
+
+  "Evaluation-only divergence must fail evaluation verification.",
+
+);
+
+assert(
+
+  evaluationOnlyDivergence.verified === false,
+
+  "Evaluation-only divergence must fail complete Resolve replay verification.",
+
+);
+
+assert(
+
+  evaluationOnlyDivergence.status ===
+    ResolveReplayStatus.DIVERGED,
+
+  "Evaluation-only divergence must report DIVERGED.",
+
+);
+
+console.log(
+  "PASS 22 — evaluation-only divergence is detected even when manifold and candidate bytes are identical",
+);
+
+// ============================================================
+// TEST 23
+// COMPLETE DIRECT PRODUCT REQUIRES M + C + E EQUIVALENCE
+// ============================================================
+//
+// Positive control:
+//
+//     M1 = M2
+//     C1 = C2
+//     E1 = E2
+//
+//     => VERIFIED
+//
+// Negative control:
+//
+//     M1 = M2
+//     C1 = C2
+//     E1 != E2
+//
+//     => DIVERGED
+//
+// This closes the complete-product contract explicitly.
+//
+// ============================================================
+
+const completeProductVerified =
+  verifyResolveRepresentations(
+
+    representationA,
+
+    representationB,
+
+    candidateRepresentationA,
+
+    candidateRepresentationB,
+
+    evaluationRepresentationA,
+
+    evaluationRepresentationB,
+
+  );
+
+assert(
+
+  completeProductVerified.manifoldVerified === true,
+
+  "Complete product must verify equivalent manifold state.",
+
+);
+
+assert(
+
+  completeProductVerified.similarityCandidatesVerified === true,
+
+  "Complete product must verify equivalent candidate state.",
+
+);
+
+assert(
+
+  completeProductVerified.candidateEvaluationsVerified === true,
+
+  "Complete product must verify equivalent evaluation state.",
+
+);
+
+assert(
+
+  completeProductVerified.verified === true,
+
+  "Complete equivalent M + C + E product must verify.",
+
+);
+
+const completeProductEvaluationDivergence =
+  verifyResolveRepresentations(
+
+    representationA,
+
+    representationB,
+
+    candidateRepresentationA,
+
+    candidateRepresentationB,
+
+    evaluationRepresentationA,
+
+    forgedEvaluationRepresentation,
+
+  );
+
+assert(
+
+  completeProductEvaluationDivergence.manifoldVerified === true,
+
+  "Evaluation-divergent complete product must retain manifold equivalence.",
+
+);
+
+assert(
+
+  completeProductEvaluationDivergence.similarityCandidatesVerified === true,
+
+  "Evaluation-divergent complete product must retain candidate equivalence.",
+
+);
+
+assert(
+
+  completeProductEvaluationDivergence.candidateEvaluationsVerified === false,
+
+  "Evaluation-divergent complete product must fail evaluation equivalence.",
+
+);
+
+assert(
+
+  completeProductEvaluationDivergence.verified === false,
+
+  "Complete product verification must require evaluation equivalence.",
+
+);
+
+console.log(
+  "PASS 23 — complete-product verification requires equivalent manifold, candidate, and evaluation products",
+);
+
+// ============================================================
 // RESULT
 // ============================================================
 
@@ -1358,7 +1705,7 @@ console.log(
   "============================================================",
 );
 console.log(
-  " P56D-C COMPLETE RESOLVE DETERMINISM VERIFIED",
+  " P56D-D COMPLETE RESOLVE DETERMINISM VERIFIED",
 );
 console.log(
   "============================================================",
@@ -1398,7 +1745,13 @@ console.log(
   "  replay baseline candidate preservation",
 );
 console.log(
-  "  complete manifold + candidate replay verification",
+  "  equivalent candidate evaluation",
+);
+console.log(
+  "  replay baseline evaluation preservation",
+);
+console.log(
+  "  complete manifold + candidate + evaluation replay verification",
 );
 console.log(
   "  candidate-only divergence detection",
@@ -1407,7 +1760,13 @@ console.log(
   "  manifold-only divergence detection",
 );
 console.log(
+  "  evaluation-only divergence detection",
+);
+console.log(
   "  direct complete-product equivalence",
+);
+console.log(
+  "  complete-product evaluation requirement",
 );
 console.log(
   "  backward-compatible manifold-only comparison",
@@ -1428,14 +1787,21 @@ console.log(
 );
 console.log("");
 console.log(
-  "Complete deterministic Resolve product:",
+  "Downstream candidate evaluation:",
 );
 console.log(
-  "  U -> M -> C",
+  "  E = q(C)",
 );
 console.log("");
 console.log(
-  "All 18 deterministic invariants passed.",
+  "Complete deterministic Resolve product:",
+);
+console.log(
+  "  U -> M -> C -> E",
+);
+console.log("");
+console.log(
+  "All 23 deterministic invariants passed.",
 );
 
 // ============================================================
