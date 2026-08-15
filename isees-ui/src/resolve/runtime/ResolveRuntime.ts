@@ -1,7 +1,7 @@
 // ============================================================
 // src/resolve/runtime/ResolveRuntime.ts
 //
-// P55B
+// P56D-E
 // RESOLVE RUNTIME
 //
 // Canonical runtime responsible for execution lifecycle around
@@ -22,6 +22,8 @@
 //
 //   • deterministic computation
 //   • canonical manifold construction
+//   • canonical similarity candidate derivation
+//   • canonical candidate evaluation
 //   • canonical result serialization
 //   • deterministic computational provenance
 //   • computational lineage validation
@@ -30,16 +32,34 @@
 //
 //                 M = g(L,T,S)
 //
+// Candidate derivation:
+//
+//                 C = h(M.similarityMatrix)
+//
+// Candidate evaluation:
+//
+//                 E = q(C)
+//
+// Complete deterministic engine product:
+//
+//                 U -> M -> C -> E
+//
 // Runtime metadata MUST NOT participate in computation.
 //
 // The runtime preserves the complete deterministic engine
-// product but does not create or modify its computational
-// provenance.
+// product but does not create, recompute, reinterpret, filter,
+// rank, promote, or otherwise modify that product.
 //
 // Responsibilities explicitly NOT owned:
 //
 //   • manifold computation
+//   • similarity computation
+//   • candidate derivation
+//   • candidate evaluation
 //   • computational provenance generation
+//   • relationship assertion
+//   • Research Vector generation
+//   • REX execution
 //   • React
 //   • UI
 //   • Graph Rendering
@@ -155,15 +175,27 @@ export class ResolveRuntime {
   //            ↓
   //       ResolveEngine
   //            ↓
-  //        g(L,T,S)
+  //        M = g(L,T,S)
   //            ↓
   //   Canonical Manifold
+  //            ↓
+  //   C = h(M.similarityMatrix)
+  //            ↓
+  //   Similarity Candidates
+  //            ↓
+  //        E = q(C)
+  //            ↓
+  //   Candidate Evaluations
   //            ↓
   //   Canonical Representation
   //            ↓
   //   Computational Provenance
   //            ↓
   //   execution record/history
+  //
+  // More compactly:
+  //
+  //       U -> M -> C -> E
   //
   // Runtime metadata is created outside the engine and does
   // not participate in deterministic computation.
@@ -239,8 +271,27 @@ export class ResolveRuntime {
       // Engine returns the complete deterministic product:
       //
       //   • manifold
+      //   • similarityCandidates
+      //   • candidateEvaluations
       //   • canonicalRepresentation
       //   • provenance
+      //
+      // Runtime receives these products exactly as produced by
+      // the engine.
+      //
+      // It does NOT:
+      //
+      //   • recompute similarity
+      //   • regenerate candidates
+      //   • regenerate evaluations
+      //   • filter candidates
+      //   • filter evaluations
+      //   • rank candidates
+      //   • rank evaluations
+      //   • create relationships
+      //   • create topology edges
+      //   • create Research Vectors
+      //   • execute REX
       //
       // ------------------------------------------------------
 
@@ -261,10 +312,20 @@ export class ResolveRuntime {
       // ------------------------------------------------------
       // Construct Runtime Result
       //
-      // Runtime wraps the deterministic engine product with
-      // execution metadata.
+      // Runtime wraps the complete deterministic engine product
+      // with execution metadata.
       //
-      // It does NOT regenerate or modify provenance.
+      // Deterministic engine-owned products are copied through
+      // without transformation:
+      //
+      //   M
+      //   C
+      //   E
+      //   canonicalRepresentation
+      //   provenance
+      //
+      // Runtime does NOT regenerate or modify provenance.
+      //
       // ------------------------------------------------------
 
       const result:
@@ -282,6 +343,12 @@ export class ResolveRuntime {
           manifold:
             engineOutput.manifold,
 
+          similarityCandidates:
+            engineOutput.similarityCandidates,
+
+          candidateEvaluations:
+            engineOutput.candidateEvaluations,
+
           canonicalRepresentation:
             engineOutput.canonicalRepresentation,
 
@@ -292,6 +359,14 @@ export class ResolveRuntime {
 
       // ------------------------------------------------------
       // Complete execution record
+      //
+      // The execution record now preserves the complete
+      // deterministic Resolve product:
+      //
+      //             M + C + E
+      //
+      // together with runtime-owned lifecycle metadata.
+      //
       // ------------------------------------------------------
 
       record.completedAt =
