@@ -234,14 +234,18 @@ export class GuestWorkspaceSessionLifecycle {
     if (
       this.state.status === "ACTIVE"
     ) {
+
       return;
+
     }
 
 
     if (
       this.state.status === "STARTING"
     ) {
+
       return;
+
     }
 
 
@@ -266,6 +270,35 @@ export class GuestWorkspaceSessionLifecycle {
       restoreGuestWorkspaceSession();
 
 
+    // ========================================================
+    // P56D-I1-G3 TEMPORARY TRACE
+    //
+    // Proves exactly what the lifecycle sees at the persistence
+    // boundary before any runtime restoration occurs.
+    // ========================================================
+
+    console.log(
+      "[G3 TRACE] lifecycle.start restoreResult",
+      {
+
+        lifecycleStatus:
+          this.state.status,
+
+        restoreStatus:
+          restoreResult.status,
+
+        restoredResearchEntries:
+          restoreResult.status === "RESTORED"
+            ? restoreResult.snapshot.research.desk.entries.length
+            : null,
+
+        liveResearchEntriesBeforeRestore:
+          researchBridgeRuntime.getDesk().entries.length,
+
+      },
+    );
+
+
     if (
       restoreResult.status === "RESTORED"
     ) {
@@ -273,6 +306,25 @@ export class GuestWorkspaceSessionLifecycle {
       this.restoreSnapshot(
         restoreResult.snapshot,
       );
+
+
+      // ======================================================
+      // P56D-I1-G3 TEMPORARY TRACE
+      //
+      // Proves the Research runtime immediately after the
+      // canonical snapshot has been restored.
+      // ======================================================
+
+      console.log(
+        "[G3 TRACE] lifecycle.start AFTER restoreSnapshot",
+        {
+
+          liveResearchEntries:
+            researchBridgeRuntime.getDesk().entries.length,
+
+        },
+      );
+
 
       restored =
         true;
@@ -321,7 +373,9 @@ export class GuestWorkspaceSessionLifecycle {
       this.state.status === "STOPPED" ||
       this.state.status === "IDLE"
     ) {
+
       return;
+
     }
 
 
@@ -378,6 +432,30 @@ export class GuestWorkspaceSessionLifecycle {
       });
 
 
+    // ========================================================
+    // P56D-I1-G3 TEMPORARY TRACE
+    //
+    // Proves the exact Research Desk cardinality being written
+    // through the canonical persistence boundary.
+    // ========================================================
+
+    console.log(
+      "[G3 TRACE] lifecycle.captureNow",
+      {
+
+        lifecycleStatus:
+          this.state.status,
+
+        snapshotResearchEntries:
+          snapshot.research.desk.entries.length,
+
+        liveResearchEntries:
+          researchBridgeRuntime.getDesk().entries.length,
+
+      },
+    );
+
+
     saveGuestWorkspaceSession(
       snapshot,
     );
@@ -413,14 +491,18 @@ export class GuestWorkspaceSessionLifecycle {
       if (
         this.state.status !== "ACTIVE"
       ) {
+
         return;
+
       }
 
 
       if (
         this.captureSuppressed
       ) {
+
         return;
+
       }
 
 
@@ -432,7 +514,9 @@ export class GuestWorkspaceSessionLifecycle {
         identityState.identity?.kind !== "GUEST" ||
         identityState.persistence !== "SESSION"
       ) {
+
         return;
+
       }
 
 
