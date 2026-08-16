@@ -215,6 +215,66 @@ export class ResearchBridgeRuntime {
 
   }
 
+  // ==========================================================
+  // DESK RESTORATION
+  // ==========================================================
+
+  /**
+   * Restore a previously persisted Research Desk.
+   *
+   * Restoration is intentionally distinct from createAnchor()
+   * and bridge().
+   *
+   * Persisted Research state already contains canonical:
+   *
+   *   - Research Anchor identity
+   *   - Investigation ownership
+   *   - Graph reference
+   *   - Graph revision
+   *   - Operator ordering
+   *   - Pin state
+   *   - Creation metadata
+   *
+   * Therefore restoration must preserve the persisted Desk
+   * exactly rather than reconstructing it through bridge().
+   *
+   * Runtime revision itself is not persisted. Restoration is
+   * one atomic runtime mutation and therefore emits exactly one
+   * runtime publication.
+   */
+  restoreDesk(
+    desk:
+      ResearchDesk,
+  ): void {
+
+    this.desk = {
+
+      ...desk,
+
+      entries:
+
+        desk.entries.map(
+
+          entry => ({
+
+            ...entry,
+
+            anchor: {
+
+              ...entry.anchor,
+
+            },
+
+          }),
+
+        ),
+
+    };
+
+    this.notify();
+
+  }
+
   pinAnchor(
     anchorId:
       string,
