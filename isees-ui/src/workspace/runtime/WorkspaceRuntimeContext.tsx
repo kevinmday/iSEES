@@ -13,6 +13,16 @@
 //
 // React merely observes runtime state changes.
 //
+// P56D-I1-G2
+// LATE-SUBSCRIPTION PUBLICATION SYNCHRONIZATION
+//
+// Guest workspace restoration may occur before React mounts this
+// provider. Therefore the provider must synchronize against the
+// runtime's already-current canonical revision when it mounts.
+//
+// Runtime state remains authoritative. React does not reconstruct,
+// duplicate, or independently own workspace state.
+//
 // Ownership:
 //
 // Operator
@@ -75,31 +85,78 @@ export function WorkspaceRuntimeProvider({
   children: ReactNode;
 }) {
 
-  // React does not own runtime state.
-  // It simply re-renders whenever the deterministic
-  // Workspace Runtime publishes a revision.
+  // ----------------------------------------------------------
+  // REACT PUBLICATION REVISION
+  // ----------------------------------------------------------
+  //
+  // React does not own Workspace Runtime state.
+  //
+  // The runtime revision is the canonical publication marker.
+  //
+  // IMPORTANT:
+  //
+  // Guest restoration may mutate WorkspaceRuntime before this
+  // provider subscribes.
+  //
+  // Initializing from the runtime's current revision ensures the
+  // first React render observes the already-restored runtime
+  // rather than assuming revision zero.
+  // ----------------------------------------------------------
 
-  const [revision, forceUpdate] =
-    useState(0);
-
+  const [revision, setRevision] =
+    useState(
+      () =>
+        workspaceRuntime
+          .getState()
+          .revision,
+    );
 
   useEffect(() => {
+
+    // --------------------------------------------------------
+    // SUBSCRIBE FIRST
+    // --------------------------------------------------------
+    //
+    // Subscribe before performing the synchronization read.
+    //
+    // This prevents a mutation occurring between the initial
+    // render and effect execution from being lost.
+    // --------------------------------------------------------
 
     const unsubscribe =
       workspaceRuntime.subscribe(() => {
 
-      
-        forceUpdate(
-          revision => revision + 1,
+        setRevision(
+          workspaceRuntime
+            .getState()
+            .revision,
         );
 
       });
+
+    // --------------------------------------------------------
+    // LATE-SUBSCRIPTION SYNCHRONIZATION
+    // --------------------------------------------------------
+    //
+    // Restoration may already have completed before React
+    // subscribed.
+    //
+    // Read the canonical runtime revision immediately after
+    // subscription so React catches up with any state mutation
+    // that occurred before this observer existed.
+    // --------------------------------------------------------
+
+    setRevision(
+      workspaceRuntime
+        .getState()
+        .revision,
+    );
 
     return unsubscribe;
 
   }, []);
 
-    return (
+  return (
 
     <WorkspaceRuntimeContext.Provider
       value={{

@@ -8,6 +8,18 @@
 // The Workspace Surface selects the active operator workspace
 // based on the deterministic Workspace Runtime.
 //
+// P56D-I1-G2:
+//
+// AuthorDocumentRuntime ownership has been promoted out of the
+// RESEARCH / Studio projection.
+//
+// Studio is a projection of persistent Author runtime state.
+// Entering or leaving Studio must therefore not create or destroy
+// the Author runtime observation boundary.
+//
+// The permanent AuthorDocumentRuntimeProvider is owned by the
+// operational application provider tree.
+//
 // Ownership:
 //
 // Workspace Runtime
@@ -17,6 +29,12 @@
 // Workspace Surface
 //      ├── Persistent Workspace Instruments
 //      └── Projection Surface
+//
+// Author Document Runtime
+//      ↓
+// Permanent Operational Provider
+//      ↓
+// StudioShell projection
 //
 // Computational ownership remains below the Workspace Runtime.
 // ============================================================
@@ -37,10 +55,6 @@ import ManifoldWorkspace
 
 import StudioShell
   from "../author/components/StudioShell";
-
-import {
-  AuthorDocumentRuntimeProvider,
-} from "../author/runtime/AuthorDocumentRuntimeContext";
 
 import ResearchInboxInstrument
   from "../manifold/components/ResearchInboxInstrument";
@@ -161,13 +175,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.RESEARCH:
 
       return (
-
-        <AuthorDocumentRuntimeProvider>
-
-          <StudioShell />
-
-        </AuthorDocumentRuntimeProvider>
-
+        <StudioShell />
       );
 
     default:

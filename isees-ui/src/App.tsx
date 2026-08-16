@@ -7,6 +7,9 @@
 // P56D-I1
 // OPERATOR IDENTITY ENTRY INTEGRATION
 //
+// P56D-I1-G2
+// GUEST WORKSPACE SESSION LIFECYCLE INTEGRATION
+//
 // Identity is established before the operational application
 // mounts.
 //
@@ -15,31 +18,52 @@
 //
 // GUEST
 //   -> Full operational iSEES
+//   -> Guest workspace session lifecycle ACTIVE
 //
 // ACCOUNT
 //   -> Full operational iSEES
+//   -> Guest workspace session lifecycle STOPPED
 //
 // Account changes persistence, not capability.
 //
+// AuthorDocumentRuntimeProvider is operationally persistent.
+// Studio is a projection of Author runtime state and therefore
+// does not own the Author runtime provider.
+//
 // ============================================================
 
-import { Routes, Route } from "react-router-dom";
+import {
+  useEffect,
+} from "react";
 
-import MainLayout from "./layout/MainLayout";
+import {
+  Routes,
+  Route,
+} from "react-router-dom";
 
-import RightPanel from "./components/RightPanel";
-import PrimarySurface from "./surfaces/PrimarySurface";
+import MainLayout
+  from "./layout/MainLayout";
+
+import RightPanel
+  from "./components/RightPanel";
+
+import PrimarySurface
+  from "./surfaces/PrimarySurface";
 
 import {
   InvestigationControl,
 } from "./investigationControl";
 
-import PublicIntake from "./pages/PublicIntake";
-import SystemBriefing from "./pages/SystemBriefing";
+import PublicIntake
+  from "./pages/PublicIntake";
+
+import SystemBriefing
+  from "./pages/SystemBriefing";
 
 import {
 
   OperatorIdentityRuntimeProvider,
+  useOperatorIdentity,
 
 } from "./identity/runtime/OperatorIdentityRuntimeContext";
 
@@ -99,9 +123,110 @@ import {
 
 } from "./knowledge/runtime/KnowledgeObjectRuntimeContext";
 
+import {
+
+  AuthorDocumentRuntimeProvider,
+
+} from "./author/runtime/AuthorDocumentRuntimeContext";
+
+import {
+
+  guestWorkspaceSessionLifecycle,
+
+} from "./workspace/persistence/GuestWorkspaceSessionLifecycle";
+
+
+// ============================================================
+// GUEST WORKSPACE SESSION LIFECYCLE BRIDGE
+// ============================================================
+//
+// React owns no Guest workspace persistence state.
+//
+// This component connects the reactive operator identity boundary
+// to the deterministic Guest workspace lifecycle.
+//
+// GUEST
+//   -> lifecycle.start()
+//
+// ACCOUNT / NONE
+//   -> lifecycle.stop()
+//
+// Component teardown
+//   -> lifecycle.stop()
+//
+// The lifecycle itself owns:
+//
+//   - persisted snapshot restoration
+//   - Workspace subscription
+//   - Research subscription
+//   - Author subscription
+//   - canonical capture
+//   - sessionStorage persistence
+//
+// The lifecycle does NOT own any of those runtime states.
+//
+// ============================================================
+
+function GuestWorkspaceSessionLifecycleBridge() {
+
+  const identityState =
+    useOperatorIdentity();
+
+
+  useEffect(
+    () => {
+
+      const identity =
+        identityState.identity;
+
+
+      if (
+        identityState.status === "READY" &&
+        identity?.kind === "GUEST" &&
+        identityState.persistence === "SESSION"
+      ) {
+
+        guestWorkspaceSessionLifecycle.start();
+
+      } else {
+
+        guestWorkspaceSessionLifecycle.stop();
+
+      }
+
+
+      return () => {
+
+        guestWorkspaceSessionLifecycle.stop();
+
+      };
+
+    },
+    [
+      identityState.status,
+      identityState.identity,
+      identityState.persistence,
+    ],
+  );
+
+
+  return null;
+
+}
+
 
 // ============================================================
 // OPERATOR UI
+// ============================================================
+//
+// The operational provider tree is identical for Guest and
+// Account operators.
+//
+// Author runtime ownership is permanent at this level.
+//
+// WorkspaceSurface / StudioShell therefore project Author state
+// but do not manufacture an Author runtime boundary.
+//
 // ============================================================
 
 function OperatorUI() {
@@ -122,37 +247,43 @@ function OperatorUI() {
 
                 <ResearchBridgeProvider>
 
-                  <FederationProvider>
+                  <AuthorDocumentRuntimeProvider>
 
-                    <IntelligenceBriefProvider>
+                    <GuestWorkspaceSessionLifecycleBridge />
 
-                      <GraphProvider>
+                    <FederationProvider>
 
-                        <EventProvider>
+                      <IntelligenceBriefProvider>
 
-                          <MainLayout
+                        <GraphProvider>
 
-                            left={
-                              <InvestigationControl />
-                            }
+                          <EventProvider>
 
-                            center={
-                              <PrimarySurface />
-                            }
+                            <MainLayout
 
-                            right={
-                              <RightPanel />
-                            }
+                              left={
+                                <InvestigationControl />
+                              }
 
-                          />
+                              center={
+                                <PrimarySurface />
+                              }
 
-                        </EventProvider>
+                              right={
+                                <RightPanel />
+                              }
 
-                      </GraphProvider>
+                            />
 
-                    </IntelligenceBriefProvider>
+                          </EventProvider>
 
-                  </FederationProvider>
+                        </GraphProvider>
+
+                      </IntelligenceBriefProvider>
+
+                    </FederationProvider>
+
+                  </AuthorDocumentRuntimeProvider>
 
                 </ResearchBridgeProvider>
 
@@ -181,10 +312,19 @@ function OperatorUI() {
 // provider stack.
 //
 // NONE:
+//
 //   OperatorUI is not mounted.
 //
-// GUEST / ACCOUNT:
-//   The exact same OperatorUI is mounted.
+// GUEST:
+//
+//   OperatorUI mounts.
+//   GuestWorkspaceSessionLifecycleBridge observes Guest identity.
+//   Guest session restoration/persistence becomes active.
+//
+// ACCOUNT:
+//
+//   The exact same OperatorUI mounts.
+//   Guest workspace persistence remains stopped.
 //
 // There is no Guest-specific application tree.
 //

@@ -124,8 +124,8 @@ export class WorkspaceRuntime {
         workspace:
           undefined,
 
-       investigation:
-  DEFAULT_INVESTIGATION,
+        investigation:
+          DEFAULT_INVESTIGATION,
 
         focusedEvent:
           undefined,
@@ -185,10 +185,38 @@ export class WorkspaceRuntime {
       listener,
     );
 
+    console.log(
+      "[G2 TRACE] WorkspaceRuntime.subscribe",
+      {
+        activeMode:
+          this.state.operator.activeMode,
+
+        revision:
+          this.state.revision,
+
+        listenerCount:
+          this.listeners.size,
+      },
+    );
+
     return () => {
 
       this.listeners.delete(
         listener,
+      );
+
+      console.log(
+        "[G2 TRACE] WorkspaceRuntime.unsubscribe",
+        {
+          activeMode:
+            this.state.operator.activeMode,
+
+          revision:
+            this.state.revision,
+
+          listenerCount:
+            this.listeners.size,
+        },
       );
 
     };
@@ -197,6 +225,20 @@ export class WorkspaceRuntime {
 
   private notify():
     void {
+
+    console.log(
+      "[G2 TRACE] WorkspaceRuntime.notify",
+      {
+        activeMode:
+          this.state.operator.activeMode,
+
+        revision:
+          this.state.revision,
+
+        listenerCount:
+          this.listeners.size,
+      },
+    );
 
     for (
       const listener
@@ -349,10 +391,39 @@ export class WorkspaceRuntime {
       WorkspaceModeType,
   ): void {
 
+    const previousMode =
+      this.state.operator.activeMode;
+
+    console.log(
+      "[G2 TRACE] WorkspaceRuntime.setActiveMode REQUEST",
+      {
+        previousMode,
+        requestedMode:
+          mode,
+
+        revision:
+          this.state.revision,
+
+        listenerCount:
+          this.listeners.size,
+      },
+    );
+
     if (
-      this.state.operator.activeMode ===
+      previousMode ===
       mode
     ) {
+
+      console.log(
+        "[G2 TRACE] WorkspaceRuntime.setActiveMode NOOP",
+        {
+          activeMode:
+            previousMode,
+
+          revision:
+            this.state.revision,
+        },
+      );
 
       return;
 
@@ -375,6 +446,22 @@ export class WorkspaceRuntime {
         this.state.revision + 1,
 
     };
+
+    console.log(
+      "[G2 TRACE] WorkspaceRuntime.setActiveMode APPLIED",
+      {
+        previousMode,
+
+        activeMode:
+          this.state.operator.activeMode,
+
+        revision:
+          this.state.revision,
+
+        listenerCount:
+          this.listeners.size,
+      },
+    );
 
     this.notify();
 
