@@ -1,0 +1,233 @@
+/* ==========================================================
+   src/identity/components/OperatorEntryScreen.css
+   P57-UI-A2
+   OPERATOR ENTRY SURFACE
+
+   Runtime owns identity behavior.
+   This stylesheet owns presentation only.
+   ========================================================== */
+
+.isees-entry {
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: var(--space-lg);
+
+    background: var(--surface-0);
+    color: var(--text-secondary);
+
+    font-family: var(--font-family-sans);
+}
+
+.isees-entry__surface {
+    width: min(
+        460px,
+        calc(100vw - var(--space-xxl))
+    );
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 18px;
+}
+
+.isees-entry__brand {
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.isees-entry__system-label {
+    margin-bottom: var(--space-sm);
+
+    color: var(--text-caption);
+
+    font-family: var(--type-system-family);
+    font-size: var(--type-system-size);
+    font-weight: var(--type-system-weight);
+
+    line-height: var(--line-tight);
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}
+
+.isees-entry__title {
+    margin: 0;
+
+    color: var(--text-primary);
+
+    font-family: var(--font-family-sans);
+    font-size: 42px;
+    font-weight: var(--weight-bold);
+
+    line-height: 1;
+    letter-spacing: .08em;
+}
+
+.isees-entry__subtitle {
+    margin: 14px 0 0;
+
+    color: var(--text-caption);
+
+    font-family: var(--type-body-family);
+    font-size: var(--type-body-size);
+    font-weight: var(--type-body-weight);
+
+    line-height: var(--line-normal);
+}
+
+.isees-entry__button {
+    width: 100%;
+
+    padding: 14px 18px;
+
+    border: var(--surface-border);
+    border-radius: var(--surface-radius-sm);
+
+    background: var(--surface-2);
+    color: var(--text-primary);
+
+    font-family: var(--font-family-sans);
+    font-size: var(--font-body);
+    font-weight: var(--weight-semibold);
+
+    line-height: var(--line-normal);
+    letter-spacing: .02em;
+
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.isees-entry__button--primary {
+    border-color: var(--text-disabled);
+    background: var(--surface-2);
+    cursor: pointer;
+}
+
+.isees-entry__button--primary:hover {
+    border-color: var(--color-information);
+    background: var(--surface-1);
+}
+
+.isees-entry__button--primary:active {
+    transform: translateY(1px);
+}
+
+.isees-entry__button:focus-visible,
+.isees-entry__login:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.isees-entry__button--disabled {
+    padding: 13px 18px;
+
+    border-color: var(--border-color);
+
+    background: var(--surface-1);
+    color: var(--text-disabled);
+
+    cursor: not-allowed;
+    opacity: var(--disabled-opacity);
+}
+
+.isees-entry__guidance {
+    margin-top: -8px;
+    text-align: center;
+}
+
+.isees-entry__guidance-title {
+    color: var(--text-muted);
+
+    font-family: var(--font-family-sans);
+    font-size: var(--font-meta);
+    font-weight: var(--weight-semibold);
+
+    line-height: var(--line-normal);
+}
+
+.isees-entry__guidance-detail {
+    margin-top: var(--space-xxs);
+
+    color: var(--text-disabled);
+
+    font-family: var(--font-family-sans);
+    font-size: var(--font-micro);
+
+    line-height: var(--line-normal);
+}
+
+.isees-entry__divider {
+    height: 1px;
+    margin: var(--space-xs) 0;
+    background: var(--divider-color);
+}
+
+.isees-entry__account-guidance {
+    margin-top: -8px;
+
+    color: var(--text-disabled);
+
+    font-family: var(--font-family-sans);
+    font-size: var(--font-micro);
+
+    line-height: var(--line-normal);
+    text-align: center;
+}
+
+.isees-entry__login {
+    align-self: center;
+
+    padding: var(--space-xxs) var(--surface-radius-sm);
+
+    border: 0;
+
+    background: transparent;
+    color: var(--text-disabled);
+
+    font-family: var(--font-family-sans);
+    font-size: var(--font-meta);
+
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    cursor: not-allowed;
+    opacity: var(--disabled-opacity);
+}
+
+.isees-entry__persistence-notice {
+    margin: var(--surface-radius-sm) 0 0;
+
+    color: var(--text-disabled);
+
+    font-family: var(--font-family-sans);
+    font-size: 10px;
+
+    line-height: var(--line-normal);
+    text-align: center;
+
+    opacity: .8;
+}
+
+@media (max-width: 540px) {
+    .isees-entry {
+        padding:
+            var(--space-lg)
+            var(--space-md);
+    }
+
+    .isees-entry__surface {
+        width: 100%;
+    }
+
+    .isees-entry__title {
+        font-size: var(--font-display);
+    }
+}
