@@ -1,0 +1,127 @@
+/* ==========================================================
+   src/components/workspace/WorkspaceModeBar.css
+   P57-UI-A3
+   OPERATOR WORKSPACE MODE BAR
+
+   Runtime owns active-mode behavior.
+   This stylesheet owns presentation only.
+   ========================================================== */
+
+.isees-modebar {
+    height: var(--modebar-height);
+    min-height: var(--modebar-height);
+
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-sm);
+
+    padding:
+        0
+        var(--space-lg);
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    border-top: var(--surface-border);
+
+    background: var(--surface-1);
+}
+
+.isees-modebar__button {
+    min-width: 118px;
+    min-height: 40px;
+
+    flex: 0 0 auto;
+
+    padding:
+        0
+        18px;
+
+    appearance: none;
+
+    border: var(--surface-border);
+    border-radius: var(--surface-radius);
+
+    background: var(--surface-1);
+    color: var(--text-caption);
+
+    font-family: var(--font-family-sans);
+    font-size: var(--font-micro);
+    font-weight: var(--weight-semibold);
+
+    line-height: var(--line-tight);
+    letter-spacing: var(--tracking-system);
+
+    text-align: center;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    user-select: none;
+
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.isees-modebar__button:first-child {
+    margin-left: auto;
+}
+
+.isees-modebar__button:last-child {
+    margin-right: auto;
+}
+
+.isees-modebar__button:hover {
+    border-color: var(--text-disabled);
+
+    background: var(--surface-2);
+    color: var(--text-secondary);
+}
+
+.isees-modebar__button:active {
+    transform: translateY(1px);
+}
+
+.isees-modebar__button:focus-visible {
+    outline: none;
+
+    border-color: var(--color-information);
+
+    box-shadow: var(--focus-ring);
+}
+
+.isees-modebar__button--active {
+    border-color: var(--color-information);
+
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.isees-modebar__button--active:hover {
+    border-color: var(--color-information);
+
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+@media (max-width: 1200px) {
+    .isees-modebar {
+        gap: var(--space-xs);
+
+        padding:
+            0
+            var(--space-sm);
+    }
+
+    .isees-modebar__button {
+        min-width: 104px;
+
+        padding:
+            0
+            var(--space-sm);
+    }
+}

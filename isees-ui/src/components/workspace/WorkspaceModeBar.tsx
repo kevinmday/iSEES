@@ -1,20 +1,28 @@
 // ============================================================
 // src/components/workspace/WorkspaceModeBar.tsx
 // Canon v1
+// P57-UI-A3
 // OPERATOR WORKSPACE MODE BAR
 //
 // Persistent operator workspace selector.
 //
-// Presentation governed by Canon v1.
+// Presentation is governed by Canon v1 through the locally
+// scoped WorkspaceModeBar stylesheet.
 //
 // Runtime ownership remains external.
 //
-// Full drop-in.
+// WorkspaceRuntime owns:
+//   - active Workspace Mode
+//   - mode transitions
+//   - revision publication
+//
+// This component:
+//   - owns no mode state
+//   - performs no mode computation
+//   - preserves canonical mode order
+//   - projects semantic operator controls
+//
 // ============================================================
-
-import type {
-  CSSProperties,
-} from "react";
 
 import {
   useWorkspaceRuntime,
@@ -24,55 +32,8 @@ import {
   WorkspaceMode,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
-// ============================================================
-// MODE BUTTON STYLE
-// ============================================================
+import "./WorkspaceModeBar.css";
 
-function modeStyle(
-  active = false,
-): CSSProperties {
-
-  return {
-
-    minWidth: 118,
-
-    padding: "12px 18px",
-
-    borderRadius: "var(--surface-radius)",
-
-    border: active
-      ? "1px solid var(--color-information)"
-      : "var(--surface-border)",
-
-    background: active
-      ? "var(--surface-2)"
-      : "var(--surface-1)",
-
-    color: active
-      ? "var(--text-primary)"
-      : "var(--text-caption)",
-
-    fontFamily: "var(--font-family-sans)",
-
-    fontSize: "var(--font-micro)",
-
-    fontWeight: "var(--weight-semibold)",
-
-    letterSpacing: "var(--tracking-system)",
-
-    textAlign: "center",
-
-    textTransform: "uppercase",
-
-    cursor: "pointer",
-
-    userSelect: "none",
-
-    transition: "var(--transition-fast)",
-
-  };
-
-}
 
 // ============================================================
 // MODES
@@ -100,31 +61,46 @@ const MODES = [
 
 ] as const;
 
-const MODE_LABELS: Record<WorkspaceMode, string> = {
 
-  [WorkspaceMode.OVERVIEW]: "OVERVIEW",
+const MODE_LABELS: Record<
+  WorkspaceMode,
+  string
+> = {
 
-  [WorkspaceMode.MANIFOLD]: "MANIFOLD",
+  [WorkspaceMode.OVERVIEW]:
+    "OVERVIEW",
 
-  [WorkspaceMode.COMPARE]: "COMPARE",
+  [WorkspaceMode.MANIFOLD]:
+    "MANIFOLD",
 
-  [WorkspaceMode.NARRATIVE]: "NARRATIVE",
+  [WorkspaceMode.COMPARE]:
+    "COMPARE",
 
-  [WorkspaceMode.EVIDENCE]: "EVIDENCE",
+  [WorkspaceMode.NARRATIVE]:
+    "NARRATIVE",
 
-  [WorkspaceMode.TIMELINE]: "TIMELINE",
+  [WorkspaceMode.EVIDENCE]:
+    "EVIDENCE",
 
-  [WorkspaceMode.LAYERS]: "LAYERS",
+  [WorkspaceMode.TIMELINE]:
+    "TIMELINE",
 
-  [WorkspaceMode.INTENTION]: "INTENTION",
+  [WorkspaceMode.LAYERS]:
+    "LAYERS",
 
-  [WorkspaceMode.RESEARCH]: "STUDIO",
+  [WorkspaceMode.INTENTION]:
+    "INTENTION",
+
+  [WorkspaceMode.RESEARCH]:
+    "STUDIO",
 
 };
+
 
 // ============================================================
 // COMPONENT
 // ============================================================
+
 export default function WorkspaceModeBar() {
 
   const runtime =
@@ -133,53 +109,61 @@ export default function WorkspaceModeBar() {
   const activeMode =
     runtime.getActiveMode();
 
+
   return (
 
-    <div
-      style={{
+    <nav
 
-        height: "var(--modebar-height)",
+      className="isees-modebar"
 
-        minHeight: "var(--modebar-height)",
+      aria-label="Operator workspace modes"
 
-        borderTop: "var(--surface-border)",
-
-        background: "var(--surface-1)",
-
-        display: "flex",
-
-        alignItems: "center",
-
-        justifyContent: "center",
-
-        gap: "var(--space-sm)",
-
-        padding: "0 var(--space-lg)",
-
-      }}
     >
 
-      {MODES.map((mode) => (
+      {MODES.map((mode) => {
 
-        <div
-          key={mode}
-          style={modeStyle(
-            activeMode === mode,
-          )}
-          onClick={() => {
+        const active =
+          activeMode === mode;
 
-            runtime.setActiveMode(
-              mode,
-            );
+        const className = active
+          ? (
+              "isees-modebar__button " +
+              "isees-modebar__button--active"
+            )
+          : "isees-modebar__button";
 
-          }}
-        >
-          {MODE_LABELS[mode]}
-        </div>
 
-      ))}
+        return (
 
-    </div>
+          <button
+
+            key={mode}
+
+            type="button"
+
+            className={className}
+
+            aria-pressed={active}
+
+            onClick={() => {
+
+              runtime.setActiveMode(
+                mode,
+              );
+
+            }}
+
+          >
+
+            {MODE_LABELS[mode]}
+
+          </button>
+
+        );
+
+      })}
+
+    </nav>
 
   );
 
