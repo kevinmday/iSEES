@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local verification build output
+.verify-*/
+
+# Local source-edit backups
+*.bak
+
+# Local phase checkpoint patch
+/P56D-I1-G6-battery-checkpoint.diff
