@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // src/manifold/components/PrimaryInvestigationManifold.tsx
 // P56D-H
 // PRIMARY INVESTIGATION WORKSPACE
@@ -7,34 +7,34 @@
 //
 // WorkspaceRuntime owns:
 //
-// • Active Workspace Mode
-// • Active Investigation
-// • Computational Configuration C = (L, T, S)
-// • Canonical Operator Selection
+// â€¢ Active Workspace Mode
+// â€¢ Active Investigation
+// â€¢ Computational Configuration C = (L, T, S)
+// â€¢ Canonical Operator Selection
 //
 // KnowledgeObjectRuntime owns:
 //
-// • Canonical Knowledge Object population K
+// â€¢ Canonical Knowledge Object population K
 //
 // ResolveRuntime owns:
 //
-// • Resolve execution lifecycle
-// • Canonical universe construction
-// • Deterministic Resolve execution
-// • Canonical manifold result
-// • Candidate generation
-// • Candidate evaluation
-// • Provenance
-// • Execution history
+// â€¢ Resolve execution lifecycle
+// â€¢ Canonical universe construction
+// â€¢ Deterministic Resolve execution
+// â€¢ Canonical manifold result
+// â€¢ Candidate generation
+// â€¢ Candidate evaluation
+// â€¢ Provenance
+// â€¢ Execution history
 //
 // Resolve Candidate Intelligence provides:
 //
-// • deterministic E -> Ic projection
-// • operator-inspectable candidate explanation
+// â€¢ deterministic E -> Ic projection
+// â€¢ operator-inspectable candidate explanation
 //
 // Workspace Candidate Selection provides:
 //
-// • deterministic Ic -> Sc projection
+// â€¢ deterministic Ic -> Sc projection
 //
 // GOVERNING COMPUTATION
 //
@@ -59,34 +59,34 @@
 // LIVE OPERATOR PATH
 //
 // Operator
-//      ↓
+//      â†“
 // RESOLVE
-//      ↓
+//      â†“
 // Primary Investigation Manifold
-//      ├── Investigation
-//      ├── K — Knowledge Objects
-//      ├── L — Active Layers
-//      ├── T — Temporal Context
-//      └── S — Investigative Scale
-//              ↓
+//      â”œâ”€â”€ Investigation
+//      â”œâ”€â”€ K â€” Knowledge Objects
+//      â”œâ”€â”€ L â€” Active Layers
+//      â”œâ”€â”€ T â€” Temporal Context
+//      â””â”€â”€ S â€” Investigative Scale
+//              â†“
 //         ResolveRuntime
-//              ↓
+//              â†“
 //      Canonical Universe
-//              ↓
+//              â†“
 //        Resolve Engine
-//              ↓
+//              â†“
 //        M -> C -> E
-//              ↓
+//              â†“
 //             Ic[]
-//              ↓
+//              â†“
 //     Resolve Candidate Surface
-//              ↓
+//              â†“
 //         operator click
-//              ↓
+//              â†“
 //              Sc
-//              ↓
+//              â†“
 //       WorkspaceRuntime
-//              ↓
+//              â†“
 //          RightPanel
 //
 // CRITICAL EPISTEMIC BOUNDARY
@@ -97,21 +97,21 @@
 //
 // They do NOT:
 //
-// • establish relationships
-// • create GraphEdges
-// • mutate graph topology
-// • promote Knowledge
-// • generate Research Vectors
-// • execute REX
-// • recompute similarity
-// • recompute evaluation
-// • rank candidates
-// • threshold candidates
-// • introduce AI inference
+// â€¢ establish relationships
+// â€¢ create GraphEdges
+// â€¢ mutate graph topology
+// â€¢ promote Knowledge
+// â€¢ generate Research Vectors
+// â€¢ execute REX
+// â€¢ recompute similarity
+// â€¢ recompute evaluation
+// â€¢ rank candidates
+// â€¢ threshold candidates
+// â€¢ introduce AI inference
 //
 // ============================================================
-
 import {
+  Fragment,
   useMemo,
 } from "react";
 
@@ -147,10 +147,13 @@ import {
   createWorkspaceCandidateSelection,
 } from "../../resolve/intelligence/ResolveCandidateSelection";
 
+import {
+  materializeAcceptedResolveCandidate,
+} from "../../resolve/acceptance/ResolveCandidateAcceptance";
+
 import type {
   ResolveCandidateIntelligence,
 } from "../../resolve/intelligence/ResolveCandidateIntelligenceTypes";
-
 // ============================================================
 // TYPES
 // ============================================================
@@ -219,11 +222,11 @@ export default function PrimaryInvestigationManifold({
   //
   // This surface deliberately does NOT:
   //
-  // • sort
-  // • rank
-  // • threshold
-  // • filter by score
-  // • reinterpret evidence
+  // â€¢ sort
+  // â€¢ rank
+  // â€¢ threshold
+  // â€¢ filter by score
+  // â€¢ reinterpret evidence
   //
   // ==========================================================
 
@@ -293,6 +296,73 @@ export default function PrimaryInvestigationManifold({
   }
 
   // ==========================================================
+  // CANDIDATE ACCEPTANCE
+  // ==========================================================
+  //
+  // Candidate selection is inspection only.
+  //
+  // Explicit operator acceptance crosses the epistemic
+  // boundary:
+  //
+  //        Candidate Intelligence
+  //                 ↓
+  //              ACCEPT
+  //                 ↓
+  //       Knowledge Relationship
+  //
+  // No GraphEdge is manufactured here. Canonical Knowledge
+  // remains authoritative.
+  //
+  // ==========================================================
+
+  function handleCandidateAcceptance(
+    intelligence:
+      ResolveCandidateIntelligence,
+  ): void {
+
+    const result =
+      materializeAcceptedResolveCandidate(
+        intelligence,
+        knowledgeRuntime.getObjects(),
+      );
+
+    if (
+      !result.changed
+    ) {
+
+      console.log(
+        "P56D-I1-G6 CANDIDATE ALREADY ACCEPTED:",
+        result.relationship.id,
+      );
+
+      return;
+
+    }
+
+    knowledgeRuntime.updateObject(
+      result.knowledgeObject,
+    );
+
+    console.log(
+      "P56D-I1-G6 CANDIDATE ACCEPTED:",
+      {
+        candidateId:
+          intelligence.identity.candidateId,
+
+        sourceKnowledgeObjectId:
+          result.sourceKnowledgeObjectId,
+
+        targetKnowledgeObjectId:
+          result.targetKnowledgeObjectId,
+
+        relationshipId:
+          result.relationship.id,
+      },
+    );
+
+  }
+
+  // ==========================================================
   // OPERATOR ACTIONS
   // ==========================================================
 
@@ -354,28 +424,28 @@ export default function PrimaryInvestigationManifold({
       }
 
       // ------------------------------------------------------
-      // K — CANONICAL KNOWLEDGE POPULATION
+      // K â€” CANONICAL KNOWLEDGE POPULATION
       // ------------------------------------------------------
 
       const knowledgeObjects =
         knowledgeRuntime.getObjects();
 
       // ------------------------------------------------------
-      // L — ACTIVE COMPUTATIONAL LAYERS
+      // L â€” ACTIVE COMPUTATIONAL LAYERS
       // ------------------------------------------------------
 
       const activeLayers =
         workspaceRuntime.getActiveLayers();
 
       // ------------------------------------------------------
-      // T — TEMPORAL CONTEXT
+      // T â€” TEMPORAL CONTEXT
       // ------------------------------------------------------
 
       const temporalContext =
         workspaceRuntime.getTemporalContext();
 
       // ------------------------------------------------------
-      // S — INVESTIGATIVE SCALE
+      // S â€” INVESTIGATIVE SCALE
       // ------------------------------------------------------
 
       const investigativeScale =
@@ -701,7 +771,7 @@ export default function PrimaryInvestigationManifold({
                 1.4,
             }}
           >
-            Potential relationships — inspect only
+            Potential relationships â€” inspect only
           </div>
 
           <div
@@ -717,7 +787,7 @@ export default function PrimaryInvestigationManifold({
             }}
           >
 
-            {candidateIntelligenceCollection
+             {candidateIntelligenceCollection
               .intelligence
               .map(
                 (
@@ -725,205 +795,288 @@ export default function PrimaryInvestigationManifold({
                   index,
                 ) => {
 
-                 const isSelected =
-  workspaceSelection
-    ?.kind ===
-    "CANDIDATE" &&
-  workspaceSelection.candidateId ===
-    intelligence
-      .identity
-      .candidateId;
+                  const isSelected =
+                    workspaceSelection
+                      ?.kind ===
+                      "CANDIDATE" &&
+                    workspaceSelection.candidateId ===
+                      intelligence
+                        .identity
+                        .candidateId;
 
                   return (
 
-                    <button
+                    <Fragment
                       key={
                         intelligence
                           .identity
                           .candidateId
                       }
-                      type="button"
-                      onClick={
-                        () =>
-                          handleCandidateSelection(
-                            intelligence,
-                          )
-                      }
-                      style={{
-                        width:
-                          "100%",
-
-                        padding:
-                          "8px 9px",
-
-                        border:
-                          isSelected
-                            ? "1px solid rgba(56,189,248,0.85)"
-                            : "1px solid rgba(148,163,184,0.20)",
-
-                        borderRadius:
-                          6,
-
-                        background:
-                          isSelected
-                            ? "rgba(14,116,144,0.24)"
-                            : "rgba(15,23,42,0.72)",
-
-                        color:
-                          "#e2e8f0",
-
-                        textAlign:
-                          "left",
-
-                        cursor:
-                          "pointer",
-
-                        fontFamily:
-                          "Consolas, monospace",
-                      }}
                     >
 
-                      <div
+                      <button
+                        type="button"
+                        onClick={
+                          () =>
+                            handleCandidateSelection(
+                              intelligence,
+                            )
+                        }
                         style={{
-                          display:
-                            "flex",
+                          width:
+                            "100%",
 
-                          justifyContent:
-                            "space-between",
+                          padding:
+                            "8px 9px",
 
-                          alignItems:
-                            "center",
+                          border:
+                            isSelected
+                              ? "1px solid rgba(56,189,248,0.85)"
+                              : "1px solid rgba(148,163,184,0.20)",
 
-                          gap:
-                            8,
+                          borderRadius:
+                            6,
 
-                          marginBottom:
-                            5,
+                          background:
+                            isSelected
+                              ? "rgba(14,116,144,0.24)"
+                              : "rgba(15,23,42,0.72)",
+
+                          color:
+                            "#e2e8f0",
+
+                          textAlign:
+                            "left",
+
+                          cursor:
+                            "pointer",
+
+                          fontFamily:
+                            "Consolas, monospace",
                         }}
                       >
 
-                        <span
+                        <div
+                          style={{
+                            display:
+                              "flex",
+
+                            justifyContent:
+                              "space-between",
+
+                            alignItems:
+                              "center",
+
+                            gap:
+                              8,
+
+                            marginBottom:
+                              5,
+                          }}
+                        >
+
+                          <span
+                            style={{
+                              color:
+                                "#7dd3fc",
+
+                              fontSize:
+                                10,
+
+                              fontWeight:
+                                700,
+                            }}
+                          >
+                            CANDIDATE {
+                              index + 1
+                            }
+                          </span>
+
+                          <span
+                            style={{
+                              color:
+                                "#cbd5e1",
+
+                              fontSize:
+                                10,
+                            }}
+                          >
+                            S={
+                              intelligence
+                                .explanation
+                                .aggregate
+                                .aggregateSimilarity
+                                .toFixed(3)
+                            }
+                          </span>
+
+                        </div>
+
+                        <div
                           style={{
                             color:
-                              "#7dd3fc",
+                              "#f8fafc",
+
+                            fontSize:
+                              10,
+
+                            lineHeight:
+                              1.4,
+
+                            overflowWrap:
+                              "anywhere",
+                          }}
+                        >
+                          {
+                            intelligence
+                              .identity
+                              .leftKnowledgeObjectId
+                          }
+                        </div>
+
+                        <div
+                          style={{
+                            color:
+                              "#64748b",
+
+                            fontSize:
+                              10,
+
+                            lineHeight:
+                              1.2,
+                          }}
+                        >
+                          ↕ potential relationship
+                        </div>
+
+                        <div
+                          style={{
+                            color:
+                              "#f8fafc",
+
+                            fontSize:
+                              10,
+
+                            lineHeight:
+                              1.4,
+
+                            overflowWrap:
+                              "anywhere",
+                          }}
+                        >
+                          {
+                            intelligence
+                              .identity
+                              .rightKnowledgeObjectId
+                          }
+                        </div>
+
+                        <div
+                          style={{
+                            marginTop:
+                              6,
+
+                            color:
+                              "#94a3b8",
+
+                            fontSize:
+                              9,
+                          }}
+                        >
+                          Evidence {
+                            intelligence
+                              .explanation
+                              .evidence
+                              .availableDimensionCount
+                          }/{
+                            intelligence
+                              .explanation
+                              .evidence
+                              .totalDimensionCount
+                          } dimensions
+                        </div>
+
+                      </button>
+
+                      {/* ===================================================== */}
+                      {/* P56D-I1-G6 — EXPLICIT CANDIDATE ACCEPTANCE            */}
+                      {/* ===================================================== */}
+                      {/*
+                        Candidate selection above is INSPECTION ONLY.
+
+                        Explicit ACCEPT crosses the epistemic boundary:
+
+                          Candidate Intelligence
+                                   ↓
+                                ACCEPT
+                                   ↓
+                          Knowledge Relationship
+
+                        CANDIDATE != RELATIONSHIP
+                      */}
+
+                      {isSelected && (
+
+                        <button
+                          type="button"
+                          onClick={
+                            event => {
+
+                              event.stopPropagation();
+
+                              handleCandidateAcceptance(
+                                intelligence,
+                              );
+
+                            }
+                          }
+                          style={{
+                            width:
+                              "100%",
+
+                            marginTop:
+                              4,
+
+                            padding:
+                              "7px 9px",
+
+                            border:
+                              "1px solid rgba(34,197,94,0.55)",
+
+                            borderRadius:
+                              6,
+
+                            background:
+                              "rgba(20,83,45,0.32)",
+
+                            color:
+                              "#86efac",
+
+                            cursor:
+                              "pointer",
+
+                            fontFamily:
+                              "Consolas, monospace",
 
                             fontSize:
                               10,
 
                             fontWeight:
                               700,
+
+                            letterSpacing:
+                              "0.08em",
+
+                            textAlign:
+                              "center",
                           }}
                         >
-                          CANDIDATE {
-                            index + 1
-                          }
-                        </span>
+                          ACCEPT RELATIONSHIP
+                        </button>
 
-                        <span
-                          style={{
-                            color:
-                              "#cbd5e1",
+                      )}
 
-                            fontSize:
-                              10,
-                          }}
-                        >
-                          S={
-                            intelligence
-                              .explanation
-                              .aggregate
-                              .aggregateSimilarity
-                              .toFixed(3)
-                          }
-                        </span>
-
-                      </div>
-
-                      <div
-                        style={{
-                          color:
-                            "#f8fafc",
-
-                          fontSize:
-                            10,
-
-                          lineHeight:
-                            1.4,
-
-                          overflowWrap:
-                            "anywhere",
-                        }}
-                      >
-                        {
-                          intelligence
-                            .identity
-                            .leftKnowledgeObjectId
-                        }
-                      </div>
-
-                      <div
-                        style={{
-                          color:
-                            "#64748b",
-
-                          fontSize:
-                            10,
-
-                          lineHeight:
-                            1.2,
-                        }}
-                      >
-                        ↕ potential relationship
-                      </div>
-
-                      <div
-                        style={{
-                          color:
-                            "#f8fafc",
-
-                          fontSize:
-                            10,
-
-                          lineHeight:
-                            1.4,
-
-                          overflowWrap:
-                            "anywhere",
-                        }}
-                      >
-                        {
-                          intelligence
-                            .identity
-                            .rightKnowledgeObjectId
-                        }
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop:
-                            6,
-
-                          color:
-                            "#94a3b8",
-
-                          fontSize:
-                            9,
-                        }}
-                      >
-                        Evidence {
-                          intelligence
-                            .explanation
-                            .evidence
-                            .availableDimensionCount
-                        }/{
-                          intelligence
-                            .explanation
-                            .evidence
-                            .totalDimensionCount
-                        } dimensions
-                      </div>
-
-                    </button>
+                    </Fragment>
 
                   );
 
