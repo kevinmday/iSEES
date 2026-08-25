@@ -41,7 +41,7 @@
     --surface-2: #0b1220;
     --surface-3: rgba(15, 23, 42, 0.35);
 
-    --border-color: rgba(148,163,184,.12);
+    --border-color: rgba(148, 163, 184, .12);
 
     --text-primary: #f8fafc;
     --text-secondary: #e2e8f0;
@@ -82,6 +82,18 @@
         "Cascadia Code",
         monospace;
 
+    /*
+     * Global compatibility role.
+     *
+     * Generic application content defaults to readable
+     * sans-serif typography.
+     *
+     * Computational identities and machine values must
+     * explicitly request --font-family-mono.
+     */
+
+    --font-family: var(--font-family-sans);
+
     /* ------------------------------------------------------
        CANON TYPE SCALE
        ------------------------------------------------------ */
@@ -93,6 +105,19 @@
     --font-body: 14px;
     --font-meta: 12px;
     --font-micro: 11px;
+
+    /*
+     * Global compatibility aliases.
+     *
+     * These aliases are consumed by the global element rules
+     * in index.css.
+     *
+     * They remain semantic aliases rather than duplicate
+     * measurements.
+     */
+
+    --font-card: var(--font-panel);
+    --font-caption: var(--font-meta);
 
     /* ------------------------------------------------------
        FONT WEIGHTS
@@ -236,20 +261,20 @@
        DIVIDERS
        ====================================================== */
 
-    --divider-color: rgba(148,163,184,.12);
+    --divider-color: rgba(148, 163, 184, .12);
 
     /* ======================================================
        SHADOWS
        ====================================================== */
 
     --shadow-sm:
-        0 2px 8px rgba(0,0,0,.18);
+        0 2px 8px rgba(0, 0, 0, .18);
 
     --shadow-md:
-        0 8px 24px rgba(0,0,0,.22);
+        0 8px 24px rgba(0, 0, 0, .22);
 
     --shadow-lg:
-        0 16px 48px rgba(0,0,0,.30);
+        0 16px 48px rgba(0, 0, 0, .30);
 
     /* ======================================================
        INTERACTION
@@ -263,19 +288,16 @@
     --disabled-opacity: .45;
 
     --focus-ring:
-        0 0 0 2px rgba(56,189,248,.35);
+        0 0 0 2px rgba(56, 189, 248, .35);
 
     /* ======================================================
        SCROLLBARS
        ====================================================== */
 
     --scrollbar-width: 8px;
-
     --scrollbar-track: transparent;
-
-    --scrollbar-thumb: rgba(148,163,184,.22);
-
-    --scrollbar-thumb-hover: rgba(148,163,184,.38);
+    --scrollbar-thumb: rgba(148, 163, 184, .22);
+    --scrollbar-thumb-hover: rgba(148, 163, 184, .38);
 
     /* ======================================================
        WORKSPACE
@@ -296,42 +318,43 @@
     scrollbar-width: thin;
 
     scrollbar-color:
-        rgba(148,163,184,.22)
-        transparent;
+        var(--scrollbar-thumb)
+        var(--scrollbar-track);
 
 }
 
 *::-webkit-scrollbar {
 
-    width: 8px;
-
-    height: 8px;
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
 
 }
 
 *::-webkit-scrollbar-track {
 
-    background: transparent;
+    background: var(--scrollbar-track);
 
 }
 
 *::-webkit-scrollbar-thumb {
 
-    background: rgba(148,163,184,.22);
+    background: var(--scrollbar-thumb);
 
-    border-radius: 999px;
+    border-radius: var(--status-radius);
 
     border: 2px solid transparent;
 
     background-clip: padding-box;
 
-    transition: background var(--transition-fast);
+    transition:
+        background
+        var(--transition-fast);
 
 }
 
 *::-webkit-scrollbar-thumb:hover {
 
-    background: rgba(148,163,184,.38);
+    background: var(--scrollbar-thumb-hover);
 
     background-clip: padding-box;
 
