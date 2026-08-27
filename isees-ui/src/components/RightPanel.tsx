@@ -1,89 +1,68 @@
 // ============================================================
 // src/components/RightPanel.tsx
 //
-// P56D-H
-// SELECTION INTELLIGENCE INSPECTOR
+// P57-UI-A5
+// CANONICAL SELECTION INTELLIGENCE INSPECTOR
 //
-// The right panel is a deterministic projection of operator
-// inspection state.
+// Established graph intelligence:
 //
-// It supports two deliberately distinct intelligence paths:
+//   Canonical Knowledge
+//       ↓
+//   Canonical Selection Intelligence
+//       ↓
+//   NODE / EDGE / CLUSTER / NONE
 //
-// ESTABLISHED GRAPH TOPOLOGY
+// Resolve candidate intelligence:
 //
-//   GraphContext Selection
-//            ↓
-//   Selection Intelligence Resolver
-//            ↓
-//   NODE / EDGE / CLUSTER Inspector
+//   Resolve candidate evaluations
+//       ↓
+//   Candidate Intelligence
+//       ↓
+//   Workspace candidate selection
 //
-// RESOLVE CANDIDATE INTELLIGENCE
+// Projection precedence:
 //
-//   ResolveRuntime candidateEvaluations
-//            ↓
-//   Resolve Candidate Intelligence
-//            ↓
-//   WorkspaceRuntime Candidate Selection
-//            ↓
-//   Candidate Intelligence Inspector
+//   Selected Resolve candidate
+//       before
+//   Established canonical graph selection
 //
-// CRITICAL EPISTEMIC DISTINCTION
+// Critical epistemic distinction:
 //
-//                 CANDIDATE != EDGE
+//   CANDIDATE != EDGE
 //
-// A Resolve candidate is a potential relationship.
+// This component:
 //
-// It is NOT:
+//   • does not own selection
+//   • does not construct topology
+//   • does not compute similarity
+//   • does not evaluate candidates
+//   • does not infer intelligence
+//   • does not mutate graph topology
+//   • does not execute REX
+//   • does not invoke AI
 //
-//   • an established GraphEdge
-//   • an asserted relationship
-//   • graph topology
-//   • promoted Knowledge
-//   • a Research Vector
-//   • REX execution state
-//
-// RIGHT PANEL INVARIANT
-//
-// The panel:
-//
-//   • does NOT own selection
-//   • does NOT compute similarity
-//   • does NOT evaluate candidates
-//   • does NOT infer intelligence
-//   • does NOT rank candidates
-//   • does NOT apply thresholds
-//   • does NOT create relationships
-//   • does NOT mutate graph topology
-//   • does NOT execute REX
-//
-// It renders authoritative intelligence already produced by
-// deterministic runtime/computational layers.
-//
+// FULL DROP-IN REPLACEMENT
 // ============================================================
 
 import {
   useMemo,
 } from "react";
 
-import {
-  useCorpus,
-} from "../corpus/context/CorpusContext";
+import type {
+  ReactNode,
+} from "react";
 
 import {
-  useWorkspace,
-} from "../workspace/context/WorkspaceContext";
+  useKnowledgeObjects,
+} from "../knowledge/runtime/KnowledgeObjectRuntimeContext";
 
 import {
   useGraph,
 } from "../manifold/context/GraphContext";
 
 import {
-  buildInvestigationGraph,
-} from "../manifold/graphBuilder";
-
-import {
-  resolveSelectionIntelligence,
-} from "../manifold/selection/selectionIntelligenceResolver";
+  resolveCanonicalSelectionIntelligence,
+} from "../intelligence/selection/CanonicalSelectionIntelligence";
 
 import {
   useResolveRuntimeState,
@@ -111,14 +90,8 @@ import type {
 // ============================================================
 
 export default function RightPanel() {
-
-  const {
-    corpus,
-  } = useCorpus();
-
-  const {
-    activeWorkspace,
-  } = useWorkspace();
+  const knowledgeObjects =
+    useKnowledgeObjects();
 
   const {
     selection:
@@ -128,12 +101,6 @@ export default function RightPanel() {
   // ==========================================================
   // CANONICAL RUNTIME STATE
   // ==========================================================
-  //
-  // React observes these runtimes.
-  //
-  // React does not own their state.
-  //
-  // ==========================================================
 
   const resolveState =
     useResolveRuntimeState();
@@ -142,57 +109,25 @@ export default function RightPanel() {
     useWorkspaceRuntime();
 
   // ==========================================================
-  // GRAPH PROJECTION
-  // ==========================================================
-  //
-  // Existing established-topology path.
-  //
-  // This remains unchanged by Candidate Intelligence
-  // integration.
-  //
-  // ==========================================================
-
-  const graph =
-    useMemo(
-      () =>
-        buildInvestigationGraph(
-          corpus,
-          activeWorkspace,
-        ),
-      [
-        corpus,
-        activeWorkspace,
-      ],
-    );
-
-  // ==========================================================
-  // ESTABLISHED GRAPH SELECTION INTELLIGENCE
+  // ESTABLISHED CANONICAL GRAPH INTELLIGENCE
   // ==========================================================
 
   const graphIntelligence =
     useMemo(
       () =>
-        resolveSelectionIntelligence(
-          graphSelection,
-          graph,
-        ),
+        resolveCanonicalSelectionIntelligence({
+          knowledgeObjects,
+          selection:
+            graphSelection,
+        }),
       [
+        knowledgeObjects,
         graphSelection,
-        graph,
       ],
     );
 
   // ==========================================================
-  // WORKSPACE OPERATOR SELECTION
-  // ==========================================================
-  //
-  // WorkspaceRuntime owns canonical operator selection.
-  //
-  // Calling getSelection() performs no computation.
-  //
-  // WorkspaceRuntimeContext publishes revisions, causing this
-  // component to render again whenever runtime state changes.
-  //
+  // CANONICAL WORKSPACE SELECTION
   // ==========================================================
 
   const workspaceSelection =
@@ -200,13 +135,6 @@ export default function RightPanel() {
 
   // ==========================================================
   // LATEST COMPLETE RESOLVE PRODUCT
-  // ==========================================================
-  //
-  // Candidate evaluations are produced by ResolveEngine and
-  // preserved through ResolveRuntime publication.
-  //
-  // The RightPanel does not produce or modify them.
-  //
   // ==========================================================
 
   const candidateEvaluations =
@@ -218,33 +146,20 @@ export default function RightPanel() {
   // ==========================================================
   // CANDIDATE INTELLIGENCE PROJECTION
   // ==========================================================
-  //
-  //                  E -> Ic
-  //
-  // This resolver is a deterministic explanatory projection.
-  //
-  // It does NOT recompute similarity.
-  // It does NOT assert relationships.
-  //
-  // ==========================================================
 
   const candidateIntelligenceCollection =
     useMemo(
       () => {
-
         if (
           candidateEvaluations ===
           undefined
         ) {
-
           return undefined;
-
         }
 
-      return resolveCandidateIntelligenceCollection(
-  candidateEvaluations.evaluations,
-);
-
+        return resolveCandidateIntelligenceCollection(
+          candidateEvaluations.evaluations,
+        );
       },
       [
         candidateEvaluations,
@@ -253,16 +168,6 @@ export default function RightPanel() {
 
   // ==========================================================
   // SELECTED CANDIDATE INTELLIGENCE
-  // ==========================================================
-  //
-  //                 Ic -> Sc -> Ic
-  //
-  // Workspace selection identifies which authoritative
-  // Candidate Intelligence object the operator is inspecting.
-  //
-  // NODE / EDGE / NONE selections deliberately resolve no
-  // Candidate Intelligence.
-  //
   // ==========================================================
 
   const selectedCandidateIntelligence =
@@ -285,139 +190,76 @@ export default function RightPanel() {
   // ==========================================================
 
   return (
+    <div className="selection-intelligence__projection">
 
-    <div
-      style={{
-        width: "100%",
+      {/* RESOLVE CANDIDATE */}
 
-        display: "flex",
-        flexDirection: "column",
+      {
+        selectedCandidateIntelligence !==
+          undefined && (
+          <CandidateInspector
+            intelligence={
+              selectedCandidateIntelligence
+            }
+          />
+        )
+      }
 
-        fontFamily:
-          "Consolas, monospace",
+      {/* ESTABLISHED CANONICAL GRAPH INTELLIGENCE */}
 
-        color: "#e5e7eb",
-      }}
-    >
+      {
+        selectedCandidateIntelligence ===
+          undefined && (
+          <>
+            {
+              graphIntelligence.kind ===
+                "NONE" && (
+                <EmptySelection />
+              )
+            }
 
-      {/* ===================================================== */}
-      {/* RESOLVE CANDIDATE                                    */}
-      {/* ===================================================== */}
-      {selectedCandidateIntelligence !==
-        undefined && (
+            {
+              graphIntelligence.kind ===
+                "NODE" && (
+                <NodeInspector
+                  intelligence={
+                    graphIntelligence.intelligence
+                  }
+                />
+              )
+            }
 
-        <CandidateInspector
-          intelligence={
-            selectedCandidateIntelligence
-          }
-        />
+            {
+              graphIntelligence.kind ===
+                "EDGE" && (
+                <EdgeInspector
+                  intelligence={
+                    graphIntelligence.intelligence
+                  }
+                />
+              )
+            }
 
-      )}
-
-      {/* ===================================================== */}
-      {/* LEGACY / ESTABLISHED GRAPH INTELLIGENCE              */}
-      {/* ===================================================== */}
-      {selectedCandidateIntelligence ===
-        undefined && (
-        <>
-
-          {/* ================================================= */}
-          {/* NONE                                              */}
-          {/* ================================================= */}
-
-          {graphIntelligence.kind ===
-            "NONE" && (
-
-            <EmptySelection />
-
-          )}
-
-          {/* ================================================= */}
-          {/* NODE                                              */}
-          {/* ================================================= */}
-
-          {graphIntelligence.kind ===
-            "NODE" && (
-
-            <NodeInspector
-              intelligence={
-                graphIntelligence.intelligence
-              }
-            />
-
-          )}
-
-          {/* ================================================= */}
-          {/* EDGE                                              */}
-          {/* ================================================= */}
-
-          {graphIntelligence.kind ===
-            "EDGE" && (
-
-            <EdgeInspector
-              intelligence={
-                graphIntelligence.intelligence
-              }
-            />
-
-          )}
-
-          {/* ================================================= */}
-          {/* CLUSTER                                           */}
-          {/* ================================================= */}
-
-          {graphIntelligence.kind ===
-            "CLUSTER" && (
-
-            <div
-              style={{
-                padding: 12,
-
-                color: "#94a3b8",
-
-                fontSize: 12,
-                lineHeight: 1.6,
-              }}
-            >
-              Cluster intelligence
-              projection is not yet
-              implemented.
-
-              <div
-                style={{
-                  marginTop: 10,
-
-                  color: "#64748b",
-                }}
-              >
-                {graphIntelligence.clusterId}
-              </div>
-            </div>
-
-          )}
-
-        </>
-      )}
+            {
+              graphIntelligence.kind ===
+                "CLUSTER" && (
+                <ClusterInspector
+                  clusterId={
+                    graphIntelligence.clusterId
+                  }
+                />
+              )
+            }
+          </>
+        )
+      }
 
     </div>
-
   );
-
 }
 
 // ============================================================
 // CANDIDATE INSPECTOR
-// ============================================================
-//
-// First operator-visible projection of:
-//
-//   U -> M -> C -> E -> Ic -> Sc -> Ic -> WHY
-//
-// Everything displayed here already exists in authoritative
-// Candidate Intelligence.
-//
-// This component calculates no similarity.
-//
 // ============================================================
 
 function CandidateInspector({
@@ -426,309 +268,217 @@ function CandidateInspector({
   intelligence:
     ResolveCandidateIntelligence;
 }) {
-
   const {
     identity,
     explanation,
   } = intelligence;
 
   return (
-
     <div>
-
-      {/* ===================================================== */}
-      {/* POTENTIAL RELATIONSHIP                               */}
-      {/* ===================================================== */}
 
       <InspectorSection
         title="Potential Relationship"
       >
-
-        <div
-          style={{
-            marginBottom: 14,
-
-            color: "#f8fafc",
-
-            fontSize: 13,
-            fontWeight: 700,
-
-            lineHeight: 1.5,
-          }}
-        >
-          {identity.leftKnowledgeObjectId}
-
+        <div className="selection-intelligence__relationship">
           <div
-            style={{
-              padding: "7px 0",
-
-              color: "#60a5fa",
-
-              fontSize: 11,
-              fontWeight: 700,
-
-              textTransform:
-                "uppercase",
-
-              letterSpacing: 0.8,
-            }}
+            className={
+              "selection-intelligence__relationship-object"
+            }
           >
-            ↕ Potential relationship
+            {identity.leftKnowledgeObjectId}
           </div>
 
-          {identity.rightKnowledgeObjectId}
+          <div
+            className={
+              "selection-intelligence__relationship-bridge"
+            }
+          >
+            <span
+              className={
+                "selection-intelligence__relationship-symbol"
+              }
+              aria-hidden="true"
+            >
+              ↕
+            </span>
+
+            Potential relationship
+          </div>
+
+          <div
+            className={
+              "selection-intelligence__relationship-object"
+            }
+          >
+            {identity.rightKnowledgeObjectId}
+          </div>
         </div>
 
-        <IntelRow
-          label="Status"
-          value={
-            formatLabel(
-              intelligence.epistemicStatus,
-            )
-          }
-        />
+        <div className="selection-intelligence__rows">
+          <IntelRow
+            label="Status"
+            value={
+              formatLabel(
+                intelligence.epistemicStatus,
+              )
+            }
+          />
 
-        <IntelRow
-          label="Intelligence"
-          value={
-            formatLabel(
-              intelligence.kind,
-            )
-          }
-        />
-
+          <IntelRow
+            label="Intelligence"
+            value={
+              formatLabel(
+                intelligence.kind,
+              )
+            }
+          />
+        </div>
       </InspectorSection>
 
-      {/* ===================================================== */}
-      {/* AGGREGATE                                            */}
-      {/* ===================================================== */}
+      <InspectorSection title="Similarity">
+        <div className="selection-intelligence__rows">
+          <PercentRow
+            label="Aggregate"
+            value={
+              explanation
+                .aggregate
+                .aggregateSimilarity
+            }
+          />
 
-      <InspectorSection
-        title="Similarity"
-      >
-
-        <PercentRow
-          label="Aggregate"
-          value={
-            explanation
-              .aggregate
-              .aggregateSimilarity
-          }
-        />
-
-        <IntelRow
-          label="Participating"
-          value={
-            `${explanation.aggregate.participatingDimensionCount} / ${explanation.aggregate.totalDimensionCount}`
-          }
-        />
-
-      </InspectorSection>
-
-      {/* ===================================================== */}
-      {/* EVIDENCE                                             */}
-      {/* ===================================================== */}
-
-      <InspectorSection
-        title="Evidence"
-      >
-
-        <IntelRow
-          label="Available"
-          value={
-            `${explanation.evidence.availableDimensionCount} / ${explanation.evidence.totalDimensionCount}`
-          }
-        />
-
-        <IntelRow
-          label="Unavailable"
-          value={
-            explanation
-              .evidence
-              .unavailableDimensionCount
-          }
-        />
-
-        {explanation
-          .evidence
-          .availableDimensions
-          .length > 0 && (
-
-          <CandidateDimensionList
+          <IntelRow
             label="Participating"
-            dimensions={
-              explanation
-                .evidence
-                .availableDimensions
+            value={
+              `${explanation.aggregate.participatingDimensionCount} / ${explanation.aggregate.totalDimensionCount}`
             }
           />
-
-        )}
-
-        {explanation
-          .evidence
-          .unavailableDimensions
-          .length > 0 && (
-
-          <CandidateDimensionList
-            label="Unavailable"
-            dimensions={
-              explanation
-                .evidence
-                .unavailableDimensions
-            }
-          />
-
-        )}
-
+        </div>
       </InspectorSection>
 
-      {/* ===================================================== */}
-      {/* DIMENSIONAL WHY                                      */}
-      {/* ===================================================== */}
+      <InspectorSection title="Evidence">
+        <div className="selection-intelligence__rows">
+          <IntelRow
+            label="Available"
+            value={
+              `${explanation.evidence.availableDimensionCount} / ${explanation.evidence.totalDimensionCount}`
+            }
+          />
 
-      <InspectorSection
-        title="Dimensions"
-      >
+          <IntelRow
+            label="Unavailable"
+            value={
+              explanation
+                .evidence
+                .unavailableDimensionCount
+            }
+          />
+        </div>
 
-        {explanation.dimensions.map(
-          dimension => (
-
-            <CandidateDimensionRow
-              key={
-                dimension.dimension
-              }
-              intelligence={
-                dimension
+        {
+          explanation
+            .evidence
+            .availableDimensions
+            .length > 0 && (
+            <CandidateDimensionList
+              label="Participating"
+              dimensions={
+                explanation
+                  .evidence
+                  .availableDimensions
               }
             />
-
           )
-        )}
+        }
 
-      </InspectorSection>
-
-      {/* ===================================================== */}
-      {/* RATIONALE                                            */}
-      {/* ===================================================== */}
-
-      <InspectorSection
-        title="Why"
-      >
-
-        {explanation
-          .similarityRationale
-          .length > 0 ? (
-
+        {
           explanation
-            .similarityRationale
-            .map(
-              (
-                rationale,
-                index,
-              ) => (
-
-                <div
-                  key={index}
-                  style={{
-                    padding:
-                      "7px 0 7px 10px",
-
-                    borderLeft:
-                      "2px solid #263347",
-
-                    color: "#cbd5e1",
-
-                    fontSize: 12,
-                    lineHeight: 1.5,
-
-                    marginBottom: 8,
-                  }}
-                >
-                  {rationale}
-                </div>
-
-              )
-            )
-
-        ) : (
-
-          <div
-            style={{
-              color: "#64748b",
-
-              fontSize: 12,
-
-              fontStyle: "italic",
-            }}
-          >
-            No canonical similarity
-            rationale available.
-          </div>
-
-        )}
-
+            .evidence
+            .unavailableDimensions
+            .length > 0 && (
+            <CandidateDimensionList
+              label="Unavailable"
+              dimensions={
+                explanation
+                  .evidence
+                  .unavailableDimensions
+              }
+            />
+          )
+        }
       </InspectorSection>
 
-      {/* ===================================================== */}
-      {/* TECHNICAL LINEAGE                                    */}
-      {/* ===================================================== */}
+      <InspectorSection title="Dimensions">
+        {
+          explanation.dimensions.map(
+            dimension => (
+              <CandidateDimensionRow
+                key={
+                  dimension.dimension
+                }
+                intelligence={
+                  dimension
+                }
+              />
+            )
+          )
+        }
+      </InspectorSection>
+
+      <InspectorSection title="Why">
+        <RationaleList
+          rationale={
+            explanation
+              .similarityRationale
+          }
+          emptyMessage={
+            "No canonical similarity rationale available."
+          }
+        />
+      </InspectorSection>
 
       <InspectorSection
         title="Canonical Lineage"
+        technical
       >
+        <div className="selection-intelligence__rows">
+          <IntelRow
+            label="Candidate ID"
+            value={
+              identity.candidateId
+            }
+          />
 
-        <IntelRow
-          label="Candidate ID"
-          value={
-            identity.candidateId
-          }
-        />
+          <IntelRow
+            label="Evaluation ID"
+            value={
+              identity.evaluationId
+            }
+          />
 
-        <IntelRow
-          label="Evaluation ID"
-          value={
-            identity.evaluationId
-          }
-        />
+          <IntelRow
+            label="Left Knowledge"
+            value={
+              identity.leftKnowledgeObjectId
+            }
+          />
 
-        <IntelRow
-          label="Left Knowledge"
-          value={
-            identity.leftKnowledgeObjectId
-          }
-        />
-
-        <IntelRow
-          label="Right Knowledge"
-          value={
-            identity.rightKnowledgeObjectId
-          }
-        />
-
+          <IntelRow
+            label="Right Knowledge"
+            value={
+              identity.rightKnowledgeObjectId
+            }
+          />
+        </div>
       </InspectorSection>
 
     </div>
-
   );
-
 }
 
 // ============================================================
 // CANDIDATE DIMENSION ROW
-// ============================================================
 //
-// IMPORTANT:
-//
-//   UNAVAILABLE != AVAILABLE score 0
-//
-// The authoritative source object already carries that
-// distinction.
-//
-// We inspect it.
-//
-// We do not reinterpret it.
-//
+// UNAVAILABLE != AVAILABLE score 0
 // ============================================================
 
 function CandidateDimensionRow({
@@ -737,7 +487,6 @@ function CandidateDimensionRow({
   intelligence:
     ResolveCandidateDimensionIntelligence;
 }) {
-
   const source =
     intelligence.source;
 
@@ -748,94 +497,60 @@ function CandidateDimensionRow({
       ? source.score
       : undefined;
 
+  const scoreClassName = [
+    "selection-intelligence__dimension-score",
+    score === undefined
+      ? "selection-intelligence__dimension-score--unavailable"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-
-    <div
-      style={{
-        padding: "9px 0",
-
-        borderBottom:
-          "1px solid #182235",
-      }}
-    >
-
+    <div className="selection-intelligence__dimension">
       <div
-        style={{
-          display: "flex",
-
-          justifyContent:
-            "space-between",
-
-          alignItems:
-            "flex-start",
-
-          gap: 12,
-        }}
+        className={
+          "selection-intelligence__dimension-header"
+        }
       >
-
         <div
-          style={{
-            color: "#e2e8f0",
-
-            fontSize: 11,
-            fontWeight: 700,
-          }}
+          className={
+            "selection-intelligence__dimension-name"
+          }
         >
-          {formatLabel(
-            intelligence.dimension,
-          )}
+          {
+            formatLabel(
+              intelligence.dimension,
+            )
+          }
         </div>
 
-        <div
-          style={{
-            color:
-              score !== undefined
-                ? "#e5e7eb"
-                : "#64748b",
-
-            fontSize: 11,
-            fontWeight: 600,
-
-            textAlign: "right",
-          }}
-        >
-
-          {score !== undefined
-            ? `${(
-                score *
-                100
-              ).toFixed(1)}%`
-            : formatLabel(
-                intelligence.status,
-              )}
-
+        <div className={scoreClassName}>
+          {
+            score !== undefined
+              ? `${(
+                  score * 100
+                ).toFixed(1)}%`
+              : formatLabel(
+                  intelligence.status,
+                )
+          }
         </div>
-
       </div>
 
       <div
-        style={{
-          marginTop: 4,
-
-          color: "#64748b",
-
-          fontSize: 10,
-
-          textTransform:
-            "uppercase",
-
-          letterSpacing: 0.5,
-        }}
+        className={
+          "selection-intelligence__dimension-status"
+        }
       >
-        {formatLabel(
-          intelligence.status,
-        )}
+        {
+          formatLabel(
+            intelligence.status,
+          )
+        }
       </div>
-
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -846,57 +561,39 @@ function CandidateDimensionList({
   label,
   dimensions,
 }: {
-  label:
-    string;
-
+  label: string;
   dimensions:
     readonly string[];
 }) {
-
   return (
-
     <div
-      style={{
-        marginTop: 10,
-      }}
+      className={
+        "selection-intelligence__dimension-list"
+      }
     >
-
       <div
-        style={{
-          marginBottom: 4,
-
-          color: "#64748b",
-
-          fontSize: 10,
-
-          textTransform:
-            "uppercase",
-
-          letterSpacing: 0.5,
-        }}
+        className={
+          "selection-intelligence__dimension-list-label"
+        }
       >
         {label}
       </div>
 
       <div
-        style={{
-          color: "#cbd5e1",
-
-          fontSize: 11,
-          lineHeight: 1.5,
-        }}
+        className={
+          "selection-intelligence__dimension-list-values"
+        }
       >
-        {dimensions
-          .map(
-            formatLabel,
-          )
-          .join(", ")}
+        {
+          dimensions
+            .map(
+              formatLabel,
+            )
+            .join(", ")
+        }
       </div>
-
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -904,43 +601,73 @@ function CandidateDimensionList({
 // ============================================================
 
 function EmptySelection() {
-
   return (
-
-    <div
-      style={{
-        padding: "20px 12px",
-
-        color: "#94a3b8",
-
-        fontSize: 12,
-        lineHeight: 1.7,
-      }}
-    >
+    <div className="selection-intelligence__empty">
+      <div
+        className={
+          "selection-intelligence__empty-eyebrow"
+        }
+      >
+        Inspector ready
+      </div>
 
       <div
-        style={{
-          color: "#e2e8f0",
-
-          fontSize: 13,
-          fontWeight: 700,
-
-          marginBottom: 8,
-        }}
+        className={
+          "selection-intelligence__empty-title"
+        }
       >
         Nothing selected
       </div>
 
-      <div>
-        Select a node, edge, or
-        Resolve candidate to inspect
-        its intelligence.
+      <div
+        className={
+          "selection-intelligence__empty-copy"
+        }
+      >
+        Select a node, edge, cluster, or Resolve candidate
+        to inspect its deterministic intelligence.
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// CLUSTER PLACEHOLDER
+// ============================================================
+
+function ClusterInspector({
+  clusterId,
+}: {
+  clusterId: string;
+}) {
+  return (
+    <div className="selection-intelligence__cluster">
+      <div
+        className={
+          "selection-intelligence__cluster-title"
+        }
+      >
+        Cluster selected
       </div>
 
+      <div
+        className={
+          "selection-intelligence__cluster-copy"
+        }
+      >
+        Cluster intelligence projection is not yet
+        implemented.
+      </div>
+
+      <div
+        className={
+          "selection-intelligence__cluster-id"
+        }
+      >
+        {clusterId}
+      </div>
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -962,99 +689,70 @@ function NodeInspector({
     >;
   };
 }) {
-
   return (
-
     <div>
-
-      {/* ===================================================== */}
-      {/* NODE                                                  */}
-      {/* ===================================================== */}
-
-      <InspectorSection
-        title="Node"
-      >
-
+      <InspectorSection title="Node">
         <div
-          style={{
-            fontSize: 16,
-
-            fontWeight: 700,
-
-            color: "#f8fafc",
-
-            marginBottom: 14,
-          }}
+          className={
+            "selection-intelligence__entity-title"
+          }
         >
           {intelligence.title}
         </div>
 
-        <IntelRow
-          label="Source"
-          value={
-            intelligence.sourceType
-          }
-        />
+        <div className="selection-intelligence__rows">
+          <IntelRow
+            label="Source"
+            value={
+              intelligence.sourceType
+            }
+          />
 
-        <IntelRow
-          label="Connections"
-          value={
-            intelligence.connectionCount
-          }
-        />
+          <IntelRow
+            label="Connections"
+            value={
+              intelligence.connectionCount
+            }
+          />
 
-        <IntelRow
-          label="Confidence"
-          value={
-            intelligence.confidence !==
-            undefined
-              ? `${(
-                  intelligence.confidence *
-                  100
-                ).toFixed(1)}%`
-              : "N/A"
-          }
-        />
-
+          <IntelRow
+            label="Confidence"
+            value={
+              intelligence.confidence !==
+                undefined
+                ? `${(
+                    intelligence.confidence *
+                    100
+                  ).toFixed(1)}%`
+                : "N/A"
+            }
+          />
+        </div>
       </InspectorSection>
 
-      {/* ===================================================== */}
-      {/* METADATA                                              */}
-      {/* ===================================================== */}
-
-      <InspectorSection
-        title="Metadata"
-      >
-
+      <InspectorSection title="Metadata">
         <MetadataRows
           metadata={
             intelligence.metadata
           }
         />
-
       </InspectorSection>
-
-      {/* ===================================================== */}
-      {/* TECHNICAL                                             */}
-      {/* ===================================================== */}
 
       <InspectorSection
         title="Technical"
+        technical
       >
-
-        <IntelRow
-          label="Node ID"
-          value={
-            intelligence.nodeId
-          }
-        />
-
+        <div className="selection-intelligence__rows">
+          <IntelRow
+            label="Node ID"
+            value={
+              intelligence.nodeId
+            }
+          />
+        </div>
       </InspectorSection>
-
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -1080,215 +778,135 @@ function EdgeInspector({
     rationale: string[];
   };
 }) {
-
   return (
-
     <div>
-
-      {/* ===================================================== */}
-      {/* RELATIONSHIP                                         */}
-      {/* ===================================================== */}
-
-      <InspectorSection
-        title="Relationship"
-      >
-
-        <div
-          style={{
-            marginBottom: 16,
-          }}
-        >
-
+      <InspectorSection title="Relationship">
+        <div className="selection-intelligence__relationship">
           <div
-            style={{
-              color: "#f8fafc",
-              fontSize: 14,
-              fontWeight: 700,
-              lineHeight: 1.4,
-            }}
+            className={
+              "selection-intelligence__relationship-object"
+            }
           >
             {intelligence.sourceLabel}
           </div>
 
           <div
-            style={{
-              padding: "8px 0",
-
-              color: "#60a5fa",
-
-              fontSize: 11,
-              fontWeight: 700,
-
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-            }}
+            className={
+              "selection-intelligence__relationship-bridge"
+            }
           >
-            ↓ {formatLabel(
-              intelligence.relationship
-            )}
+            <span
+              className={
+                "selection-intelligence__relationship-symbol"
+              }
+              aria-hidden="true"
+            >
+              ↓
+            </span>
+
+            {
+              formatLabel(
+                intelligence.relationship
+              )
+            }
           </div>
 
           <div
-            style={{
-              color: "#f8fafc",
-              fontSize: 14,
-              fontWeight: 700,
-              lineHeight: 1.4,
-            }}
+            className={
+              "selection-intelligence__relationship-object"
+            }
           >
             {intelligence.targetLabel}
           </div>
-
         </div>
-
       </InspectorSection>
 
-      {/* ===================================================== */}
-      {/* METRICS                                              */}
-      {/* ===================================================== */}
+      <InspectorSection title="Metrics">
+        <div className="selection-intelligence__rows">
+          <PercentRow
+            label="Confidence"
+            value={
+              intelligence.confidence
+            }
+          />
 
-      <InspectorSection
-        title="Metrics"
-      >
+          <PercentRow
+            label="Narrative"
+            value={
+              intelligence.narrative
+            }
+          />
 
-        <PercentRow
-          label="Confidence"
-          value={
-            intelligence.confidence
-          }
-        />
+          <PercentRow
+            label="Observability"
+            value={
+              intelligence.observability
+            }
+          />
 
-        <PercentRow
-          label="Narrative"
-          value={
-            intelligence.narrative
-          }
-        />
+          <PercentRow
+            label="Infrastructure"
+            value={
+              intelligence.infrastructure
+            }
+          />
 
-        <PercentRow
-          label="Observability"
-          value={
-            intelligence.observability
-          }
-        />
+          <PercentRow
+            label="Topology"
+            value={
+              intelligence.topology
+            }
+          />
 
-        <PercentRow
-          label="Infrastructure"
-          value={
-            intelligence.infrastructure
-          }
-        />
-
-        <PercentRow
-          label="Topology"
-          value={
-            intelligence.topology
-          }
-        />
-
-        <PercentRow
-          label="Geo"
-          value={
-            intelligence.geo
-          }
-        />
-
+          <PercentRow
+            label="Geo"
+            value={
+              intelligence.geo
+            }
+          />
+        </div>
       </InspectorSection>
 
-      {/* ===================================================== */}
-      {/* RATIONALE                                            */}
-      {/* ===================================================== */}
-
-      <InspectorSection
-        title="Rationale"
-      >
-
-        {intelligence.rationale.length >
-        0 ? (
-
-          intelligence.rationale.map(
-            (
-              rationale,
-              index
-            ) => (
-
-              <div
-                key={index}
-                style={{
-                  padding:
-                    "7px 0 7px 10px",
-
-                  borderLeft:
-                    "2px solid #263347",
-
-                  color: "#cbd5e1",
-
-                  fontSize: 12,
-                  lineHeight: 1.5,
-
-                  marginBottom: 8,
-                }}
-              >
-                {rationale}
-              </div>
-
-            )
-          )
-
-        ) : (
-
-          <div
-            style={{
-              color: "#64748b",
-
-              fontSize: 12,
-
-              fontStyle: "italic",
-            }}
-          >
-            No relationship rationale
-            available.
-          </div>
-
-        )}
-
+      <InspectorSection title="Rationale">
+        <RationaleList
+          rationale={
+            intelligence.rationale
+          }
+          emptyMessage={
+            "No relationship rationale available."
+          }
+        />
       </InspectorSection>
-
-      {/* ===================================================== */}
-      {/* TECHNICAL                                            */}
-      {/* ===================================================== */}
 
       <InspectorSection
         title="Technical"
+        technical
       >
+        <div className="selection-intelligence__rows">
+          <IntelRow
+            label="Edge ID"
+            value={
+              intelligence.edgeId
+            }
+          />
 
-        <IntelRow
-          label="Edge ID"
-          value={
-            intelligence.edgeId
-          }
-        />
+          <IntelRow
+            label="Source ID"
+            value={
+              intelligence.sourceId
+            }
+          />
 
-        <IntelRow
-          label="Source ID"
-          value={
-            intelligence.sourceId
-          }
-        />
-
-        <IntelRow
-          label="Target ID"
-          value={
-            intelligence.targetId
-          }
-        />
-
+          <IntelRow
+            label="Target ID"
+            value={
+              intelligence.targetId
+            }
+          />
+        </div>
       </InspectorSection>
-
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -1297,48 +915,35 @@ function EdgeInspector({
 
 function InspectorSection({
   title,
+  technical = false,
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  technical?: boolean;
+  children: ReactNode;
 }) {
+  const className = [
+    "selection-intelligence__section",
+    technical
+      ? "selection-intelligence__section--technical"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-
-    <div
-      style={{
-        padding: "14px 12px",
-
-        borderBottom:
-          "1px solid #182235",
-      }}
-    >
-
-      <div
-        style={{
-          marginBottom: 12,
-
-          color: "#60a5fa",
-
-          fontSize: 10,
-
-          fontWeight: 700,
-
-          textTransform:
-            "uppercase",
-
-          letterSpacing: 1,
-        }}
+    <section className={className}>
+      <h2
+        className={
+          "selection-intelligence__section-title"
+        }
       >
         {title}
-      </div>
+      </h2>
 
       {children}
-
-    </div>
-
+    </section>
   );
-
 }
 
 // ============================================================
@@ -1353,54 +958,85 @@ function MetadataRows({
     unknown
   >;
 }) {
-
   if (
     !metadata ||
     Object.keys(metadata).length === 0
   ) {
-
     return (
-
-      <div
-        style={{
-          color: "#64748b",
-
-          fontSize: 12,
-
-          fontStyle: "italic",
-        }}
-      >
+      <div className="selection-intelligence__muted">
         No metadata available.
       </div>
-
     );
-
   }
 
   return (
-
-    <>
-
-      {Object.entries(
-        metadata
-      ).map(
-        ([key, value]) => (
-
-          <IntelRow
-            key={key}
-            label={formatLabel(key)}
-            value={
-              formatValue(value)
-            }
-          />
-
+    <div className="selection-intelligence__rows">
+      {
+        Object.entries(
+          metadata
+        ).map(
+          ([key, value]) => (
+            <IntelRow
+              key={key}
+              label={
+                formatLabel(key)
+              }
+              value={
+                formatValue(value)
+              }
+            />
+          )
         )
-      )}
-
-    </>
-
+      }
+    </div>
   );
+}
 
+// ============================================================
+// RATIONALE LIST
+// ============================================================
+
+function RationaleList({
+  rationale,
+  emptyMessage,
+}: {
+  rationale:
+    readonly string[];
+  emptyMessage: string;
+}) {
+  if (rationale.length === 0) {
+    return (
+      <div className="selection-intelligence__muted">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={
+        "selection-intelligence__rationale-list"
+      }
+    >
+      {
+        rationale.map(
+          (
+            statement,
+            index,
+          ) => (
+            <div
+              key={index}
+              className={
+                "selection-intelligence__rationale"
+              }
+            >
+              {statement}
+            </div>
+          )
+        )
+      }
+    </div>
+  );
 }
 
 // ============================================================
@@ -1414,18 +1050,14 @@ function PercentRow({
   label: string;
   value: number;
 }) {
-
   return (
-
     <IntelRow
       label={label}
       value={`${(
         value * 100
       ).toFixed(1)}%`}
     />
-
   );
-
 }
 
 // ============================================================
@@ -1441,58 +1073,25 @@ function IntelRow({
     string |
     number;
 }) {
-
   return (
-
-    <div
-      style={{
-        display: "flex",
-
-        justifyContent:
-          "space-between",
-
-        alignItems:
-          "flex-start",
-
-        gap: 12,
-
-        padding: "6px 0",
-      }}
-    >
-
+    <div className="selection-intelligence__row">
       <div
-        style={{
-          color: "#94a3b8",
-
-          fontSize: 11,
-
-          flexShrink: 0,
-        }}
+        className={
+          "selection-intelligence__row-label"
+        }
       >
         {label}
       </div>
 
       <div
-        style={{
-          color: "#e5e7eb",
-
-          fontSize: 11,
-
-          fontWeight: 600,
-
-          textAlign: "right",
-
-          overflowWrap:
-            "anywhere",
-        }}
+        className={
+          "selection-intelligence__row-value"
+        }
       >
         {String(value)}
       </div>
-
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -1502,7 +1101,6 @@ function IntelRow({
 function formatLabel(
   value: string
 ): string {
-
   return value
     .replace(
       /([a-z])([A-Z])/g,
@@ -1517,34 +1115,27 @@ function formatLabel(
       character =>
         character.toUpperCase()
     );
-
 }
 
 function formatValue(
   value: unknown
 ): string {
-
   if (
     value === null ||
     value === undefined
   ) {
-
     return "N/A";
-
   }
 
   if (
     typeof value === "object"
   ) {
-
     return JSON.stringify(
       value
     );
-
   }
 
   return String(value);
-
 }
 
 // ============================================================
