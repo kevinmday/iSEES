@@ -1,25 +1,18 @@
 // ============================================================
 // src/investigationControl/ExplorePanel.tsx
-// P30.2
-// INVESTIGATION CONTROL
-// EXPLORE PANEL
-//
-// Explore Mode is responsible for constructing an investigation.
+// P57-UI-A4
+// INVESTIGATION LIBRARY
+// EXPLORE WORKFLOW
 //
 // Responsibilities:
 //
-//   • Browse federated repositories
-//   • Preview investigations
-//   • Review graph diagnostics
-//   • Review corpus resolution
-//   • Import investigations via Event Radar
+//   • Browse repository-held cases
+//   • Preview a selected case
+//   • Review active-investigation status
+//   • Access the live event intake path
 //
-// Explore performs NO computation.
-//
-// Resolve–Dissolve Computation is introduced separately through
-// Compute Mode.
-//
-// Full drop-in file.
+// Composition and presentation only.
+// Child runtime behavior and ownership remain unchanged.
 // ============================================================
 
 import CorpusBrowser
@@ -42,43 +35,91 @@ import EventRadar
 // ============================================================
 
 export default function ExplorePanel() {
-
   return (
-
-    <>
-
-      {/* ===================================================== */}
-      {/* FEDERATED KNOWLEDGE */}
-      {/* ===================================================== */}
-
-      <CorpusBrowser />
+    <div className="investigation-library__explore">
 
       {/* ===================================================== */}
-      {/* PREVIEW */}
+      {/* PRIMARY CASE LIBRARY WORKFLOW */}
       {/* ===================================================== */}
 
-      <FederationPreviewPanel />
+      <section
+        className={[
+          "investigation-library__section",
+          "investigation-library__section--primary",
+        ].join(" ")}
+        aria-labelledby="case-library-heading"
+      >
+        <h2
+          id="case-library-heading"
+          className="investigation-library__section-heading"
+        >
+          Case Library
+        </h2>
+
+        <p className="investigation-library__section-description">
+          Browse available repositories and inspect a case
+          before importing it.
+        </p>
+
+        <CorpusBrowser />
+
+        <FederationPreviewPanel />
+      </section>
 
       {/* ===================================================== */}
-      {/* GRAPH */}
+      {/* ACTIVE INVESTIGATION STATUS */}
       {/* ===================================================== */}
 
-      <GraphDiagnostics />
+      <section
+        className={[
+          "investigation-library__section",
+          "investigation-library__section--secondary",
+        ].join(" ")}
+        aria-labelledby="investigation-status-heading"
+      >
+        <h2
+          id="investigation-status-heading"
+          className="investigation-library__section-heading"
+        >
+          Investigation Status
+        </h2>
+
+        <p className="investigation-library__section-description">
+          Inspect the active graph and available legacy
+          resolution records.
+        </p>
+
+        <GraphDiagnostics />
+
+        <CorpusResolutionPanel />
+      </section>
 
       {/* ===================================================== */}
-      {/* CORPUS RESOLUTION */}
+      {/* LIVE EVENT INTAKE */}
       {/* ===================================================== */}
 
-      <CorpusResolutionPanel />
+      <section
+        className={[
+          "investigation-library__section",
+          "investigation-library__section--secondary",
+        ].join(" ")}
+        aria-labelledby="live-intake-heading"
+      >
+        <h2
+          id="live-intake-heading"
+          className="investigation-library__section-heading"
+        >
+          Live Event Intake
+        </h2>
 
-      {/* ===================================================== */}
-      {/* EVENT RADAR */}
-      {/* ===================================================== */}
+        <p className="investigation-library__section-description">
+          Select a monitored event and import it directly into
+          the active investigation.
+        </p>
 
-      <EventRadar />
+        <EventRadar />
+      </section>
 
-    </>
-
+    </div>
   );
-
 }

@@ -1,23 +1,12 @@
 // ============================================================
 // src/corpus/components/CorpusBrowser.tsx
-// P26 FEDERATED KNOWLEDGE LAYER
-// FEDERATED KNOWLEDGE BROWSER
-// OPERATOR EXPLORER SURFACE
+// P57-UI-A4
+// CASE REPOSITORY BROWSER
 //
-// Browse repositories.
-// Select investigations.
-// Future workflow:
+// Browse repositories and select a case for preview.
 //
-// Browse
-//   ↓
-// Preview
-//   ↓
-// Import
-//   ↓
-// Investigate
-//
-// The browser intentionally remains lightweight.
-// It is a navigation surface—not an investigation surface.
+// Navigation only.
+// Federation state and selection ownership remain unchanged.
 // ============================================================
 
 import {
@@ -29,391 +18,166 @@ import {
 // ============================================================
 
 export default function CorpusBrowser() {
-
   const {
-
     repositories,
-
     expandedRepositoryIds,
-
     toggleRepository,
-
     selectedEventId,
-
     selectEvent,
-
   } = useFederation();
 
   return (
+    <div className="investigation-library__browser">
 
-    <div
-      style={{
-        padding: "12px",
-        borderBottom: "1px solid #333",
-      }}
-    >
+      {/* ===================================================== */}
+      {/* BROWSER IDENTITY */}
+      {/* ===================================================== */}
 
-      {/* ================================================ */}
-      {/* TITLE */}
-      {/* ================================================ */}
-
-      <div
-        style={{
-
-          marginBottom: "var(--space-md)",
-
-          paddingBottom: "var(--space-xs)",
-
-          borderBottom: "var(--surface-border)",
-
-        }}
-      >
-
-        <div
-          style={{
-
-            fontFamily: "var(--font-family-sans)",
-
-            fontSize: "var(--font-panel)",
-
-            fontWeight: "var(--weight-bold)",
-
-            letterSpacing: "var(--tracking-system)",
-
-            textTransform: "uppercase",
-
-            lineHeight: "var(--line-tight)",
-
-            color: "var(--text-primary)",
-
-          }}
-        >
-          Federated Knowledge
+      <div className="investigation-library__browser-header">
+        <div className="investigation-library__browser-title">
+          Case Repositories
         </div>
-
       </div>
 
-      {/* ================================================ */}
-      {/* EMPTY */}
-      {/* ================================================ */}
+      {/* ===================================================== */}
+      {/* REPOSITORY TREE */}
+      {/* ===================================================== */}
 
       {
-
         repositories.length === 0
-
           ? (
-
-            <div
-              style={{
-
-                padding: "var(--space-sm) 0",
-
-                fontFamily: "var(--font-family-sans)",
-
-                fontSize: "var(--font-meta)",
-
-                lineHeight: "var(--line-normal)",
-
-                color: "var(--text-muted)",
-
-                opacity: .75,
-
-              }}
-            >
-              No repositories loaded.
+            <div className="investigation-library__empty">
+              No case repositories loaded.
             </div>
-
           )
-
           : (
-
             repositories.map(
-
               repository => {
+                const repositoryId =
+                  repository.repository.id;
 
                 const expanded =
-
                   expandedRepositoryIds.has(
-
-                    repository
-                      .repository
-                      .id
-
+                    repositoryId
                   );
 
                 return (
-
                   <div
-
-                    key={
-                      repository
-                        .repository
-                        .id
-                    }
-
-                    style={{
-                      marginBottom: "var(--space-sm)",
-                    }}
-
+                    key={repositoryId}
+                    className="investigation-library__repository"
                   >
 
-                                      {/* ==================================== */}
+                    {/* ======================================= */}
                     {/* REPOSITORY */}
-                    {/* ==================================== */}
+                    {/* ======================================= */}
 
-                    <div
-
-                      onClick={() =>
-
-                        toggleRepository(
-
-                          repository
-                            .repository
-                            .id
-
-                        )
-
+                    <button
+                      type="button"
+                      className={
+                        "investigation-library__repository-toggle"
                       }
-
-                      style={{
-
-                        display: "flex",
-
-                        alignItems: "center",
-
-                        gap: "var(--space-xs)",
-
-                        cursor: "pointer",
-
-                        userSelect: "none",
-
-                        padding: "6px 0",
-
-                        fontFamily: "var(--font-family-sans)",
-
-                        fontSize: "var(--font-meta)",
-
-                        fontWeight: "var(--weight-bold)",
-
-                        letterSpacing: ".02em",
-
-                        color: "var(--text-secondary)",
-
-                        transition: "var(--transition-fast)",
-
-                      }}
-
+                      aria-expanded={expanded}
+                      onClick={() =>
+                        toggleRepository(
+                          repositoryId
+                        )
+                      }
                     >
-
                       <span
-                        style={{
-
-                          width: 14,
-
-                          color: "var(--text-muted)",
-
-                          flexShrink: 0,
-
-                        }}
-                      >
-
-                        {
-
-                          expanded
-
-                            ? "▼"
-
-                            : "▶"
-
+                        className={
+                          "investigation-library__repository-indicator"
                         }
-
+                        aria-hidden="true"
+                      >
+                        {expanded ? "▾" : "▸"}
                       </span>
 
                       <span
-                        style={{
-
-                          flex: 1,
-
-                        }}
-                      >
-
-                        {
-
-                          repository
-                            .repository
-                            .name
-
+                        className={
+                          "investigation-library__repository-name"
                         }
-
+                      >
+                        {repository.repository.name}
                       </span>
+                    </button>
 
-                    </div>
-
-
-                    {/* ==================================== */}
-                    {/* EVENTS */}
-                    {/* ==================================== */}
+                    {/* ======================================= */}
+                    {/* CASES */}
+                    {/* ======================================= */}
 
                     {
-
-                      expanded &&
-
-                      repository.events.map(
-
-                        event => {
-
-                          const isSelected =
-
-                            event
-                              .canonical_event
-                              .event_id ===
-
-                            selectedEventId;
-
-                          return (
-
-                            <div
-
-                              key={
-                                event.corpus_id
-                              }
-
-                              onClick={() => {
-
-                                void selectEvent(
-
-                                  repository
-                                    .repository
-                                    .id,
-
+                      expanded && (
+                        <div className="investigation-library__cases">
+                          {
+                            repository.events.map(
+                              event => {
+                                const eventId =
                                   event
                                     .canonical_event
-                                    .event_id
+                                    .event_id;
 
+                                const isSelected =
+                                  eventId ===
+                                  selectedEventId;
+
+                                const className = [
+                                  "investigation-library__case",
+                                  isSelected
+                                    ? "investigation-library__case--selected"
+                                    : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ");
+
+                                return (
+                                  <button
+                                    type="button"
+                                    key={event.corpus_id}
+                                    className={className}
+                                    aria-pressed={isSelected}
+                                    onClick={() => {
+                                      void selectEvent(
+                                        repositoryId,
+                                        eventId
+                                      );
+                                    }}
+                                  >
+                                    <span
+                                      className={
+                                        "investigation-library__case-indicator"
+                                      }
+                                      aria-hidden="true"
+                                    >
+                                      {isSelected ? "●" : "•"}
+                                    </span>
+
+                                    <span
+                                      className={
+                                        "investigation-library__case-name"
+                                      }
+                                    >
+                                      {
+                                        event
+                                          .canonical_event
+                                          .event_name
+                                      }
+                                    </span>
+                                  </button>
                                 );
-
-                              }}
-
-                              style={{
-
-                                display: "flex",
-
-                                alignItems: "center",
-
-                                gap: "6px",
-
-                                marginLeft: "14px",
-
-                                marginTop: "1px",
-
-                                marginBottom: "1px",
-
-                                padding: "4px 8px",
-
-                                cursor: "pointer",
-
-                                fontSize: "12px",
-
-                                lineHeight: 1.35,
-
-                                whiteSpace: "nowrap",
-
-                                overflow: "hidden",
-
-                                textOverflow: "ellipsis",
-
-                                borderRadius: "4px",
-
-                                borderLeft:
-
-                                  isSelected
-
-                                    ? "3px solid #3ea6ff"
-
-                                    : "3px solid transparent",
-
-                                background:
-
-                                  isSelected
-
-                                    ? "rgba(62,166,255,.14)"
-
-                                    : "transparent",
-
-                                transition:
-                                  "all 120ms ease",
-
-                              }}
-
-                            >
-
-                              <span
-                                style={{
-                                  width: "14px",
-                                  flexShrink: 0,
-                                  opacity:
-                                    isSelected
-                                      ? 1
-                                      : 0.45,
-                                }}
-                              >
-
-                                {
-
-                                  isSelected
-
-                                    ? "▶"
-
-                                    : "•"
-
-                                }
-
-                              </span>
-
-                              <span
-                                style={{
-                                  flex: 1,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  textAlign: "left",
-                                }}
-                              >
-
-                                {
-
-                                  event
-                                    .canonical_event
-                                    .event_name
-
-                                }
-
-                              </span>
-
-                            </div>
-
-                          );
-
-                        }
-
+                              }
+                            )
+                          }
+                        </div>
                       )
-
                     }
 
                   </div>
-
                 );
-
               }
-
             )
-
           )
-
       }
 
     </div>
-
   );
-
 }

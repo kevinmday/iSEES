@@ -1,24 +1,18 @@
 // ============================================================
 // src/investigationControl/ComputePanel.tsx
-// P30.2
-// INVESTIGATION CONTROL
-// COMPUTE PANEL
+// P57-UI-A4
+// INVESTIGATION LIBRARY
+// COMPUTE PROJECTION
 //
-// Compute Mode defines the computational universe.
+// Configure the deterministic inputs consumed by RDC.
 //
-// Responsibilities:
-//
-//   • Resolve–Dissolve Computation
-//   • Computational Layers
-//   • Research Profiles
-//   • Compute Presets
-//   • Recompute
-//
-// Compute Mode performs no mathematical computation itself.
-// It configures the deterministic inputs consumed by RDC.
-//
-// Full drop-in file.
+// Presentation and composition only.
+// No mathematical computation occurs in this component.
 // ============================================================
+
+import type {
+  ReactNode,
+} from "react";
 
 import ManifoldLayerSelector
   from "../components/ManifoldLayerSelector";
@@ -28,29 +22,19 @@ import ManifoldLayerSelector
 // ============================================================
 
 export default function ComputePanel() {
-
   return (
-
-    <>
+    <div className="investigation-library__compute">
 
       {/* ===================================================== */}
       {/* RDC */}
       {/* ===================================================== */}
 
       <Section title="Resolve–Dissolve Computation">
-
-        <div
-          style={{
-            color: "#94a3b8",
-            fontSize: 12,
-            lineHeight: 1.55,
-          }}
-        >
+        <div className="investigation-library__compute-copy">
           Configure the computational universe used to
           deterministically construct the Investigation
           Manifold.
         </div>
-
       </Section>
 
       {/* ===================================================== */}
@@ -64,9 +48,7 @@ export default function ComputePanel() {
       {/* ===================================================== */}
 
       <Section title="Research Profiles">
-
         <Placeholder />
-
       </Section>
 
       {/* ===================================================== */}
@@ -74,9 +56,7 @@ export default function ComputePanel() {
       {/* ===================================================== */}
 
       <Section title="Compute Presets">
-
         <Placeholder />
-
       </Section>
 
       {/* ===================================================== */}
@@ -84,15 +64,11 @@ export default function ComputePanel() {
       {/* ===================================================== */}
 
       <Section title="Recompute">
-
         <Placeholder />
-
       </Section>
 
-    </>
-
+    </div>
   );
-
 }
 
 // ============================================================
@@ -100,49 +76,21 @@ export default function ComputePanel() {
 // ============================================================
 
 function Section({
-
   title,
-
   children,
-
 }: {
-
   title: string;
-
-  children: React.ReactNode;
-
+  children: ReactNode;
 }) {
-
   return (
-
-    <div
-      style={{
-        border: "1px solid #1f2937",
-        borderRadius: 8,
-        padding: 12,
-        background: "#08101f",
-        marginBottom: 12,
-      }}
-    >
-
-      <div
-        style={{
-          fontSize: 11,
-          color: "#94a3b8",
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          marginBottom: 10,
-        }}
-      >
+    <section className="investigation-library__compute-section">
+      <div className="investigation-library__compute-title">
         {title}
       </div>
 
       {children}
-
-    </div>
-
+    </section>
   );
-
 }
 
 // ============================================================
@@ -150,19 +98,9 @@ function Section({
 // ============================================================
 
 function Placeholder() {
-
   return (
-
-    <div
-      style={{
-        color: "#64748b",
-        fontSize: 12,
-        fontStyle: "italic",
-      }}
-    >
-      Coming in upcoming P30 milestones...
+    <div className="investigation-library__placeholder">
+      Coming in an upcoming milestone.
     </div>
-
   );
-
 }

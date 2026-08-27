@@ -1,24 +1,16 @@
 // ============================================================
 // src/investigationControl/InvestigationControl.tsx
-// P30.2
-// INVESTIGATION CONTROL
-// PRIMARY OPERATOR CONTROL SURFACE
-//
-// Investigation Control is the operator's primary interface
-// for constructing and computing investigations.
+// P57-UI-A4
+// INVESTIGATION LIBRARY AND CASE INTAKE PANEL
 //
 // Responsibilities:
 //
 //   • Own operator mode (Explore / Compute)
-//   • Display Investigation header
+//   • Identify the Investigation Library surface
 //   • Route to the active operator panel
 //
-// It intentionally performs NO computation.
-//
-// Resolve–Dissolve Computation (RDC) is introduced through
-// ComputePanel.
-//
-// Full drop-in replacement.
+// Presentation and routing only.
+// No computation or investigation data ownership.
 // ============================================================
 
 import { useState } from "react";
@@ -30,170 +22,90 @@ import {
 import ExplorePanel from "./ExplorePanel";
 import ComputePanel from "./ComputePanel";
 
+import "./InvestigationControl.css";
+
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function InvestigationControl() {
-
   const [
-
     mode,
-
     setMode,
-
   ] = useState<InvestigationMode>(
-
     InvestigationMode.EXPLORE
-
   );
 
   return (
-
-    <div
-      style={{
-
-        display: "flex",
-
-        flexDirection: "column",
-
-        height: "100%",
-
-      }}
-    >
+    <div className="investigation-library">
 
       {/* ===================================================== */}
-      {/* HEADER */}
+      {/* PANEL IDENTITY */}
       {/* ===================================================== */}
 
-      <div
-        style={{
-
-          paddingBottom: "var(--space-sm)",
-
-          marginBottom: "var(--space-md)",
-
-          borderBottom: "var(--surface-border)",
-
-        }}
-      >
-
-        <div
-          style={{
-
-            fontFamily: "var(--font-family-sans)",
-
-            fontSize: "var(--font-panel)",
-
-            fontWeight: "var(--weight-bold)",
-
-            letterSpacing: "var(--tracking-system)",
-
-            textTransform: "uppercase",
-
-            lineHeight: "var(--line-tight)",
-
-            color: "var(--text-primary)",
-
-          }}
-        >
-          Investigation Control
+      <header className="investigation-library__header">
+        <div className="investigation-library__eyebrow">
+          Case intake
         </div>
 
-      </div>
+        <div className="investigation-library__title">
+          Investigation Library
+        </div>
+
+        <div className="investigation-library__description">
+          Browse, inspect, and bring cases into the active
+          investigation.
+        </div>
+      </header>
 
       {/* ===================================================== */}
-      {/* MODE TABS */}
+      {/* OPERATOR MODES */}
       {/* ===================================================== */}
 
       <div
-        style={{
-
-          display: "flex",
-
-          alignItems: "stretch",
-
-          marginBottom: "var(--space-md)",
-
-          borderBottom: "var(--surface-border)",
-
-          gap: 0,
-
-        }}
+        className="investigation-library__modes"
+        role="group"
+        aria-label="Investigation Library mode"
       >
-
         <ModeTab
-
           label="Explore"
-
           active={
             mode === InvestigationMode.EXPLORE
           }
-
           onClick={() =>
-
             setMode(
-
               InvestigationMode.EXPLORE
-
             )
-
           }
-
         />
 
         <ModeTab
-
           label="Compute"
-
           active={
             mode === InvestigationMode.COMPUTE
           }
-
           onClick={() =>
-
             setMode(
-
               InvestigationMode.COMPUTE
-
             )
-
           }
-
         />
-
       </div>
 
       {/* ===================================================== */}
       {/* ACTIVE PANEL */}
       {/* ===================================================== */}
 
-      <div
-        style={{
-
-          flex: 1,
-
-          overflowY: "auto",
-
-        }}
-      >
-
+      <div className="investigation-library__panel">
         {
-
           mode === InvestigationMode.EXPLORE
-
             ? <ExplorePanel />
-
             : <ComputePanel />
-
         }
-
       </div>
 
     </div>
-
   );
-
 }
 
 // ============================================================
@@ -201,73 +113,31 @@ export default function InvestigationControl() {
 // ============================================================
 
 function ModeTab({
-
   label,
-
   active,
-
   onClick,
-
 }: {
-
   label: string;
-
   active: boolean;
-
   onClick: () => void;
-
 }) {
+  const className = [
+    "investigation-library__mode",
+    active
+      ? "investigation-library__mode--active"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-
     <button
-
+      type="button"
+      className={className}
+      aria-pressed={active}
       onClick={onClick}
-
-      style={{
-
-        flex: 1,
-
-        padding: "10px 0",
-
-        cursor: "pointer",
-
-        border: "none",
-
-        borderBottom:
-
-          active
-
-            ? "2px solid #3b82f6"
-
-            : "2px solid transparent",
-
-        background: "transparent",
-
-        color:
-
-          active
-
-            ? "#dbeafe"
-
-            : "#94a3b8",
-
-        fontWeight: 700,
-
-        textTransform: "uppercase",
-
-        letterSpacing: 1,
-
-        transition: "all 120ms ease",
-
-      }}
-
     >
-
       {label}
-
     </button>
-
   );
-
 }

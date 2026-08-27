@@ -1,17 +1,13 @@
 // ============================================================
 // src/federation/components/FederationPreviewPanel.tsx
-// P26 FEDERATED KNOWLEDGE LAYER
-// FEDERATION PREVIEW PANEL
+// P57-UI-A4
+// SELECTED CASE PREVIEW
 //
-// Preview of the currently selected federated investigation.
+// Preview the currently selected repository-held case and
+// explicitly import it into the active Workspace.
 //
-// Preview V1
-// Browse
-//   ↓
-// Preview
-//   ↓
-// Import
-//
+// Presentation only.
+// Federation preview and import ownership remain unchanged.
 // ============================================================
 
 import {
@@ -23,242 +19,128 @@ import {
 // ============================================================
 
 export default function FederationPreviewPanel() {
-
   const {
-
     preview,
-
     importEvent,
-
   } = useFederation();
 
   // ==========================================================
   // EMPTY
   // ==========================================================
 
-  if (
-    preview === null
-  ) {
-
+  if (preview === null) {
     return (
-
-      <div
-        style={{
-          padding: "12px",
-          borderTop: "1px solid #333",
-        }}
-      >
-
-        <div
-          style={{
-            fontWeight: 700,
-            fontSize: "13px",
-            marginBottom: "10px",
-            letterSpacing: "0.05em",
-          }}
-        >
-          PREVIEW
+      <div className="investigation-library__preview">
+        <div className="investigation-library__preview-title">
+          Case Preview
         </div>
 
-        <div
-          style={{
-            fontSize: "12px",
-            opacity: 0.65,
-            lineHeight: 1.5,
-          }}
-        >
-          Select an investigation from the
-          Federated Knowledge browser.
+        <div className="investigation-library__preview-empty">
+          Select a case from the repository browser to inspect
+          it before import.
         </div>
-
       </div>
-
     );
-
   }
 
   // ==========================================================
-  // VIEW
+  // SELECTED CASE
   // ==========================================================
 
+  const eventId =
+    preview.event.canonical_event.event_id;
+
   return (
+    <div className="investigation-library__preview">
 
-    <div
-      style={{
-        padding: "12px",
-        borderTop: "1px solid #333",
-      }}
-    >
+      {/* ===================================================== */}
+      {/* CASE IDENTITY */}
+      {/* ===================================================== */}
 
-      {/* ================================================ */}
-      {/* TITLE */}
-      {/* ================================================ */}
-
-      <div
-        style={{
-          fontWeight: 700,
-          fontSize: "13px",
-          marginBottom: "12px",
-          letterSpacing: "0.05em",
-        }}
-      >
-        PREVIEW
+      <div className="investigation-library__preview-title">
+        Case Preview
       </div>
 
-      {/* ================================================ */}
-      {/* EVENT */}
-      {/* ================================================ */}
-
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          marginBottom: "10px",
-        }}
-      >
+      <div className="investigation-library__preview-case">
         {preview.event.canonical_event.event_name}
       </div>
 
-      {/* ================================================ */}
-      {/* DETAILS */}
-      {/* ================================================ */}
+      {/* ===================================================== */}
+      {/* CASE PROJECTION */}
+      {/* ===================================================== */}
 
-      <PreviewRow
-        label="Repository"
-        value={preview.repositoryId}
-      />
+      <div className="investigation-library__preview-details">
+        <PreviewRow
+          label="Repository"
+          value={preview.repositoryId}
+        />
 
-      <PreviewRow
-        label="Artifacts"
-        value={String(
-          preview.availableArtifacts
-        )}
-      />
+        <PreviewRow
+          label="Artifacts"
+          value={String(
+            preview.availableArtifacts
+          )}
+        />
 
-      <PreviewRow
-        label="Narratives"
-        value={String(
-          preview.availableNarratives
-        )}
-      />
+        <PreviewRow
+          label="Narratives"
+          value={String(
+            preview.availableNarratives
+          )}
+        />
 
-      <PreviewRow
-        label="Resolutions"
-        value={String(
-          preview.availableResolutions
-        )}
-      />
+        <PreviewRow
+          label="Resolutions"
+          value={String(
+            preview.availableResolutions
+          )}
+        />
 
-      <PreviewRow
-        label="Updated"
-        value={preview.lastUpdated}
-      />
+        <PreviewRow
+          label="Updated"
+          value={preview.lastUpdated}
+        />
+      </div>
 
-      {/* ================================================ */}
-      {/* IMPORT */}
-      {/* ================================================ */}
+      {/* ===================================================== */}
+      {/* EXPLICIT IMPORT */}
+      {/* ===================================================== */}
 
       <button
-
+        type="button"
+        className="investigation-library__import"
         onClick={() => {
-
           void importEvent(
-
             preview.repositoryId,
-
-            preview.event
-              .canonical_event
-              .event_id
-
+            eventId
           );
-
         }}
-
-        style={{
-
-          marginTop: "16px",
-
-          width: "100%",
-
-          padding: "8px",
-
-          border: "1px solid #3ea6ff",
-
-          borderRadius: "4px",
-
-          background: "#1b4f72",
-
-          color: "#ffffff",
-
-          cursor: "pointer",
-
-          fontSize: "12px",
-
-          fontWeight: 700,
-
-        }}
-
       >
-
         Import Into Workspace
-
       </button>
 
     </div>
-
   );
-
 }
 
 // ============================================================
-// ROW
+// PREVIEW ROW
 // ============================================================
 
 function PreviewRow({
-
   label,
-
   value,
-
 }: {
-
   label: string;
-
   value: string;
-
 }) {
-
   return (
+    <div className="investigation-library__preview-row">
+      <span>{label}</span>
 
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "12px",
-        fontSize: "12px",
-        marginBottom: "6px",
-      }}
-    >
-
-      <div
-        style={{
-          opacity: 0.7,
-        }}
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          textAlign: "right",
-          fontWeight: 600,
-        }}
-      >
+      <span className="investigation-library__preview-value">
         {value}
-      </div>
-
+      </span>
     </div>
-
   );
-
 }
