@@ -1,145 +1,167 @@
-import { useState } from "react";
+import { CanonicalLayerRegistry } from "../manifold/layers/systemCanonLayers";
+import { useWorkspaceRuntime } from "../workspace/runtime/WorkspaceRuntimeContext";
 
 export default function ManifoldLayerSelector() {
-  const layers = [
-    "Narrative",
-    "Geo",
-    "Temporal",
-    "Infrastructure",
-    "Historical",
-    "Sensor",
-    "Cultural",
-    "Ontological",
-    "Semantic Drift",
-  ];
+  const workspaceRuntime = useWorkspaceRuntime();
+  const activeLayers = workspaceRuntime.getActiveLayers();
 
-  const layerDescriptions: Record<string, string> = {
-    Narrative:
-      "Witness accounts, testimony, descriptions, and reported experiences.",
+  const canonicalLayerIds = new Set(
+    CanonicalLayerRegistry.map((layer) => layer.id),
+  );
 
-    Geo:
-      "Location, terrain, proximity, spatial relationships, and geography.",
+  const activeLayerIds = new Set(activeLayers);
 
-    Temporal:
-      "Timing, duration, sequence, recurrence, and historical context.",
+  const canonicalActiveCount = CanonicalLayerRegistry.filter((layer) =>
+    activeLayerIds.has(layer.id),
+  ).length;
 
-    Infrastructure:
-      "Facilities, sensors, transportation corridors, military assets, and built systems.",
+  const unregisteredActiveLayers = activeLayers.filter(
+    (layerId) => !canonicalLayerIds.has(layerId),
+  );
 
-    Historical:
-      "Comparison against prior events, historical analogs, and long-term patterns.",
+  const toggleLayer = (layerId: string) => {
+    const nextActiveIds = new Set(activeLayers);
 
-    Sensor:
-      "Radar, infrared, optical, electronic, and instrument-derived observations.",
+    if (nextActiveIds.has(layerId)) {
+      nextActiveIds.delete(layerId);
+    } else {
+      nextActiveIds.add(layerId);
+    }
 
-    Cultural:
-      "Social interpretation, folklore, media influence, and collective response.",
+    /*
+     * Emit registered layers in canonical registry order.
+     * Preserve any pre-existing unregistered identifiers so this UI
+     * never silently destroys restored or legacy investigation state.
+     */
+    const nextCanonicalLayers = CanonicalLayerRegistry.filter((layer) =>
+      nextActiveIds.has(layer.id),
+    ).map((layer) => layer.id);
 
-    Ontological:
-      "Questions concerning the nature, classification, and existence of the phenomenon itself.",
-
-    "Semantic Drift":
-      "Changes in meaning, interpretation, terminology, and descriptive language over time.",
-  };
-
-  const [activeLayers, setActiveLayers] =
-    useState<string[]>([
-      "Narrative",
-      "Geo",
-      "Temporal",
-      "Infrastructure",
-    ]);
-
-  const toggleLayer = (layer: string) => {
-    setActiveLayers((current) =>
-      current.includes(layer)
-        ? current.filter((l) => l !== layer)
-        : [...current, layer]
+    const preservedUnregisteredLayers = activeLayers.filter(
+      (activeLayerId) => !canonicalLayerIds.has(activeLayerId),
     );
+
+    workspaceRuntime.setActiveLayers([
+      ...nextCanonicalLayers,
+      ...preservedUnregisteredLayers,
+    ]);
   };
 
   return (
-    <div
+    <section
+      aria-labelledby="manifold-layer-selector-title"
       style={{
-        background: "#08101f",
-        border: "1px solid #172033",
-        borderRadius: 8,
-        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
       }}
     >
-      <div
-        style={{
-          fontSize: 14,
-          fontWeight: 800,
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          color: "#d1d5db",
-          marginBottom: 10,
-        }}
-      >
-        Select Manifold Layers
-      </div>
+      <header>
+        <h3
+          id="manifold-layer-selector-title"
+          style={{
+            margin: 0,
+            color: "#eef3ff",
+            fontSize: "14px",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Active Manifold Layers
+        </h3>
+
+        <p
+          style={{
+            margin: "6px 0 0",
+            color: "#8f9bb3",
+            fontSize: "12px",
+            lineHeight: 1.5,
+          }}
+        >
+          Shared projection context for MANIFOLD, LAYERS, COMPARE, and
+          downstream Resolve operations.
+        </p>
+      </header>
 
       <div
-        style={{
-          fontSize: 11,
-          color: "#6b7280",
-          marginBottom: 14,
-        }}
-      >
-        Choose the manifold dimensions used to position this
-        event within the corpus.
-      </div>
-
-      <div
+        role="group"
+        aria-label="Canonical manifold layers"
         style={{
           display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
+          flexDirection: "column",
+          gap: "8px",
         }}
       >
-        {layers.map((layer) => (
-          <div
-            key={layer}
-            title={layerDescriptions[layer]}
-            onClick={() => toggleLayer(layer)}
-            style={{
-              padding: "8px 12px",
+        {CanonicalLayerRegistry.map((layer) => {
+          const isActive = activeLayerIds.has(layer.id);
 
-              border: activeLayers.includes(layer)
-                ? "1px solid #60a5fa"
-                : "1px solid #374151",
+          return (
+            <button
+              key={layer.id}
+              type="button"
+              aria-pressed={isActive}
+              aria-label={`${isActive ? "Deactivate" : "Activate"} ${
+                layer.name
+              } layer`}
+              onClick={() => toggleLayer(layer.id)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: isActive
+                  ? "1px solid #66b9ef"
+                  : "1px solid #273249",
+                borderRadius: "8px",
+                background: isActive
+                  ? "rgba(55, 143, 204, 0.16)"
+                  : "rgba(15, 22, 37, 0.72)",
+                color: isActive ? "#eef7ff" : "#9aa6bc",
+                font: "inherit",
+                textAlign: "left",
+                cursor: "pointer",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: "8px",
+                  height: "8px",
+                  marginRight: "9px",
+                  borderRadius: "50%",
+                  background: isActive ? "#76d6ff" : "#536078",
+                  boxShadow: isActive
+                    ? "0 0 8px rgba(118, 214, 255, 0.75)"
+                    : "none",
+                }}
+              />
 
-              borderRadius: 6,
-
-              background: activeLayers.includes(layer)
-                ? "#0b1730"
-                : "#08101f",
-
-              color: activeLayers.includes(layer)
-                ? "#dbeafe"
-                : "#9ca3af",
-
-              fontSize: 11,
-
-              fontWeight: 700,
-
-              letterSpacing: 1,
-
-              textTransform: "uppercase",
-
-              cursor: "pointer",
-
-              userSelect: "none",
-
-              transition:
-                "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
-            }}
-          >
-            {layer}
-          </div>
-        ))}
+              <strong>{layer.name}</strong>
+            </button>
+          );
+        })}
       </div>
-    </div>
+
+      <footer
+        style={{
+          paddingTop: "10px",
+          borderTop: "1px solid #222c40",
+          color: "#8f9bb3",
+          fontSize: "11px",
+          lineHeight: 1.5,
+        }}
+      >
+        <div>
+          {canonicalActiveCount} / {CanonicalLayerRegistry.length} canonical
+          layers active
+        </div>
+
+        {unregisteredActiveLayers.length > 0 && (
+          <div style={{ color: "#d5ad68", marginTop: "4px" }}>
+            {unregisteredActiveLayers.length} unregistered legacy layer
+            {unregisteredActiveLayers.length === 1 ? "" : "s"} preserved
+          </div>
+        )}
+      </footer>
+    </section>
   );
 }
