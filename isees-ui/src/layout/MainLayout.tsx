@@ -17,6 +17,9 @@ import { useEventContext } from "../context/EventContext";
 import WorkspaceModeBar
   from "../components/workspace/WorkspaceModeBar";
 
+import ManifoldProjectionStatus
+  from "../components/workspace/ManifoldProjectionStatus";
+
 import "../components/SelectionIntelligence.css";
 
 // ============================================================
@@ -473,7 +476,7 @@ export default function MainLayout({
         </div>
 
         <div>
-          EVENT MANIFOLD: SYNCHRONIZED
+          <ManifoldProjectionStatus />
         </div>
       </div>
     </div>
