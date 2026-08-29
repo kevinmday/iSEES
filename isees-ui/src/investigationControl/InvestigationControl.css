@@ -444,3 +444,96 @@
   font-style: italic;
   line-height: var(--line-normal);
 }
+
+/* ==========================================================
+   P57-UI-A5-I3 — MANIFOLD NAVIGATOR
+   ========================================================== */
+
+.investigation-library__projection-status {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--surface-1);
+  border: var(--surface-border);
+  border-radius: var(--surface-radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-system);
+}
+
+.investigation-library__lineage {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.investigation-library__lineage-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-bottom: var(--surface-border);
+  font-size: var(--font-meta);
+  line-height: var(--line-normal);
+}
+
+.investigation-library__lineage-row:first-child {
+  padding-top: 0;
+}
+
+.investigation-library__lineage-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.investigation-library__lineage-row dt {
+  color: var(--text-caption);
+}
+
+.investigation-library__lineage-row dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.investigation-library__projection-guidance {
+  padding: var(--space-sm);
+  background: var(--surface-1);
+  border: var(--surface-border);
+  border-left-width: 3px;
+  border-radius: var(--surface-radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-meta);
+  line-height: var(--line-normal);
+}
+
+.investigation-library__projection-guidance--unresolved {
+  border-left-color: #94a3b8;
+}
+
+.investigation-library__projection-guidance--resolving {
+  border-left-color: #7dd3fc;
+  color: #bae6fd;
+}
+
+.investigation-library__projection-guidance--synchronized {
+  border-left-color: #86efac;
+  color: #bbf7d0;
+}
+
+.investigation-library__projection-guidance--stale {
+  border-left-color: #fbbf24;
+  color: #fde68a;
+}
+
+.investigation-library__projection-guidance--error {
+  border-left-color: #f87171;
+  color: #fecaca;
+}

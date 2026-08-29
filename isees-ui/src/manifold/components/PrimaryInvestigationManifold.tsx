@@ -139,6 +139,15 @@ import {
   useResolveRuntimeState,
 } from "../../resolve/runtime/ResolveRuntimeContext";
 
+// ============================================================
+// P57-UI-A5-I3 — PROJECTION ACCEPTANCE GUARD
+// ============================================================
+
+import {
+  ManifoldProjectionStatusValue,
+  useManifoldProjectionStatus,
+} from "../../components/workspace/ManifoldProjectionStatus";
+
 import {
   resolveCandidateIntelligenceCollection,
 } from "../../resolve/intelligence/ResolveCandidateIntelligenceResolver";
@@ -154,6 +163,7 @@ import {
 import type {
   ResolveCandidateIntelligence,
 } from "../../resolve/intelligence/ResolveCandidateIntelligenceTypes";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -189,6 +199,26 @@ export default function PrimaryInvestigationManifold({
 
   const resolveState =
     useResolveRuntimeState();
+
+    // ==========================================================
+  // P57-UI-A5-I3 — CANDIDATE ACCEPTANCE AUTHORITY
+  // ==========================================================
+  //
+  // Resolve candidates remain available for inspection when
+  // the projection is stale.
+  //
+  // Acceptance may cross the candidate-to-Knowledge boundary
+  // only when the latest Resolve execution corresponds to the
+  // currently selected computational context C = (L,T,S).
+  //
+  // ==========================================================
+
+  const projectionStatus =
+    useManifoldProjectionStatus();
+
+  const candidateAcceptanceAllowed =
+    projectionStatus.status ===
+    ManifoldProjectionStatusValue.SYNCHRONIZED;
 
   // ==========================================================
   // LATEST CANONICAL CANDIDATE EVALUATION PRODUCT
@@ -315,10 +345,49 @@ export default function PrimaryInvestigationManifold({
   //
   // ==========================================================
 
-  function handleCandidateAcceptance(
+   function handleCandidateAcceptance(
     intelligence:
       ResolveCandidateIntelligence,
   ): void {
+
+    // ========================================================
+    // P57-UI-A5-I3 — STALE CANDIDATE GUARDRAIL
+    // ========================================================
+    //
+    // Inspection remains permitted for historical Resolve
+    // candidates. Acceptance is blocked unless the candidate
+    // belongs to a projection synchronized with the current
+    // computational context C = (L,T,S).
+    //
+    // ========================================================
+
+    if (
+      !candidateAcceptanceAllowed
+    ) {
+
+      console.warn(
+        "CANDIDATE ACCEPTANCE BLOCKED: manifold projection is not synchronized.",
+        {
+          candidateId:
+            intelligence.identity.candidateId,
+
+          projectionStatus:
+            projectionStatus.status,
+
+          selectedLayerCount:
+            projectionStatus.selectedLayerCount,
+
+          resolvedLayerCount:
+            projectionStatus.resolvedLayerCount,
+
+          executionId:
+            projectionStatus.executionId,
+        },
+      );
+
+      return;
+
+    }
 
     const result =
       materializeAcceptedResolveCandidate(
@@ -816,6 +885,7 @@ export default function PrimaryInvestigationManifold({
 
                       <button
                         type="button"
+
                         onClick={
                           () =>
                             handleCandidateSelection(
@@ -998,7 +1068,7 @@ export default function PrimaryInvestigationManifold({
 
                       </button>
 
-                      {/* ===================================================== */}
+                                           {/* ===================================================== */}
                       {/* P56D-I1-G6 — EXPLICIT CANDIDATE ACCEPTANCE            */}
                       {/* ===================================================== */}
                       {/*
@@ -1019,6 +1089,25 @@ export default function PrimaryInvestigationManifold({
 
                         <button
                           type="button"
+
+                                                    // P57-UI-A5-I3:
+                          // Inspection remains available while stale.
+                          // Acceptance requires a synchronized projection.
+
+                          disabled={
+                            !candidateAcceptanceAllowed
+                          }
+
+                          aria-disabled={
+                            !candidateAcceptanceAllowed
+                          }
+
+                          title={
+                            candidateAcceptanceAllowed
+                              ? "Accept this synchronized Resolve candidate as a canonical Knowledge relationship."
+                              : "Resolve the current computational context before accepting this candidate."
+                          }
+
                           onClick={
                             event => {
 
@@ -1053,7 +1142,14 @@ export default function PrimaryInvestigationManifold({
                               "#86efac",
 
                             cursor:
-                              "pointer",
+                              candidateAcceptanceAllowed
+                                ? "pointer"
+                                : "not-allowed",
+
+                            opacity:
+                              candidateAcceptanceAllowed
+                                ? 1
+                                : 0.48,
 
                             fontFamily:
                               "Consolas, monospace",
@@ -1071,7 +1167,11 @@ export default function PrimaryInvestigationManifold({
                               "center",
                           }}
                         >
-                          ACCEPT RELATIONSHIP
+                          {
+                            candidateAcceptanceAllowed
+                              ? "ACCEPT RELATIONSHIP"
+                              : "RESOLVE REQUIRED"
+                          }
                         </button>
 
                       )}
@@ -1090,6 +1190,7 @@ export default function PrimaryInvestigationManifold({
       )}
 
       {/* =================================================== */}
+
       {/* INVESTIGATION MANIFOLD                              */}
       {/* =================================================== */}
 

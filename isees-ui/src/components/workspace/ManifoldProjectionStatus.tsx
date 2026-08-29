@@ -1,20 +1,12 @@
 // ============================================================
 // src/components/workspace/ManifoldProjectionStatus.tsx
 //
-// P57-UI-A5-I2
-// DERIVED MANIFOLD PROJECTION SYNCHRONIZATION STATUS
+// P57-UI-A5-I3
+// SHARED DERIVED MANIFOLD PROJECTION STATUS
 //
-// This component owns no computational state.
-//
-// It compares:
-//
-//   Cselected = (Lselected, Tselected, Sselected)
-//
-// against:
-//
-//   Cresolved = latest ResolveExecutionRecord.input
-//
-// Status is therefore derived from canonical runtime evidence.
+// Owns no computational state.
+// Derives projection synchronization from WorkspaceRuntime
+// and the latest ResolveRuntime execution record.
 // ============================================================
 
 import {
@@ -30,10 +22,10 @@ import {
 } from "../../workspace/runtime/WorkspaceRuntimeContext";
 
 // ============================================================
-// STATUS
+// STATUS CONTRACT
 // ============================================================
 
-const ManifoldProjectionStatusValue = {
+export const ManifoldProjectionStatusValue = {
   UNRESOLVED: "UNRESOLVED",
   RESOLVING: "RESOLVING",
   SYNCHRONIZED: "SYNCHRONIZED",
@@ -41,22 +33,40 @@ const ManifoldProjectionStatusValue = {
   ERROR: "ERROR",
 } as const;
 
-type ManifoldProjectionStatusValue =
+export type ManifoldProjectionStatusValue =
   (typeof ManifoldProjectionStatusValue)[
     keyof typeof ManifoldProjectionStatusValue
   ];
 
+export interface ManifoldProjectionStatusSnapshot {
+  readonly status:
+    ManifoldProjectionStatusValue;
+
+  readonly title:
+    string;
+
+  readonly selectedLayerCount:
+    number;
+
+  readonly resolvedLayerCount:
+    number | undefined;
+
+  readonly executionId:
+    string | undefined;
+
+  readonly candidateCount:
+    number;
+
+  readonly historyCount:
+    number;
+}
+
 // ============================================================
-// DETERMINISTIC STRUCTURAL EQUALITY
+// STRUCTURAL EQUALITY
 // ============================================================
 //
-// T and S remain intentionally opaque. This comparator does not
-// interpret them. It only determines whether their structural
-// configuration is unchanged.
-//
-// Unsupported object classes conservatively compare as unequal.
-// That prevents the UI from claiming synchronization without
-// inspectable evidence.
+// T and S remain opaque. This function does not interpret them.
+// Unsupported object classes conservatively compare unequal.
 // ============================================================
 
 function structurallyEqual(
@@ -156,10 +166,6 @@ function structurallyEqual(
   );
 }
 
-// ============================================================
-// LAYER EQUALITY
-// ============================================================
-
 function layersEqual(
   left: readonly string[],
   right: readonly string[],
@@ -174,10 +180,10 @@ function layersEqual(
 }
 
 // ============================================================
-// PRESENTATION
+// PRESENTATION CONTRACT
 // ============================================================
 
-const STATUS_COLORS:
+export const MANIFOLD_PROJECTION_STATUS_COLORS:
 Readonly<
   Record<
     ManifoldProjectionStatusValue,
@@ -203,7 +209,7 @@ Readonly<
   RESOLVING:
     "Resolve is constructing a deterministic projection from the selected L, T, and S context.",
   SYNCHRONIZED:
-    "The displayed manifold was resolved from the current L, T, and S context.",
+    "The latest Resolve projection matches the currently selected L, T, and S context.",
   STALE:
     "The selected L, T, or S context differs from the latest completed Resolve projection.",
   ERROR:
@@ -211,10 +217,11 @@ Readonly<
 };
 
 // ============================================================
-// COMPONENT
+// SHARED DERIVED STATUS HOOK
 // ============================================================
 
-export default function ManifoldProjectionStatus() {
+export function useManifoldProjectionStatus():
+ManifoldProjectionStatusSnapshot {
   const workspaceRuntime =
     useWorkspaceRuntime();
 
@@ -233,31 +240,31 @@ export default function ManifoldProjectionStatus() {
   const latestExecution =
     resolveState.currentExecution;
 
-  let projectionStatus:
+  let status:
     ManifoldProjectionStatusValue;
 
   if (
     resolveState.status ===
     ResolveRuntimeStatus.EXECUTING
   ) {
-    projectionStatus =
+    status =
       ManifoldProjectionStatusValue.RESOLVING;
   } else if (
     resolveState.status ===
     ResolveRuntimeStatus.ERROR
   ) {
-    projectionStatus =
+    status =
       ManifoldProjectionStatusValue.ERROR;
   } else if (
     latestExecution?.result === undefined
   ) {
-    projectionStatus =
+    status =
       ManifoldProjectionStatusValue.UNRESOLVED;
   } else {
     const resolvedInput =
       latestExecution.input;
 
-    const contextIsSynchronized =
+    const synchronized =
       layersEqual(
         selectedLayers,
         resolvedInput.activeLayers,
@@ -271,28 +278,63 @@ export default function ManifoldProjectionStatus() {
         resolvedInput.investigativeScale,
       );
 
-    projectionStatus =
-      contextIsSynchronized
+    status =
+      synchronized
         ? ManifoldProjectionStatusValue.SYNCHRONIZED
         : ManifoldProjectionStatusValue.STALE;
   }
 
+  return {
+    status,
+
+    title:
+      STATUS_TITLES[status],
+
+    selectedLayerCount:
+      selectedLayers.length,
+
+    resolvedLayerCount:
+      latestExecution
+        ?.input
+        .activeLayers
+        .length,
+
+    executionId:
+      latestExecution
+        ?.executionId,
+
+    candidateCount:
+      latestExecution
+        ?.result
+        ?.candidateEvaluations
+        .evaluations
+        .length ?? 0,
+
+    historyCount:
+      resolveState.history.length,
+  };
+}
+
+// ============================================================
+// COMPACT SHELL PROJECTION
+// ============================================================
+
+export default function ManifoldProjectionStatus() {
+  const snapshot =
+    useManifoldProjectionStatus();
+
   return (
     <span
       aria-live="polite"
-      title={
-        STATUS_TITLES[
-          projectionStatus
-        ]
-      }
+      title={snapshot.title}
       style={{
         color:
-          STATUS_COLORS[
-            projectionStatus
+          MANIFOLD_PROJECTION_STATUS_COLORS[
+            snapshot.status
           ],
       }}
     >
-      EVENT MANIFOLD: {projectionStatus}
+      EVENT MANIFOLD: {snapshot.status}
     </span>
   );
 }

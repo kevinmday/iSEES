@@ -1,13 +1,12 @@
 // ============================================================
 // src/investigationControl/ComputePanel.tsx
-// P57-UI-A4
-// INVESTIGATION LIBRARY
-// COMPUTE PROJECTION
 //
-// Configure the deterministic inputs consumed by RDC.
+// P57-UI-A5-I3
+// MANIFOLD NAVIGATOR COMPOSITION
 //
-// Presentation and composition only.
-// No mathematical computation occurs in this component.
+// Presents shared deterministic configuration and Resolve
+// lineage. It does not execute Resolve or own computational
+// state.
 // ============================================================
 
 import type {
@@ -17,58 +16,120 @@ import type {
 import ManifoldLayerSelector
   from "../components/ManifoldLayerSelector";
 
+import ManifoldProjectionStatus, {
+  ManifoldProjectionStatusValue,
+  useManifoldProjectionStatus,
+} from "../components/workspace/ManifoldProjectionStatus";
+
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function ComputePanel() {
+  const projection =
+    useManifoldProjectionStatus();
+
+  const executionLabel =
+    projection.executionId
+      ? `${projection.executionId.slice(0, 8)}...`
+      : "None";
+
   return (
     <div className="investigation-library__compute">
 
-      {/* ===================================================== */}
-      {/* RDC */}
-      {/* ===================================================== */}
-
-      <Section title="Resolve–Dissolve Computation">
+      <Section title="Resolve-Dissolve Computation">
         <div className="investigation-library__compute-copy">
-          Configure the computational universe used to
-          deterministically construct the Investigation
-          Manifold.
+          Configure the deterministic context used to construct
+          the Investigation Manifold.
         </div>
       </Section>
 
-      {/* ===================================================== */}
-      {/* LAYERS */}
-      {/* ===================================================== */}
+      <Section title="Projection Status">
+        <div className="investigation-library__projection-status">
+          <ManifoldProjectionStatus />
+        </div>
+
+        <div className="investigation-library__compute-copy">
+          {projection.title}
+        </div>
+      </Section>
 
       <ManifoldLayerSelector />
 
-      {/* ===================================================== */}
-      {/* RESEARCH PROFILES */}
-      {/* ===================================================== */}
-
-      <Section title="Research Profiles">
-        <Placeholder />
+      <Section title="Next Action">
+        <div
+          className={[
+            "investigation-library__projection-guidance",
+            `investigation-library__projection-guidance--${projection.status.toLowerCase()}`,
+          ].join(" ")}
+        >
+          {getProjectionGuidance(
+            projection.status,
+          )}
+        </div>
       </Section>
 
-      {/* ===================================================== */}
-      {/* COMPUTE PRESETS */}
-      {/* ===================================================== */}
+      <Section title="Resolve Lineage">
+        <dl className="investigation-library__lineage">
+          <LineageRow
+            label="Selected L"
+            value={`${projection.selectedLayerCount} layers`}
+          />
 
-      <Section title="Compute Presets">
-        <Placeholder />
+          <LineageRow
+            label="Resolved L"
+            value={
+              projection.resolvedLayerCount === undefined
+                ? "None"
+                : `${projection.resolvedLayerCount} layers`
+            }
+          />
+
+          <LineageRow
+            label="Execution"
+            value={executionLabel}
+          />
+
+          <LineageRow
+            label="History"
+            value={`${projection.historyCount}`}
+          />
+
+          <LineageRow
+            label="Candidates"
+            value={`${projection.candidateCount}`}
+          />
+        </dl>
       </Section>
 
-      {/* ===================================================== */}
-      {/* RECOMPUTE */}
-      {/* ===================================================== */}
-
-      <Section title="Recompute">
-        <Placeholder />
-      </Section>
-
-    </div>
+</div>
   );
+}
+
+// ============================================================
+// STATUS GUIDANCE
+// ============================================================
+
+function getProjectionGuidance(
+  status:
+    ManifoldProjectionStatusValue,
+): string {
+  switch (status) {
+    case ManifoldProjectionStatusValue.UNRESOLVED:
+      return "Review the selected context, then use RESOLVE in the manifold computation controls.";
+
+    case ManifoldProjectionStatusValue.RESOLVING:
+      return "Resolve is constructing the deterministic manifold projection.";
+
+    case ManifoldProjectionStatusValue.SYNCHRONIZED:
+      return "The current projection matches the selected context. Resolve candidates may be inspected.";
+
+    case ManifoldProjectionStatusValue.STALE:
+      return "The selected context has changed. Existing candidates belong to the previous Resolve execution; run RESOLVE before acceptance.";
+
+    case ManifoldProjectionStatusValue.ERROR:
+      return "The latest Resolve execution failed. Inspect the execution diagnostics before trying again.";
+  }
 }
 
 // ============================================================
@@ -94,13 +155,20 @@ function Section({
 }
 
 // ============================================================
-// PLACEHOLDER
+// LINEAGE ROW
 // ============================================================
 
-function Placeholder() {
+function LineageRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="investigation-library__placeholder">
-      Coming in an upcoming milestone.
+    <div className="investigation-library__lineage-row">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   );
 }
