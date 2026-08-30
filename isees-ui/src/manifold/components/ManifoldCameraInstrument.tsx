@@ -116,137 +116,143 @@ export default function ManifoldCameraInstrument({
       style={{
         position: "absolute",
 
-        top: 16,
+        top: 12,
         left: 166,
 
         zIndex: 100,
 
-        display: "flex",
-        flexDirection: "column",
-
-        gap: 5,
-
-        padding: 6,
+        width: 126,
+        padding: 8,
 
         border:
-          "1px solid rgba(148,163,184,0.18)",
+          "1px solid rgba(148,163,184,0.22)",
 
-        borderRadius: 9,
+        borderRadius: 8,
 
         background:
-          "rgba(2,6,23,0.82)",
+          "rgba(2,6,23,0.90)",
 
         boxShadow:
-          "0 12px 30px rgba(0,0,0,0.38)",
+          "0 8px 24px rgba(0,0,0,0.28)",
 
         pointerEvents: "auto",
       }}
     >
 
-      {/* ===================================================== */}
-      {/* ZOOM IN                                               */}
-      {/* ===================================================== */}
+      <div
+        style={{
+          marginBottom: 7,
 
-      <CameraButton
-        label="+"
-        title="Zoom in"
-        onClick={
-          () =>
-            onAction(
-              "ZOOM_IN"
-            )
-        }
-      />
+          color: "#64748b",
 
-      {/* ===================================================== */}
-      {/* PAN UP                                                */}
-      {/* ===================================================== */}
+          fontSize: 9,
+          fontWeight: 700,
 
-      <CameraButton
-        label="↑"
-        title="Pan up"
-        onClick={
-          () =>
-            onAction(
-              "PAN_UP"
-            )
-        }
-      />
+          letterSpacing: 1.2,
+          textTransform: "uppercase",
+        }}
+      >
+        Camera
+      </div>
 
-      {/* ===================================================== */}
-      {/* PAN LEFT                                              */}
-      {/* ===================================================== */}
+      <div
+        style={{
+          display: "grid",
 
-      <CameraButton
-        label="←"
-        title="Pan left"
-        onClick={
-          () =>
-            onAction(
-              "PAN_LEFT"
-            )
-        }
-      />
+          gridTemplateColumns:
+            "repeat(3, 34px)",
 
-      {/* ===================================================== */}
-      {/* CENTER                                                */}
-      {/* ===================================================== */}
+          gridTemplateRows:
+            "repeat(3, 34px)",
 
-      <CameraButton
-        label="•"
-        title="Center manifold"
-        onClick={
-          () =>
-            onAction(
-              "CENTER"
-            )
-        }
-      />
+          justifyContent: "center",
 
-      {/* ===================================================== */}
-      {/* PAN RIGHT                                             */}
-      {/* ===================================================== */}
+          gap: 5,
+        }}
+      >
 
-      <CameraButton
-        label="→"
-        title="Pan right"
-        onClick={
-          () =>
-            onAction(
-              "PAN_RIGHT"
-            )
-        }
-      />
+        <span aria-hidden="true" />
 
-      {/* ===================================================== */}
-      {/* PAN DOWN                                              */}
-      {/* ===================================================== */}
+        <CameraButton
+          label={"\u2191"}
+          title="Pan up"
+          onClick={
+            () =>
+              onAction(
+                "PAN_UP"
+              )
+          }
+        />
 
-      <CameraButton
-        label="↓"
-        title="Pan down"
-        onClick={
-          () =>
-            onAction(
-              "PAN_DOWN"
-            )
-        }
-      />
+        <span aria-hidden="true" />
 
-      {/* ===================================================== */}
-      {/* ZOOM OUT                                              */}
-      {/* ===================================================== */}
+        <CameraButton
+          label={"\u2190"}
+          title="Pan left"
+          onClick={
+            () =>
+              onAction(
+                "PAN_LEFT"
+              )
+          }
+        />
 
-      <CameraButton
-        label="−"
-        title="Zoom out"
-        onClick={
-          () =>
-            onAction(
-              "ZOOM_OUT"
-            )
-        }
-      />
+        <CameraButton
+          label={"\u2022"}
+          title="Center manifold"
+          onClick={
+            () =>
+              onAction(
+                "CENTER"
+              )
+          }
+        />
+
+        <CameraButton
+          label={"\u2192"}
+          title="Pan right"
+          onClick={
+            () =>
+              onAction(
+                "PAN_RIGHT"
+              )
+          }
+        />
+
+        <CameraButton
+          label="+"
+          title="Zoom in"
+          onClick={
+            () =>
+              onAction(
+                "ZOOM_IN"
+              )
+          }
+        />
+
+        <CameraButton
+          label={"\u2193"}
+          title="Pan down"
+          onClick={
+            () =>
+              onAction(
+                "PAN_DOWN"
+              )
+          }
+        />
+
+        <CameraButton
+          label={"\u2212"}
+          title="Zoom out"
+          onClick={
+            () =>
+              onAction(
+                "ZOOM_OUT"
+              )
+          }
+        />
+
+      </div>
 
     </div>
 

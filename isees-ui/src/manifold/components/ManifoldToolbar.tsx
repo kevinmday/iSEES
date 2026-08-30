@@ -163,20 +163,32 @@ export default function ManifoldToolbar({
     y: 154,
   }}
 >
+        <div
+          style={{
+            display: "grid",
 
-        <InstrumentButton
-          label="2D"
-          action="VIEW_2D"
-          onAction={onAction}
-          tooltip="Display the current Investigation Manifold using a two-dimensional projection. No recomputation occurs."
-        />
+            gridTemplateColumns:
+              "1fr 1fr",
 
-        <InstrumentButton
-          label="3D"
-          action="VIEW_3D"
-          onAction={onAction}
-          tooltip="Display the current Investigation Manifold using a three-dimensional projection. No recomputation occurs."
-        />
+            gap: 6,
+          }}
+        >
+
+          <InstrumentButton
+            label="2D"
+            action="VIEW_2D"
+            onAction={onAction}
+            tooltip="Display the current Investigation Manifold using a two-dimensional projection. No recomputation occurs."
+          />
+
+          <InstrumentButton
+            label="3D"
+            action="VIEW_3D"
+            onAction={onAction}
+            tooltip="Display the current Investigation Manifold using a three-dimensional projection. No recomputation occurs."
+          />
+
+        </div>
 
       </ManifoldInstrumentPalette>
 
