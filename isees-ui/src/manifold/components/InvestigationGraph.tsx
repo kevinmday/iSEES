@@ -5,6 +5,8 @@
 // DETERMINISTIC INVESTIGATION TOPOLOGY
 // ============================================================
 import {
+  lazy,
+  Suspense,
   useMemo,
   useRef,
   useState,
@@ -59,8 +61,6 @@ from "./GraphNodes";
 import GraphEdges
 from "./GraphEdges";
 
-import InvestigationGraph3D
-from "./InvestigationGraph3D";
 
 import {
   researchBridgeRuntime,
@@ -69,6 +69,18 @@ import {
 import {
   ResearchAnchorType,
 } from "../../research/researchBridgeTypes";
+
+// ============================================================
+// LAZY THREE-DIMENSIONAL PROJECTION BOUNDARY
+// ============================================================
+//
+// The Three renderer and its dependency tree are loaded only
+// after the operator explicitly selects the 3D projection.
+//
+// ============================================================
+
+const InvestigationGraph3D =
+  lazy(() => import("./InvestigationGraph3D"));
 
 // ============================================================// TYPES
 
@@ -978,17 +990,40 @@ function handleCollectEdge(
 
               {projectionMode === "3D" ? (
 
-                <InvestigationGraph3D
-                  width={viewportWidth}
-                  height={viewportHeight}
-                  nodes={positionedNodes}
-                  edges={graph.edges}
-                  focusedEventId={focusedEventId}
-                  selection={selection}
-                  setSelection={setSelection}
-                  onCollectNode={handleCollectNode}
-                  onCollectEdge={handleCollectEdge}
-                />
+                <Suspense
+                  fallback={
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "grid",
+                        placeItems: "center",
+                        background: "#050b16",
+                        color: "#64748b",
+                        fontFamily:
+                          "Consolas, monospace",
+                        fontSize: 11,
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      LOADING 3D PROJECTION
+                    </div>
+                  }
+                >
+                  <InvestigationGraph3D
+                    width={viewportWidth}
+                    height={viewportHeight}
+                    nodes={positionedNodes}
+                    edges={graph.edges}
+                    focusedEventId={focusedEventId}
+                    selection={selection}
+                    setSelection={setSelection}
+                    onCollectNode={handleCollectNode}
+                    onCollectEdge={handleCollectEdge}
+                  />
+                </Suspense>
 
               ) : (
 
