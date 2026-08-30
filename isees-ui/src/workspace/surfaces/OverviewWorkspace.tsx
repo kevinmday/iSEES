@@ -1,25 +1,65 @@
 // ============================================================
-// OverviewWorkspace.tsx
-// P37A
-// OVERVIEW WORKSPACE
+// src/workspace/surfaces/OverviewWorkspace.tsx
+// P57-UI-A5-I4A
+// CANONICAL OVERVIEW WORKSPACE
 //
-// Production Investigation Dashboard
+// Fresh-session investigation command summary.
 //
-// Presentation-only workspace.
+// Presentation only.
 //
-// Runtime ownership remains external.
-//
-// Canon v1
-//
-// When an investigation is active, the investigation
-// becomes the workspace identity.
-//
-// FULL DROP-IN REPLACEMENT
+// Canonical values are read from WorkspaceRuntime.
+// No investigation, graph, Resolve, Research, or persistence
+// state is created or mutated here.
 // ============================================================
+
+import {
+  useWorkspaceRuntime,
+} from "../runtime/WorkspaceRuntimeContext";
 
 import "./OverviewWorkspace.css";
 
+// ============================================================
+// DISPLAY HELPERS
+// ============================================================
+
+function displayDate(
+  value:
+    string | undefined,
+): string {
+
+  if (!value) {
+    return "UNAVAILABLE";
+  }
+
+  return value.slice(
+    0,
+    10,
+  );
+
+}
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
 export default function OverviewWorkspace() {
+
+  const runtime =
+    useWorkspaceRuntime();
+
+  const investigation =
+    runtime.getActiveInvestigation();
+
+  const workspace =
+    runtime.getWorkspace() ??
+    investigation?.workspace;
+
+  const activeLayers =
+    runtime.getActiveLayers();
+
+  const focusedEventId =
+    workspace?.focused_event_id ??
+    null;
 
   return (
 
@@ -28,147 +68,178 @@ export default function OverviewWorkspace() {
       <div className="overview-dashboard">
 
         {/* ================================================= */}
-        {/* ACTIVE INVESTIGATION */}
+        {/* ACTIVE INVESTIGATION                              */}
         {/* ================================================= */}
 
         <section className="investigation-summary">
 
           <div className="summary-label">
-
             Active Investigation
-
           </div>
 
           <h2 className="summary-title">
-
-            Nimitz Investigation
-
+            {
+              investigation?.name ??
+              "No Active Investigation"
+            }
           </h2>
 
           <div className="summary-subtitle">
-
-            Comparative Investigation • System Canon
-
+            {
+              investigation?.description ??
+              "Select or import a case from the Investigation Library."
+            }
           </div>
 
           <div className="summary-subject">
-
-            Primary Subject&nbsp;&nbsp;E-TICTAC-2004
-
+            Investigation ID&nbsp;&nbsp;
+            {
+              investigation?.id ??
+              "UNAVAILABLE"
+            }
           </div>
 
           <div className="summary-location">
-
-            Pacific Ocean, California
-
+            Workspace&nbsp;&nbsp;
+            {
+              workspace?.name ??
+              "UNAVAILABLE"
+            }
           </div>
 
         </section>
 
         {/* ================================================= */}
-        {/* OPERATIONAL METRICS */}
+        {/* CANONICAL OPERATIONAL STATE                       */}
         {/* ================================================= */}
 
-        <section className="investigation-metrics">
+        <section
+          className="investigation-metrics"
+          aria-label="Active investigation operational state"
+        >
 
-          <div className="metric-card">
+          <Metric
+            label="Status"
+            value={
+              investigation?.status ??
+              "UNAVAILABLE"
+            }
+          />
 
-            <div className="metric-label">
+          <Metric
+            label="Imported Cases"
+            value={
+              String(
+                workspace
+                  ?.imported_events
+                  .length ??
+                0
+              )
+            }
+          />
 
-              Confidence
+          <Metric
+            label="Artifacts"
+            value={
+              String(
+                workspace
+                  ?.artifacts
+                  .length ??
+                0
+              )
+            }
+          />
 
-            </div>
+          <Metric
+            label="Revisions"
+            value={
+              String(
+                investigation
+                  ?.revisions
+                  .length ??
+                0
+              )
+            }
+          />
 
-            <div className="metric-value">
+          <Metric
+            label="Active Layers"
+            value={
+              String(
+                activeLayers.length
+              )
+            }
+          />
 
-              0.96
+          <Metric
+            label="Updated"
+            value={
+              displayDate(
+                investigation
+                  ?.updatedAt
+              )
+            }
+          />
 
-            </div>
+        </section>
 
+        {/* ================================================= */}
+        {/* CURRENT INVESTIGATIVE FOCUS                       */}
+        {/* ================================================= */}
+
+        <section className="investigation-summary">
+
+          <div className="summary-label">
+            Current Investigative Focus
           </div>
 
-          <div className="metric-card">
+          <h2 className="summary-title">
+            {
+              focusedEventId ??
+              "No Event Selected"
+            }
+          </h2>
 
-            <div className="metric-label">
-
-              Reports
-
-            </div>
-
-            <div className="metric-value">
-
-              4
-
-            </div>
-
-          </div>
-
-          <div className="metric-card">
-
-            <div className="metric-label">
-
-              Evidence Items
-
-            </div>
-
-            <div className="metric-value">
-
-              1,842
-
-            </div>
-
-          </div>
-
-          <div className="metric-card">
-
-            <div className="metric-label">
-
-              Clusters
-
-            </div>
-
-            <div className="metric-value">
-
-              1
-
-            </div>
-
-          </div>
-
-          <div className="metric-card">
-
-            <div className="metric-label">
-
-              Recurrence
-
-            </div>
-
-            <div className="metric-value">
-
-              Moderate
-
-            </div>
-
-          </div>
-
-          <div className="metric-card">
-
-            <div className="metric-label">
-
-              Trend
-
-            </div>
-
-            <div className="metric-value">
-
-              Rising
-
-            </div>
-
+          <div className="summary-subtitle">
+            {
+              focusedEventId
+                ? "The active event is ready for deterministic inspection across the available workspace modes."
+                : "Choose or import a case from the Investigation Library to establish the active investigative focus."
+            }
           </div>
 
         </section>
 
+      </div>
+
+    </div>
+
+  );
+
+}
+
+// ============================================================
+// METRIC
+// ============================================================
+
+function Metric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+
+  return (
+
+    <div className="metric-card">
+
+      <div className="metric-label">
+        {label}
+      </div>
+
+      <div className="metric-value">
+        {value}
       </div>
 
     </div>

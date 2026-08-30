@@ -1,26 +1,45 @@
 // ============================================================
 // src/investigationControl/InvestigationControl.tsx
-// P57-UI-A4
-// INVESTIGATION LIBRARY AND CASE INTAKE PANEL
+// P57-UI-A5-I4B
+// MODE-AWARE LEFT-PANEL COMPOSITION
 //
-// Responsibilities:
+// OVERVIEW and non-specialized modes:
+//   Investigation Library / Case Intake
 //
-//   • Own operator mode (Explore / Compute)
-//   • Identify the Investigation Library surface
-//   • Route to the active operator panel
+// MANIFOLD:
+//   Canonical MANIFOLD Navigator
 //
 // Presentation and routing only.
-// No computation or investigation data ownership.
+//
+// WorkspaceRuntime remains the canonical owner of:
+//   - active workspace mode
+//   - investigation
+//   - computational configuration C = (L,T,S)
+//
+// This component creates no duplicate computational state.
 // ============================================================
 
-import { useState } from "react";
+import {
+  useState,
+} from "react";
+
+import {
+  useWorkspaceMode,
+} from "../workspace/runtime/WorkspaceRuntimeContext";
+
+import {
+  WorkspaceMode,
+} from "../workspace/runtime/WorkspaceRuntimeTypes";
 
 import {
   InvestigationMode,
 } from "./InvestigationMode";
 
-import ExplorePanel from "./ExplorePanel";
-import ComputePanel from "./ComputePanel";
+import ExplorePanel
+  from "./ExplorePanel";
+
+import ComputePanel
+  from "./ComputePanel";
 
 import "./InvestigationControl.css";
 
@@ -29,23 +48,54 @@ import "./InvestigationControl.css";
 // ============================================================
 
 export default function InvestigationControl() {
+
+  const workspaceMode =
+    useWorkspaceMode();
+
   const [
-    mode,
-    setMode,
+    investigationMode,
+    setInvestigationMode,
   ] = useState<InvestigationMode>(
     InvestigationMode.EXPLORE
   );
 
+  // ==========================================================
+  // MANIFOLD NAVIGATOR
+  // ==========================================================
+
+  if (
+    workspaceMode ===
+      WorkspaceMode.MANIFOLD
+  ) {
+
+    return (
+      <ManifoldNavigator />
+    );
+
+  }
+
+  // ==========================================================
+  // INVESTIGATION LIBRARY
+  // ==========================================================
+  //
+  // OVERVIEW is the canonical home of Case Intake.
+  //
+  // Other modes retain the Investigation Library until their
+  // specialized navigation contracts are introduced.
+  // ==========================================================
+
   return (
+
     <div className="investigation-library">
 
       {/* ===================================================== */}
-      {/* PANEL IDENTITY */}
+      {/* PANEL IDENTITY                                        */}
       {/* ===================================================== */}
 
       <header className="investigation-library__header">
+
         <div className="investigation-library__eyebrow">
-          Case intake
+          Case Intake
         </div>
 
         <div className="investigation-library__title">
@@ -56,10 +106,11 @@ export default function InvestigationControl() {
           Browse, inspect, and bring cases into the active
           investigation.
         </div>
+
       </header>
 
       {/* ===================================================== */}
-      {/* OPERATOR MODES */}
+      {/* INVESTIGATION WORKFLOW                                */}
       {/* ===================================================== */}
 
       <div
@@ -67,13 +118,15 @@ export default function InvestigationControl() {
         role="group"
         aria-label="Investigation Library mode"
       >
+
         <ModeTab
           label="Explore"
           active={
-            mode === InvestigationMode.EXPLORE
+            investigationMode ===
+              InvestigationMode.EXPLORE
           }
           onClick={() =>
-            setMode(
+            setInvestigationMode(
               InvestigationMode.EXPLORE
             )
           }
@@ -82,30 +135,79 @@ export default function InvestigationControl() {
         <ModeTab
           label="Compute"
           active={
-            mode === InvestigationMode.COMPUTE
+            investigationMode ===
+              InvestigationMode.COMPUTE
           }
           onClick={() =>
-            setMode(
+            setInvestigationMode(
               InvestigationMode.COMPUTE
             )
           }
         />
+
       </div>
 
       {/* ===================================================== */}
-      {/* ACTIVE PANEL */}
+      {/* ACTIVE LIBRARY PANEL                                  */}
       {/* ===================================================== */}
 
       <div className="investigation-library__panel">
+
         {
-          mode === InvestigationMode.EXPLORE
-            ? <ExplorePanel />
-            : <ComputePanel />
+          investigationMode ===
+            InvestigationMode.EXPLORE
+              ? <ExplorePanel />
+              : <ComputePanel />
         }
+
       </div>
 
     </div>
+
   );
+
+}
+
+// ============================================================
+// MANIFOLD NAVIGATOR
+// ============================================================
+
+function ManifoldNavigator() {
+
+  return (
+
+    <div
+      className={[
+        "investigation-library",
+        "investigation-library--manifold",
+      ].join(" ")}
+    >
+
+      <header className="investigation-library__header">
+
+        <div className="investigation-library__eyebrow">
+          Projection Context
+        </div>
+
+        <div className="investigation-library__title">
+          MANIFOLD Navigator
+        </div>
+
+        <div className="investigation-library__description">
+          Inspect the deterministic configuration and lineage
+          governing the active Investigation Manifold.
+        </div>
+
+      </header>
+
+      <div className="investigation-library__panel">
+        <ComputePanel />
+      </div>
+
+    </div>
+
+  );
+
 }
 
 // ============================================================
@@ -121,6 +223,7 @@ function ModeTab({
   active: boolean;
   onClick: () => void;
 }) {
+
   const className = [
     "investigation-library__mode",
     active
@@ -131,6 +234,7 @@ function ModeTab({
     .join(" ");
 
   return (
+
     <button
       type="button"
       className={className}
@@ -139,5 +243,7 @@ function ModeTab({
     >
       {label}
     </button>
+
   );
+
 }

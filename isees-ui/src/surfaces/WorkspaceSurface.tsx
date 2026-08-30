@@ -50,6 +50,9 @@ import {
 import InvestigationWorkspace
   from "../components/InvestigationWorkspace";
 
+import OverviewWorkspace
+  from "../workspace/surfaces/OverviewWorkspace";
+
 import ManifoldWorkspace
   from "../workspace/surfaces/ManifoldWorkspace";
 
@@ -113,9 +116,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.OVERVIEW:
 
       return (
-        <PlaceholderSurface
-          title="Overview Workspace"
-        />
+        <OverviewWorkspace />
       );
 
     case WorkspaceMode.MANIFOLD:
@@ -194,15 +195,31 @@ function ActiveWorkspace() {
 
 export default function WorkspaceSurface() {
 
+  const runtime =
+    useWorkspaceRuntime();
+
+  const activeMode =
+    runtime.getActiveMode();
+
+  const researchInboxVisible =
+    activeMode ===
+      WorkspaceMode.MANIFOLD ||
+    activeMode ===
+      WorkspaceMode.RESEARCH;
+
   return (
 
     <>
 
       {/* ===================================================== */}
-      {/* PERSISTENT WORKSPACE INSTRUMENTS                      */}
+      {/* MODE-APPROPRIATE RESEARCH INBOX                      */}
       {/* ===================================================== */}
 
-      <ResearchInboxInstrument />
+      {
+        researchInboxVisible && (
+          <ResearchInboxInstrument />
+        )
+      }
 
       {/* ===================================================== */}
       {/* ACTIVE WORKSPACE                                      */}

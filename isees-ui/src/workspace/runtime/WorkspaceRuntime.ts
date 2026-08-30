@@ -138,7 +138,7 @@ export class WorkspaceRuntime {
       operator: {
 
         activeMode:
-          WorkspaceMode.MANIFOLD,
+          WorkspaceMode.OVERVIEW,
 
         layoutMode:
           WorkspaceLayoutMode.NORMAL,
