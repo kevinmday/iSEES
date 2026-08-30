@@ -59,6 +59,9 @@ from "./GraphNodes";
 import GraphEdges
 from "./GraphEdges";
 
+import InvestigationGraph3D
+from "./InvestigationGraph3D";
+
 import {
   researchBridgeRuntime,
 } from "../../research/ResearchBridgeRuntime";
@@ -82,6 +85,11 @@ interface InvestigationGraphProps {
 export default function InvestigationGraph({
   onAction,
 }: InvestigationGraphProps) {
+
+  const [
+    projectionMode,
+    setProjectionMode,
+  ] = useState<"2D" | "3D">("2D");
 
   const workspaceRuntime =
     useWorkspaceRuntime();
@@ -490,6 +498,22 @@ function handleCollectEdge(
 
       }
     );
+  }
+
+  function handleManifoldAction(
+    action: ManifoldToolbarAction,
+  ): void {
+    if (action === "VIEW_2D") {
+      setProjectionMode("2D");
+      return;
+    }
+
+    if (action === "VIEW_3D") {
+      setProjectionMode("3D");
+      return;
+    }
+
+    onAction(action);
   }
 
    // ==========================================================
@@ -952,6 +976,22 @@ function handleCollectEdge(
               {/* TOPOLOGY                                       */}
               {/* ============================================== */}
 
+              {projectionMode === "3D" ? (
+
+                <InvestigationGraph3D
+                  width={viewportWidth}
+                  height={viewportHeight}
+                  nodes={positionedNodes}
+                  edges={graph.edges}
+                  focusedEventId={focusedEventId}
+                  selection={selection}
+                  setSelection={setSelection}
+                  onCollectNode={handleCollectNode}
+                  onCollectEdge={handleCollectEdge}
+                />
+
+              ) : (
+
               <svg
                 width="100%"
                 height="100%"
@@ -1047,6 +1087,8 @@ function handleCollectEdge(
               />
 
             </svg>
+
+              )}
               {/* ============================================== */}
               {/* MANIFOLD INSTRUMENT LAYER                     */}
               {/* ============================================== */}
@@ -1078,14 +1120,16 @@ function handleCollectEdge(
               {/* ============================================ */}
 
               <ManifoldToolbar
-                onAction={onAction}
+                onAction={handleManifoldAction}
               />
 
-              <ManifoldCameraInstrument
+              {projectionMode === "2D" && (
+                <ManifoldCameraInstrument
                 onAction={
                   handleCameraAction
                 }
               />
+              )}
 
             </div>
 
