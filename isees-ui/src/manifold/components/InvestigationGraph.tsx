@@ -571,7 +571,7 @@ function handleCollectNode(
           //
           // ==================================================
 
-          const topologyPadding = 55;
+          const topologyPadding = 135;
 
           // ==================================================
           // TOPOLOGY BOUNDS

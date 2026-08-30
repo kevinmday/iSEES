@@ -121,8 +121,9 @@ export default function GraphNodes({
           // than crossing topology toward neighboring node
           // territories.
           //
-          // EVENT labels retain centered presentation because
-          // events act as primary topology anchors.
+          // Every non-central node type uses the same deterministic
+          // horizontal projection rule. The explicitly centered
+          // node retains centered label presentation.
           //
           // ==================================================
 
@@ -130,7 +131,7 @@ export default function GraphNodes({
             node.x ?? 0;
 
           const peripheralLabel =
-            node.type === "FACILITY";
+            !centered;
 
           const horizontalThreshold =
             24;
@@ -239,8 +240,16 @@ export default function GraphNodes({
                     : undefined
                 }
                 fill="#d1d5db"
+                stroke="#020617"
+                strokeWidth="3"
+                strokeLinejoin="round"
+                paintOrder="stroke"
                 fontSize="11"
                 fontWeight="600"
+                style={{
+                  pointerEvents: "none",
+                  userSelect: "none",
+                }}
               >
                 {node.label}
               </text>
