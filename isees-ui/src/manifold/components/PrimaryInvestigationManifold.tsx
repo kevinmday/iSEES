@@ -642,7 +642,7 @@ export default function PrimaryInvestigationManifold({
         candidateIntelligenceCollection
           .intelligenceCount > 0 && (
 
-        <div
+        <details
           style={{
             position:
               "absolute",
@@ -685,7 +685,27 @@ export default function PrimaryInvestigationManifold({
           }}
         >
 
-          <div
+          <summary
+            title="Expand or collapse Resolve Candidates"
+            onClick={
+              event => {
+
+                event.preventDefault();
+
+                const details =
+                  event.currentTarget
+                    .parentElement;
+
+                if (
+                  details instanceof
+                    HTMLDetailsElement
+                ) {
+                  details.open =
+                    !details.open;
+                }
+
+              }
+            }
             style={{
               display:
                 "flex",
@@ -729,7 +749,7 @@ export default function PrimaryInvestigationManifold({
               }
             </span>
 
-          </div>
+          </summary>
 
           <div
             style={{
@@ -746,7 +766,7 @@ export default function PrimaryInvestigationManifold({
                 1.4,
             }}
           >
-            Potential relationships â€” inspect only
+            Potential relationships - inspect only
           </div>
 
           <div
@@ -1091,12 +1111,11 @@ export default function PrimaryInvestigationManifold({
 
           </div>
 
-        </div>
+        </details>
 
       )}
 
       {/* =================================================== */}
-
       {/* INVESTIGATION MANIFOLD                              */}
       {/* =================================================== */}
 
