@@ -18,8 +18,6 @@
 //
 // ============================================================
 
-import Tooltip from "../../components/Tooltip";
-
 import ManifoldInstrumentPalette
 from "./ManifoldInstrumentPalette";
 
@@ -56,9 +54,9 @@ function InstrumentButton({
 
   return (
 
-    <Tooltip text={tooltip}>
-
-      <button
+    <button
+        type="button"
+        title={tooltip}
         onClick={() =>
           onAction(action)
         }
@@ -91,8 +89,6 @@ function InstrumentButton({
       >
         {label}
       </button>
-
-    </Tooltip>
 
   );
 
