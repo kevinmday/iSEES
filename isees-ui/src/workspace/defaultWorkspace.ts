@@ -7,6 +7,55 @@ import type {
   Workspace,
 } from "./workspaceTypes";
 
+// ============================================================
+// EMPTY WORKSPACE SHELL
+// ============================================================
+//
+// Compatibility state for legacy WorkspaceContext consumers.
+//
+// This is not an Investigation and contains no imported case,
+// focused event, artifact, or computational layer.
+//
+// Canonical Investigation ownership remains exclusively inside
+// WorkspaceRuntime.
+// ============================================================
+
+export const EMPTY_WORKSPACE:
+  Workspace = {
+
+  id:
+    "WS-UNESTABLISHED",
+
+  name:
+    "Workspace Ready",
+
+  description:
+    "No active investigation.",
+
+  imported_events:
+    [],
+
+  focused_event_id:
+    null,
+
+  investigations:
+    [],
+
+  artifacts:
+    [],
+
+  active_layers:
+    [],
+
+  created_at:
+    new Date().toISOString(),
+
+};
+
+
+// ============================================================
+// EXPLICIT NIMITZ DEMONSTRATION WORKSPACE
+// ============================================================
 export const DEFAULT_WORKSPACE:
   Workspace = {
 

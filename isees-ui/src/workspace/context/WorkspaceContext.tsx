@@ -24,7 +24,7 @@ import type {
 } from "../../artifacts/artifactTypes";
 
 import {
-  DEFAULT_WORKSPACE,
+  EMPTY_WORKSPACE,
 } from "../defaultWorkspace";
 
 // ============================================================
@@ -127,7 +127,7 @@ export function WorkspaceProvider({
     setActiveWorkspace,
   ] =
     useState<Workspace>(
-      DEFAULT_WORKSPACE
+      EMPTY_WORKSPACE
     );
 
   // ==========================================================

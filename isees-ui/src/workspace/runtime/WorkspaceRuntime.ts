@@ -56,10 +56,6 @@ import type {
 } from "../../investigation/investigationTypes";
 
 import {
-  DEFAULT_INVESTIGATION,
-} from "../../investigation/defaultInvestigation";
-
-import {
   WorkspaceMode,
   WorkspaceLayoutMode,
 } from "./WorkspaceRuntimeTypes";
@@ -125,7 +121,7 @@ export class WorkspaceRuntime {
           undefined,
 
        investigation:
-  DEFAULT_INVESTIGATION,
+          undefined,
 
         focusedEvent:
           undefined,

@@ -370,6 +370,14 @@ pass(
 const populatedRuntime =
   new WorkspaceRuntime();
 
+populatedRuntime.initialize();
+populatedRuntime.activate(
+  DEFAULT_INVESTIGATION.workspace,
+);
+populatedRuntime.setActiveInvestigation(
+  DEFAULT_INVESTIGATION,
+);
+
 expectThrow(
   () =>
     assertGuestWorkspaceInvestigationIdentity(
