@@ -45,6 +45,10 @@ export interface GraphEdgesProps {
     selection: GraphSelection
   ) => void;
 
+
+  onCollectEdge?: (
+    edge: GraphEdge
+  ) => void;
 }
 
 // ============================================================
@@ -58,6 +62,7 @@ export default function GraphEdges({
   selection,
   setSelection,
 
+onCollectEdge,
 }: GraphEdgesProps) {
 
   return (
@@ -138,6 +143,12 @@ export default function GraphEdges({
 
                 })
               }
+              onDoubleClick={() =>
+                onCollectEdge?.(
+                  edge
+                )
+              }
+
               style={{
                 cursor: "pointer",
               }}

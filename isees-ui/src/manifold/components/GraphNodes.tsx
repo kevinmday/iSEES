@@ -183,18 +183,19 @@ export default function GraphNodes({
                     node.type,
 
                 });
+}}
+
+              onDoubleClick={() => {
+
+                setCenterNodeId(
+                  node.id
+                );
 
                 onCollectNode?.(
                   node
                 );
 
               }}
-
-              onDoubleClick={() =>
-                setCenterNodeId(
-                  node.id
-                )
-              }
 
               style={{
                 cursor: "pointer",

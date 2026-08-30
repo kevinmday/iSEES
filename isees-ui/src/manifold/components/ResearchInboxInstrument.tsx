@@ -341,9 +341,9 @@ export default function ResearchInboxInstrument() {
                           "#718096",
                       }}
                     >
-                      Select interesting manifold
-                      nodes or edges to collect
-                      them for research.
+                      Double-click a manifold node
+                      or edge to collect it for
+                      research.
                     </div>
 
                   </div>

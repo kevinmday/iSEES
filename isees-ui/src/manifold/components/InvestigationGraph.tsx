@@ -35,6 +35,7 @@ import {
 } from "../context/GraphContext";
 
 import type {
+  GraphEdge,
   GraphNode,
 } from "../graphTypes";
 
@@ -330,6 +331,37 @@ function handleCollectNode(
   );
 
 }
+function handleCollectEdge(
+  edge:
+    GraphEdge,
+): void {
+
+  if (!focusedEventId) {
+    return;
+  }
+
+  researchBridgeRuntime.bridge({
+
+    investigationId:
+      focusedEventId,
+
+    graph: {
+
+      type:
+        ResearchAnchorType.EDGE,
+
+      id:
+        edge.id,
+
+    },
+
+    graphRevision:
+      1,
+
+  });
+
+}
+
   // ==========================================================
   // CAMERA STATE
   // ==========================================================
@@ -980,6 +1012,10 @@ function handleCollectNode(
                   setSelection={
                     setSelection
                   }
+                  onCollectEdge={
+                    handleCollectEdge
+                  }
+
                 />
 
                              {/* ============================================ */}
