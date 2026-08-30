@@ -1,0 +1,178 @@
+/* ==========================================================
+   P57-UI-A6-I2C
+   FRESH GUEST WELCOME
+   Presentation only.
+   ========================================================== */
+
+.guest-welcome {
+    width: 100%;
+    max-width: 1040px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--workspace-gap);
+    color: var(--text-secondary);
+}
+
+.guest-welcome__hero,
+.guest-welcome__workflow,
+.guest-welcome__orientation {
+    padding: var(--panel-padding);
+    background: var(--panel-background);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.guest-welcome__hero {
+    position: relative;
+    overflow: hidden;
+}
+
+.guest-welcome__hero::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--color-information);
+}
+
+.guest-welcome__eyebrow,
+.guest-welcome__path-status {
+    font-family: var(--type-system-family);
+    font-size: var(--type-system-size);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-system);
+    text-transform: uppercase;
+    color: var(--color-information);
+}
+
+.guest-welcome__title {
+    margin: var(--space-xs) 0;
+    font-family: var(--type-title-family);
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: var(--line-tight);
+    color: var(--text-primary);
+}
+
+.guest-welcome__lead {
+    max-width: 760px;
+    margin: 0;
+    font-size: var(--font-section);
+    line-height: var(--line-normal);
+    color: var(--text-muted);
+}
+
+.guest-welcome__start {
+    max-width: 760px;
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-md);
+    align-items: start;
+    background: var(--card-background);
+    border: var(--card-border);
+    border-radius: var(--metric-radius);
+    line-height: var(--line-normal);
+}
+
+.guest-welcome__start-label {
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+}
+
+.guest-welcome__section-heading h2 {
+    margin: var(--space-xs) 0 var(--space-lg);
+    color: var(--text-primary);
+}
+
+.guest-welcome__steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--card-gap);
+}
+
+.guest-welcome__step,
+.guest-welcome__mode,
+.guest-welcome__path {
+    padding: var(--metric-padding);
+    background: var(--card-background);
+    border: var(--card-border);
+    border-radius: var(--metric-radius);
+}
+
+.guest-welcome__step-number {
+    margin-bottom: var(--space-sm);
+    font-family: var(--type-system-family);
+    font-size: var(--font-meta);
+    color: var(--color-information);
+}
+
+.guest-welcome__step h3,
+.guest-welcome__mode h3,
+.guest-welcome__path h2 {
+    margin: 0 0 var(--space-xs);
+    color: var(--text-primary);
+}
+
+.guest-welcome__step p,
+.guest-welcome__mode p,
+.guest-welcome__path p {
+    margin: 0;
+    line-height: var(--line-normal);
+    color: var(--text-muted);
+}
+
+.guest-welcome__mode-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--card-gap);
+}
+
+.guest-welcome__paths {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--card-gap);
+}
+
+.guest-welcome__path {
+    min-height: 150px;
+}
+
+.guest-welcome__path--primary {
+    border-color: var(--color-information);
+}
+
+.guest-welcome__path--pending {
+    opacity: .62;
+}
+
+.guest-welcome__path-status {
+    margin-bottom: var(--space-sm);
+}
+
+.guest-welcome__path--pending .guest-welcome__path-status {
+    color: var(--text-caption);
+}
+
+@media (max-width: 1100px) {
+    .guest-welcome__steps,
+    .guest-welcome__mode-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .guest-welcome__paths {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .guest-welcome__steps,
+    .guest-welcome__mode-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .guest-welcome__start {
+        grid-template-columns: 1fr;
+    }
+}

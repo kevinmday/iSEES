@@ -16,6 +16,9 @@ import {
   useWorkspaceRuntime,
 } from "../runtime/WorkspaceRuntimeContext";
 
+import GuestWelcomeOverview
+  from "./GuestWelcomeOverview";
+
 import "./OverviewWorkspace.css";
 
 // ============================================================
@@ -49,6 +52,14 @@ export default function OverviewWorkspace() {
 
   const investigation =
     runtime.getActiveInvestigation();
+
+  if (!investigation) {
+    return (
+      <div className="overview-workspace">
+        <GuestWelcomeOverview />
+      </div>
+    );
+  }
 
   const workspace =
     runtime.getWorkspace() ??
