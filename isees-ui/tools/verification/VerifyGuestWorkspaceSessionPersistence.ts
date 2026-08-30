@@ -387,7 +387,7 @@ pass(
 // ============================================================
 
 assert(
-  snapshot.workspace.investigation.id ===
+  snapshot.workspace.investigation!.id ===
     testInvestigation.id,
   "Investigation identity changed during snapshot construction",
 );
@@ -754,8 +754,8 @@ const roundTripSnapshot =
   roundTripUnknown;
 
 assert(
-  roundTripSnapshot.workspace.investigation.id ===
-    snapshot.workspace.investigation.id,
+  roundTripSnapshot.workspace.investigation!.id ===
+    snapshot.workspace.investigation!.id,
   "Investigation identity changed across JSON serialization round-trip",
 );
 

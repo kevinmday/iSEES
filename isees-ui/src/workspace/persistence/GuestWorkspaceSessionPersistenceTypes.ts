@@ -132,7 +132,7 @@ export interface PersistedGuestWorkspaceState {
   workspace?:
     Workspace;
 
-  investigation:
+  investigation?:
     Investigation;
 
   operator:

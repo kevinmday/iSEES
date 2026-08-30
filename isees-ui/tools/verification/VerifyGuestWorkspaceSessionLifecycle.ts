@@ -665,7 +665,7 @@ assert(
 
 
 assert(
-  explicitSnapshot.workspace.investigation.id ===
+  explicitSnapshot.workspace.investigation!.id ===
     lifecycleInvestigation.id,
   "explicit lifecycle capture lost Investigation identity",
 );
@@ -1249,8 +1249,8 @@ assert(
 
 
 assert(
-  finalSnapshot.workspace.investigation.id ===
-    canonicalBeforeRestart.workspace.investigation.id,
+  finalSnapshot.workspace.investigation!.id ===
+    canonicalBeforeRestart.workspace.investigation!.id,
   "lifecycle closure changed Investigation identity",
 );
 

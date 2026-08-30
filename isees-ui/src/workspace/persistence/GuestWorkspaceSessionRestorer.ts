@@ -123,7 +123,7 @@ export interface GuestWorkspaceSessionRestoreResult {
   operatorId:
     string;
 
-  investigationId:
+  investigationId?:
     string;
 
   researchEntryCount:
@@ -218,13 +218,26 @@ function requireMatchingGuestIdentity(
 // REQUIRE INVESTIGATION IDENTITY
 // ============================================================
 
-function requireSnapshotInvestigationIdentity(
+function validateOptionalSnapshotInvestigationIdentity(
   snapshot:
     GuestWorkspaceSessionSnapshot,
-): string {
+): string | undefined {
+
+  const investigation =
+    snapshot.workspace.investigation;
+
+  if (investigation === undefined) {
+    if (snapshot.workspace.workspace !== undefined) {
+      throw new Error(
+        "Cannot restore Guest workspace without its owning Investigation.",
+      );
+    }
+
+    return undefined;
+  }
 
   const investigationId =
-    snapshot.workspace.investigation.id;
+    investigation.id;
 
   if (
     typeof investigationId !== "string" ||
@@ -278,6 +291,27 @@ function restoreWorkspace(
   const persisted =
     snapshot.workspace;
 
+  const investigation =
+    persisted.investigation;
+
+  if (investigation === undefined) {
+    if (persisted.workspace !== undefined) {
+      throw new Error(
+        "Cannot restore Guest workspace without its owning Investigation.",
+      );
+    }
+
+    runtime.deactivate();
+    runtime.setActiveMode("OVERVIEW");
+    runtime.setFocusMode(false);
+    runtime.setComputationalConfiguration({
+      activeLayers: [],
+      temporalContext: undefined,
+      investigativeScale: undefined,
+    });
+    return;
+  }
+
   // ----------------------------------------------------------
   // WORKSPACE
   // ----------------------------------------------------------
@@ -299,7 +333,7 @@ function restoreWorkspace(
     // operational Workspace identity.
 
     runtime.activate(
-      persisted.investigation.workspace,
+      investigation.workspace,
     );
 
   }
@@ -309,7 +343,7 @@ function restoreWorkspace(
   // ----------------------------------------------------------
 
   runtime.setActiveInvestigation(
-    persisted.investigation,
+    investigation,
   );
 
   // ----------------------------------------------------------
@@ -456,23 +490,26 @@ function assertRestoredInvestigationIdentity(
   const restored =
     runtime.getState().session.investigation;
 
+  const persisted =
+    snapshot.workspace.investigation;
+
   if (
-    restored === undefined
+    restored === undefined &&
+    persisted === undefined
   ) {
-    throw new Error(
-      "Guest workspace restoration completed without an active Investigation.",
-    );
+    return;
   }
 
   if (
-    restored.id !==
-    snapshot.workspace.investigation.id
+    restored === undefined ||
+    persisted === undefined ||
+    restored.id !== persisted.id
   ) {
     throw new Error(
       [
         "Guest workspace restoration changed Investigation identity.",
-        `Snapshot=${snapshot.workspace.investigation.id}`,
-        `Runtime=${restored.id}`,
+        `Snapshot=${persisted?.id ?? "NONE"}`,
+        `Runtime=${restored?.id ?? "NONE"}`,
       ].join(" "),
     );
   }
@@ -660,7 +697,7 @@ export function restoreGuestWorkspaceSessionIntoRuntimes(
     );
 
   const investigationId =
-    requireSnapshotInvestigationIdentity(
+    validateOptionalSnapshotInvestigationIdentity(
       input.snapshot,
     );
 

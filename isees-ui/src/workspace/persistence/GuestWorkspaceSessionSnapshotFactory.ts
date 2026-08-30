@@ -176,7 +176,7 @@ function requireGuestIdentity(
 
 
 // ============================================================
-// REQUIRE INVESTIGATION
+// VALIDATE OPTIONAL INVESTIGATION
 // ============================================================
 //
 // Investigation is the persistent identity-bearing container.
@@ -189,7 +189,7 @@ function requireGuestIdentity(
 //
 // ============================================================
 
-function requireInvestigation(
+function validateOptionalInvestigation(
   state:
     WorkspaceRuntimeState,
 ) {
@@ -198,16 +198,11 @@ function requireInvestigation(
     state.session.investigation;
 
   if (
-    investigation === undefined
-  ) {
-    throw new Error(
-      "Cannot capture Guest workspace without an active Investigation.",
-    );
-  }
-
-  if (
-    typeof investigation.id !== "string" ||
-    investigation.id.length === 0
+    investigation !== undefined &&
+    (
+      typeof investigation.id !== "string" ||
+      investigation.id.length === 0
+    )
   ) {
     throw new Error(
       "Cannot capture Guest workspace with invalid Investigation identity.",
@@ -234,7 +229,7 @@ export function createGuestWorkspaceSnapshotFromRuntimeState(
     );
 
   const investigation =
-    requireInvestigation(
+    validateOptionalInvestigation(
       input.workspace,
     );
 
@@ -387,19 +382,30 @@ export function assertGuestWorkspaceInvestigationIdentity(
 ): void {
 
   const investigation =
-    requireInvestigation(
+    validateOptionalInvestigation(
       workspaceState,
     );
 
+  const snapshotInvestigation =
+    snapshot.workspace.investigation;
+
   if (
-    snapshot.workspace.investigation.id !==
-    investigation.id
+    snapshotInvestigation === undefined &&
+    investigation === undefined
+  ) {
+    return;
+  }
+
+  if (
+    snapshotInvestigation === undefined ||
+    investigation === undefined ||
+    snapshotInvestigation.id !== investigation.id
   ) {
     throw new Error(
       [
         "Guest workspace Investigation identity mismatch.",
-        `Snapshot=${snapshot.workspace.investigation.id}`,
-        `Runtime=${investigation.id}`,
+        `Snapshot=${snapshotInvestigation?.id ?? "NONE"}`,
+        `Runtime=${investigation?.id ?? "NONE"}`,
       ].join(" "),
     );
   }

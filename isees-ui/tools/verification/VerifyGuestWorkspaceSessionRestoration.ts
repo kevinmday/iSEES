@@ -1340,8 +1340,8 @@ assert(
 );
 
 assert(
-  recapturedSnapshot.workspace.investigation.id ===
-    snapshot.workspace.investigation.id,
+  recapturedSnapshot.workspace.investigation!.id ===
+    snapshot.workspace.investigation!.id,
   "capture -> restore -> recapture changed Investigation identity",
 );
 

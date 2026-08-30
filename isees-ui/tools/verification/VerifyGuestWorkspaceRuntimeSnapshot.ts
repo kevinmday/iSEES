@@ -635,7 +635,7 @@ pass(
 // ============================================================
 
 assert(
-  snapshot.workspace.investigation.id ===
+  snapshot.workspace.investigation!.id ===
     testInvestigation.id,
   "runtime Investigation identity changed during capture",
 );

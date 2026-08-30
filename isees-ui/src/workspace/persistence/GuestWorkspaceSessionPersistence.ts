@@ -173,7 +173,10 @@ function isGuestOwnership(
 function isPersistedWorkspaceOperator(
   value:
     unknown,
-): boolean {
+): value is {
+  activeMode: string;
+  layoutMode: string;
+} {
 
   if (
     !isRecord(value)
@@ -257,9 +260,19 @@ function isPersistedWorkspaceState(
   }
 
   if (
+    value.investigation !== undefined &&
     !isPersistedInvestigation(
       value.investigation,
     )
+  ) {
+    return false;
+  }
+
+  // A Workspace is owned by an Investigation. Persisting one
+  // without the other would create an ownerless domain object.
+  if (
+    value.workspace !== undefined &&
+    value.investigation === undefined
   ) {
     return false;
   }
@@ -275,6 +288,23 @@ function isPersistedWorkspaceState(
   if (
     !isRecord(
       value.computational,
+    )
+  ) {
+    return false;
+  }
+
+  // A canonical empty Guest session is an OVERVIEW/normal shell
+  // with no computational configuration. It is not a partially
+  // active investigation.
+  if (
+    value.investigation === undefined &&
+    (
+      value.operator.activeMode !== "OVERVIEW" ||
+      value.operator.layoutMode !== "NORMAL" ||
+      !Array.isArray(value.computational.activeLayers) ||
+      value.computational.activeLayers.length !== 0 ||
+      value.computational.temporalContext !== undefined ||
+      value.computational.investigativeScale !== undefined
     )
   ) {
     return false;
