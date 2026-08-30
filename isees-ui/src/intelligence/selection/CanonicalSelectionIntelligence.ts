@@ -40,6 +40,10 @@ import type {
   GraphSelection,
 } from "../../manifold/graphTypes";
 
+import type {
+  WorkspaceSelection,
+} from "../../workspace/runtime/WorkspaceRuntimeTypes";
+
 import {
   resolveSelectionIntelligence,
 } from "../../manifold/selection/selectionIntelligenceResolver";
@@ -61,7 +65,7 @@ export interface CanonicalSelectionIntelligenceRequest {
     readonly KnowledgeObject[];
 
   readonly selection:
-    GraphSelection;
+    WorkspaceSelection | undefined;
 
   readonly centerNodeId?:
     string;
@@ -81,8 +85,54 @@ export function resolveCanonicalSelectionIntelligence(
       request.centerNodeId,
     );
 
+  const graphSelection:
+  GraphSelection = (() => {
+    if (
+      request.selection === undefined ||
+      request.selection.kind === "NONE" ||
+      request.selection.kind === "CANDIDATE"
+    ) {
+      return { kind: "NONE" };
+    }
+
+    if (request.selection.kind === "NODE") {
+      const nodeId =
+        request.selection.nodeId;
+
+      const node = graph.nodes.find(
+        candidate =>
+          candidate.id === nodeId,
+      );
+
+      return node === undefined
+        ? { kind: "NONE" }
+        : {
+            kind: "NODE",
+            nodeId: node.id,
+            nodeType: node.type,
+          };
+    }
+
+    const edgeId =
+      request.selection.edgeId;
+
+    const edge = graph.edges.find(
+      candidate =>
+        candidate.id === edgeId,
+    );
+
+    return edge === undefined
+      ? { kind: "NONE" }
+      : {
+          kind: "EDGE",
+          edgeId: edge.id,
+          sourceId: edge.source,
+          targetId: edge.target,
+        };
+  })();
+
   return resolveSelectionIntelligence(
-    request.selection,
+    graphSelection,
     graph,
   );
 }

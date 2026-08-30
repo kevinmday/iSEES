@@ -21,8 +21,11 @@
 
 import type {
   GraphEdge,
-  GraphSelection,
 } from "../graphTypes";
+
+import type {
+  WorkspaceSelection,
+} from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
 // ============================================================
 // TYPES
@@ -34,10 +37,10 @@ export interface GraphEdgeListProps {
     GraphEdge[];
 
   selection:
-    GraphSelection;
+    WorkspaceSelection;
 
   setSelection: (
-    selection: GraphSelection
+    selection: WorkspaceSelection
   ) => void;
 
 }
@@ -84,12 +87,6 @@ export default function GraphEdgeList({
 
                   edgeId:
                     edge.id,
-
-                  sourceId:
-                    edge.source,
-
-                  targetId:
-                    edge.target,
 
                 })
               }

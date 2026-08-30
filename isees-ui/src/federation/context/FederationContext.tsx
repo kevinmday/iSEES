@@ -28,6 +28,14 @@ import type {
   FederationPreview,
 } from "../adapters/FederationAdapter";
 
+import {
+  importInvestigationIntoWorkspace,
+} from "../services/importInvestigation";
+
+import {
+  useWorkspaceRuntime,
+} from "../../workspace/runtime/WorkspaceRuntimeContext";
+
 // ============================================================
 // REPOSITORY STATE
 // ============================================================
@@ -116,6 +124,9 @@ export function FederationProvider({
   children: ReactNode;
 
 }) {
+
+  const workspaceRuntime =
+    useWorkspaceRuntime();
 
   const [repositories,
     setRepositories] =
@@ -358,11 +369,11 @@ async function refresh() {
 
     }
 
-    await repository
-      .adapter
-      .import(
-        eventId
-      );
+    await importInvestigationIntoWorkspace(
+      repository.adapter,
+      eventId,
+      workspaceRuntime,
+    );
 
   }
 

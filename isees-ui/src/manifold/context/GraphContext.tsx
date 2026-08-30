@@ -16,10 +16,6 @@ import type {
   ReactNode,
 } from "react";
 
-import type {
-  GraphSelection,
-} from "../graphTypes";
-
 // ============================================================
 // INVESTIGATION CONTEXT
 // ============================================================
@@ -50,17 +46,6 @@ export type InvestigationContext = {
 // ============================================================
 
 type GraphContextType = {
-
-  // ----------------------------------------------------------
-  // GRAPH SELECTION
-  // ----------------------------------------------------------
-
-  selection:
-    GraphSelection;
-
-  setSelection: (
-    selection: GraphSelection
-  ) => void;
 
   // ----------------------------------------------------------
   // GRAPH CENTER
@@ -103,18 +88,6 @@ export function GraphProvider({
 }: {
   children: ReactNode;
 }) {
-
-  // ==========================================================
-  // GRAPH SELECTION
-  // ==========================================================
-
-  const [
-    selection,
-    setSelection,
-  ] =
-    useState<GraphSelection>({
-      kind: "NONE",
-    });
 
   // ==========================================================
   // GRAPH CENTER
@@ -167,9 +140,6 @@ export function GraphProvider({
 
     <GraphContext.Provider
       value={{
-
-        selection,
-        setSelection,
 
         centerNodeId,
         setCenterNodeId,

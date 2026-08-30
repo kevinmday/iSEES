@@ -170,6 +170,22 @@ pass(
   "explicit activation still installs a real Investigation",
 );
 
+runtime.setSelection({
+  kind: "NODE",
+  nodeId: "selection:must-clear",
+});
+
+runtime.clearActiveInvestigation();
+
+assert(
+  runtime.getSelection() === undefined,
+  "clearing the active Investigation retained stale selection",
+);
+
+pass(
+  "clearing an Investigation clears operator selection",
+);
+
 console.log("");
 console.log(
   "============================================================",

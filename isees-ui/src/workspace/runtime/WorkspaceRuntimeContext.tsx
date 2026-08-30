@@ -213,6 +213,20 @@ export function useActiveInvestigation() {
 }
 
 /**
+ * Convenience hook for the active canonical Workspace.
+ *
+ * Workspace surfaces should derive focus and imported-event
+ * identity from this runtime-owned Workspace rather than the
+ * legacy parallel WorkspaceContext.
+ */
+export function useActiveWorkspace() {
+
+  return useWorkspaceRuntime()
+    .getWorkspace();
+
+}
+
+/**
  * Convenience hook for the active workspace mode.
  */
 export function useWorkspaceMode() {

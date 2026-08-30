@@ -48,8 +48,8 @@ import {
 } from "../../src/intelligence/selection/CanonicalSelectionIntelligence";
 
 import type {
-  GraphSelection,
-} from "../../src/manifold/graphTypes";
+  WorkspaceSelection,
+} from "../../src/workspace/runtime/WorkspaceRuntimeTypes";
 
 // ============================================================
 // ASSERTION
@@ -117,58 +117,44 @@ assert(
 // ============================================================
 
 const noneSelection:
-GraphSelection = {
+WorkspaceSelection = {
   kind: "NONE",
 };
 
 const nodeSelection:
-GraphSelection = {
+WorkspaceSelection = {
   kind: "NODE",
 
   nodeId:
     firstNode.id,
 
-  nodeType:
-    firstNode.type,
 };
 
 const edgeSelection:
-GraphSelection = {
+WorkspaceSelection = {
   kind: "EDGE",
 
   edgeId:
     firstEdge.id,
 
-  sourceId:
-    firstEdge.source,
-
-  targetId:
-    firstEdge.target,
 };
 
 const missingNodeSelection:
-GraphSelection = {
+WorkspaceSelection = {
   kind: "NODE",
 
   nodeId:
     "missing:canonical:node",
 
-  nodeType:
-    firstNode.type,
 };
 
 const missingEdgeSelection:
-GraphSelection = {
+WorkspaceSelection = {
   kind: "EDGE",
 
   edgeId:
     "missing:canonical:edge",
 
-  sourceId:
-    firstEdge.source,
-
-  targetId:
-    firstEdge.target,
 };
 
 // ============================================================

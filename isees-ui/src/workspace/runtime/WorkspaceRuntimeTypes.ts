@@ -158,9 +158,9 @@ export type WorkspaceLayoutMode =
 //
 // Workspace Runtime owns operator-facing selection.
 //
-// GraphContext may continue to own graph-local interaction
-// state during migration, while WorkspaceSelection provides
-// the canonical runtime vocabulary for operator selection.
+// GraphContext owns graph-local camera and centering state.
+// WorkspaceSelection is the sole canonical operator-selection
+// vocabulary and Workspace Runtime is its sole owner.
 //
 // CRITICAL EPISTEMIC DISTINCTION
 //

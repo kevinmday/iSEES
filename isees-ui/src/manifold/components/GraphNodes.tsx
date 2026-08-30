@@ -28,8 +28,11 @@ from "./GraphNodeGlyph";
 
 import type {
   GraphNode,
-  GraphSelection,
 } from "../graphTypes";
+
+import type {
+  WorkspaceSelection,
+} from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
 // ============================================================
 // TYPES
@@ -41,7 +44,7 @@ export interface GraphNodesProps {
     GraphNode[];
 
   selection:
-    GraphSelection;
+    WorkspaceSelection;
 
   focusedNodeIds:
     Set<string>;
@@ -54,7 +57,7 @@ export interface GraphNodesProps {
   ) => void;
 
   setSelection: (
-    selection: GraphSelection
+    selection: WorkspaceSelection
   ) => void;
 
   // ==========================================================
@@ -178,9 +181,6 @@ export default function GraphNodes({
 
                   nodeId:
                     node.id,
-
-                  nodeType:
-                    node.type,
 
                 });
 }}

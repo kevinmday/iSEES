@@ -57,10 +57,6 @@ import {
 } from "../knowledge/runtime/KnowledgeObjectRuntimeContext";
 
 import {
-  useGraph,
-} from "../manifold/context/GraphContext";
-
-import {
   resolveCanonicalSelectionIntelligence,
 } from "../intelligence/selection/CanonicalSelectionIntelligence";
 
@@ -93,11 +89,6 @@ export default function RightPanel() {
   const knowledgeObjects =
     useKnowledgeObjects();
 
-  const {
-    selection:
-      graphSelection,
-  } = useGraph();
-
   // ==========================================================
   // CANONICAL RUNTIME STATE
   // ==========================================================
@@ -107,6 +98,9 @@ export default function RightPanel() {
 
   const workspaceRuntime =
     useWorkspaceRuntime();
+
+  const workspaceSelection =
+    workspaceRuntime.getSelection();
 
   // ==========================================================
   // ESTABLISHED CANONICAL GRAPH INTELLIGENCE
@@ -118,20 +112,13 @@ export default function RightPanel() {
         resolveCanonicalSelectionIntelligence({
           knowledgeObjects,
           selection:
-            graphSelection,
+            workspaceSelection,
         }),
       [
         knowledgeObjects,
-        graphSelection,
+        workspaceSelection,
       ],
     );
-
-  // ==========================================================
-  // CANONICAL WORKSPACE SELECTION
-  // ==========================================================
-
-  const workspaceSelection =
-    workspaceRuntime.getSelection();
 
   // ==========================================================
   // LATEST COMPLETE RESOLVE PRODUCT

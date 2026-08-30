@@ -8,9 +8,9 @@
 //
 // Presentation-only.
 //
-// The active investigation and focused event are owned by
-// WorkspaceContext. This surface projects that state into the
-// Primary Investigation Manifold.
+// The active investigation and focused event are projected
+// from the canonical Workspace Runtime into the Primary
+// Investigation Manifold.
 //
 // Owns:
 // • Production workspace layout
@@ -29,8 +29,6 @@
 //      ↓
 // Manifold Workspace
 //      ↓
-// Workspace Context
-//      ↓
 // Primary Investigation Manifold
 //
 // ============================================================
@@ -39,8 +37,8 @@ import PrimaryInvestigationManifold
   from "../../manifold/components/PrimaryInvestigationManifold";
 
 import {
-  useWorkspace,
-} from "../context/WorkspaceContext";
+  useActiveWorkspace,
+} from "../runtime/WorkspaceRuntimeContext";
 
 // ============================================================
 // COMPONENT
@@ -48,9 +46,12 @@ import {
 
 export default function ManifoldWorkspace() {
 
-  const {
-    focusedEventId,
-  } = useWorkspace();
+  const activeWorkspace =
+    useActiveWorkspace();
+
+  const focusedEventId =
+    activeWorkspace
+      ?.focused_event_id;
 
   // ==========================================================
   // NO ACTIVE INVESTIGATION FOCUS

@@ -28,6 +28,10 @@ import type {
 } from "../../workspace/workspaceTypes";
 
 import type {
+  WorkspaceRuntime,
+} from "../../workspace/runtime/WorkspaceRuntime";
+
+import type {
   FederationAdapter,
   FederationRepository,
 } from "../adapters/FederationAdapter";
@@ -341,5 +345,40 @@ export async function importInvestigation(
     warnings: [],
 
   };
+
+}
+
+// ============================================================
+// CANONICAL RUNTIME ACTIVATION
+// ============================================================
+//
+// This is the single application-facing intake bridge.
+//
+// The federation adapter retrieves canonical source material.
+// importInvestigation constructs the canonical Investigation.
+// WorkspaceRuntime remains the installation owner.
+//
+// The placeholder FederationAdapter.import() path is
+// intentionally bypassed.
+//
+// ============================================================
+
+export async function importInvestigationIntoWorkspace(
+  adapter: FederationAdapter,
+  eventId: string,
+  runtime: WorkspaceRuntime,
+): Promise<CanonicalInvestigationImportResult> {
+
+  const result =
+    await importInvestigation(
+      adapter,
+      eventId,
+    );
+
+  runtime.activateInvestigation(
+    result.investigation,
+  );
+
+  return result;
 
 }

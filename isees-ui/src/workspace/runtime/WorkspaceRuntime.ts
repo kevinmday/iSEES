@@ -787,6 +787,15 @@ export class WorkspaceRuntime {
 
       },
 
+      operator: {
+
+        ...this.state.operator,
+
+        selection:
+          undefined,
+
+      },
+
       revision:
         this.state.revision + 1,
 
@@ -801,7 +810,9 @@ export class WorkspaceRuntime {
 
     if (
       this.state.session.investigation ===
-      undefined
+        undefined &&
+      this.state.operator.selection ===
+        undefined
     ) {
 
       return;
@@ -817,6 +828,15 @@ export class WorkspaceRuntime {
         ...this.state.session,
 
         investigation:
+          undefined,
+
+      },
+
+      operator: {
+
+        ...this.state.operator,
+
+        selection:
           undefined,
 
       },
@@ -982,6 +1002,67 @@ export class WorkspaceRuntime {
 
   }
 
+  /**
+   * Atomically activates a canonical Investigation and its
+   * owning Workspace.
+   *
+   * Observers must never see a Workspace without the
+   * Investigation that owns it. This method therefore
+   * publishes the complete intake state with one notification.
+   */
+  activateInvestigation(
+    investigation:
+      Investigation,
+  ): void {
+
+    const workspace =
+      investigation.workspace;
+
+    this.state = {
+
+      ...this.state,
+
+      status:
+        "ACTIVE",
+
+      session: {
+
+        ...this.state.session,
+
+        workspace,
+
+        investigation,
+
+      },
+
+      operator: {
+
+        ...this.state.operator,
+
+        selection:
+          undefined,
+
+      },
+
+      computational: {
+
+        ...this.state.computational,
+
+        activeLayers: [
+          ...workspace.active_layers,
+        ],
+
+      },
+
+      revision:
+        this.state.revision + 1,
+
+    };
+
+    this.notify();
+
+  }
+
   deactivate():
     void {
 
@@ -1005,6 +1086,15 @@ export class WorkspaceRuntime {
 
         artifacts:
           [],
+
+      },
+
+      operator: {
+
+        ...this.state.operator,
+
+        selection:
+          undefined,
 
       },
 

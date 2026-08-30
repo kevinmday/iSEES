@@ -11,10 +11,6 @@ import {
 } from "react";
 
 import {
-  useWorkspace,
-} from "../../workspace/context/WorkspaceContext";
-
-import {
   useKnowledgeObjects,
 } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
 
@@ -33,6 +29,10 @@ import {
 import {
   useGraph,
 } from "../context/GraphContext";
+
+import {
+  useWorkspaceRuntime,
+} from "../../workspace/runtime/WorkspaceRuntimeContext";
 
 import type {
   GraphEdge,
@@ -83,9 +83,13 @@ export default function InvestigationGraph({
   onAction,
 }: InvestigationGraphProps) {
 
-  const {
-    focusedEventId,
-  } = useWorkspace();
+  const workspaceRuntime =
+    useWorkspaceRuntime();
+
+  const focusedEventId =
+    workspaceRuntime
+      .getWorkspace()
+      ?.focused_event_id;
 
   const knowledgeObjects =
     useKnowledgeObjects();
@@ -179,11 +183,19 @@ export default function InvestigationGraph({
   // ==========================================================
 
   const {
-    selection,
-    setSelection,
     centerNodeId,
     setCenterNodeId,
   } = useGraph();
+
+  const selection =
+    workspaceRuntime.getSelection() ?? {
+      kind: "NONE" as const,
+    };
+
+  const setSelection =
+    workspaceRuntime.setSelection.bind(
+      workspaceRuntime,
+    );
 
     // ==========================================================
   // SELECTED NODE INTELLIGENCE
@@ -192,7 +204,7 @@ export default function InvestigationGraph({
   // Selection intelligence is no longer projected inside the
   // Investigation Graph.
   //
-  // GraphContext remains the canonical owner of graph
+  // WorkspaceRuntime is the canonical owner of operator
   // selection. Selected-node intelligence will be resolved and
   // projected by the dedicated Selection Intelligence surface.
   //
