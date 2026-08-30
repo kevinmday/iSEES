@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // src/manifold/components/PrimaryInvestigationManifold.tsx
 // P56D-H
 // PRIMARY INVESTIGATION WORKSPACE
@@ -624,100 +624,6 @@ export default function PrimaryInvestigationManifold({
       }}
     >
 
-      {/* =================================================== */}
-      {/* TEMPORARY P56 RESOLVE DIAGNOSTIC                   */}
-      {/* =================================================== */}
-
-      <div
-        style={{
-          position:
-            "absolute",
-
-          top:
-            12,
-
-          right:
-            12,
-
-          zIndex:
-            1000,
-
-          padding:
-            "8px 10px",
-
-          border:
-            "1px solid rgba(148,163,184,0.28)",
-
-          borderRadius:
-            6,
-
-          background:
-            "rgba(2,6,23,0.94)",
-
-          color:
-            "#e2e8f0",
-
-          fontFamily:
-            "monospace",
-
-          fontSize:
-            11,
-
-          lineHeight:
-            1.5,
-
-          pointerEvents:
-            "none",
-        }}
-      >
-
-        <div>
-          Resolve: {
-            resolveState.status
-          }
-        </div>
-
-        <div>
-          Revision: {
-            resolveState.revision
-          }
-        </div>
-
-        <div>
-          History: {
-            resolveState.history.length
-          }
-        </div>
-
-        <div>
-          Current: {
-            resolveState.currentExecution
-              ? resolveState
-                  .currentExecution
-                  .executionId
-              : "none"
-          }
-        </div>
-
-        <div>
-          Result: {
-            resolveState
-              .currentExecution
-              ?.result
-              ? "YES"
-              : "NO"
-          }
-        </div>
-
-        <div>
-          Candidates: {
-            candidateIntelligenceCollection
-              ?.intelligenceCount ??
-            0
-          }
-        </div>
-
-      </div>
 
       {/* =================================================== */}
       {/* RESOLVE CANDIDATE AFFORDANCE                       */}

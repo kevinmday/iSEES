@@ -1,34 +1,17 @@
 // ============================================================
 // src/manifold/components/ResearchInboxInstrument.tsx
-// P45A
-// RESEARCH INBOX INSTRUMENT
+// P57-UI-A5-I4C
+// RESEARCH INBOX DOCK
 //
-// Floating Manifold instrument for collecting investigation
-// artifacts for later research and authoring.
+// Mode-scoped, collapsed-by-default Research surface for
+// collected manifold nodes and edges.
 //
-// Instrument behavior:
-//
-// • Floats above the Investigation Manifold
-// • Defaults to the upper-left instrument position
-// • Moves through header-based dragging
-// • Owns presentation and local instrument position
-// • Preserves body interaction for future artifact collection
-//
-// Future responsibility:
-//
-// • Viewport boundary constraints
-// • Session position persistence
-// • Docking / collapse behavior
-//
+// Research Bridge ownership and Author insertion semantics are
+// preserved. This component owns presentation only.
 // ============================================================
 
 import {
-  useRef,
   useState,
-} from "react";
-
-import type {
-  PointerEvent as ReactPointerEvent,
 } from "react";
 
 import {
@@ -36,42 +19,13 @@ import {
 } from "../../research/ResearchBridgeContext";
 
 import {
-
   authorDocumentRuntime,
-
 } from "../../author/runtime/AuthorDocumentRuntime";
 
 import {
-
   AuthorNodeTypes,
-
   type ReferenceNode,
-
 } from "../../author/model/AuthorNodeTypes";
-
-// ============================================================
-// TYPES
-// ============================================================
-
-interface InstrumentPosition {
-  x: number;
-  y: number;
-}
-
-interface DragState {
-  pointerId: number;
-  offsetX: number;
-  offsetY: number;
-}
-
-// ============================================================
-// DEFAULT POSITION
-// ============================================================
-
-const DEFAULT_POSITION: InstrumentPosition = {
-  x: 24,
-  y: 44,
-};
 
 // ============================================================
 // COMPONENT
@@ -79,465 +33,472 @@ const DEFAULT_POSITION: InstrumentPosition = {
 
 export default function ResearchInboxInstrument() {
 
-  // ==========================================================
-  // CONTEXT
-  // ==========================================================
-
   const researchDesk =
     useResearchDesk();
 
-  // ==========================================================
-  // INSTRUMENT STATE
-  // ==========================================================
-
   const [
-    position,
-    setPosition,
-  ] = useState<InstrumentPosition>(
-    DEFAULT_POSITION
-  );
-
-  const [
-    dragging,
-    setDragging,
+    expanded,
+    setExpanded,
   ] = useState(false);
 
-  const dragState =
-    useRef<DragState | null>(
-      null
-    );
-
-  const instrumentRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
-
-  // ==========================================================
-  // DRAG START
-  // ==========================================================
-
-  function handlePointerDown(
-    event:
-      ReactPointerEvent<HTMLDivElement>,
+  function handleInsert(
+    entry:
+      typeof researchDesk.entries[number],
   ): void {
 
-    if (event.button !== 0) {
-      return;
-    }
+    const node: ReferenceNode = {
 
-    const instrument =
-      instrumentRef.current;
+      id:
+        crypto.randomUUID(),
 
-    const parent =
-      instrument?.offsetParent;
+      type:
+        AuthorNodeTypes.REFERENCE,
 
-    if (
-      !instrument ||
-      !(parent instanceof HTMLElement)
-    ) {
-      return;
-    }
+      targetType:
+        entry.anchor.graph.type,
 
-    const parentRect =
-      parent.getBoundingClientRect();
+      targetId:
+        entry.anchor.graph.id,
 
-    dragState.current = {
-      pointerId:
-        event.pointerId,
+      title:
+        entry.anchor.graph.id,
 
-      offsetX:
-        event.clientX -
-        parentRect.left -
-        position.x,
+      source:
+        "RESEARCH_BRIDGE",
 
-      offsetY:
-        event.clientY -
-        parentRect.top -
-        position.y,
+      corpusId:
+        entry.anchor.anchorId,
+
+      insertedAt:
+        new Date(),
+
     };
 
-    event.currentTarget.setPointerCapture(
-      event.pointerId
+    authorDocumentRuntime.insertNode(
+      node,
     );
 
-    setDragging(true);
-
-    event.preventDefault();
   }
-  // ==========================================================
-  // DRAG MOVE
-  // ==========================================================
-
-  function handlePointerMove(
-    event:
-      ReactPointerEvent<HTMLDivElement>,
-  ): void {
-
-    const activeDrag =
-      dragState.current;
-
-    if (
-      !activeDrag ||
-      activeDrag.pointerId !==
-        event.pointerId
-    ) {
-      return;
-    }
-
-    const instrument =
-      instrumentRef.current;
-
-    const parent =
-      instrument?.offsetParent;
-
-    if (
-      !instrument ||
-      !(parent instanceof HTMLElement)
-    ) {
-      return;
-    }
-
-    const parentRect =
-      parent.getBoundingClientRect();
-
-    const instrumentWidth =
-      instrument.offsetWidth;
-
-    const instrumentHeight =
-      instrument.offsetHeight;
-
-    const proposedX =
-      event.clientX -
-      parentRect.left -
-      activeDrag.offsetX;
-
-    const proposedY =
-      event.clientY -
-      parentRect.top -
-      activeDrag.offsetY;
-
-    const maxX =
-      Math.max(
-        0,
-        parent.clientWidth -
-          instrumentWidth
-      );
-
-    const maxY =
-      Math.max(
-        0,
-        parent.clientHeight -
-          instrumentHeight
-      );
-
-    setPosition({
-      x: Math.min(
-        Math.max(
-          0,
-          proposedX
-        ),
-        maxX
-      ),
-
-      y: Math.min(
-        Math.max(
-          0,
-          proposedY
-        ),
-        maxY
-      ),
-    });
-  }
-
-  // ==========================================================
-  // DRAG END
-  // ==========================================================
-
-  function handlePointerUp(
-    event:
-      ReactPointerEvent<HTMLDivElement>,
-  ): void {
-
-    const activeDrag =
-      dragState.current;
-
-    if (
-      !activeDrag ||
-      activeDrag.pointerId !==
-        event.pointerId
-    ) {
-      return;
-    }
-
-    if (
-      event.currentTarget.hasPointerCapture(
-        event.pointerId
-      )
-    ) {
-
-      event.currentTarget.releasePointerCapture(
-        event.pointerId
-      );
-    }
-
-    dragState.current =
-      null;
-
-    setDragging(false);
-  }
-
-// ==========================================================
-// AUTHOR DOCUMENT INSERTION
-// ==========================================================
-
-function handleInsert(
-  entry:
-    typeof researchDesk.entries[number],
-): void {
-
-  const node: ReferenceNode = {
-
-    id:
-      crypto.randomUUID(),
-
-    type:
-      AuthorNodeTypes.REFERENCE,
-
-    targetType:
-      entry.anchor.graph.type,
-
-    targetId:
-      entry.anchor.graph.id,
-
-    title:
-      entry.anchor.graph.id,
-
-    source:
-      "RESEARCH_BRIDGE",
-
-    corpusId:
-      entry.anchor.anchorId,
-
-    insertedAt:
-      new Date(),
-
-  };
-
-  authorDocumentRuntime.insertNode(
-    node,
-  );
-
-}
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
 
   return (
 
-        <div
-      ref={instrumentRef}
-      title={
-        "Drag investigation artifacts here to collect them for later research and authoring."
-      }
+    <aside
+      aria-label="Research Inbox"
       style={{
-        position: "absolute",
+        position:
+          "absolute",
 
-        top: position.y,
-        left: position.x,
+        right:
+          16,
 
-        width: 248,
+        bottom:
+          16,
 
-        zIndex: 1000,
+        zIndex:
+          1000,
 
-        display: "flex",
-        flexDirection: "column",
+        width:
+          expanded
+            ? 286
+            : 196,
+
+        maxHeight:
+          expanded
+            ? "calc(100% - 32px)"
+            : 44,
+
+        display:
+          "flex",
+
+        flexDirection:
+          "column",
+
+        overflow:
+          "hidden",
 
         border:
-          "1px solid rgba(148,163,184,0.18)",
+          "1px solid rgba(148,163,184,0.22)",
 
-        borderRadius: 10,
+        borderRadius:
+          10,
 
         background:
-          "rgba(2,6,23,0.88)",
-
-        overflow: "hidden",
+          "rgba(7,13,24,0.96)",
 
         boxShadow:
-          dragging
-            ? "0 22px 52px rgba(0,0,0,0.58)"
-            : "0 18px 42px rgba(0,0,0,0.45)",
+          "0 16px 38px rgba(0,0,0,0.44)",
+
+        transition:
+          "width 140ms ease, max-height 140ms ease",
       }}
     >
 
-      {/* ===================================================== */}
-      {/* DRAG HANDLE — HEADER                                  */}
-      {/* ===================================================== */}
+      <button
+        type="button"
 
-      <div
-        onPointerDown={
-          handlePointerDown
+        aria-expanded={
+          expanded
         }
-        onPointerMove={
-          handlePointerMove
+
+        onClick={
+          () =>
+            setExpanded(
+              current =>
+                !current,
+            )
         }
-        onPointerUp={
-          handlePointerUp
+
+        title={
+          expanded
+            ? "Collapse Research Inbox"
+            : "Expand Research Inbox"
         }
-        onPointerCancel={
-          handlePointerUp
-        }
+
         style={{
-          padding: "12px 18px",
+          width:
+            "100%",
+
+          minHeight:
+            44,
+
+          padding:
+            "0 14px",
+
+          display:
+            "flex",
+
+          alignItems:
+            "center",
+
+          justifyContent:
+            "space-between",
+
+          gap:
+            12,
+
+          flexShrink:
+            0,
+
+          border:
+            0,
 
           borderBottom:
-            "1px solid rgba(148,163,184,0.14)",
+            expanded
+              ? "1px solid rgba(148,163,184,0.14)"
+              : "1px solid transparent",
 
           background:
-            "rgba(15,23,42,0.92)",
+            "rgba(15,23,42,0.94)",
 
-          color: "#f8fafc",
-
-          fontSize: 13,
-          fontWeight: 700,
+          color:
+            "#f8fafc",
 
           cursor:
-            dragging
-              ? "grabbing"
-              : "grab",
+            "pointer",
 
-          userSelect: "none",
+          fontFamily:
+            "inherit",
 
-          touchAction: "none",
-        }}
-      >
-        Research Inbox
-      </div>
-
-            {/* ===================================================== */}
-      {/* RESEARCH CONTENT                                      */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          padding: 18,
-
-          background:
-            "rgba(2,6,23,0.72)",
-
-          color: "#cbd5e1",
-
-          fontSize: 12,
-          lineHeight: 1.6,
+          textAlign:
+            "left",
         }}
       >
 
-        {researchDesk.entries.length === 0 ? (
+        <span
+          style={{
+            fontSize:
+              12,
 
-          <>
+            fontWeight:
+              700,
 
-            <div
-              style={{
-                marginBottom: 16,
-                color: "#e2e8f0",
-                fontWeight: 600,
-              }}
-            >
-              Nothing collected yet.
-            </div>
+            letterSpacing:
+              "0.03em",
+          }}
+        >
+          Research Inbox
+        </span>
 
-            <div
-              style={{
-                color: "#94a3b8",
-              }}
-            >
-              Click interesting investigation
-              artifacts to collect them.
-            </div>
+        <span
+          style={{
+            display:
+              "flex",
 
-          </>
+            alignItems:
+              "center",
 
-        ) : (
+            gap:
+              9,
 
-          researchDesk.entries.map(
-          (entry) => (
+            color:
+              "#94a3b8",
 
-            <div
-              key={entry.anchor.anchorId}
+            fontSize:
+              11,
+          }}
+        >
 
-              onClick={() =>
-                handleInsert(
-                  entry,
+          <span
+            style={{
+              minWidth:
+                20,
+
+              padding:
+                "2px 6px",
+
+              border:
+                "1px solid rgba(96,165,250,0.28)",
+
+              borderRadius:
+                999,
+
+              background:
+                "rgba(30,64,175,0.18)",
+
+              color:
+                "#93c5fd",
+
+              textAlign:
+                "center",
+            }}
+          >
+            {
+              researchDesk
+                .entries
+                .length
+            }
+          </span>
+
+          <span
+            aria-hidden="true"
+          >
+            {
+              expanded
+                ? "▾"
+                : "▴"
+            }
+          </span>
+
+        </span>
+
+      </button>
+
+      {expanded && (
+
+        <>
+
+          <div
+            style={{
+              minHeight:
+                0,
+
+              overflowY:
+                "auto",
+
+              padding:
+                14,
+
+              background:
+                "rgba(2,6,23,0.78)",
+
+              color:
+                "#cbd5e1",
+
+              fontSize:
+                12,
+
+              lineHeight:
+                1.55,
+            }}
+          >
+
+            {
+              researchDesk
+                .entries
+                .length === 0
+                ? (
+
+                  <div>
+
+                    <div
+                      style={{
+                        marginBottom:
+                          7,
+
+                        color:
+                          "#e2e8f0",
+
+                        fontWeight:
+                          600,
+                      }}
+                    >
+                      Nothing collected yet.
+                    </div>
+
+                    <div
+                      style={{
+                        color:
+                          "#718096",
+                      }}
+                    >
+                      Select interesting manifold
+                      nodes or edges to collect
+                      them for research.
+                    </div>
+
+                  </div>
+
                 )
-              }
+                : (
 
-              style={{
+                  researchDesk
+                    .entries
+                    .map(
+                      entry => (
 
-                padding: "8px 0",
+                        <button
+                          key={
+                            entry
+                              .anchor
+                              .anchorId
+                          }
 
-                borderBottom:
-                  "1px solid rgba(148,163,184,0.08)",
+                          type="button"
 
-                cursor:
-                  "pointer",
+                          onClick={
+                            () =>
+                              handleInsert(
+                                entry,
+                              )
+                          }
 
-              }}
-            >
+                          title={
+                            "Insert this reference into the active Author document."
+                          }
 
-                <div
-                  style={{
-                    color: "#f8fafc",
-                    fontWeight: 600,
-                  }}
-                >
-                  {entry.anchor.graph.type}
-                </div>
+                          style={{
+                            width:
+                              "100%",
 
-                <div
-                  style={{
-                    color: "#94a3b8",
-                    fontSize: 11,
-                  }}
-                >
-                  {entry.anchor.graph.id}
-                </div>
+                            padding:
+                              "9px 0",
 
-              </div>
+                            display:
+                              "block",
 
-            )
+                            border:
+                              0,
 
-          )
+                            borderBottom:
+                              "1px solid rgba(148,163,184,0.10)",
 
-        )}
+                            background:
+                              "transparent",
 
-      </div>
+                            color:
+                              "inherit",
 
-      {/* ===================================================== */}
-      {/* FOOTER                                                */}
-      {/* ===================================================== */}
+                            cursor:
+                              "pointer",
 
-      <div
-        style={{
-          padding: "8px 18px",
+                            fontFamily:
+                              "inherit",
 
-          borderTop:
-            "1px solid rgba(148,163,184,0.14)",
+                            textAlign:
+                              "left",
+                          }}
+                        >
 
-          background:
-            "rgba(15,23,42,0.92)",
+                          <div
+                            style={{
+                              color:
+                                "#7dd3fc",
 
-          display: "flex",
-          justifyContent: "flex-end",
+                              fontSize:
+                                10,
 
-          color: "#94a3b8",
+                              fontWeight:
+                                700,
 
-          fontSize: 11,
-        }}
-      >
-        {researchDesk.entries.length} Items
-      </div>
+                              letterSpacing:
+                                "0.08em",
+                            }}
+                          >
+                            {
+                              entry
+                                .anchor
+                                .graph
+                                .type
+                            }
+                          </div>
 
-    </div>
+                          <div
+                            style={{
+                              marginTop:
+                                3,
+
+                              overflowWrap:
+                                "anywhere",
+
+                              color:
+                                "#e2e8f0",
+
+                              fontSize:
+                                11,
+                            }}
+                          >
+                            {
+                              entry
+                                .anchor
+                                .graph
+                                .id
+                            }
+                          </div>
+
+                        </button>
+
+                      ),
+                    )
+
+                )
+            }
+
+          </div>
+
+          <div
+            style={{
+              padding:
+                "8px 14px",
+
+              flexShrink:
+                0,
+
+              borderTop:
+                "1px solid rgba(148,163,184,0.14)",
+
+              background:
+                "rgba(15,23,42,0.94)",
+
+              color:
+                "#718096",
+
+              fontSize:
+                10,
+
+              letterSpacing:
+                "0.04em",
+            }}
+          >
+            Select an item to insert it into
+            the active Author document.
+          </div>
+
+        </>
+
+      )}
+
+    </aside>
 
   );
+
 }
