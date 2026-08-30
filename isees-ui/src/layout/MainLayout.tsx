@@ -14,6 +14,10 @@ import { Link } from "react-router-dom";
 
 import { useEventContext } from "../context/EventContext";
 
+import {
+  useWorkspaceMode,
+} from "../workspace/runtime/WorkspaceRuntimeContext";
+
 import WorkspaceModeBar
   from "../components/workspace/WorkspaceModeBar";
 
@@ -34,6 +38,9 @@ export default function MainLayout({
   const {
     operatorMode,
   } = useEventContext();
+
+  const workspaceMode =
+    useWorkspaceMode();
 
   const [
     workspaceExpanded,
@@ -156,7 +163,7 @@ export default function MainLayout({
           </span>
 
           <span>
-            MODE: {operatorMode} ANALYSIS
+            MODE: {workspaceMode}
           </span>
 
           <span>
