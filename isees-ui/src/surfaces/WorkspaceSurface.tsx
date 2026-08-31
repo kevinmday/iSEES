@@ -40,6 +40,10 @@
 // ============================================================
 
 import {
+  useState,
+} from "react";
+
+import {
   useWorkspaceRuntime,
 } from "../workspace/runtime/WorkspaceRuntimeContext";
 
@@ -195,6 +199,11 @@ function ActiveWorkspace() {
 
 export default function WorkspaceSurface() {
 
+  const [
+    researchInboxExpanded,
+    setResearchInboxExpanded,
+  ] = useState(false);
+
   const runtime =
     useWorkspaceRuntime();
 
@@ -217,15 +226,64 @@ export default function WorkspaceSurface() {
 
       {
         researchInboxVisible && (
-          <ResearchInboxInstrument />
+          <ResearchInboxInstrument
+            expanded={
+              researchInboxExpanded
+            }
+            onExpandedChange={
+              setResearchInboxExpanded
+            }
+          />
         )
       }
 
       {/* ===================================================== */}
       {/* ACTIVE WORKSPACE                                      */}
       {/* ===================================================== */}
+      {/*
+          When the Research Inbox is expanded in MANIFOLD,
+          reserve its full dock width where practical.
 
-      <ActiveWorkspace />
+          The clamp preserves a usable minimum workspace at
+          narrower desktop widths. Any unreserved remainder
+          becomes a controlled overlay instead of forcing the
+          topology surface below a practical working width.
+
+          Collapsed Research Inbox behavior remains unchanged.
+      */}
+
+      <div
+        data-research-inbox-expanded={
+          researchInboxExpanded
+        }
+        style={{
+          width:
+            "100%",
+
+          height:
+            "100%",
+
+          minWidth:
+            0,
+
+          minHeight:
+            0,
+
+          boxSizing:
+            "border-box",
+
+          paddingRight:
+            activeMode === WorkspaceMode.MANIFOLD &&
+            researchInboxExpanded
+              ? "clamp(0px, calc(100% - 760px), 318px)"
+              : 0,
+
+          transition:
+            "padding-right 140ms ease",
+        }}
+      >
+        <ActiveWorkspace />
+      </div>
 
     </>
 

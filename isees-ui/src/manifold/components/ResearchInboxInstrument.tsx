@@ -10,9 +10,6 @@
 // preserved. This component owns presentation only.
 // ============================================================
 
-import {
-  useState,
-} from "react";
 
 import {
   useResearchDesk,
@@ -28,18 +25,27 @@ import {
 } from "../../author/model/AuthorNodeTypes";
 
 // ============================================================
+// PRESENTATION CONTRACT
+// ============================================================
+
+interface ResearchInboxInstrumentProps {
+  expanded: boolean;
+  onExpandedChange: (
+    expanded: boolean,
+  ) => void;
+}
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
-export default function ResearchInboxInstrument() {
+export default function ResearchInboxInstrument({
+  expanded,
+  onExpandedChange,
+}: ResearchInboxInstrumentProps) {
 
   const researchDesk =
     useResearchDesk();
-
-  const [
-    expanded,
-    setExpanded,
-  ] = useState(false);
 
   function handleInsert(
     entry:
@@ -142,9 +148,8 @@ export default function ResearchInboxInstrument() {
 
         onClick={
           () =>
-            setExpanded(
-              current =>
-                !current,
+            onExpandedChange(
+              !expanded,
             )
         }
 
