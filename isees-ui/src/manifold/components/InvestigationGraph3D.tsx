@@ -21,6 +21,9 @@ import type {
   ForceGraphMethods,
 } from "react-force-graph-3d";
 
+import SpriteText
+from "three-spritetext";
+
 import type {
   GraphEdge,
   GraphNode,
@@ -80,6 +83,82 @@ interface NavigationControls3D {
   minDistance: number;
   maxDistance: number;
   update?: () => void;
+}
+
+function createPersistentNodeLabel(
+  node: ProjectedNode,
+  focusedEventId: string | null | undefined,
+  selection: WorkspaceSelection,
+): SpriteText | null {
+  const isSelected =
+    selection.kind === "NODE" &&
+    selection.nodeId === node.id;
+
+  const isFocused =
+    node.id === focusedEventId;
+
+  const isEvent =
+    node.type === "EVENT";
+
+  if (
+    !isSelected &&
+    !isFocused &&
+    !isEvent
+  ) {
+    return null;
+  }
+
+  const color =
+    isSelected
+      ? "#fbbf24"
+      : isFocused
+        ? "#7dd3fc"
+        : "#dbeafe";
+
+  const label =
+    new SpriteText(
+      node.label,
+      isSelected || isFocused
+        ? 8
+        : 6.5,
+      color,
+    );
+
+  label.fontFace =
+    "Consolas";
+
+  label.fontWeight =
+    isSelected || isFocused
+      ? "700"
+      : "600";
+
+  label.backgroundColor =
+    "rgba(2,6,23,0.82)";
+
+  label.padding =
+    [2, 3];
+
+  label.borderRadius =
+    2;
+
+  label.borderWidth =
+    isSelected || isFocused
+      ? 0.5
+      : 0;
+
+  label.borderColor =
+    color;
+
+  label.strokeWidth =
+    0.25;
+
+  label.strokeColor =
+    "#020617";
+
+  label.offsetY =
+    -4;
+
+  return label;
 }
 
 function stableDepth(
@@ -371,6 +450,14 @@ export default function InvestigationGraph3D({
         nodeLabel={node =>
           (node as ProjectedNode).label
         }
+        nodeThreeObject={(node: unknown) =>
+          createPersistentNodeLabel(
+            node as ProjectedNode,
+            focusedEventId,
+            selection,
+          )
+        }
+        nodeThreeObjectExtend={true}
         nodeColor={node =>
           nodeColor(
             node as ProjectedNode,
@@ -394,15 +481,16 @@ export default function InvestigationGraph3D({
           selection.edgeId ===
             (link as ProjectedLink).id
             ? "#f59e0b"
-            : "#334155"
+            : "#475569"
         }
+        linkOpacity={0.46}
         linkWidth={link =>
           selection.kind === "EDGE" &&
           selection.edgeId ===
             (link as ProjectedLink).id
-            ? 3
+            ? 3.5
             : Math.max(
-                0.8,
+                1.05,
                 (link as ProjectedLink).weight * 3,
               )
         }
