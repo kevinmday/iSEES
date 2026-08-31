@@ -447,9 +447,28 @@ export default function InvestigationGraph3D({
         showNavInfo={false}
         enableNodeDrag={false}
         cooldownTicks={0}
-        nodeLabel={node =>
-          (node as ProjectedNode).label
-        }
+        nodeLabel={node => {
+          const projected =
+            node as ProjectedNode;
+
+          return [
+            `NODE — ${projected.label}`,
+            "A canonical object in the Investigation Graph.",
+            "Single-click: inspect in Selection Intelligence.",
+            "Double-click: add to Research Inbox.",
+          ].join("<br />");
+        }}
+        linkLabel={link => {
+          const projected =
+            link as ProjectedLink;
+
+          return [
+            `EDGE — ${projected.id}`,
+            "A canonical relationship connecting two nodes.",
+            "Single-click: inspect in Selection Intelligence.",
+            "Double-click: add to Research Inbox.",
+          ].join("<br />");
+        }}
         nodeThreeObject={(node: unknown) =>
           createPersistentNodeLabel(
             node as ProjectedNode,

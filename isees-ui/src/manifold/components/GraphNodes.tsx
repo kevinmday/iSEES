@@ -172,6 +172,11 @@ export default function GraphNodes({
             <g
               key={node.id}
               transform={`translate(${node.x ?? 0}, ${node.y ?? 0})`}
+              role="button"
+              tabIndex={0}
+              aria-label={
+                `NODE ${node.label}. Single-click to inspect. Double-click to add to Research Inbox.`
+              }
 
               onClick={() => {
 
@@ -201,6 +206,15 @@ export default function GraphNodes({
                 cursor: "pointer",
               }}
             >
+
+              <title>
+                {
+                  `NODE — ${node.label}
+A canonical object in the Investigation Graph.
+Single-click: inspect in Selection Intelligence.
+Double-click: add to Research Inbox.`
+                }
+              </title>
 
               <circle
                 r={16}

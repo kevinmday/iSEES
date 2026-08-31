@@ -106,8 +106,24 @@ onCollectEdge,
 
           return (
 
-            <line
+            <g
               key={edge.id}
+              role="button"
+              tabIndex={0}
+              aria-label={
+                `EDGE connecting ${source.label} to ${target.label}. Single-click to inspect. Double-click to add to Research Inbox.`
+              }
+            >
+              <title>
+                {
+                  `EDGE — ${source.label} to ${target.label}
+A canonical relationship connecting two nodes.
+Single-click: inspect in Selection Intelligence.
+Double-click: add to Research Inbox.`
+                }
+              </title>
+
+              <line
               x1={source.x ?? 0}
               y1={source.y ?? 0}
               x2={target.x ?? 0}
@@ -149,7 +165,9 @@ onCollectEdge,
               style={{
                 cursor: "pointer",
               }}
-            />
+              />
+
+            </g>
 
           );
 

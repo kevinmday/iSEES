@@ -202,6 +202,99 @@
 }
 
 /* ==========================================================
+   SELECTION-TYPE IDENTITY
+   ========================================================== */
+
+.selection-intelligence__inspector {
+  min-height: 100%;
+  border-left: 3px solid transparent;
+}
+
+.selection-intelligence__inspector--node {
+  border-left-color: var(--color-information);
+}
+
+.selection-intelligence__inspector--edge {
+  border-left-color: #f59e0b;
+}
+
+.selection-intelligence__selection-type {
+  padding: var(--space-md);
+  border-bottom: var(--surface-border);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.selection-intelligence__selection-type--node {
+  box-shadow:
+    inset 3px 0 0 var(--color-information);
+}
+
+.selection-intelligence__selection-type--edge {
+  background: rgba(120, 53, 15, 0.14);
+  box-shadow:
+    inset 3px 0 0 #f59e0b;
+}
+
+.selection-intelligence__selection-type-label {
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-meta);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-system);
+  line-height: var(--line-tight);
+}
+
+.selection-intelligence__selection-type--node
+  .selection-intelligence__selection-type-label {
+  color: var(--color-information);
+}
+
+.selection-intelligence__selection-type--edge
+  .selection-intelligence__selection-type-label {
+  color: #fbbf24;
+}
+
+.selection-intelligence__selection-type-definition {
+  color: var(--text-primary);
+  font-size: var(--font-meta);
+  line-height: var(--line-relaxed);
+}
+
+.selection-intelligence__selection-type-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  margin-top: var(--space-sm);
+  color: var(--text-caption);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-micro);
+  letter-spacing: var(--tracking-status);
+  line-height: var(--line-normal);
+  text-transform: uppercase;
+}
+
+.selection-intelligence__relationship-role {
+  display: block;
+  margin-bottom: var(--space-xxs);
+  color: var(--text-disabled);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-status);
+  line-height: var(--line-tight);
+  text-transform: uppercase;
+}
+
+.selection-intelligence__inspector--edge
+  .selection-intelligence__section-title,
+.selection-intelligence__inspector--edge
+  .selection-intelligence__relationship-bridge,
+.selection-intelligence__inspector--edge
+  .selection-intelligence__relationship-symbol {
+  color: #fbbf24;
+}
+
+/* ==========================================================
    INSPECTOR SECTIONS
    ========================================================== */
 

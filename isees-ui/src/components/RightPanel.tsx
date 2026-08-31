@@ -658,6 +658,56 @@ function ClusterInspector({
 }
 
 // ============================================================
+// SELECTION-TYPE IDENTITY
+// ============================================================
+
+function SelectionTypeIdentity({
+  kind,
+  definition,
+}: {
+  kind: "NODE" | "EDGE";
+  definition: string;
+}) {
+  const modifier =
+    kind.toLowerCase();
+
+  return (
+    <div
+      className={[
+        "selection-intelligence__selection-type",
+        `selection-intelligence__selection-type--${modifier}`,
+      ].join(" ")}
+      title={`${kind}: ${definition}`}
+    >
+      <div
+        className={
+          "selection-intelligence__selection-type-label"
+        }
+      >
+        {kind} SELECTED
+      </div>
+
+      <div
+        className={
+          "selection-intelligence__selection-type-definition"
+        }
+      >
+        {definition}
+      </div>
+
+      <div
+        className={
+          "selection-intelligence__selection-type-actions"
+        }
+      >
+        <span>Single-click: inspect</span>
+        <span>Double-click: add to Research Inbox</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // NODE INSPECTOR
 // ============================================================
 
@@ -677,8 +727,19 @@ function NodeInspector({
   };
 }) {
   return (
-    <div>
-      <InspectorSection title="Node">
+    <div
+      className={
+        "selection-intelligence__inspector selection-intelligence__inspector--node"
+      }
+    >
+      <SelectionTypeIdentity
+        kind="NODE"
+        definition={
+          "A canonical object in the Investigation Graph."
+        }
+      />
+
+      <InspectorSection title="Selected Node">
         <div
           className={
             "selection-intelligence__entity-title"
@@ -766,9 +827,28 @@ function EdgeInspector({
   };
 }) {
   return (
-    <div>
-      <InspectorSection title="Relationship">
+    <div
+      className={
+        "selection-intelligence__inspector selection-intelligence__inspector--edge"
+      }
+    >
+      <SelectionTypeIdentity
+        kind="EDGE"
+        definition={
+          "A canonical relationship connecting two nodes."
+        }
+      />
+
+      <InspectorSection title="Selected Edge">
         <div className="selection-intelligence__relationship">
+          <div
+            className={
+              "selection-intelligence__relationship-role"
+            }
+          >
+            Source node
+          </div>
+
           <div
             className={
               "selection-intelligence__relationship-object"
@@ -791,11 +871,29 @@ function EdgeInspector({
               ↓
             </span>
 
-            {
-              formatLabel(
-                intelligence.relationship
-              )
+            <span>
+              <span
+                className={
+                  "selection-intelligence__relationship-role"
+                }
+              >
+                Edge
+              </span>
+
+              {
+                formatLabel(
+                  intelligence.relationship
+                )
+              }
+            </span>
+          </div>
+
+          <div
+            className={
+              "selection-intelligence__relationship-role"
             }
+          >
+            Target node
           </div>
 
           <div
