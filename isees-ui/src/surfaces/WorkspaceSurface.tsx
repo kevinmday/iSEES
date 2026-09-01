@@ -66,6 +66,9 @@ import StudioShell
 import ResearchInboxInstrument
   from "../manifold/components/ResearchInboxInstrument";
 
+import WorkspaceIdentityHeader
+  from "../components/workspace/WorkspaceIdentityHeader";
+
 // ============================================================
 // PLACEHOLDER SURFACE
 // ============================================================
@@ -260,6 +263,12 @@ export default function WorkspaceSurface() {
           width:
             "100%",
 
+          display:
+            "flex",
+
+          flexDirection:
+            "column",
+
           height:
             "100%",
 
@@ -280,9 +289,23 @@ export default function WorkspaceSurface() {
 
           transition:
             "padding-right 140ms ease",
+
+          gap:
+            "10px",
         }}
       >
-        <ActiveWorkspace />
+        <WorkspaceIdentityHeader />
+
+        <div
+          style={{
+            flex: "1 1 auto",
+            minWidth: 0,
+            minHeight: 0,
+            overflow: "auto",
+          }}
+        >
+          <ActiveWorkspace />
+        </div>
       </div>
 
     </>

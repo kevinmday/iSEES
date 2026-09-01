@@ -18,6 +18,10 @@ import {
   useWorkspaceMode,
 } from "../workspace/runtime/WorkspaceRuntimeContext";
 
+import {
+  getWorkspaceModeLabel,
+} from "../workspace/presentation/WorkspaceModePresentation";
+
 import WorkspaceModeBar
   from "../components/workspace/WorkspaceModeBar";
 
@@ -163,7 +167,7 @@ export default function MainLayout({
           </span>
 
           <span>
-            MODE: {workspaceMode}
+            MODE: {getWorkspaceModeLabel(workspaceMode)}
           </span>
 
           <span>

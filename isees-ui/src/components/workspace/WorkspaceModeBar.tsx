@@ -32,6 +32,10 @@ import {
   WorkspaceMode,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
+import {
+  getWorkspaceModeLabel,
+} from "../../workspace/presentation/WorkspaceModePresentation";
+
 import "./WorkspaceModeBar.css";
 
 
@@ -62,39 +66,6 @@ const MODES = [
 ] as const;
 
 
-const MODE_LABELS: Record<
-  WorkspaceMode,
-  string
-> = {
-
-  [WorkspaceMode.OVERVIEW]:
-    "OVERVIEW",
-
-  [WorkspaceMode.MANIFOLD]:
-    "MANIFOLD",
-
-  [WorkspaceMode.COMPARE]:
-    "COMPARE",
-
-  [WorkspaceMode.NARRATIVE]:
-    "NARRATIVE",
-
-  [WorkspaceMode.EVIDENCE]:
-    "EVIDENCE",
-
-  [WorkspaceMode.TIMELINE]:
-    "TIMELINE",
-
-  [WorkspaceMode.LAYERS]:
-    "LAYERS",
-
-  [WorkspaceMode.INTENTION]:
-    "INTENTION",
-
-  [WorkspaceMode.RESEARCH]:
-    "STUDIO",
-
-};
 
 
 // ============================================================
@@ -172,7 +143,7 @@ export default function WorkspaceModeBar() {
 
           >
 
-            {MODE_LABELS[mode]}
+            {getWorkspaceModeLabel(mode)}
 
           </button>
 
