@@ -37,6 +37,10 @@ import type {
 import {
   getGraphIcon,
 } from "../iconology/iconRegistry";
+import {
+  getEdgePresentation,
+  SELECTED_EDGE_COLOR,
+} from "../edgePresentation";
 
 import ManifoldCameraInstrument, {
   type ManifoldCameraAction,
@@ -860,13 +864,23 @@ export default function InvestigationGraph3D({
               ? 10
               : 6;
         }}
-        linkColor={link =>
-          selection.kind === "EDGE" &&
-          selection.edgeId ===
-            (link as ProjectedLink).id
-            ? "#f59e0b"
-            : "#475569"
-        }
+        linkColor={link => {
+
+          const projectedLink =
+            link as ProjectedLink;
+
+          const selected =
+            selection.kind === "EDGE" &&
+            selection.edgeId ===
+              projectedLink.id;
+
+          return selected
+            ? SELECTED_EDGE_COLOR
+            : getEdgePresentation(
+                projectedLink.relationship,
+              ).color;
+
+        }}
         linkOpacity={0.46}
         linkWidth={link =>
           selection.kind === "EDGE" &&
@@ -878,6 +892,45 @@ export default function InvestigationGraph3D({
                 (link as ProjectedLink).weight * 3,
               )
         }
+        linkDirectionalArrowLength={link => {
+
+          const projectedLink =
+            link as ProjectedLink;
+
+          if (
+            !getEdgePresentation(
+              projectedLink.relationship,
+            ).directed
+          ) {
+            return 0;
+          }
+
+          return (
+            selection.kind === "EDGE" &&
+            selection.edgeId ===
+              projectedLink.id
+          )
+            ? 7
+            : 4.5;
+
+        }}
+        linkDirectionalArrowColor={link => {
+
+          const projectedLink =
+            link as ProjectedLink;
+
+          return (
+            selection.kind === "EDGE" &&
+            selection.edgeId ===
+              projectedLink.id
+          )
+            ? SELECTED_EDGE_COLOR
+            : getEdgePresentation(
+                projectedLink.relationship,
+              ).color;
+
+        }}
+        linkDirectionalArrowRelPos={0.72}
         onNodeClick={(node, event) => {
           const projected =
             node as ProjectedNode;

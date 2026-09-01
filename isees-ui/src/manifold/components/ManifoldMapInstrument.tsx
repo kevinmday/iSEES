@@ -34,6 +34,11 @@ import type {
   WorkspaceSelection,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
+import {
+  getEdgePresentation,
+  SELECTED_EDGE_COLOR,
+} from "../edgePresentation";
+
 
 // ============================================================
 // TYPES
@@ -309,6 +314,16 @@ export default function ManifoldMapInstrument({
               selection.kind === "EDGE" &&
               selection.edgeId === edge.id;
 
+            const presentation =
+              getEdgePresentation(
+                edge.relationship,
+              );
+
+            const strokeColor =
+              selected
+                ? SELECTED_EDGE_COLOR
+                : presentation.color;
+
             return (
               <line
                 key={edge.id}
@@ -316,11 +331,7 @@ export default function ManifoldMapInstrument({
                 y1={source.y ?? 0}
                 x2={target.x ?? 0}
                 y2={target.y ?? 0}
-                stroke={
-                  selected
-                    ? "#f59e0b"
-                    : "#475569"
-                }
+                stroke={strokeColor}
                 strokeWidth={
                   selected
                     ? 4

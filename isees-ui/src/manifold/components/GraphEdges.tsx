@@ -29,6 +29,11 @@ import type {
   WorkspaceSelection,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
+import {
+  getEdgePresentation,
+  SELECTED_EDGE_COLOR,
+} from "../edgePresentation";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -73,7 +78,10 @@ onCollectEdge,
     <>
 
       {edges.map(
-        edge => {
+        (
+          edge,
+          edgeIndex,
+        ) => {
 
           const source =
             nodes.find(
@@ -104,6 +112,19 @@ onCollectEdge,
             selection.edgeId ===
               edge.id;
 
+          const presentation =
+            getEdgePresentation(
+              edge.relationship
+            );
+
+          const strokeColor =
+            selected
+              ? SELECTED_EDGE_COLOR
+              : presentation.color;
+
+          const arrowMarkerId =
+            `edge-arrow-${edgeIndex}`;
+
           return (
 
             <g
@@ -123,16 +144,40 @@ Double-click: add to Research Inbox.`
                 }
               </title>
 
+              {presentation.directed && (
+                <defs>
+                  <marker
+                    id={arrowMarkerId}
+                    viewBox="0 0 8 8"
+                    markerWidth={
+                      selected
+                        ? 9
+                        : 7
+                    }
+                    markerHeight={
+                      selected
+                        ? 9
+                        : 7
+                    }
+                    refX="7"
+                    refY="4"
+                    orient="auto"
+                    markerUnits="userSpaceOnUse"
+                  >
+                    <path
+                      d="M 0 0 L 8 4 L 0 8 z"
+                      fill={strokeColor}
+                    />
+                  </marker>
+                </defs>
+              )}
+
               <line
               x1={source.x ?? 0}
               y1={source.y ?? 0}
               x2={target.x ?? 0}
               y2={target.y ?? 0}
-              stroke={
-                selected
-                  ? "#f59e0b"
-                  : "#334155"
-              }
+              stroke={strokeColor}
               strokeWidth={
                 selected
                   ? 4
@@ -145,6 +190,11 @@ Double-click: add to Research Inbox.`
                 selected
                   ? 1
                   : 0.75
+              }
+              markerEnd={
+                presentation.directed
+                  ? `url(#${arrowMarkerId})`
+                  : undefined
               }
               onClick={() =>
                 setSelection({
