@@ -25,10 +25,18 @@ import type {
 import SpriteText
 from "three-spritetext";
 
+import {
+  Group,
+} from "three";
+
 import type {
   GraphEdge,
   GraphNode,
 } from "../graphTypes";
+
+import {
+  getGraphIcon,
+} from "../iconology/iconRegistry";
 
 import ManifoldCameraInstrument, {
   type ManifoldCameraAction,
@@ -217,16 +225,103 @@ function nodeColor(
     return "#38bdf8";
   }
 
-  switch (node.type) {
-    case "EVENT":
-      return "#60a5fa";
-    case "LOCATION":
-      return "#f472b6";
-    case "FACILITY":
-      return "#94a3b8";
-    default:
-      return "#a78bfa";
+  return getGraphIcon(
+    node.iconType ?? node.type
+  ).color;
+}
+
+function createCanonicalNodeObject(
+  node: ProjectedNode,
+  focusedEventId: string | null | undefined,
+  selection: WorkspaceSelection,
+): Group {
+  const icon =
+    getGraphIcon(
+      node.iconType ?? node.type
+    );
+
+  const isSelected =
+    selection.kind === "NODE" &&
+    selection.nodeId === node.id;
+
+  const isFocused =
+    node.id === focusedEventId;
+
+  const glyphColor =
+    nodeColor(
+      node,
+      focusedEventId,
+      selection,
+    );
+
+  const glyphHeight =
+    isFocused
+      ? 17
+      : isSelected
+        ? 15
+        : Math.max(
+            12,
+            icon.size * 0.72,
+          );
+
+  const glyph =
+    new SpriteText(
+      icon.icon,
+      glyphHeight,
+      glyphColor,
+    );
+
+  glyph.fontFace =
+    "Segoe UI Emoji";
+
+  glyph.fontWeight =
+    "700";
+
+  glyph.backgroundColor =
+    isSelected
+      ? "rgba(120,53,15,0.92)"
+      : isFocused
+        ? "rgba(3,105,161,0.92)"
+        : "rgba(2,6,23,0.88)";
+
+  glyph.padding =
+    [3, 3.5];
+
+  glyph.borderRadius =
+    4;
+
+  glyph.borderWidth =
+    isSelected || isFocused
+      ? 0.8
+      : 0.4;
+
+  glyph.borderColor =
+    glyphColor;
+
+  glyph.strokeWidth =
+    0.18;
+
+  glyph.strokeColor =
+    "#020617";
+
+  const group =
+    new Group();
+
+  group.add(glyph);
+
+  const label =
+    createPersistentNodeLabel(
+      node,
+      focusedEventId,
+      selection,
+    );
+
+  if (label) {
+    label.offsetY = -14;
+    group.add(label);
   }
+
+  return group;
 }
 
 export default function InvestigationGraph3D({
@@ -740,13 +835,13 @@ export default function InvestigationGraph3D({
           ].join("<br />");
         }}
         nodeThreeObject={(node: unknown) =>
-          createPersistentNodeLabel(
+          createCanonicalNodeObject(
             node as ProjectedNode,
             focusedEventId,
             selection,
           )
         }
-        nodeThreeObjectExtend={true}
+        nodeThreeObjectExtend={false}
         nodeColor={node =>
           nodeColor(
             node as ProjectedNode,

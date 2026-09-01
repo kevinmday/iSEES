@@ -287,6 +287,63 @@ function adaptIconType(
     projectedType === "FACILITY"
   ) {
 
+    // Canonical System Canon ingestion preserves the
+    // original infrastructure classification as a tag.
+    // Icon projection therefore remains deterministic and
+    // does not infer identity from labels or descriptions.
+
+    if (
+      hasSemanticTag(
+        node,
+        "NAVAL STRIKE GROUP",
+      )
+    ) {
+
+      return "SHIP";
+
+    }
+
+    if (
+      hasSemanticTag(
+        node,
+        "AEGIS RADAR",
+      )
+    ) {
+
+      return "RADAR";
+
+    }
+
+    if (
+      hasSemanticTag(
+        node,
+        "AIRBORNE SENSOR",
+      ) ||
+      hasSemanticTag(
+        node,
+        "TARGETING POD",
+      )
+    ) {
+
+      return "SENSOR";
+
+    }
+
+    if (
+      hasSemanticTag(
+        node,
+        "MILITARY AIRSPACE",
+      ) ||
+      hasSemanticTag(
+        node,
+        "TRAINING RANGE",
+      )
+    ) {
+
+      return "LOCATION";
+
+    }
+
     return "BUILDING";
 
   }
