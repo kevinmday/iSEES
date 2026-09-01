@@ -12,6 +12,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 import ForceGraph3D
@@ -33,6 +34,18 @@ import ManifoldCameraInstrument, {
   type ManifoldCameraAction,
 } from "./ManifoldCameraInstrument";
 
+
+import ManifoldMapInstrument
+from "./ManifoldMapInstrument";
+
+import type {
+  ManifoldCameraSnapshot3D,
+} from "./ManifoldMapInstrument";
+
+export type {
+  ManifoldCameraSnapshot3D,
+} from "./ManifoldMapInstrument";
+
 import type {
   WorkspaceSelection,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
@@ -53,6 +66,9 @@ interface InvestigationGraph3DProps {
   onCollectEdge?: (
     edge: GraphEdge,
   ) => void;
+  onCameraChange?: (
+    snapshot: ManifoldCameraSnapshot3D,
+  ) => void;
 }
 
 interface ProjectedNode extends GraphNode {
@@ -72,6 +88,7 @@ interface Point3D {
   z: number;
 }
 
+
 interface NavigationControls3D {
   target: Point3D & {
     set?: (
@@ -83,6 +100,14 @@ interface NavigationControls3D {
   minDistance: number;
   maxDistance: number;
   update?: () => void;
+  addEventListener?: (
+    type: "change",
+    listener: () => void,
+  ) => void;
+  removeEventListener?: (
+    type: "change",
+    listener: () => void,
+  ) => void;
 }
 
 function createPersistentNodeLabel(
@@ -214,12 +239,34 @@ export default function InvestigationGraph3D({
   setSelection,
   onCollectNode,
   onCollectEdge,
+  onCameraChange,
 }: InvestigationGraph3DProps) {
   const graphRef =
     useRef<
       ForceGraphMethods | undefined
     >(
       undefined
+    );
+
+  const [
+    cameraSnapshot,
+    setCameraSnapshot,
+  ] = useState<
+    ManifoldCameraSnapshot3D | null
+  >(null);
+
+  const fittedTopologyRef =
+    useRef<string | null>(null);
+
+  const topologyIdentity =
+    useMemo(
+      () =>
+        [
+          ...nodes.map(node => node.id),
+          "::",
+          ...edges.map(edge => edge.id),
+        ].join("|"),
+      [nodes, edges],
     );
 
   const getNavigationControls =
@@ -231,17 +278,220 @@ export default function InvestigationGraph3D({
       [],
     );
 
+  const publishCameraSnapshot =
+    useCallback(
+      () => {
+        const graph =
+          graphRef.current;
+
+        const controls =
+          getNavigationControls();
+
+        if (!graph || !controls) {
+          return;
+        }
+
+        const camera =
+          graph.camera();
+
+        const snapshot: ManifoldCameraSnapshot3D = {
+          position: {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+          },
+          target: {
+            x: controls.target.x,
+            y: controls.target.y,
+            z: controls.target.z,
+          },
+        };
+
+        setCameraSnapshot(snapshot);
+        onCameraChange?.(snapshot);
+      },
+      [
+        getNavigationControls,
+        onCameraChange,
+      ],
+    );
+
   const fitCamera =
     useCallback(
       () => {
-        graphRef.current?.zoomToFit(
-          0,
-          96,
+        const graph =
+          graphRef.current;
+
+        const controls =
+          getNavigationControls();
+
+        if (
+          !graph ||
+          nodes.length === 0
+        ) {
+          return;
+        }
+
+        const projectedPoints =
+          nodes.map(
+            node => ({
+              x: node.x ?? 0,
+              y: node.y ?? 0,
+              z: stableDepth(node.id),
+            }),
+          );
+
+        const minX =
+          Math.min(
+            ...projectedPoints.map(
+              point => point.x,
+            ),
+          );
+
+        const maxX =
+          Math.max(
+            ...projectedPoints.map(
+              point => point.x,
+            ),
+          );
+
+        const minY =
+          Math.min(
+            ...projectedPoints.map(
+              point => point.y,
+            ),
+          );
+
+        const maxY =
+          Math.max(
+            ...projectedPoints.map(
+              point => point.y,
+            ),
+          );
+
+        const minZ =
+          Math.min(
+            ...projectedPoints.map(
+              point => point.z,
+            ),
+          );
+
+        const maxZ =
+          Math.max(
+            ...projectedPoints.map(
+              point => point.z,
+            ),
+          );
+
+        const target: Point3D = {
+          x: (minX + maxX) / 2,
+          y: (minY + maxY) / 2,
+          z: (minZ + maxZ) / 2,
+        };
+
+        const topologyRadius =
+          Math.max(
+            ...projectedPoints.map(
+              point =>
+                Math.hypot(
+                  point.x - target.x,
+                  point.y - target.y,
+                  point.z - target.z,
+                ),
+            ),
+            1,
+          );
+
+        const aspectRatio =
+          Math.max(
+            width /
+              Math.max(height, 1),
+            0.1,
+          );
+
+        const verticalFieldOfView =
+          Math.PI / 3;
+
+        const limitingFieldOfView =
+          aspectRatio < 1
+            ? 2 *
+              Math.atan(
+                Math.tan(
+                  verticalFieldOfView / 2,
+                ) *
+                  aspectRatio,
+              )
+            : verticalFieldOfView;
+
+        const requestedDistance =
+          (
+            topologyRadius /
+            Math.sin(
+              limitingFieldOfView / 2,
+            )
+          ) *
+          1.35;
+
+        const cameraDistance =
+          Math.min(
+            1200,
+            Math.max(
+              120,
+              requestedDistance,
+            ),
+          );
+
+        controls?.target.set?.(
+          target.x,
+          target.y,
+          target.z,
         );
+
+        controls?.update?.();
+
+        graph.cameraPosition(
+          {
+            x: target.x,
+            y: target.y,
+            z:
+              target.z +
+              cameraDistance,
+          },
+          target,
+          160,
+        );
+
+        publishCameraSnapshot();
       },
-      [],
+      [
+        getNavigationControls,
+        height,
+        nodes,
+        publishCameraSnapshot,
+        width,
+      ],
     );
 
+  const handleEngineStop =
+    useCallback(
+      () => {
+        if (
+          fittedTopologyRef.current ===
+          topologyIdentity
+        ) {
+          return;
+        }
+
+        fittedTopologyRef.current =
+          topologyIdentity;
+
+        fitCamera();
+      },
+      [
+        fitCamera,
+        topologyIdentity,
+      ],
+    );
   const handleCameraAction =
     useCallback(
       (
@@ -415,17 +665,37 @@ export default function InvestigationGraph3D({
       const controls =
         getNavigationControls();
 
-      if (controls) {
-        controls.minDistance = 120;
-        controls.maxDistance = 1200;
-        controls.update?.();
+      if (!controls) {
+        return;
       }
+
+      controls.minDistance = 120;
+      controls.maxDistance = 1200;
+      controls.update?.();
+
+      const handleControlsChange =
+        () => publishCameraSnapshot();
+
+      controls.addEventListener?.(
+        "change",
+        handleControlsChange,
+      );
+
+      publishCameraSnapshot();
+
+      return () => {
+        controls.removeEventListener?.(
+          "change",
+          handleControlsChange,
+        );
+      };
     },
     [
       getNavigationControls,
       graphData,
-      width,
       height,
+      publishCameraSnapshot,
+      width,
     ],
   );
 
@@ -439,7 +709,7 @@ export default function InvestigationGraph3D({
     >
       <ForceGraph3D
         ref={graphRef}
-        onEngineStop={fitCamera}
+        onEngineStop={handleEngineStop}
         width={Math.max(width, 1)}
         height={Math.max(height, 1)}
         graphData={graphData}
@@ -539,6 +809,14 @@ export default function InvestigationGraph3D({
             onCollectEdge?.(projected);
           }
         }}
+      />
+
+      <ManifoldMapInstrument
+        nodes={nodes}
+        edges={edges}
+        focusedEventId={focusedEventId}
+        selection={selection}
+        camera={cameraSnapshot}
       />
 
       <ManifoldCameraInstrument

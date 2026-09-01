@@ -62,6 +62,7 @@ interface ManifoldInstrumentPaletteProps {
   title: string;
   children: ReactNode;
   defaultPosition: InstrumentPosition;
+  width?: number;
 }
 
 // ============================================================
@@ -176,6 +177,7 @@ export default function ManifoldInstrumentPalette({
   title,
   children,
   defaultPosition,
+  width = 126,
 }: ManifoldInstrumentPaletteProps) {
 
   const paletteRef =
@@ -446,7 +448,7 @@ export default function ManifoldInstrumentPalette({
             left: defaultPosition.x,
             top: defaultPosition.y,
 
-            width: 142,
+            width: width + 16,
             height:
               paletteRef.current
                 ?.offsetHeight ?? 80,
@@ -480,7 +482,7 @@ export default function ManifoldInstrumentPalette({
           left: position.x,
           top: position.y,
 
-          width: 126,
+          width,
 
           padding: 8,
 

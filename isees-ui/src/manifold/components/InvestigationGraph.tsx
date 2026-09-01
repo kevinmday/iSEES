@@ -103,6 +103,7 @@ export default function InvestigationGraph({
     setProjectionMode,
   ] = useState<"2D" | "3D">("2D");
 
+
   const workspaceRuntime =
     useWorkspaceRuntime();
 
@@ -1157,6 +1158,7 @@ function handleCollectEdge(
               <ManifoldToolbar
                 onAction={handleManifoldAction}
               />
+
 
               {projectionMode === "2D" && (
                 <ManifoldCameraInstrument
