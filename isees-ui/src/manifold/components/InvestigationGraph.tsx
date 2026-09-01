@@ -256,65 +256,9 @@ function handleCollectNode(
   node: GraphNode,
 ): void {
 
-  // ==========================================================
-  // P56D-I1-G3
-  // RESEARCH COLLECTION DIAGNOSTIC BOUNDARY
-  //
-  // Temporary instrumentation.
-  //
-  // This intentionally changes no Research Bridge semantics.
-  // It exposes:
-  //
-  //   1. whether GraphNodes reaches this integration boundary
-  //   2. whether focusedEventId exists
-  //   3. Research Desk size before bridge()
-  //   4. Research Desk size after bridge()
-  //
-  // ==========================================================
-
-  const deskBefore =
-    researchBridgeRuntime
-      .getDesk()
-      .entries
-      .length;
-
-  console.log(
-    "[G3 TRACE] handleCollectNode ENTER",
-    {
-      nodeId:
-        node.id,
-
-      focusedEventId,
-
-      deskBefore,
-    },
-  );
-
-  // ----------------------------------------------------------
-  // INVESTIGATION OWNERSHIP GUARD
-  // ----------------------------------------------------------
-
   if (!focusedEventId) {
-
-    console.log(
-      "[G3 TRACE] handleCollectNode BLOCKED — no focusedEventId",
-      {
-        nodeId:
-          node.id,
-
-        focusedEventId,
-
-        deskBefore,
-      },
-    );
-
     return;
-
   }
-
-  // ----------------------------------------------------------
-  // MANIFOLD -> RESEARCH BRIDGE
-  // ----------------------------------------------------------
 
   researchBridgeRuntime.bridge({
 
@@ -336,34 +280,8 @@ function handleCollectNode(
 
   });
 
-  // ----------------------------------------------------------
-  // POST-BRIDGE OBSERVATION
-  // ----------------------------------------------------------
-
-  const deskAfter =
-    researchBridgeRuntime
-      .getDesk()
-      .entries
-      .length;
-
-  console.log(
-    "[G3 TRACE] handleCollectNode AFTER bridge",
-    {
-      nodeId:
-        node.id,
-
-      focusedEventId,
-
-      deskBefore,
-
-      deskAfter,
-
-      bridgeMutatedDesk:
-        deskAfter !== deskBefore,
-    },
-  );
-
 }
+
 function handleCollectEdge(
   edge:
     GraphEdge,
