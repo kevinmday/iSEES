@@ -64,6 +64,7 @@ import type {
   WorkspaceRuntimeState,
   WorkspaceOperatorState,
   WorkspaceMode as WorkspaceModeType,
+  WorkspaceModeAvailability,
   WorkspaceSelection,
   WorkspaceComputationalConfiguration,
 } from "./WorkspaceRuntimeTypes";
@@ -340,6 +341,39 @@ export class WorkspaceRuntime {
 
   }
 
+  /**
+   * Returns the canonical operator-facing eligibility for a
+   * Workspace Mode.
+   *
+   * OVERVIEW is the only valid mode for a canonical empty
+   * Guest workspace. Every investigative mode requires a real
+   * active Investigation.
+   */
+  getModeAvailability(
+    mode:
+      WorkspaceModeType,
+  ): WorkspaceModeAvailability {
+
+    if (
+      mode === WorkspaceMode.OVERVIEW ||
+      this.state.session.investigation !==
+        undefined
+    ) {
+
+      return {
+        available: true,
+      };
+
+    }
+
+    return {
+      available: false,
+      reason:
+        "Import or activate an investigation before entering this workspace mode.",
+    };
+
+  }
+
   setActiveMode(
     mode:
       WorkspaceModeType,
@@ -349,6 +383,17 @@ export class WorkspaceRuntime {
       this.state.operator.activeMode ===
       mode
     ) {
+
+      return;
+
+    }
+
+    const availability =
+      this.getModeAvailability(
+        mode,
+      );
+
+    if (!availability.available) {
 
       return;
 

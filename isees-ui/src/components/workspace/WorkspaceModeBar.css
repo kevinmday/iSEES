@@ -108,6 +108,21 @@
     color: var(--text-primary);
 }
 
+.isees-modebar__button:disabled,
+.isees-modebar__button:disabled:hover,
+.isees-modebar__button:disabled:active {
+    border: var(--surface-border);
+
+    background: var(--surface-1);
+    color: var(--text-disabled);
+
+    cursor: not-allowed;
+    opacity: 0.58;
+
+    transform: none;
+    box-shadow: none;
+}
+
 @media (max-width: 1200px) {
     .isees-modebar {
         gap: var(--space-xs);

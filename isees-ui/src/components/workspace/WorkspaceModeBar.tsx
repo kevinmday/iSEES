@@ -125,6 +125,11 @@ export default function WorkspaceModeBar() {
         const active =
           activeMode === mode;
 
+        const availability =
+          runtime.getModeAvailability(
+            mode,
+          );
+
         const className = active
           ? (
               "isees-modebar__button " +
@@ -144,6 +149,18 @@ export default function WorkspaceModeBar() {
             className={className}
 
             aria-pressed={active}
+
+            aria-disabled={
+              !availability.available
+            }
+
+            disabled={
+              !availability.available
+            }
+
+            title={
+              availability.reason
+            }
 
             onClick={() => {
 

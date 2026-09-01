@@ -114,6 +114,22 @@ export type WorkspaceMode =
     keyof typeof WorkspaceMode
   ];
 
+/**
+ * Canonical operator-facing eligibility for a Workspace Mode.
+ *
+ * WorkspaceRuntime owns this decision. Presentation surfaces
+ * consume it but must not independently reproduce its rules.
+ */
+export interface WorkspaceModeAvailability {
+
+  available:
+    boolean;
+
+  reason?:
+    string;
+
+}
+
 // ============================================================
 // WORKSPACE LAYOUT MODES
 // ============================================================
