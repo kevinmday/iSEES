@@ -1,5 +1,9 @@
 # React + TypeScript + Vite
 
+## Local Candidate Evidence integration
+
+EVIDENCE uses `VITE_CANDIDATE_EVIDENCE_API_BASE_URL`. When unset, the frontend defaults to `http://127.0.0.1:8001`, matching `python -m uvicorn isees_uap.api:app --host 127.0.0.1 --port 8001` from the repository root. Candidate metadata and lifecycle remain owned by that local API. The UI provides no binary upload, crawling, repository connector, or canonical admission.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
