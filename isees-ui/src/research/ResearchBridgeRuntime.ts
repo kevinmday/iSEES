@@ -40,8 +40,12 @@ import type {
 // TYPES
 // ============================================================
 
+export type ResearchBridgeMutation =
+  | { kind: "CREATE"; anchor: ResearchAnchor }
+  | { kind: "REMOVE" | "CLEAR" | "RESTORE" | "PIN" };
+
 type ResearchBridgeListener =
-  () => void;
+  (mutation: ResearchBridgeMutation) => void;
 
 // ============================================================
 // RUNTIME
@@ -102,7 +106,7 @@ export class ResearchBridgeRuntime {
 
   }
 
-  private notify(): void {
+  private notify(mutation: ResearchBridgeMutation): void {
 
     this.revision++;
 
@@ -111,7 +115,7 @@ export class ResearchBridgeRuntime {
       of this.listeners
     ) {
 
-      listener();
+      listener(mutation);
 
     }
 
@@ -164,7 +168,7 @@ export class ResearchBridgeRuntime {
 
     };
 
-    this.notify();
+    this.notify({ kind: "CREATE", anchor });
 
   }
 
@@ -190,7 +194,7 @@ export class ResearchBridgeRuntime {
 
     };
 
-    this.notify();
+    this.notify({ kind: "REMOVE" });
 
   }
 
@@ -211,7 +215,7 @@ export class ResearchBridgeRuntime {
 
     };
 
-    this.notify();
+    this.notify({ kind: "CLEAR" });
 
   }
 
@@ -271,7 +275,7 @@ export class ResearchBridgeRuntime {
 
     };
 
-    this.notify();
+    this.notify({ kind: "RESTORE" });
 
   }
 
@@ -316,7 +320,7 @@ export class ResearchBridgeRuntime {
 
     };
 
-    this.notify();
+    this.notify({ kind: "PIN" });
 
   }
 

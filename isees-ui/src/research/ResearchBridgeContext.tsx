@@ -40,6 +40,7 @@ import {
 
 import type {
   ResearchBridgeRuntime,
+  ResearchBridgeMutation,
 } from "./ResearchBridgeRuntime";
 
 // ============================================================
@@ -53,6 +54,9 @@ type ResearchBridgeContextValue = {
 
   revision:
     number;
+
+  mutation:
+    ResearchBridgeMutation | undefined;
 
 };
 
@@ -109,6 +113,11 @@ export function ResearchBridgeProvider({
         .getRevision(),
   );
 
+  const [
+    mutation,
+    setMutation,
+  ] = useState<ResearchBridgeMutation>();
+
   useEffect(() => {
 
     // ----------------------------------------------------------
@@ -120,7 +129,9 @@ export function ResearchBridgeProvider({
     // ----------------------------------------------------------
 
     const unsubscribe =
-      researchBridgeRuntime.subscribe(() => {
+      researchBridgeRuntime.subscribe(nextMutation => {
+
+        setMutation(nextMutation);
 
         setRevision(
           researchBridgeRuntime
@@ -157,6 +168,8 @@ export function ResearchBridgeProvider({
           researchBridgeRuntime,
 
         revision,
+
+        mutation,
 
       }}
     >
@@ -255,4 +268,25 @@ export function useResearchRevision() {
 
   return context.revision;
 
+}
+
+/**
+ * Presentation metadata for the latest observed runtime mutation.
+ * Canonical ownership remains in the Research Desk; this value is
+ * intentionally absent for mutations that predate Provider subscription.
+ */
+export function useResearchMutation() {
+
+  const context =
+    useContext(
+      ResearchBridgeContext,
+    );
+
+  if (!context) {
+    throw new Error(
+      "useResearchMutation must be used inside ResearchBridgeProvider",
+    );
+  }
+
+  return context.mutation;
 }

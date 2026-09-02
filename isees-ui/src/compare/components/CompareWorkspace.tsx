@@ -209,6 +209,12 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { p
             >
               {published ? "Published to Research" : "Send to Research"}
             </button>
+            {published && (
+              <div className="compare-workspace__publication-confirmation">
+                <strong>Added to Research Inbox</strong>
+                <span>Pairwise correspondence preserved. No relationship was accepted.</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="compare-workspace__technical">Candidate ID: {projection.candidateId}</div>

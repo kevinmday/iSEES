@@ -12,8 +12,17 @@
 
 
 import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
   useResearchDesk,
+  useResearchMutation,
 } from "../../research/ResearchBridgeContext";
+
+import "./ResearchInboxInstrument.css";
 
 import {
   authorDocumentRuntime,
@@ -23,6 +32,10 @@ import {
   AuthorNodeTypes,
   type ReferenceNode,
 } from "../../author/model/AuthorNodeTypes";
+
+import type {
+  ResearchAnchor,
+} from "../../research/researchBridgeTypes";
 
 // ============================================================
 // PRESENTATION CONTRACT
@@ -47,6 +60,16 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+export function collectionConfirmationFor(anchor: ResearchAnchor): string {
+  if (!("graph" in anchor)) {
+    return "Pairwise correspondence added to Research Inbox.";
+  }
+
+  return anchor.graph.type === "NODE"
+    ? "NODE added to Research Inbox."
+    : "EDGE added to Research Inbox.";
+}
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -58,6 +81,42 @@ export default function ResearchInboxInstrument({
 
   const researchDesk =
     useResearchDesk();
+
+  const researchMutation =
+    useResearchMutation();
+
+  const initialMutation =
+    useRef(researchMutation);
+
+  const [confirmation, setConfirmation] =
+    useState<string>();
+
+  const [pulse, setPulse] =
+    useState(false);
+
+  useEffect(() => {
+    if (
+      researchMutation === initialMutation.current ||
+      researchMutation?.kind !== "CREATE"
+    ) {
+      initialMutation.current = researchMutation;
+      return;
+    }
+
+    initialMutation.current = researchMutation;
+
+    const message = collectionConfirmationFor(researchMutation.anchor);
+
+    setConfirmation(message);
+    setPulse(true);
+
+    const timeout = window.setTimeout(() => {
+      setConfirmation(undefined);
+      setPulse(false);
+    }, 2400);
+
+    return () => window.clearTimeout(timeout);
+  }, [researchMutation]);
 
   function handleInsert(
     entry:
@@ -104,8 +163,20 @@ export default function ResearchInboxInstrument({
 
   return (
 
+    <>
+
+    <div
+      className={`research-inbox-confirmation${confirmation ? " research-inbox-confirmation--visible" : ""}`}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {confirmation ?? ""}
+    </div>
+
     <aside
       aria-label="Research Inbox"
+      className={pulse ? "research-inbox-instrument research-inbox-instrument--pulse" : "research-inbox-instrument"}
       style={{
         position:
           "absolute",
@@ -489,6 +560,8 @@ export default function ResearchInboxInstrument({
       )}
 
     </aside>
+
+    </>
 
   );
 

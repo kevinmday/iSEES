@@ -8,10 +8,14 @@ import {
   materializeAcceptedResolveCandidate,
 } from "../../src/resolve/acceptance/ResolveCandidateAcceptance";
 import type { ResolveCandidateIntelligence } from "../../src/resolve/intelligence/ResolveCandidateIntelligenceTypes";
+import { ResearchBridgeRuntime, type ResearchBridgeMutation } from "../../src/research/ResearchBridgeRuntime";
+import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/researchBridgeTypes";
 
 const manifold = readFileSync("src/manifold/components/PrimaryInvestigationManifold.tsx", "utf8");
 const compare = readFileSync("src/compare/components/CompareWorkspace.tsx", "utf8");
 const inbox = readFileSync("src/manifold/components/ResearchInboxInstrument.tsx", "utf8");
+const inboxCss = readFileSync("src/manifold/components/ResearchInboxInstrument.css", "utf8");
+const workspaceSurface = readFileSync("src/surfaces/WorkspaceSurface.tsx", "utf8");
 
 for (const text of [
   "RELATIONSHIP ACCEPTED",
@@ -29,6 +33,27 @@ for (const text of [
   "This pairwise comparison is preserved in Research Inbox. No relationship was accepted.",
   "aria-label={publicationDescription}",
 ]) assert(compare.includes(text), `publication UI contains ${text}`);
+
+for (const text of [
+  "Added to Research Inbox",
+  "Pairwise correspondence preserved. No relationship was accepted.",
+  "researchDesk.entries.some(entry => entry.anchor.anchorId === anchorId)",
+]) assert(compare.includes(text), `persistent COMPARE confirmation contains ${text}`);
+
+for (const text of [
+  "NODE added to Research Inbox.",
+  "EDGE added to Research Inbox.",
+  "Pairwise correspondence added to Research Inbox.",
+  'aria-live="polite"',
+  'researchMutation?.kind !== "CREATE"',
+  "2400",
+]) assert(inbox.includes(text), `shared collection feedback contains ${text}`);
+
+assert(inboxCss.includes("prefers-reduced-motion: reduce"), "reduced-motion feedback is nonanimated");
+assert(inboxCss.includes("#86efac"), "feedback uses established green success color");
+assert.equal((workspaceSurface.match(/<ResearchInboxInstrument\b/g) ?? []).length, 1, "one shared ResearchInboxInstrument remains mounted");
+assert(workspaceSurface.includes("useState(false)"), "Research Inbox remains collapsed by default");
+assert(!inbox.includes("onExpandedChange(true)"), "collection feedback never expands Research Inbox");
 
 const orderedCardFields = ["Narrative", "Observability", "Infrastructure", "Topology", "Geography"];
 let previous = -1;
@@ -85,5 +110,28 @@ const repeated = materializeAcceptedResolveCandidate(intelligence, [first.knowle
 assert.equal(repeated.changed, false, "canonical accepted Knowledge prevents duplicate relationship");
 assert.equal(repeated.relationship.id, first.relationship.id);
 assert.throws(() => materializeAcceptedResolveCandidate(intelligence, [knowledge("left")]), /missing target Knowledge Object/);
+
+{
+  const runtime = new ResearchBridgeRuntime();
+  const mutations: ResearchBridgeMutation[] = [];
+  runtime.subscribe(mutation => mutations.push(mutation));
+  const anchors: ResearchAnchor[] = [
+    { anchorId: "research:i:NODE:n", investigationId: "i", graph: { type: ResearchAnchorType.NODE, id: "n" }, graphRevision: 1, createdAt: new Date(0), pinned: false },
+    { anchorId: "research:i:EDGE:e", investigationId: "i", graph: { type: ResearchAnchorType.EDGE, id: "e" }, graphRevision: 1, createdAt: new Date(0), pinned: false },
+    { anchorId: "research:i:CANDIDATE:c:v", investigationId: "i", candidate: { type: ResearchAnchorType.CANDIDATE, candidateId: "c", evaluationId: "v", leftKnowledgeObjectId: "left", rightKnowledgeObjectId: "right", focusedEventId: "right", focusedEventKnowledgeObjectId: "right", comparisonEventId: "left", comparisonEventKnowledgeObjectId: "left", epistemicStatus: "POTENTIAL_RELATIONSHIP", aggregate: intelligence.aggregate, dimensions: intelligence.dimensions, source: "COMPARE_PAIR_INSPECTION" }, createdAt: new Date(0), pinned: false },
+  ];
+
+  for (const anchor of anchors) {
+    runtime.createAnchor(anchor);
+    runtime.createAnchor(anchor);
+  }
+
+  assert.equal(runtime.getDesk().entries.length, 3, "NODE, EDGE, and CANDIDATE are each idempotent");
+  assert.deepEqual(mutations.map(mutation => mutation.kind), ["CREATE", "CREATE", "CREATE"], "duplicates produce no success mutation");
+  assert.deepEqual(mutations.flatMap(mutation => mutation.kind === "CREATE" ? ["graph" in mutation.anchor ? mutation.anchor.graph.type : mutation.anchor.candidate.type] : []), ["NODE", "EDGE", "CANDIDATE"]);
+
+  runtime.restoreDesk(runtime.getDesk() as any);
+  assert.equal(mutations.at(-1)?.kind, "RESTORE", "guest restoration is distinguishable from live collection");
+}
 
 console.log("PASS VerifyAcceptanceResearchPresentation");
