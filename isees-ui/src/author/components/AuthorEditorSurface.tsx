@@ -766,6 +766,15 @@ const handleAddObservation =
 
                   </div>
 
+                  {(node as ReferenceNode).summary && (
+                    <div
+                      aria-label="Structured Research reference details"
+                      style={{ marginTop: 10, whiteSpace: "pre-line", lineHeight: 1.6, color: "#cbd5e1" }}
+                    >
+                      {(node as ReferenceNode).summary}
+                    </div>
+                  )}
+
                 </>
 
               )}

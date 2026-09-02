@@ -1,0 +1,18 @@
+.workspace-surface__projection--layers {
+  --layers-inbox-collapsed-clearance: 60px;
+  --layers-inbox-expanded-clearance: 302px;
+  padding-bottom: var(--layers-inbox-collapsed-clearance);
+}
+
+.workspace-surface__projection--layers[data-research-inbox-expanded="true"] {
+  box-sizing: border-box;
+  min-width: calc(760px + var(--layers-inbox-expanded-clearance));
+  padding-right: var(--layers-inbox-expanded-clearance);
+  padding-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-surface__projection--layers {
+    transition: none !important;
+  }
+}

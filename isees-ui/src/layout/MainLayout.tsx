@@ -442,8 +442,9 @@ export default function MainLayout({
             </div>
 
             <div className="selection-intelligence__description">
-              Deterministic inspection of the active node,
-              edge, cluster, or Resolve candidate.
+              {layersMode
+                ? "Inspect the experimental subjects, layers, wires, delta, contributions, and deterministic provenance."
+                : "Deterministic inspection of the active node, edge, cluster, or Resolve candidate."}
             </div>
           </header>
 

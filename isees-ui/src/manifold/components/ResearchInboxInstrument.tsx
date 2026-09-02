@@ -37,6 +37,11 @@ import type {
   ResearchAnchor,
 } from "../../research/researchBridgeTypes";
 
+import {
+  eventDisplayName,
+  experimentReferenceSummary,
+} from "../../research/LayersExperimentReferencePresentation";
+
 // ============================================================
 // PRESENTATION CONTRACT
 // ============================================================
@@ -133,16 +138,11 @@ export default function ResearchInboxInstrument({
     if ("experiment" in entry.anchor) {
       const experiment = entry.anchor.experiment;
       const projection = experiment.projection;
-      const relationship = projection.experimental.relationship;
-      const baseline = projection.baseline.relationship;
-      const experimentalText = relationship.availability === "AVAILABLE" ? `${(relationship.score * 100).toFixed(1)}%` : "unavailable";
-      const baselineText = baseline.availability === "AVAILABLE" ? `${(baseline.score * 100).toFixed(1)}%` : "unavailable";
-      const layers = projection.provenance.experimentalLayerIds.join(", ") || "no active layers";
       const node: ReferenceNode = {
         id: crypto.randomUUID(), type: AuthorNodeTypes.REFERENCE, targetType: "DOCUMENT", targetId: projection.projectionId,
         title: `LAYERS experiment · ${projection.delta.state}`,
         source: "RESEARCH_BRIDGE", corpusId: entry.anchor.anchorId, insertedAt: new Date(),
-        summary: `LAYERS experiment found that the ${experiment.caseAEventId}–${experiment.caseBEventId} relationship was ${experimentalText} under ${layers}. The baseline was ${baselineText}. Experimental result; no canonical relationship was created.`,
+        summary: experimentReferenceSummary(entry.anchor),
       };
       authorDocumentRuntime.insertNode(node);
       return;
@@ -492,11 +492,12 @@ export default function ResearchInboxInstrument({
                           const projection = experiment.projection;
                           return <button key={entry.anchor.anchorId} type="button" onClick={() => handleInsert(entry)} title="Insert a structured non-canonical experimental reference into Author." className="research-inbox-experiment">
                             <div>EXPERIMENT · {projection.delta.state}</div>
-                            <strong>{experiment.caseAEventId} ↔ {experiment.caseBEventId}</strong>
+                            <strong>{eventDisplayName(experiment.caseAEventId)} ↔ {eventDisplayName(experiment.caseBEventId)}</strong>
                             <span>Experimental layers · {projection.provenance.experimentalLayerIds.join(" · ") || "NONE"}</span>
                             <span>Experimental score · {projection.experimental.relationship.availability === "AVAILABLE" ? formatPercent(projection.experimental.relationship.score) : "UNAVAILABLE"}</span>
                             <span>Baseline score · {projection.baseline.relationship.availability === "AVAILABLE" ? formatPercent(projection.baseline.relationship.score) : "UNAVAILABLE"}</span>
                             <em>NON-CANONICAL</em>
+                            <span>Experimental result; no canonical relationship was created.</span>
                           </button>;
                         }
 

@@ -77,6 +77,8 @@ import ResearchInboxInstrument
 import WorkspaceIdentityHeader
   from "../components/workspace/WorkspaceIdentityHeader";
 
+import "./WorkspaceSurface.css";
+
 // ============================================================
 // PLACEHOLDER SURFACE
 // ============================================================
@@ -265,9 +267,11 @@ export default function WorkspaceSurface() {
       */}
 
       <div
+        className={`workspace-surface__projection${activeMode === WorkspaceMode.LAYERS ? " workspace-surface__projection--layers" : ""}`}
         data-research-inbox-expanded={
           researchInboxExpanded
         }
+        data-workspace-mode={activeMode}
         style={{
           width:
             "100%",
@@ -291,7 +295,7 @@ export default function WorkspaceSurface() {
             "border-box",
 
           paddingRight:
-            (activeMode === WorkspaceMode.MANIFOLD || activeMode === WorkspaceMode.LAYERS) &&
+            activeMode === WorkspaceMode.MANIFOLD &&
             researchInboxExpanded
               ? "clamp(0px, calc(100% - 760px), 318px)"
               : 0,

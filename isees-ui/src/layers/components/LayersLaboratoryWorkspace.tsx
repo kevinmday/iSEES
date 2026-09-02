@@ -44,7 +44,7 @@ export default function LayersLaboratoryWorkspace() {
     } catch (error) { return { error: `Stale or malformed selected candidate: ${error instanceof Error ? error.message : "unknown error"}` } as const; }
   }, [completed, intelligence, investigation, knowledge, selection, workspace?.focused_event_id]);
 
-  if ("error" in source) return <main className="layers-lab layers-lab--empty"><section role="status"><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Laboratory input required</h1><p>{source.error}</p><p>Canonical knowledge remains untouched.</p></section></main>;
+  if ("error" in source) return <main className="layers-lab layers-lab--empty"><section role="status"><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Laboratory input required</h1><p>{source.error}</p><ol><li>Run Resolve.</li><li>Select a comparison in COMPARE.</li><li>Return to LAYERS.</li></ol><p>Published Research experiments remain available in the Research Inbox. Canonical knowledge remains untouched.</p></section></main>;
   const pairView = source.pairView!;
   const baselineIds = workspace?.active_layers ?? [];
   const samePair = state.scope?.compareOrigin?.candidateId === pairView.candidateId;
