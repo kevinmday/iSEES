@@ -123,6 +123,8 @@ import {
 
 } from "./knowledge/runtime/KnowledgeObjectRuntimeContext";
 
+import { LayersExperimentRuntimeProvider } from "./layers/runtime";
+
 import {
 
   AuthorDocumentRuntimeProvider,
@@ -245,6 +247,8 @@ function OperatorUI() {
 
               <KnowledgeObjectRuntimeProvider>
 
+                <LayersExperimentRuntimeProvider>
+
                 <ResearchBridgeProvider>
 
                   <AuthorDocumentRuntimeProvider>
@@ -286,6 +290,8 @@ function OperatorUI() {
                   </AuthorDocumentRuntimeProvider>
 
                 </ResearchBridgeProvider>
+
+                </LayersExperimentRuntimeProvider>
 
               </KnowledgeObjectRuntimeProvider>
 

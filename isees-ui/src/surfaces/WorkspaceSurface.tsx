@@ -63,6 +63,9 @@ import ManifoldWorkspace
 import CompareWorkspace
   from "../compare/components/CompareWorkspace";
 
+import LayersWorkspace
+  from "../workspace/surfaces/LayersWorkspace";
+
 import "../compare/components/CompareWorkspace.css";
 
 import StudioShell
@@ -170,9 +173,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.LAYERS:
 
       return (
-        <PlaceholderSurface
-          title="Layer Analysis Workspace"
-        />
+        <LayersWorkspace />
       );
 
     case WorkspaceMode.INTENTION:
@@ -222,7 +223,10 @@ export default function WorkspaceSurface() {
     activeMode ===
       WorkspaceMode.RESEARCH ||
     activeMode ===
-      WorkspaceMode.COMPARE;
+      WorkspaceMode.COMPARE ||
+    activeMode ===
+      WorkspaceMode.LAYERS;
+
 
   return (
 
