@@ -137,6 +137,7 @@ export class LayersExperimentRuntime {
     const scope = immutable({
       investigationId, workspaceId,
       focusedEventId: optionalIdentifier(input.scope.focusedEventId, "Focused event identity"),
+      comparisonEventId: optionalIdentifier(input.scope.comparisonEventId, "Comparison event identity"),
       subjectIds,
       compareOrigin: input.scope.compareOrigin === undefined ? undefined : {
         pairId: optionalIdentifier(input.scope.compareOrigin.pairId, "COMPARE pair identity"),

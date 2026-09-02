@@ -17,6 +17,7 @@ import { useEventContext } from "../context/EventContext";
 import {
   useWorkspaceMode,
 } from "../workspace/runtime/WorkspaceRuntimeContext";
+import { WorkspaceMode } from "../workspace/runtime/WorkspaceRuntimeTypes";
 
 import {
   getWorkspaceModeLabel,
@@ -45,6 +46,9 @@ export default function MainLayout({
 
   const workspaceMode =
     useWorkspaceMode();
+  const layersMode = workspaceMode === WorkspaceMode.LAYERS;
+  const leftInstrumentName = layersMode ? "Laboratory Navigator" : "Investigation Control";
+  const rightInstrumentName = layersMode ? "Experimental Intelligence" : "Selection Intelligence";
 
   const [
     workspaceExpanded,
@@ -220,7 +224,7 @@ export default function MainLayout({
               onClick={() =>
                 setLeftPanelCollapsed(false)
               }
-              title="Restore Investigation Control"
+              title={`Restore ${leftInstrumentName}`}
               style={{
                 background: "#070d18",
                 color: "#94a3b8",
@@ -270,7 +274,7 @@ export default function MainLayout({
               onClick={() =>
                 setLeftPanelCollapsed(true)
               }
-              title="Collapse Investigation Control"
+              title={`Collapse ${leftInstrumentName}`}
               style={{
                 background: "transparent",
                 color: "#94a3b8",
@@ -388,8 +392,8 @@ export default function MainLayout({
               onClick={() =>
                 setRightPanelCollapsed(false)
               }
-              title="Restore Selection Intelligence"
-              aria-label="Restore Selection Intelligence"
+              title={`Restore ${rightInstrumentName}`}
+              aria-label={`Restore ${rightInstrumentName}`}
             >
               &lt;&lt;
             </button>
@@ -407,7 +411,7 @@ export default function MainLayout({
           ]
             .filter(Boolean)
             .join(" ")}
-          aria-label="Selection Intelligence"
+          aria-label={rightInstrumentName}
         >
 
           {/* HEADER */}
@@ -416,11 +420,11 @@ export default function MainLayout({
             <div className="selection-intelligence__header-row">
               <div className="selection-intelligence__identity">
                 <div className="selection-intelligence__eyebrow">
-                  Active selection
+                  {layersMode ? "Laboratory inspection" : "Active selection"}
                 </div>
 
                 <div className="selection-intelligence__title">
-                  Selection Intelligence
+                  {rightInstrumentName}
                 </div>
               </div>
 
@@ -430,8 +434,8 @@ export default function MainLayout({
                 onClick={() =>
                   setRightPanelCollapsed(true)
                 }
-                title="Collapse Selection Intelligence"
-                aria-label="Collapse Selection Intelligence"
+                title={`Collapse ${rightInstrumentName}`}
+                aria-label={`Collapse ${rightInstrumentName}`}
               >
                 &gt;&gt;
               </button>

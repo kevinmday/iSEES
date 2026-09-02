@@ -26,6 +26,7 @@ export interface LayersExperimentScope {
   investigationId: string;
   workspaceId?: string;
   focusedEventId?: string;
+  comparisonEventId?: string;
   subjectIds: readonly string[];
   compareOrigin?: LayersExperimentCompareOrigin;
   resolveOrigin?: LayersExperimentResolveOrigin;

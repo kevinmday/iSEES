@@ -1,0 +1,28 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime";
+import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/researchBridgeTypes";
+import { createLayersExperimentResearchAnchor, publishLayersExperimentToResearch } from "../../src/layers/research/LayersExperimentResearchPublication";
+import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence";
+
+const projection = Object.freeze({ kind: "LAYERS_EXPERIMENTAL_PAIR_PROJECTION", projectionId: "layers-pair-projection:abc", investigationId: "investigation-1", executionId: "layers-execution:abc", pairId: "canonical-pair:left:right", candidateId: "candidate:left:right", evaluationId: "evaluation:left:right", subjects: [{kind:"SUBJECT_NODE",knowledgeObjectId:"ko-a"},{kind:"SUBJECT_NODE",knowledgeObjectId:"ko-b"}], baseline: { sourceKnowledgeObjectId:"ko-a",targetKnowledgeObjectId:"ko-b",relationship:{availability:"UNAVAILABLE",reason:"NO_ACTIVE_LAYERS",participatingLayers:[]},contributions:[] }, experimental: { sourceKnowledgeObjectId:"ko-a",targetKnowledgeObjectId:"ko-b",relationship:{availability:"AVAILABLE",score:.077,participatingWeight:1,participatingLayers:["NARRATIVE"]},contributions:[] }, layerContributions: [{layerId:"NARRATIVE",classification:"CANONICAL",operationalMappingStatus:"MAPPED",canonicalDimension:"NARRATIVE",availability:"AVAILABLE",similarity:.077,canonicalWeight:1,participatingWeight:1,weightedContribution:.077,sourceEvaluationId:"evaluation:left:right"}], unavailableInputs: [], delta:{state:"FORMED",experimentalScore:.077}, provenance:{governingEquation:"M = g(L,T,S)",executionId:"layers-execution:abc",investigationId:"investigation-1",pairId:"canonical-pair:left:right",candidateId:"candidate:left:right",evaluationId:"evaluation:left:right",baselineLayerIds:[],experimentalLayerIds:["NARRATIVE"],participatingLayerIds:["NARRATIVE"],unavailableLayerIds:[],canonicalRepresentation:'{"exact":true}'}, createsCanonicalKnowledgeRelationship:false } as const);
+const execution = { executionId: projection.executionId, input:{scope:{investigationId:"investigation-1",subjectIds:["ko-a","ko-b"]},baseline:{investigationId:"investigation-1",subjectIds:["ko-a","ko-b"],canonicalStartingLayerIds:[],temporalContext:null,investigativeScale:null},armedLayers:[],temporalContext:null,investigativeScale:null,researcherConfiguration:{}},result:{outcome:"COMPUTED",experimentalManifoldSnapshot:projection,unavailableInputs:[]} } as any;
+const runtime = new ResearchBridgeRuntime();
+const input = { investigationId:"investigation-1",caseAEventId:"event-a",caseBEventId:"event-b",execution,projection,researchBridgeRuntime:runtime } as any;
+const first = publishLayersExperimentToResearch(input); const second = publishLayersExperimentToResearch(input);
+assert.equal(first.anchorId, second.anchorId); assert.equal(runtime.getDesk().entries.length, 1);
+assert.equal(first.experiment.type, ResearchAnchorType.EXPERIMENT); assert.equal(first.experiment.projection, projection);
+assert.equal(first.experiment.projection.createsCanonicalKnowledgeRelationship, false);
+assert.equal(first.experiment.projection.provenance.canonicalRepresentation, '{"exact":true}');
+assert.throws(() => createLayersExperimentResearchAnchor({...input, execution:{...execution,executionId:"wrong"}}));
+const before = JSON.stringify({knowledge:["ko-a","ko-b"],relationships:[],activeLayers:[],resolve:"complete",compare:"selected",manifold:"stable"});
+assert.equal(before, JSON.stringify({knowledge:["ko-a","ko-b"],relationships:[],activeLayers:[],resolve:"complete",compare:"selected",manifold:"stable"}));
+const source = readFileSync("src/layers/research/LayersExperimentResearchPublication.ts","utf8");
+for (const forbidden of ["setSelection","setActiveLayers","acceptResolveCandidate","createEdge","executeResolve"]) assert(!source.includes(forbidden));
+const snapshot = createGuestWorkspaceSessionSnapshot({ownership:{kind:"GUEST",operatorId:"guest",establishedAt:"2026-01-01"},workspace:{operator:{activeMode:"OVERVIEW" as any,layoutMode:"NORMAL" as any},computational:{activeLayers:[]}},research:{desk:runtime.getDesk()},authoring:{}});
+assert(isGuestWorkspaceSessionSnapshot(JSON.parse(JSON.stringify(snapshot))));
+const anchors: ResearchAnchor[] = [{anchorId:"n",investigationId:"i",graph:{type:ResearchAnchorType.NODE,id:"n"},graphRevision:1,createdAt:new Date(),pinned:false},{anchorId:"e",investigationId:"i",graph:{type:ResearchAnchorType.EDGE,id:"e"},graphRevision:1,createdAt:new Date(),pinned:false}];
+assert.deepEqual(anchors.map(a => "graph" in a && a.graph.type),["NODE","EDGE"]);
+const inbox = readFileSync("src/manifold/components/ResearchInboxInstrument.tsx","utf8");
+assert(inbox.includes("EXPERIMENT ·") && inbox.includes("NON-CANONICAL") && inbox.includes("no canonical relationship was created"));
+console.log("PASS VerifyLayersResearchPublication");

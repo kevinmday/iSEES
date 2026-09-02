@@ -363,6 +363,16 @@ function isPersistedResearchState(
     if (isRecord(anchor.graph)) {
       return (anchor.graph.type === "NODE" || anchor.graph.type === "EDGE") && isString(anchor.graph.id) && typeof anchor.graphRevision === "number";
     }
+    if (isRecord(anchor.experiment)) {
+      const experiment = anchor.experiment;
+      const projection = experiment.projection;
+      return experiment.type === "EXPERIMENT" && experiment.source === "LAYERS_EXPERIMENTAL_LABORATORY" &&
+        isString(experiment.caseAEventId) && isString(experiment.caseBEventId) && isRecord(projection) &&
+        projection.kind === "LAYERS_EXPERIMENTAL_PAIR_PROJECTION" && isString(projection.projectionId) &&
+        isString(projection.executionId) && projection.createsCanonicalKnowledgeRelationship === false &&
+        isRecord(projection.provenance) && isString(projection.provenance.canonicalRepresentation) &&
+        Array.isArray(projection.layerContributions) && Array.isArray(projection.unavailableInputs);
+    }
     if (!isRecord(anchor.candidate) || anchor.candidate.type !== "CANDIDATE") return false;
     const candidate = anchor.candidate;
     const identities = [candidate.candidateId, candidate.evaluationId, candidate.leftKnowledgeObjectId, candidate.rightKnowledgeObjectId, candidate.focusedEventId, candidate.focusedEventKnowledgeObjectId, candidate.comparisonEventId, candidate.comparisonEventKnowledgeObjectId];

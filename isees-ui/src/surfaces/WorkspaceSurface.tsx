@@ -291,7 +291,7 @@ export default function WorkspaceSurface() {
             "border-box",
 
           paddingRight:
-            activeMode === WorkspaceMode.MANIFOLD &&
+            (activeMode === WorkspaceMode.MANIFOLD || activeMode === WorkspaceMode.LAYERS) &&
             researchInboxExpanded
               ? "clamp(0px, calc(100% - 760px), 318px)"
               : 0,

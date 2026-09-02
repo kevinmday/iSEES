@@ -61,6 +61,9 @@ function formatPercent(value: number): string {
 }
 
 export function collectionConfirmationFor(anchor: ResearchAnchor): string {
+  if ("experiment" in anchor) {
+    return "Experimental result added to Research Inbox.";
+  }
   if (!("graph" in anchor)) {
     return "Pairwise correspondence added to Research Inbox.";
   }
@@ -123,7 +126,25 @@ export default function ResearchInboxInstrument({
       typeof researchDesk.entries[number],
   ): void {
 
-    if (!("graph" in entry.anchor)) {
+    if ("candidate" in entry.anchor) {
+      return;
+    }
+
+    if ("experiment" in entry.anchor) {
+      const experiment = entry.anchor.experiment;
+      const projection = experiment.projection;
+      const relationship = projection.experimental.relationship;
+      const baseline = projection.baseline.relationship;
+      const experimentalText = relationship.availability === "AVAILABLE" ? `${(relationship.score * 100).toFixed(1)}%` : "unavailable";
+      const baselineText = baseline.availability === "AVAILABLE" ? `${(baseline.score * 100).toFixed(1)}%` : "unavailable";
+      const layers = projection.provenance.experimentalLayerIds.join(", ") || "no active layers";
+      const node: ReferenceNode = {
+        id: crypto.randomUUID(), type: AuthorNodeTypes.REFERENCE, targetType: "DOCUMENT", targetId: projection.projectionId,
+        title: `LAYERS experiment · ${projection.delta.state}`,
+        source: "RESEARCH_BRIDGE", corpusId: entry.anchor.anchorId, insertedAt: new Date(),
+        summary: `LAYERS experiment found that the ${experiment.caseAEventId}–${experiment.caseBEventId} relationship was ${experimentalText} under ${layers}. The baseline was ${baselineText}. Experimental result; no canonical relationship was created.`,
+      };
+      authorDocumentRuntime.insertNode(node);
       return;
     }
 
@@ -466,6 +487,19 @@ export default function ResearchInboxInstrument({
                           );
                         }
 
+                        if ("experiment" in entry.anchor) {
+                          const experiment = entry.anchor.experiment;
+                          const projection = experiment.projection;
+                          return <button key={entry.anchor.anchorId} type="button" onClick={() => handleInsert(entry)} title="Insert a structured non-canonical experimental reference into Author." className="research-inbox-experiment">
+                            <div>EXPERIMENT · {projection.delta.state}</div>
+                            <strong>{experiment.caseAEventId} ↔ {experiment.caseBEventId}</strong>
+                            <span>Experimental layers · {projection.provenance.experimentalLayerIds.join(" · ") || "NONE"}</span>
+                            <span>Experimental score · {projection.experimental.relationship.availability === "AVAILABLE" ? formatPercent(projection.experimental.relationship.score) : "UNAVAILABLE"}</span>
+                            <span>Baseline score · {projection.baseline.relationship.availability === "AVAILABLE" ? formatPercent(projection.baseline.relationship.score) : "UNAVAILABLE"}</span>
+                            <em>NON-CANONICAL</em>
+                          </button>;
+                        }
+
                         const candidate = entry.anchor.candidate;
                         const availableCount = candidate.dimensions.filter(dimension => dimension.status === "AVAILABLE").length;
                         const unavailableCount = candidate.dimensions.length - availableCount;
@@ -551,7 +585,7 @@ export default function ResearchInboxInstrument({
                 "0.04em",
             }}
           >
-            Graph references can be inserted into Author.
+            Graph and experimental references can be inserted into Author.
             Candidates remain research inspection entries.
           </div>
 

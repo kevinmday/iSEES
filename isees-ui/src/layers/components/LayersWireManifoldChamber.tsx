@@ -1,12 +1,20 @@
 import type { LayersExperimentalPairProjection } from "../projection";
+import { useLayersPresentationSelection } from "./LayersPresentationSelection";
 
 const percent = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value * 100).toFixed(1)}%`;
 
 export default function LayersWireManifoldChamber({ projection, caseA, caseB }: { projection: LayersExperimentalPairProjection; caseA: string; caseB: string }) {
+  const { selection, select } = useLayersPresentationSelection();
   const baseline = projection.baseline.relationship;
   const experiment = projection.experimental.relationship;
   return <section className="layers-lab__chamber" aria-labelledby="layers-chamber-title">
     <div className="layers-lab__section-heading"><span>03</span><h2 id="layers-chamber-title">Wire manifold chamber</h2><strong>{projection.delta.state}</strong></div>
+    <div className="layers-lab__inspection-hooks">
+      <button type="button" aria-pressed={selection.kind === "CASE_A"} onClick={() => select({kind:"CASE_A"})}>Inspect Case A</button>
+      <button type="button" aria-pressed={selection.kind === "BASELINE_RELATIONSHIP"} onClick={() => select({kind:"BASELINE_RELATIONSHIP"})}>Inspect baseline wire</button>
+      <button type="button" aria-pressed={selection.kind === "EXPERIMENTAL_RELATIONSHIP"} onClick={() => select({kind:"EXPERIMENTAL_RELATIONSHIP"})}>Inspect experimental wire</button>
+      <button type="button" aria-pressed={selection.kind === "CASE_B"} onClick={() => select({kind:"CASE_B"})}>Inspect Case B</button>
+    </div>
     <svg className="layers-wire" viewBox="0 0 900 300" role="img" aria-labelledby="wire-title wire-description">
       <title id="wire-title">Concurrent baseline and experimental relationship wires</title>
       <desc id="wire-description">Case A and Case B connected by separate reference and experimental wires. Delta state {projection.delta.state}.</desc>

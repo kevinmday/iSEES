@@ -39,6 +39,8 @@ export const ResearchAnchorType = {
 
   CANDIDATE: "CANDIDATE",
 
+  EXPERIMENT: "EXPERIMENT",
+
 } as const;
 
 export type ResearchAnchorType =
@@ -158,9 +160,25 @@ export interface ResearchCandidateAnchor {
   pinned: boolean;
 }
 
+export interface ResearchExperimentAnchor {
+  anchorId: string;
+  investigationId: string;
+  experiment: {
+    type: typeof ResearchAnchorType.EXPERIMENT;
+    caseAEventId: string;
+    caseBEventId: string;
+    projection: import("../layers/projection").LayersExperimentalPairProjection;
+    source: "LAYERS_EXPERIMENTAL_LABORATORY";
+  };
+  createdAt: Date;
+  notes?: string;
+  pinned: boolean;
+}
+
 export type ResearchAnchor =
   | ResearchGraphAnchor
-  | ResearchCandidateAnchor;
+  | ResearchCandidateAnchor
+  | ResearchExperimentAnchor;
 
 // ============================================================
 // RESEARCH DESK ENTRY

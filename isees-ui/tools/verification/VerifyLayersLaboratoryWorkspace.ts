@@ -9,6 +9,7 @@ const context = read("src/layers/runtime/LayersExperimentRuntimeContext.tsx");
 const surface = read("src/surfaces/WorkspaceSurface.tsx");
 const projection = read("src/workspace/runtime/WorkspaceProjection.tsx");
 const css = read("src/layers/components/LayersLaboratoryWorkspace.css");
+const intelligence = read("src/layers/components/LayersExperimentalIntelligence.tsx");
 let passed = 0;
 function verify(name: string, condition: boolean) { if (!condition) throw new Error(`FAIL: ${name}`); console.log(`PASS: ${name}`); passed += 1; }
 
@@ -26,7 +27,7 @@ verify("unavailable is not zero", chamber.includes("UNAVAILABLE (not zero)") && 
 verify("purpose-built deterministic SVG", chamber.includes("<svg") && chamber.includes("viewBox=\"0 0 900 300\""));
 verify("no random or force simulation", !chamber.match(/random|force-graph|simulation/i));
 verify("non-mutation boundary visible", workspace.includes("Canonical knowledge was not mutated") && workspace.includes("No canonical relationship was created"));
-verify("Research publication not fabricated", workspace.includes("Publication to Research is a later explicit action") && workspace.includes("disabled"));
+verify("Research publication is explicit and side-owned", intelligence.includes("Publish Experiment to Research") && intelligence.includes("canPublish"));
 verify("Research Inbox visible in LAYERS", surface.includes("WorkspaceMode.LAYERS"));
 verify("accessibility contracts", workspace.includes("aria-pressed") && chamber.includes("role=\"img\"") && css.includes(":focus-visible"));
 verify("reduced motion contract", css.includes("prefers-reduced-motion"));

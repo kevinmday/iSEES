@@ -124,6 +124,11 @@ import {
 } from "./knowledge/runtime/KnowledgeObjectRuntimeContext";
 
 import { LayersExperimentRuntimeProvider } from "./layers/runtime";
+import { LayersPresentationSelectionProvider } from "./layers/components/LayersPresentationSelection";
+import LayersLaboratoryNavigator from "./layers/components/LayersLaboratoryNavigator";
+import LayersExperimentalIntelligence from "./layers/components/LayersExperimentalIntelligence";
+import { WorkspaceMode } from "./workspace/runtime/WorkspaceRuntimeTypes";
+import { useWorkspaceMode } from "./workspace/runtime/WorkspaceRuntimeContext";
 
 import {
 
@@ -263,10 +268,11 @@ function OperatorUI() {
 
                           <EventProvider>
 
+                            <LayersPresentationSelectionProvider>
                             <MainLayout
 
                               left={
-                                <InvestigationControl />
+                                <ModeAwareLeftPanel />
                               }
 
                               center={
@@ -274,10 +280,11 @@ function OperatorUI() {
                               }
 
                               right={
-                                <RightPanel />
+                                <ModeAwareRightPanel />
                               }
 
                             />
+                            </LayersPresentationSelectionProvider>
 
                           </EventProvider>
 
@@ -390,4 +397,16 @@ export default function App() {
 
   );
 
+}
+
+function ModeAwareLeftPanel() {
+  return useWorkspaceMode() === WorkspaceMode.LAYERS
+    ? <LayersLaboratoryNavigator />
+    : <InvestigationControl />;
+}
+
+function ModeAwareRightPanel() {
+  return useWorkspaceMode() === WorkspaceMode.LAYERS
+    ? <LayersExperimentalIntelligence />
+    : <RightPanel />;
 }
