@@ -120,6 +120,24 @@ export interface ResolveCandidateAcceptanceResult {
 
 }
 
+export const ResolveCandidateAcceptanceState = {
+  POTENTIAL: "POTENTIAL",
+  ACCEPTED: "ACCEPTED",
+  MALFORMED_CONFLICT: "MALFORMED_CONFLICT",
+} as const;
+
+export type ResolveCandidateAcceptanceState =
+  (typeof ResolveCandidateAcceptanceState)[
+    keyof typeof ResolveCandidateAcceptanceState
+  ];
+
+export interface ResolveCandidateAcceptanceStateResult {
+  state: ResolveCandidateAcceptanceState;
+  relationshipId: string;
+  relationship?: KnowledgeRelationship;
+  message?: string;
+}
+
 export function createAcceptedResolveCandidateRelationshipId(
   candidateId: string,
 ): string {
@@ -133,6 +151,67 @@ export function createAcceptedResolveCandidateRelationshipId(
     "resolve-relationship",
     candidateId,
   ].join(":");
+}
+
+export function resolveCandidateAcceptanceState(
+  intelligence: ResolveCandidateIntelligence,
+  knowledgeObjects: readonly KnowledgeObject[],
+): ResolveCandidateAcceptanceStateResult {
+  validateCandidateIntelligenceLineage(intelligence);
+
+  const sourceId = intelligence.identity.leftKnowledgeObjectId;
+  const targetId = intelligence.identity.rightKnowledgeObjectId;
+  const relationshipId = createAcceptedResolveCandidateRelationshipId(
+    intelligence.identity.candidateId,
+  );
+  const sourceMatches = knowledgeObjects.filter(
+    object => object.identity.id === sourceId,
+  );
+  const targetMatches = knowledgeObjects.filter(
+    object => object.identity.id === targetId,
+  );
+
+  if (sourceMatches.length !== 1 || targetMatches.length !== 1) {
+    return {
+      state: ResolveCandidateAcceptanceState.MALFORMED_CONFLICT,
+      relationshipId,
+      message: "Candidate acceptance lineage does not resolve to exactly one source and target Knowledge Object.",
+    };
+  }
+
+  const identityMatches = knowledgeObjects.flatMap(object =>
+    object.relationships
+      .filter(relationship => relationship.id === relationshipId)
+      .map(relationship => ({ ownerId: object.identity.id, relationship })),
+  );
+
+  if (identityMatches.length === 0) {
+    return {
+      state: ResolveCandidateAcceptanceState.POTENTIAL,
+      relationshipId,
+    };
+  }
+
+  const match = identityMatches[0];
+  if (
+    identityMatches.length !== 1 ||
+    match === undefined ||
+    match.ownerId !== sourceId ||
+    match.relationship.type !== ResolveAcceptedRelationshipType.RESOLVE_CANDIDATE ||
+    match.relationship.targetId !== targetId
+  ) {
+    return {
+      state: ResolveCandidateAcceptanceState.MALFORMED_CONFLICT,
+      relationshipId,
+      message: "The deterministic accepted relationship identity exists with conflicting canonical semantics.",
+    };
+  }
+
+  return {
+    state: ResolveCandidateAcceptanceState.ACCEPTED,
+    relationshipId,
+    relationship: match.relationship,
+  };
 }
 
 // ============================================================

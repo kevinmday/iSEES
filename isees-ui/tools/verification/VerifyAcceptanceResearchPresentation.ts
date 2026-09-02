@@ -6,6 +6,8 @@ import type { KnowledgeObject } from "../../src/knowledge/model/KnowledgeObject"
 import {
   createAcceptedResolveCandidateRelationshipId,
   materializeAcceptedResolveCandidate,
+  resolveCandidateAcceptanceState,
+  ResolveCandidateAcceptanceState,
 } from "../../src/resolve/acceptance/ResolveCandidateAcceptance";
 import type { ResolveCandidateIntelligence } from "../../src/resolve/intelligence/ResolveCandidateIntelligenceTypes";
 import { ResearchBridgeRuntime, type ResearchBridgeMutation } from "../../src/research/ResearchBridgeRuntime";
@@ -16,17 +18,26 @@ const compare = readFileSync("src/compare/components/CompareWorkspace.tsx", "utf
 const inbox = readFileSync("src/manifold/components/ResearchInboxInstrument.tsx", "utf8");
 const inboxCss = readFileSync("src/manifold/components/ResearchInboxInstrument.css", "utf8");
 const workspaceSurface = readFileSync("src/surfaces/WorkspaceSurface.tsx", "utf8");
+const rightPanel = readFileSync("src/components/RightPanel.tsx", "utf8");
 
 for (const text of [
   "RELATIONSHIP ACCEPTED",
   "Canonical relationship created. EDGE",
   "useKnowledgeObjects",
-  "acceptedRelationship !== undefined",
+  "resolveCandidateAcceptanceState",
+  "ResolveCandidateAcceptanceState.ACCEPTED",
   "role=\"alert\"",
   "Create a canonical relationship between these events. This changes the Investigation Manifold.",
   "This candidate has been accepted as a canonical relationship in the Investigation Manifold.",
   "aria-label={acceptanceDescription}",
 ]) assert(manifold.includes(text), `acceptance UI contains ${text}`);
+
+for (const text of [
+  "resolveCandidateAcceptanceState",
+  "Accepted Relationship",
+  "Relationship Conflict",
+  'label="EDGE ID"',
+]) assert(rightPanel.includes(text), `Right Inspector contains ${text}`);
 
 for (const text of [
   "Preserve this pairwise comparison in Research Inbox for inspection and writing. This does not accept the relationship.",
@@ -104,11 +115,21 @@ const intelligence = {
 } as unknown as ResolveCandidateIntelligence;
 
 const first = materializeAcceptedResolveCandidate(intelligence, [knowledge("left"), knowledge("right")]);
+assert.equal(resolveCandidateAcceptanceState(intelligence, [knowledge("left"), knowledge("right")]).state, ResolveCandidateAcceptanceState.POTENTIAL);
 assert.equal(first.changed, true);
 assert.equal(first.relationship.id, createAcceptedResolveCandidateRelationshipId("candidate:left:right"));
 const repeated = materializeAcceptedResolveCandidate(intelligence, [first.knowledgeObject, knowledge("right")]);
 assert.equal(repeated.changed, false, "canonical accepted Knowledge prevents duplicate relationship");
 assert.equal(repeated.relationship.id, first.relationship.id);
+const acceptedState = resolveCandidateAcceptanceState(intelligence, [first.knowledgeObject, knowledge("right")]);
+assert.equal(acceptedState.state, ResolveCandidateAcceptanceState.ACCEPTED);
+assert.equal(acceptedState.relationshipId, first.relationship.id);
+const endpointOnly = knowledge("left");
+endpointOnly.relationships.push({ id: "unrelated", type: "RESOLVE_CANDIDATE", targetId: "right" });
+assert.equal(resolveCandidateAcceptanceState(intelligence, [endpointOnly, knowledge("right")]).state, ResolveCandidateAcceptanceState.POTENTIAL, "endpoint coincidence does not prove acceptance");
+const conflicting = knowledge("left");
+conflicting.relationships.push({ id: first.relationship.id, type: "CONFLICTING", targetId: "right" });
+assert.equal(resolveCandidateAcceptanceState(intelligence, [conflicting, knowledge("right")]).state, ResolveCandidateAcceptanceState.MALFORMED_CONFLICT);
 assert.throws(() => materializeAcceptedResolveCandidate(intelligence, [knowledge("left")]), /missing target Knowledge Object/);
 
 {

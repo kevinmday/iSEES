@@ -159,9 +159,9 @@ import {
 } from "../../resolve/intelligence/ResolveCandidateSelection";
 
 import {
-  createAcceptedResolveCandidateRelationshipId,
   materializeAcceptedResolveCandidate,
-  ResolveAcceptedRelationshipType,
+  ResolveCandidateAcceptanceState,
+  resolveCandidateAcceptanceState,
 } from "../../resolve/acceptance/ResolveCandidateAcceptance";
 
 import type {
@@ -1052,30 +1052,17 @@ export default function PrimaryInvestigationManifold({
                       */}
 
                       {isSelected && (() => {
-
-                        const relationshipId =
-                          createAcceptedResolveCandidateRelationshipId(
-                            intelligence.identity.candidateId,
-                          );
-
-                        const acceptedRelationship =
-                          knowledgeObjects
-                            .find(object =>
-                              object.identity.id === intelligence.identity.leftKnowledgeObjectId,
-                            )
-                            ?.relationships
-                            .find(relationship =>
-                              relationship.id === relationshipId &&
-                              relationship.type === ResolveAcceptedRelationshipType.RESOLVE_CANDIDATE &&
-                              relationship.targetId === intelligence.identity.rightKnowledgeObjectId,
-                            );
-
-                        const accepted =
-                          acceptedRelationship !== undefined;
-
+                        const acceptance = resolveCandidateAcceptanceState(
+                          intelligence,
+                          knowledgeObjects,
+                        );
+                        const accepted = acceptance.state === ResolveCandidateAcceptanceState.ACCEPTED;
+                        const conflict = acceptance.state === ResolveCandidateAcceptanceState.MALFORMED_CONFLICT;
                         const acceptanceDescription = accepted
                           ? "This candidate has been accepted as a canonical relationship in the Investigation Manifold."
-                          : "Create a canonical relationship between these events. This changes the Investigation Manifold.";
+                          : conflict
+                            ? acceptance.message ?? "Canonical relationship state is malformed."
+                            : "Create a canonical relationship between these events. This changes the Investigation Manifold.";
 
                         return (
 
@@ -1089,11 +1076,11 @@ export default function PrimaryInvestigationManifold({
                           // Acceptance requires a synchronized projection.
 
                           disabled={
-                            accepted || !candidateAcceptanceAllowed
+                            accepted || conflict || !candidateAcceptanceAllowed
                           }
 
                           aria-disabled={
-                            accepted || !candidateAcceptanceAllowed
+                            accepted || conflict || !candidateAcceptanceAllowed
                           }
 
                           title={acceptanceDescription}
@@ -1134,7 +1121,7 @@ export default function PrimaryInvestigationManifold({
                               "#86efac",
 
                             cursor:
-                              candidateAcceptanceAllowed && !accepted
+                              candidateAcceptanceAllowed && !accepted && !conflict
                                 ? "pointer"
                                 : "not-allowed",
 
@@ -1162,6 +1149,8 @@ export default function PrimaryInvestigationManifold({
                           {
                             accepted
                               ? "RELATIONSHIP ACCEPTED"
+                              : conflict
+                              ? "RELATIONSHIP CONFLICT"
                               : candidateAcceptanceAllowed
                               ? "ACCEPT RELATIONSHIP"
                               : "RESOLVE REQUIRED"
@@ -1170,11 +1159,17 @@ export default function PrimaryInvestigationManifold({
 
                         {accepted && (
                           <div role="status" style={{ marginTop: 5, color: "#86efac", fontSize: 10 }}>
-                            Canonical relationship created. EDGE {acceptedRelationship.id}
+                            Canonical relationship created. EDGE {acceptance.relationshipId}
                           </div>
                         )}
 
-                        {!accepted && acceptanceError?.candidateId === intelligence.identity.candidateId && (
+                        {conflict && (
+                          <div role="alert" style={{ marginTop: 5, color: "#fca5a5", fontSize: 10 }}>
+                            {acceptance.message}
+                          </div>
+                        )}
+
+                        {!accepted && !conflict && acceptanceError?.candidateId === intelligence.identity.candidateId && (
                           <div role="alert" style={{ marginTop: 5, color: "#fca5a5", fontSize: 10 }}>
                             {acceptanceError.message}
                           </div>

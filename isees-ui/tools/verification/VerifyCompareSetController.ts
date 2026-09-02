@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { CANONICAL_EVENTS } from "../../src/canonical/runtimeCorpus";
 import { resolveCompareCandidateOptionProjection, CompareCandidateOptionProjectionStatus } from "../../src/compare/projection/CompareCandidateOptionProjection";
@@ -80,5 +79,6 @@ for (const forbidden of [
 ]) assert(!controller.includes(forbidden) && !projection.includes(forbidden), `forbidden mutation/computation absent: ${forbidden}`);
 const selectors = css.split(/\r?\n/).map(x => x.trim()).filter(x => x.startsWith("."));
 assert(selectors.length > 0 && selectors.every(x => x.startsWith(".compare-set")), "CSS uses only compare-set namespace");
-for (const path of ["src/components/RightPanel.tsx"]) { execFileSync("git", ["diff", "--exit-code", "--", path]); assert(true, `${path} remains unchanged`); }
+const rightPanel = readFileSync("src/components/RightPanel.tsx", "utf8");
+assert(!rightPanel.includes("CompareSetController"), "RightPanel remains independent of the COMPARE set controller");
 console.log("\nAll COMPARE Set Controller invariants passed.");

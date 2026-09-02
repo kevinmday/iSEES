@@ -81,6 +81,12 @@ import type {
   ResolveCandidateDimensionIntelligence,
 } from "../resolve/intelligence/ResolveCandidateIntelligenceTypes";
 
+import {
+  ResolveCandidateAcceptanceState,
+  resolveCandidateAcceptanceState,
+  type ResolveCandidateAcceptanceStateResult,
+} from "../resolve/acceptance/ResolveCandidateAcceptance";
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -172,6 +178,17 @@ export default function RightPanel() {
       ],
     );
 
+  const selectedCandidateAcceptance =
+    useMemo(
+      () => selectedCandidateIntelligence === undefined
+        ? undefined
+        : resolveCandidateAcceptanceState(
+            selectedCandidateIntelligence,
+            knowledgeObjects,
+          ),
+      [selectedCandidateIntelligence, knowledgeObjects],
+    );
+
   // ==========================================================
   // RENDER
   // ==========================================================
@@ -183,11 +200,14 @@ export default function RightPanel() {
 
       {
         selectedCandidateIntelligence !==
+          undefined &&
+        selectedCandidateAcceptance !==
           undefined && (
           <CandidateInspector
             intelligence={
               selectedCandidateIntelligence
             }
+            acceptance={selectedCandidateAcceptance}
           />
         )
       }
@@ -251,20 +271,31 @@ export default function RightPanel() {
 
 function CandidateInspector({
   intelligence,
+  acceptance,
 }: {
   intelligence:
     ResolveCandidateIntelligence;
+  acceptance:
+    ResolveCandidateAcceptanceStateResult;
 }) {
   const {
     identity,
     explanation,
   } = intelligence;
 
+  const accepted = acceptance.state === ResolveCandidateAcceptanceState.ACCEPTED;
+  const conflict = acceptance.state === ResolveCandidateAcceptanceState.MALFORMED_CONFLICT;
+  const relationshipLabel = accepted
+    ? "Accepted Relationship"
+    : conflict
+      ? "Relationship Conflict"
+      : "Potential Relationship";
+
   return (
     <div>
 
       <InspectorSection
-        title="Potential Relationship"
+        title={relationshipLabel}
       >
         <div className="selection-intelligence__relationship">
           <div
@@ -289,7 +320,7 @@ function CandidateInspector({
               ↕
             </span>
 
-            Potential relationship
+            {relationshipLabel}
           </div>
 
           <div
@@ -305,9 +336,7 @@ function CandidateInspector({
           <IntelRow
             label="Status"
             value={
-              formatLabel(
-                intelligence.epistemicStatus,
-              )
+              acceptance.state
             }
           />
 
@@ -319,6 +348,24 @@ function CandidateInspector({
               )
             }
           />
+
+          {
+            accepted && (
+              <IntelRow
+                label="EDGE ID"
+                value={acceptance.relationshipId}
+              />
+            )
+          }
+
+          {
+            conflict && (
+              <IntelRow
+                label="Conflict"
+                value={acceptance.message ?? "Malformed canonical relationship state."}
+              />
+            )
+          }
         </div>
       </InspectorSection>
 

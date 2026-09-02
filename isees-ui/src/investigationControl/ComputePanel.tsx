@@ -72,12 +72,12 @@ export default function ComputePanel() {
       <Section title="Resolve Lineage">
         <dl className="investigation-library__lineage">
           <LineageRow
-            label="Selected L"
+            label="Current selection"
             value={`${projection.selectedLayerCount} layers`}
           />
 
           <LineageRow
-            label="Resolved L"
+            label="Resolved execution"
             value={
               projection.resolvedLayerCount === undefined
                 ? "None"
@@ -100,6 +100,11 @@ export default function ComputePanel() {
             value={`${projection.candidateCount}`}
           />
         </dl>
+        <div className="investigation-library__compute-copy">
+          Candidate evidence is evaluated independently across Narrative, Observability,
+          Infrastructure, Topology, and Geography. It is not a manifold-layer count;
+          Temporal and Topology are distinct domains.
+        </div>
       </Section>
 
 </div>
@@ -125,7 +130,7 @@ function getProjectionGuidance(
       return "The current projection matches the selected context. Resolve candidates may be inspected.";
 
     case ManifoldProjectionStatusValue.STALE:
-      return "The selected context has changed. Existing candidates belong to the previous Resolve execution; run RESOLVE before acceptance.";
+      return "The current layer selection differs from the completed Resolve execution. Run Resolve to compute a new projection for the selected context.";
 
     case ManifoldProjectionStatusValue.ERROR:
       return "The latest Resolve execution failed. Inspect the execution diagnostics before trying again.";
