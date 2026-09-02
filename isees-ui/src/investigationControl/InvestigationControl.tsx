@@ -41,6 +41,9 @@ import ExplorePanel
 import ComputePanel
   from "./ComputePanel";
 
+import CompareSetController
+  from "../compare/components/CompareSetController";
+
 import "./InvestigationControl.css";
 
 // ============================================================
@@ -58,6 +61,21 @@ export default function InvestigationControl() {
   ] = useState<InvestigationMode>(
     InvestigationMode.EXPLORE
   );
+
+  // ==========================================================
+  // COMPARE SET CONTROLLER
+  // ==========================================================
+
+  if (
+    workspaceMode ===
+      WorkspaceMode.COMPARE
+  ) {
+
+    return (
+      <CompareSetController />
+    );
+
+  }
 
   // ==========================================================
   // MANIFOLD NAVIGATOR
