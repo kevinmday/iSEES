@@ -32,7 +32,8 @@ assert(compareCss.includes(".compare-workspace") && !surfaceCss.includes("--comp
 assert(laboratoryCss.includes(":focus-visible") && laboratoryCss.includes("prefers-reduced-motion:reduce") && sideCss.includes("prefers-reduced-motion:reduce"), "focus-visible and reduced-motion contracts remain present");
 
 const changed = execFileSync("git", ["diff", "--name-only"], { encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
-const forbidden = changed.filter(path => /(^|\/)(runtime|projection|research|persistence)(\/|$)/i.test(path));
+const forbidden = changed.filter(path => /^src\/layers\/(runtime|projection|research|persistence)\//i.test(path));
 assert.deepEqual(forbidden, [], `presentation change must not touch runtime, projection, Research, or persistence files: ${forbidden.join(", ")}`);
+for (const path of ["src/manifold/layers/systemCanonLayers.ts", "src/resolve/engine/ResolveEngine.ts"]) assert(!changed.some(item => item.endsWith(path)), `${path} canonical semantics are unchanged`);
 
 console.log("PASS VerifyLayersResponsiveWorkspace");

@@ -31,3 +31,23 @@ export interface EvidenceInspectionSelection {
   readonly investigationId: string;
   readonly evidenceId: string;
 }
+
+export type EvidenceAvailabilityState = EvidenceWorkspaceRecord["payload"]["status"];
+
+export interface EvidenceWorkspaceFilters {
+  readonly artifactType?: ArtifactType;
+  readonly availability?: EvidenceAvailabilityState;
+}
+
+export interface EvidenceNavigatorEntry {
+  readonly artifactType: ArtifactType;
+  readonly count: number;
+}
+
+export interface EvidenceWorkspaceView {
+  readonly totalCount: number;
+  readonly visibleCount: number;
+  readonly navigator: readonly EvidenceNavigatorEntry[];
+  readonly availabilityCounts: Readonly<Record<EvidenceAvailabilityState, number>>;
+  readonly records: readonly EvidenceWorkspaceRecord[];
+}

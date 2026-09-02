@@ -228,7 +228,9 @@ export default function WorkspaceSurface() {
     activeMode ===
       WorkspaceMode.COMPARE ||
     activeMode ===
-      WorkspaceMode.LAYERS;
+      WorkspaceMode.LAYERS ||
+    activeMode ===
+      WorkspaceMode.EVIDENCE;
 
 
   return (

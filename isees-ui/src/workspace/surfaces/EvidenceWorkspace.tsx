@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { projectInvestigationEvidence, resolveEvidenceInspection } from "../../evidence/projection/EvidenceWorkspaceProjection";
-import type { EvidenceInspectionSelection, EvidenceOptionalValue } from "../../evidence/projection/EvidenceWorkspaceProjectionTypes";
+import { createEvidenceWorkspaceView, projectInvestigationEvidence, resolveEvidenceInspection } from "../../evidence/projection/EvidenceWorkspaceProjection";
+import type { EvidenceInspectionSelection, EvidenceOptionalValue, EvidenceWorkspaceFilters } from "../../evidence/projection/EvidenceWorkspaceProjectionTypes";
 import { useWorkspaceRuntime } from "../runtime/WorkspaceRuntimeContext";
 import "./EvidenceWorkspace.css";
 
@@ -16,12 +16,25 @@ export default function EvidenceWorkspace() {
     [investigation],
   );
   const [selection, setSelection] = useState<EvidenceInspectionSelection>();
+  const [filters, setFilters] = useState<EvidenceWorkspaceFilters>({});
 
   useEffect(() => {
     setSelection(undefined);
+    setFilters({});
   }, [projection?.investigation.id]);
 
-  const inspected = resolveEvidenceInspection(projection, selection);
+  const view = useMemo(
+    () => projection === undefined ? undefined : createEvidenceWorkspaceView(projection, filters),
+    [projection, filters],
+  );
+  const inspected = resolveEvidenceInspection(
+    projection === undefined || view === undefined ? undefined : { ...projection, records: view.records },
+    selection,
+  );
+
+  useEffect(() => {
+    if (selection !== undefined && inspected === undefined) setSelection(undefined);
+  }, [inspected, selection]);
 
   if (projection === undefined) {
     return (
@@ -38,28 +51,67 @@ export default function EvidenceWorkspace() {
       <header className="evidence-header">
         <div>
           <p className="evidence-eyebrow">EVIDENCE · READ-ONLY PROJECTION</p>
-          <h1>{projection.investigation.name}</h1>
-          <p>Investigation <code>{projection.investigation.id}</code></p>
+          <h1>Evidence Chamber</h1>
+          <p><strong>{projection.investigation.name}</strong> · Investigation <code>{projection.investigation.id}</code></p>
         </div>
         <div className="evidence-status" aria-label="Evidence projection status">
-          Canonical workspace artifacts
+          Investigation-scoped projection
         </div>
       </header>
 
       {projection.records.length === 0 ? (
         <section className="evidence-empty" aria-live="polite">
-          <h2>No evidence records available in this investigation projection</h2>
+          <h2>No evidence records available in this investigation projection.</h2>
           <p>This does not establish that zero evidence exists.</p>
         </section>
       ) : (
-        <div className="evidence-chamber">
-          <section className="evidence-inventory" aria-label="Evidence inventory">
+        <>
+          <section className="evidence-summary" aria-label="Evidence projection summary">
+            <div><strong>{view!.totalCount}</strong><span>Projected records</span></div>
+            <div><strong>{view!.visibleCount}</strong><span>Visible records</span></div>
+            <div><strong>{view!.navigator.filter((entry) => entry.count > 0).length}</strong><span>Artifact types</span></div>
+            <div><strong>{view!.availabilityCounts.UNAVAILABLE}</strong><span>Payload unavailable</span></div>
+          </section>
+
+          <div className="evidence-chamber">
+          <nav className="evidence-navigator" aria-label="Evidence Navigator">
             <div className="evidence-section-heading">
-              <h2>Artifact inventory</h2>
-              <span>Records available</span>
+              <h2>Evidence Navigator</h2>
+              <span>{view!.totalCount} total</span>
             </div>
-            <ul>
-              {projection.records.map((record) => (
+            <div className="evidence-filter-group" aria-label="Artifact type filters">
+              {view!.navigator.map((entry) => (
+                <button key={entry.artifactType} type="button"
+                  aria-pressed={filters.artifactType === entry.artifactType}
+                  onClick={() => setFilters((current) => ({ ...current, artifactType: current.artifactType === entry.artifactType ? undefined : entry.artifactType }))}>
+                  <span>{entry.artifactType}</span><strong>{entry.count}</strong>
+                </button>
+              ))}
+            </div>
+            <div className="evidence-filter-group" aria-label="Payload availability filters">
+              <button type="button" aria-pressed={filters.availability === "UNAVAILABLE"}
+                onClick={() => setFilters((current) => ({ ...current, availability: current.availability === "UNAVAILABLE" ? undefined : "UNAVAILABLE" }))}>
+                <span>UNAVAILABLE</span><strong>{view!.availabilityCounts.UNAVAILABLE}</strong>
+              </button>
+            </div>
+            <button className="evidence-reset" type="button" disabled={filters.artifactType === undefined && filters.availability === undefined}
+              onClick={() => setFilters({})}>Show all evidence</button>
+          </nav>
+
+          <section className="evidence-inventory" aria-label="Evidence Chamber register">
+            <div className="evidence-section-heading">
+              <h2>Evidence register</h2>
+              <span aria-live="polite" aria-atomic="true">Showing {view!.visibleCount} of {view!.totalCount}</span>
+            </div>
+            {(filters.artifactType !== undefined || filters.availability !== undefined) && <p className="evidence-active-filter">
+              Active filters: {filters.artifactType ?? "all types"} · {filters.availability ?? "all availability states"}
+            </p>}
+            {view!.visibleCount === 0 ? <div className="evidence-filtered-empty" role="status">
+              <h3>No evidence records match the active filters.</h3>
+              <p>The Investigation projection still contains {view!.totalCount} record{view!.totalCount === 1 ? "" : "s"}.</p>
+              <button type="button" onClick={() => setFilters({})}>Reset filters</button>
+            </div> : <ul>
+              {view!.records.map((record) => (
                 <li key={record.evidenceId}>
                   <button
                     type="button"
@@ -76,7 +128,7 @@ export default function EvidenceWorkspace() {
                   </button>
                 </li>
               ))}
-            </ul>
+            </ul>}
           </section>
 
           <aside className="evidence-inspector" aria-label="Evidence inspection">
@@ -109,7 +161,8 @@ export default function EvidenceWorkspace() {
               </>
             )}
           </aside>
-        </div>
+          </div>
+        </>
       )}
     </main>
   );

@@ -1,8 +1,12 @@
 import type { Artifact } from "../../artifacts/artifactTypes";
 import type { Investigation } from "../../investigation/investigationTypes";
-import type { EvidenceInspectionSelection, EvidenceKnownValue, EvidenceOptionalValue, EvidenceWorkspaceProjection, EvidenceWorkspaceRecord } from "./EvidenceWorkspaceProjectionTypes";
+import type { EvidenceInspectionSelection, EvidenceKnownValue, EvidenceOptionalValue, EvidenceWorkspaceFilters, EvidenceWorkspaceProjection, EvidenceWorkspaceRecord, EvidenceWorkspaceView } from "./EvidenceWorkspaceProjectionTypes";
 
 const PAYLOAD_UNAVAILABLE_REASON = "No canonical evidence payload resolver is available.";
+export const CANONICAL_EVIDENCE_ARTIFACT_TYPES = Object.freeze([
+  "SOURCE", "OCR", "TRANSLATION", "EXTRACTION", "SUMMARY", "ANNOTATION",
+  "OBSERVATION", "FACILITY", "CONTACT", "POINTEL", "HYPOTHESIS", "NARRATIVE",
+] as const);
 
 function known<T>(value: T): EvidenceKnownValue<T> {
   return Object.freeze({ status: "KNOWN", value });
@@ -77,4 +81,31 @@ export function resolveEvidenceInspection(
   }
 
   return projection.records.find((record) => record.evidenceId === selection.evidenceId);
+}
+
+export function createEvidenceWorkspaceView(
+  projection: EvidenceWorkspaceProjection,
+  filters: EvidenceWorkspaceFilters,
+): EvidenceWorkspaceView {
+  const typeCounts = new Map<EvidenceWorkspaceRecord["artifactType"], number>();
+  let unavailableCount = 0;
+
+  for (const record of projection.records) {
+    typeCounts.set(record.artifactType, (typeCounts.get(record.artifactType) ?? 0) + 1);
+    if (record.payload.status === "UNAVAILABLE") unavailableCount += 1;
+  }
+
+  const records = projection.records.filter((record) =>
+    (filters.artifactType === undefined || record.artifactType === filters.artifactType) &&
+    (filters.availability === undefined || record.payload.status === filters.availability)
+  );
+
+  return Object.freeze({
+    totalCount: projection.records.length,
+    visibleCount: records.length,
+    navigator: Object.freeze(CANONICAL_EVIDENCE_ARTIFACT_TYPES
+      .map((artifactType) => Object.freeze({ artifactType, count: typeCounts.get(artifactType) ?? 0 }))),
+    availabilityCounts: Object.freeze({ UNAVAILABLE: unavailableCount }),
+    records: Object.freeze(records),
+  });
 }

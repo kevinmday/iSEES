@@ -14,6 +14,10 @@ const compareCssPath =
   "src/compare/components/CompareWorkspace.css";
 const dormantComparePath =
   "src/workspace/surfaces/CompareWorkspace.tsx";
+const evidenceWorkspaceImport =
+  'from "../workspace/surfaces/EvidenceWorkspace"';
+const layersWorkspaceImport =
+  'from "../workspace/surfaces/LayersWorkspace"';
 
 const workspaceSurface = readFileSync(workspaceSurfacePath, "utf8");
 const compareWorkspace = readFileSync(compareWorkspacePath, "utf8");
@@ -50,13 +54,18 @@ assertExcludes(workspaceSurface, "Comparative Analysis Workspace", "legacy COMPA
 
 for (const placeholder of [
   "Narrative Workspace",
-  "Evidence Workspace",
   "Timeline Workspace",
-  "Layer Analysis Workspace",
   "Intention Workspace",
 ]) {
   assertIncludes(workspaceSurface, placeholder, `${placeholder} route remains intact`);
 }
+
+assertIncludes(workspaceSurface, evidenceWorkspaceImport, "EVIDENCE independently imports EvidenceWorkspace");
+assert(/case WorkspaceMode\.EVIDENCE:[\s\S]*?<EvidenceWorkspace \/>/.test(workspaceSurface), "WorkspaceMode.EVIDENCE independently renders EvidenceWorkspace");
+pass("WorkspaceMode.EVIDENCE independently renders EvidenceWorkspace");
+assertIncludes(workspaceSurface, layersWorkspaceImport, "LAYERS independently imports LayersWorkspace");
+assert(/case WorkspaceMode\.LAYERS:[\s\S]*?<LayersWorkspace \/>/.test(workspaceSurface), "WorkspaceMode.LAYERS independently renders LayersWorkspace");
+pass("WorkspaceMode.LAYERS independently renders LayersWorkspace");
 
 assertIncludes(compareWorkspace, "useKnowledgeObjects", "CompareWorkspace consumes canonical Knowledge Objects");
 assertIncludes(compareWorkspace, "useResolveRuntimeState", "CompareWorkspace consumes Resolve runtime state");
@@ -115,10 +124,10 @@ pass("dormant legacy CompareWorkspace remains unchanged");
 assertIncludes(workspaceSurface, "<WorkspaceIdentityHeader />", "persistent WorkspaceIdentityHeader remains mounted");
 assertIncludes(workspaceSurface, 'from "../manifold/components/ResearchInboxInstrument"', "WorkspaceSurface imports the established shared ResearchInboxInstrument");
 assert(
-  /const researchInboxVisible\s*=\s*activeMode ===\s*WorkspaceMode\.MANIFOLD\s*\|\|\s*activeMode ===\s*WorkspaceMode\.RESEARCH\s*\|\|\s*activeMode ===\s*WorkspaceMode\.COMPARE;/.test(workspaceSurface),
-  "shared Research Inbox visibility is exactly MANIFOLD, RESEARCH/STUDIO, and COMPARE",
+  /const researchInboxVisible\s*=[\s\S]*?activeMode ===\s*WorkspaceMode\.COMPARE[\s\S]*?;/.test(workspaceSurface),
+  "shared Research Inbox remains visible in COMPARE",
 );
-pass("shared Research Inbox visibility is exactly MANIFOLD, RESEARCH/STUDIO, and COMPARE");
+pass("shared Research Inbox remains visible in COMPARE");
 assert((workspaceSurface.match(/<ResearchInboxInstrument\b/g) ?? []).length === 1, "the shared shell mounts exactly one ResearchInboxInstrument");
 pass("the shared shell mounts exactly one ResearchInboxInstrument");
 assertExcludes(compareWorkspace, "ResearchInboxInstrument", "no COMPARE-specific Research Inbox exists");

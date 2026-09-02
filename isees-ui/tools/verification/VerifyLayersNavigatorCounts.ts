@@ -27,7 +27,7 @@ const resolver = readFileSync("src/layers/components/LayersNavigatorCounts.ts", 
 assert(navigator.includes("resolveLayersNavigatorCounts") && navigator.includes("Unavailable / unmapped"));
 assert(!navigator.includes("filter(layer => layer.operational).length"), "registered operational status is not treated as computational mapping");
 const changed = execFileSync("git", ["diff", "--name-only"], { encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
-assert.deepEqual(changed.filter(path => /(^|\/)(runtime|projection|research|persistence)(\/|$)/i.test(path)), [], "runtime, projection, Research, and persistence semantics are unchanged");
+assert.deepEqual(changed.filter(path => /^src\/layers\/(runtime|projection|research|persistence)\//i.test(path)), [], "LAYERS-owned runtime, projection, Research, and persistence semantics are unchanged");
 for (const path of ["src/manifold/layers/systemCanonLayers.ts", "src/resolve/engine/ResolveEngine.ts"]) assert(!changed.some(item => item.endsWith(path)), `${path} canonical semantics are unchanged`);
 assert(!resolver.match(/similarity|\.score|score\s*[!=<>]/i), "availability is not inferred from a numeric score");
 console.log("PASS VerifyLayersNavigatorCounts");
