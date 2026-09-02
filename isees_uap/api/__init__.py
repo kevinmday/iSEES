@@ -12,12 +12,16 @@ from typing import Dict, List, Optional
 
 from isees_uap.analysis.cluster_engine import run_cluster_engine
 from isees_uap.api.submit_report import build_report
+from isees_uap.api.v1.candidate_evidence import candidate_error_handler, router as candidate_evidence_router
+from isees_uap.candidate_evidence.errors import CandidateEvidenceError
 
 # ------------------------------------------------------------
 # APP INIT
 # ------------------------------------------------------------
 
 app = FastAPI()
+app.include_router(candidate_evidence_router)
+app.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
 
 # ------------------------------------------------------------
 # CORS
