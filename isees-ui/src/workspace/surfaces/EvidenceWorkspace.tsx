@@ -1,236 +1,116 @@
-// ============================================================
-// EvidenceWorkspace.tsx
-// P37C
-// EVIDENCE WORKSPACE
-//
-// Canon v1 Production Workspace
-//
-// Presentation only.
-// Static content.
-// No runtime logic.
-// No evidence engine.
-// No graph interaction.
-//
-// FULL DROP-IN REPLACEMENT
-// ============================================================
-
+import { useEffect, useMemo, useState } from "react";
+import { projectInvestigationEvidence, resolveEvidenceInspection } from "../../evidence/projection/EvidenceWorkspaceProjection";
+import type { EvidenceInspectionSelection, EvidenceOptionalValue } from "../../evidence/projection/EvidenceWorkspaceProjectionTypes";
+import { useWorkspaceRuntime } from "../runtime/WorkspaceRuntimeContext";
 import "./EvidenceWorkspace.css";
 
+function presentOptional<T>(field: EvidenceOptionalValue<T>, format: (value: T) => string = String): string {
+  return field.status === "KNOWN" ? format(field.value) : "UNKNOWN";
+}
+
 export default function EvidenceWorkspace() {
+  const runtime = useWorkspaceRuntime();
+  const investigation = runtime.getActiveInvestigation();
+  const projection = useMemo(
+    () => investigation === undefined ? undefined : projectInvestigationEvidence(investigation),
+    [investigation],
+  );
+  const [selection, setSelection] = useState<EvidenceInspectionSelection>();
 
+  useEffect(() => {
+    setSelection(undefined);
+  }, [projection?.investigation.id]);
+
+  const inspected = resolveEvidenceInspection(projection, selection);
+
+  if (projection === undefined) {
     return (
-
-        <div className="intention-workspace">
-
-            <div className="intention-dashboard">
-
-                {/* ===================================================== */}
-                {/* HEADER */}
-                {/* ===================================================== */}
-
-                <header className="dashboard-header">
-
-                    <h1>Evidence Analysis</h1>
-
-                    <p>
-                        Operational assessment of evidence quality,
-                        provenance, corroboration, and analytic confidence.
-                    </p>
-
-                </header>
-
-                {/* ===================================================== */}
-                {/* OPERATIONAL BRIEF */}
-                {/* ===================================================== */}
-
-                <section className="dashboard-panel">
-
-                    <div className="panel-label">
-                        Operational Brief
-                    </div>
-
-                    <h2>
-                        Active Investigation
-                    </h2>
-
-                    <div className="brief-grid">
-
-                        <div className="brief-item">
-                            <span>Investigation</span>
-                            <strong>Nimitz Investigation</strong>
-                        </div>
-
-                        <div className="brief-item">
-                            <span>Focused Event</span>
-                            <strong>E-TICTAC-2004</strong>
-                        </div>
-
-                        <div className="brief-item">
-                            <span>Evidence Scope</span>
-                            <strong>System Canon</strong>
-                        </div>
-
-                    </div>
-
-                </section>
-
-                {/* ===================================================== */}
-                {/* EVIDENCE METRICS */}
-                {/* ===================================================== */}
-
-                <section className="dashboard-panel">
-
-                    <div className="panel-label">
-                        Evidence Metrics
-                    </div>
-
-                    <div className="metric-grid">
-
-                        <div className="metric-card">
-                            <span>Total Evidence</span>
-                            <strong>147</strong>
-                        </div>
-
-                        <div className="metric-card">
-                            <span>Corroborated</span>
-                            <strong>82%</strong>
-                        </div>
-
-                        <div className="metric-card">
-                            <span>Contradicted</span>
-                            <strong>9%</strong>
-                        </div>
-
-                        <div className="metric-card">
-                            <span>Unresolved</span>
-                            <strong>14</strong>
-                        </div>
-
-                    </div>
-
-                </section>
-
-                {/* ===================================================== */}
-                {/* HIGH VALUE EVIDENCE */}
-                {/* ===================================================== */}
-
-                <section className="dashboard-panel">
-
-                    <div className="panel-label">
-                        High Value Evidence
-                    </div>
-
-                    <div className="vector-list">
-
-                        <div className="vector-card">
-
-                            <strong>AN/SPY-1 Radar Track</strong>
-
-                            <p>
-                                Multiple radar detections exhibiting
-                                extraordinary acceleration.
-                            </p>
-
-                            <span>Reliability: High</span>
-
-                        </div>
-
-                        <div className="vector-card">
-
-                            <strong>F/A-18 Pilot Observation</strong>
-
-                            <p>
-                                Direct visual encounter supported by
-                                airborne sensor observations.
-                            </p>
-
-                            <span>Reliability: High</span>
-
-                        </div>
-
-                        <div className="vector-card">
-
-                            <strong>E2 Hawkeye Correlation</strong>
-
-                            <p>
-                                Airborne sensor correlation with
-                                strike group operational picture.
-                            </p>
-
-                            <span>Reliability: Moderate</span>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-                {/* ===================================================== */}
-                {/* SOURCE ASSESSMENT */}
-                {/* ===================================================== */}
-
-                <section className="dashboard-panel">
-
-                    <div className="panel-label">
-                        Source Assessment
-                    </div>
-
-                    <p className="placeholder-text">
-
-                        Future Evidence Engine will score provenance,
-                        authenticity, corroboration, independence,
-                        collection method, and chain of custody.
-
-                    </p>
-
-                </section>
-
-                {/* ===================================================== */}
-                {/* EVIDENCE GAPS */}
-                {/* ===================================================== */}
-
-                <section className="dashboard-panel">
-
-                    <div className="panel-label">
-                        Evidence Gaps
-                    </div>
-
-                    <h2>
-                        Collection Assessment
-                    </h2>
-
-                    <p className="placeholder-text">
-
-                        Missing evidence, unresolved questions,
-                        collection priorities, and recommended
-                        acquisition targets will appear here.
-
-                    </p>
-
-                </section>
-
-                {/* ===================================================== */}
-                {/* ENGINE STATUS */}
-                {/* ===================================================== */}
-
-                <section className="dashboard-panel">
-
-                    <div className="panel-label">
-                        Future Engine Status
-                    </div>
-
-                    <p className="placeholder-text">
-
-                        Awaiting Evidence Engine integration.
-
-                    </p>
-
-                </section>
-
-            </div>
-
-        </div>
-
+      <main className="evidence-workspace evidence-workspace--empty">
+        <p className="evidence-eyebrow">EVIDENCE · READ-ONLY</p>
+        <h1>No active Investigation</h1>
+        <p>Evidence becomes available only within an active Investigation.</p>
+      </main>
     );
+  }
 
+  return (
+    <main className="evidence-workspace">
+      <header className="evidence-header">
+        <div>
+          <p className="evidence-eyebrow">EVIDENCE · READ-ONLY PROJECTION</p>
+          <h1>{projection.investigation.name}</h1>
+          <p>Investigation <code>{projection.investigation.id}</code></p>
+        </div>
+        <div className="evidence-status" aria-label="Evidence projection status">
+          Canonical workspace artifacts
+        </div>
+      </header>
+
+      {projection.records.length === 0 ? (
+        <section className="evidence-empty" aria-live="polite">
+          <h2>No evidence records available in this investigation projection</h2>
+          <p>This does not establish that zero evidence exists.</p>
+        </section>
+      ) : (
+        <div className="evidence-chamber">
+          <section className="evidence-inventory" aria-label="Evidence inventory">
+            <div className="evidence-section-heading">
+              <h2>Artifact inventory</h2>
+              <span>Records available</span>
+            </div>
+            <ul>
+              {projection.records.map((record) => (
+                <li key={record.evidenceId}>
+                  <button
+                    type="button"
+                    className={record.evidenceId === inspected?.evidenceId ? "is-selected" : undefined}
+                    aria-pressed={record.evidenceId === inspected?.evidenceId}
+                    onClick={() => setSelection({
+                      investigationId: projection.investigation.id,
+                      evidenceId: record.evidenceId,
+                    })}
+                  >
+                    <strong>{record.title}</strong>
+                    <span>{record.artifactType} · {record.provenance.repository}</span>
+                    <code>{record.sourceArtifactId}</code>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <aside className="evidence-inspector" aria-label="Evidence inspection">
+            {inspected === undefined ? (
+              <div className="evidence-inspection-prompt">
+                <h2>Inspection</h2>
+                <p>Select an artifact to inspect its available canonical metadata.</p>
+              </div>
+            ) : (
+              <>
+                <div className="evidence-section-heading">
+                  <h2>{inspected.title}</h2>
+                  <span>Local inspection only</span>
+                </div>
+                <dl>
+                  <div><dt>Projected identity</dt><dd><code>{inspected.evidenceId}</code></dd></div>
+                  <div><dt>Source artifact</dt><dd><code>{inspected.sourceArtifactId}</code></dd></div>
+                  <div><dt>Investigation</dt><dd><code>{inspected.investigationId}</code></dd></div>
+                  <div><dt>Type</dt><dd>{inspected.artifactType}</dd></div>
+                  <div><dt>Repository</dt><dd>{inspected.provenance.repository}</dd></div>
+                  <div><dt>Created</dt><dd>{inspected.provenance.createdAt}</dd></div>
+                  <div><dt>Description</dt><dd>{presentOptional(inspected.description)}</dd></div>
+                  <div><dt>Confidence</dt><dd>{presentOptional(inspected.confidence, String)}</dd></div>
+                  <div><dt>DOI</dt><dd>{presentOptional(inspected.doi)}</dd></div>
+                  <div><dt>URL</dt><dd>{presentOptional(inspected.url)}</dd></div>
+                  <div><dt>Tags</dt><dd>{presentOptional(inspected.tags, (tags) => tags.join(", "))}</dd></div>
+                  <div><dt>Source derivation identifiers</dt><dd>{presentOptional(inspected.sourceDerivationIdentifiers, (ids) => ids.join(", "))}</dd></div>
+                  <div><dt>Payload</dt><dd>{inspected.payload.status} · {inspected.payload.reason}</dd></div>
+                </dl>
+              </>
+            )}
+          </aside>
+        </div>
+      )}
+    </main>
+  );
 }
