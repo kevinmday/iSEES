@@ -87,6 +87,11 @@ import {
   type ResolveCandidateAcceptanceStateResult,
 } from "../resolve/acceptance/ResolveCandidateAcceptance";
 
+import {
+  resolveCoherentInvestigationSelection,
+  resolveCurrentInvestigationExecution,
+} from "../intelligence/selection/InvestigationSelectionCoherence";
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -105,8 +110,15 @@ export default function RightPanel() {
   const workspaceRuntime =
     useWorkspaceRuntime();
 
+  const investigation =
+    workspaceRuntime.getActiveInvestigation();
+
   const workspaceSelection =
-    workspaceRuntime.getSelection();
+    resolveCoherentInvestigationSelection(
+      investigation,
+      knowledgeObjects,
+      workspaceRuntime.getSelection(),
+    );
 
   // ==========================================================
   // ESTABLISHED CANONICAL GRAPH INTELLIGENCE
@@ -130,9 +142,14 @@ export default function RightPanel() {
   // LATEST COMPLETE RESOLVE PRODUCT
   // ==========================================================
 
+  const currentExecution =
+    resolveCurrentInvestigationExecution(
+      investigation,
+      resolveState.currentExecution,
+    );
+
   const candidateEvaluations =
-    resolveState
-      .currentExecution
+    currentExecution
       ?.result
       ?.candidateEvaluations;
 

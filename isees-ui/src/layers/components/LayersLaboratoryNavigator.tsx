@@ -1,6 +1,7 @@
 import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import { WorkspaceMode, WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 import { useLayersExperimentState, LayersExperimentStatus } from "../runtime";
+import { resolveLayersNavigatorCounts } from "./LayersNavigatorCounts";
 import "./LayersSideInstruments.css";
 
 const list = (ids: readonly string[]) => ids.length ? ids.join(" · ") : "NONE";
@@ -14,7 +15,7 @@ export default function LayersLaboratoryNavigator() {
   const selection = workspaceRuntime.getSelection();
   const latestCompleted = [...state.history].reverse().find(item => item.result?.experimentalManifoldSnapshot);
   const projection = latestCompleted?.result?.experimentalManifoldSnapshot;
-  const mapped = state.armedLayers.filter(layer => layer.operational).length;
+  const counts = resolveLayersNavigatorCounts(state.armedLayers, state.currentExecution?.result?.experimentalManifoldSnapshot);
   const status = state.status === LayersExperimentStatus.READY && state.currentExecution === undefined
     ? "MODIFIED / NOT RUN" : state.status;
   const next = !investigation ? "Start or restore an Investigation."
@@ -39,8 +40,8 @@ export default function LayersLaboratoryNavigator() {
       {(state.baseline?.canonicalStartingLayerIds ?? workspace?.active_layers ?? []).length === 0 && <p>No canonical baseline layers are active, so a baseline relationship cannot be measured.</p>}
     </Section>
     <Section title="Experimental configuration">
-      <Row label="Armed" value={list(state.armedLayers.map(layer => layer.id))}/><Row label="Mapped" value={mapped}/>
-      <Row label="Unavailable" value={state.armedLayers.length - mapped}/><Row label="Status" value={status}/>
+      <Row label="Armed" value={list(state.armedLayers.map(layer => layer.id))}/><Row label="Mapped" value={counts.mapped}/>
+      <Row label="Unavailable / unmapped" value={counts.unavailable}/><Row label="Status" value={status}/>
     </Section>
     <Section title="Latest completed experiment">
       {projection ? <><Row label="Execution" value={projection.executionId}/><Row label="Delta" value={projection.delta.state}/><Row label="Score" value={score(projection.delta.experimentalScore)}/></> : <p>No genuine completed experiment is available.</p>}

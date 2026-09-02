@@ -5,6 +5,7 @@ import { useResolveRuntimeState } from "../../resolve/runtime/ResolveRuntimeCont
 import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import { CompareCandidateOptionProjectionStatus, resolveCompareCandidateOptionProjection, type CompareCandidateOption } from "../projection/CompareCandidateOptionProjection";
 import "./CompareSetController.css";
+import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
 
 function percent(value: number): string { return `${(value * 100).toFixed(1)}%`; }
 function errorReason(error: unknown): string { return error instanceof Error ? error.message : "Unknown COMPARE Set projection error."; }
@@ -26,7 +27,8 @@ export default function CompareSetController() {
   const workspace = workspaceRuntime.getWorkspace();
   const investigation = workspaceRuntime.getActiveInvestigation();
   const selection = workspaceRuntime.getSelection();
-  const evaluations = resolveState.currentExecution?.result?.candidateEvaluations;
+  const currentExecution = resolveCurrentInvestigationExecution(investigation, resolveState.currentExecution);
+  const evaluations = currentExecution?.result?.candidateEvaluations;
 
   const projected = useMemo(() => {
     try {

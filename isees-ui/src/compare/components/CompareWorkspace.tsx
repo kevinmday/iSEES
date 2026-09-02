@@ -20,6 +20,7 @@ import type {
 import {
   useResolveRuntimeState,
 } from "../../resolve/runtime/ResolveRuntimeContext";
+import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
 
 import {
   useWorkspaceRuntime,
@@ -294,9 +295,11 @@ export default function CompareWorkspace() {
   const workspaceRuntime = useWorkspaceRuntime();
   const workspace = workspaceRuntime.getWorkspace();
   const selection = workspaceRuntime.getSelection();
-  const candidateEvaluations = resolveState.currentExecution?.result?.candidateEvaluations;
-  const investigationId = workspaceRuntime.getActiveInvestigation()?.id;
-  const resolveExecutionId = resolveState.currentExecution?.executionId;
+  const investigation = workspaceRuntime.getActiveInvestigation();
+  const currentExecution = resolveCurrentInvestigationExecution(investigation, resolveState.currentExecution);
+  const candidateEvaluations = currentExecution?.result?.candidateEvaluations;
+  const investigationId = investigation?.id;
+  const resolveExecutionId = currentExecution?.executionId;
 
   const projectionState = useMemo<ProjectionState>(() => {
     if (candidateEvaluations === undefined) {

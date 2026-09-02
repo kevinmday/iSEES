@@ -135,6 +135,7 @@ import {
 import {
   useWorkspaceRuntime,
 } from "../../workspace/runtime/WorkspaceRuntimeContext";
+import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
 
 import {
   useResolveRuntime,
@@ -242,8 +243,10 @@ export default function PrimaryInvestigationManifold({
   // ==========================================================
 
   const candidateEvaluations =
-    resolveState
-      .currentExecution
+    resolveCurrentInvestigationExecution(
+      workspaceRuntime.getActiveInvestigation(),
+      resolveState.currentExecution,
+    )
       ?.result
       ?.candidateEvaluations;
 

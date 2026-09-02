@@ -23,7 +23,8 @@ assert(surface.includes("workspace-surface__projection--layers"));
 assert(surfaceCss.includes("--layers-inbox-collapsed-clearance: 60px"), "collapsed LAYERS dock has bottom clearance");
 assert(surfaceCss.includes("--layers-inbox-expanded-clearance: 302px"), "expanded LAYERS dock has side clearance");
 assert(surfaceCss.includes('data-research-inbox-expanded="true"'));
-assert(surfaceCss.includes("min-width: calc(760px + var(--layers-inbox-expanded-clearance))"), "Case B and wires retain protected, horizontally scrollable usable space");
+assert(!surfaceCss.includes("min-width: calc(760px + var(--layers-inbox-expanded-clearance))"), "expanded Inbox does not force a content-derived LAYERS minimum width");
+assert(surfaceCss.includes("padding-right: var(--layers-inbox-expanded-clearance)"), "expanded Inbox reserves mode-scoped side clearance and reflows LAYERS");
 assert(surface.includes("activeMode === WorkspaceMode.MANIFOLD &&"), "established MANIFOLD expanded reservation remains mode-specific");
 assert(!surfaceCss.includes("--compare") && !surfaceCss.includes("--studio"), "COMPARE and Studio docks are unchanged");
 

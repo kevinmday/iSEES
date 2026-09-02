@@ -21,6 +21,8 @@ import {
   useWorkspaceRuntime,
 } from "../../workspace/runtime/WorkspaceRuntimeContext";
 
+import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
+
 // ============================================================
 // STATUS CONTRACT
 // ============================================================
@@ -238,18 +240,23 @@ ManifoldProjectionStatusSnapshot {
     workspaceRuntime.getInvestigativeScale();
 
   const latestExecution =
-    resolveState.currentExecution;
+    resolveCurrentInvestigationExecution(
+      workspaceRuntime.getActiveInvestigation(),
+      resolveState.currentExecution,
+    );
 
   let status:
     ManifoldProjectionStatusValue;
 
   if (
+    latestExecution !== undefined &&
     resolveState.status ===
     ResolveRuntimeStatus.EXECUTING
   ) {
     status =
       ManifoldProjectionStatusValue.RESOLVING;
   } else if (
+    latestExecution !== undefined &&
     resolveState.status ===
     ResolveRuntimeStatus.ERROR
   ) {

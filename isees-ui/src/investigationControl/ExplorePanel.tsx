@@ -8,8 +8,9 @@
 //
 //   • Browse repository-held cases
 //   • Preview a selected case
-//   • Review active-investigation status
-//   • Access the live event intake path
+//
+// Live Watch is a future subsystem and is intentionally not
+// mounted in the V1 Investigation Library.
 //
 // Composition and presentation only.
 // Child runtime behavior and ownership remain unchanged.
@@ -20,15 +21,6 @@ import CorpusBrowser
 
 import FederationPreviewPanel
   from "../federation/components/FederationPreviewPanel";
-
-import GraphDiagnostics
-  from "../graph/GraphDiagnostics";
-
-import CorpusResolutionPanel
-  from "../corpus/components/CorpusResolutionPanel";
-
-import EventRadar
-  from "../components/EventRadar";
 
 // ============================================================
 // COMPONENT
@@ -64,60 +56,6 @@ export default function ExplorePanel() {
         <CorpusBrowser />
 
         <FederationPreviewPanel />
-      </section>
-
-      {/* ===================================================== */}
-      {/* ACTIVE INVESTIGATION STATUS */}
-      {/* ===================================================== */}
-
-      <section
-        className={[
-          "investigation-library__section",
-          "investigation-library__section--secondary",
-        ].join(" ")}
-        aria-labelledby="investigation-status-heading"
-      >
-        <h2
-          id="investigation-status-heading"
-          className="investigation-library__section-heading"
-        >
-          Investigation Status
-        </h2>
-
-        <p className="investigation-library__section-description">
-          Inspect the active graph and available legacy
-          resolution records.
-        </p>
-
-        <GraphDiagnostics />
-
-        <CorpusResolutionPanel />
-      </section>
-
-      {/* ===================================================== */}
-      {/* LIVE EVENT INTAKE */}
-      {/* ===================================================== */}
-
-      <section
-        className={[
-          "investigation-library__section",
-          "investigation-library__section--secondary",
-        ].join(" ")}
-        aria-labelledby="live-intake-heading"
-      >
-        <h2
-          id="live-intake-heading"
-          className="investigation-library__section-heading"
-        >
-          Live Event Intake
-        </h2>
-
-        <p className="investigation-library__section-description">
-          Select a monitored event and import it directly into
-          the active investigation.
-        </p>
-
-        <EventRadar />
       </section>
 
     </div>

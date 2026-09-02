@@ -197,6 +197,7 @@ export default function MainLayout({
         style={{
           display: "flex",
           flex: 1,
+          minWidth: 0,
           minHeight: 0,
           overflow: "hidden",
           padding: "12px",

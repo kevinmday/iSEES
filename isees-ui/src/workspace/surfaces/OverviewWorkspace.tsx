@@ -15,9 +15,16 @@
 import {
   useWorkspaceRuntime,
 } from "../runtime/WorkspaceRuntimeContext";
+import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+import { resolveCoherentInvestigationSelection } from "../../intelligence/selection/InvestigationSelectionCoherence";
 
 import GuestWelcomeOverview
   from "./GuestWelcomeOverview";
+
+import {
+  useManifoldProjectionStatus,
+  ManifoldProjectionStatusValue,
+} from "../../components/workspace/ManifoldProjectionStatus";
 
 import "./OverviewWorkspace.css";
 
@@ -50,6 +57,12 @@ export default function OverviewWorkspace() {
   const runtime =
     useWorkspaceRuntime();
 
+  const knowledgeObjects =
+    useKnowledgeObjects();
+
+  const projection =
+    useManifoldProjectionStatus();
+
   const investigation =
     runtime.getActiveInvestigation();
 
@@ -71,6 +84,13 @@ export default function OverviewWorkspace() {
   const focusedEventId =
     workspace?.focused_event_id ??
     null;
+
+  const coherentSelection =
+    resolveCoherentInvestigationSelection(
+      investigation,
+      knowledgeObjects,
+      runtime.getSelection(),
+    );
 
   return (
 
@@ -146,6 +166,25 @@ export default function OverviewWorkspace() {
                   .length ??
                 0
               )
+            }
+          />
+
+          <Metric
+            label="Focused Event"
+            value={focusedEventId ?? "NONE"}
+          />
+
+          <Metric
+            label="Selection"
+            value={coherentSelection === undefined ? "NONE" : "SELECTED"}
+          />
+
+          <Metric
+            label="Resolve"
+            value={
+              projection.status === ManifoldProjectionStatusValue.UNRESOLVED
+                ? "NOT RUN"
+                : projection.status
             }
           />
 

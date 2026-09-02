@@ -822,3 +822,29 @@ human-facing gateway into the deterministic investigative framework of
 
 iSEES.
 
+\---
+
+\# Future Engineering Note
+
+\## iSEES Live Watch — Future External Signal Monitoring Contract
+
+Live Watch is a future, opt-in subsystem separate from Investigation
+membership. It may eventually use external repository, news, sensor-notice,
+and metadata adapters, but no operational implementation is authorized by
+this note and Live Watch is not a production computational layer.
+
+Each alert must retain a stable alert identity, source and timestamp
+provenance, deduplication state, confidence, and availability. The binding
+flow is: external signal → Live Watch alert → researcher inspection → explicit
+Import into Investigation. An alert is not an imported EVENT, focused EVENT,
+Resolve candidate, accepted relationship, or canonical Knowledge.
+
+Alerts never become canonical Knowledge automatically and never trigger
+Resolve acceptance automatically. Notification, popup, or radar presentation
+may be explored in V2 only after the activation, adapter, provenance, and
+explicit-import contracts are authorized.
+
+V1 also still requires an explicit Close/Restart Investigation contract.
+Closing must not delete System Canon, and preservation handling is required
+for Research state and unsaved Studio work.
+
