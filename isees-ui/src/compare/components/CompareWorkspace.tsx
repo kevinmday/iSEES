@@ -2,6 +2,9 @@ import {
   useMemo,
 } from "react";
 
+import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
+import { publishCompareCandidateToResearch } from "../research/CompareCandidateResearchPublication";
+
 import {
   useKnowledgeObjects,
 } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
@@ -169,7 +172,14 @@ function DimensionRow({
   );
 }
 
-function ReadyWorkspace({ projection }: { projection: ComparePairProjectionReady }) {
+function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { projection: ComparePairProjectionReady; investigationId: string; resolveExecutionId?: string }) {
+  const researchBridgeRuntime = useResearchBridge();
+  const researchDesk = useResearchDesk();
+  const anchorId = ["research", investigationId, "CANDIDATE", projection.candidateId, projection.evaluationId].join(":");
+  const published = researchDesk.entries.some(entry => entry.anchor.anchorId === anchorId);
+  const publicationDescription = published
+    ? "This pairwise comparison is preserved in Research Inbox. No relationship was accepted."
+    : "Preserve this pairwise comparison in Research Inbox for inspection and writing. This does not accept the relationship.";
   const caseASide = projection.caseAKnowledgeObjectId === projection.leftKnowledgeObjectId
     ? "LEFT"
     : "RIGHT";
@@ -188,7 +198,18 @@ function ReadyWorkspace({ projection }: { projection: ComparePairProjectionReady
             </h2>
             <p className="compare-workspace__subtitle">Deterministic projection of the selected canonical candidate</p>
           </div>
-          <span className="compare-workspace__badge compare-workspace__badge--candidate">CANDIDATE</span>
+          <div className="compare-workspace__publish">
+            <span className="compare-workspace__badge compare-workspace__badge--candidate">CANDIDATE</span>
+            <button
+              type="button"
+              disabled={published}
+              title={publicationDescription}
+              aria-label={publicationDescription}
+              onClick={() => publishCompareCandidateToResearch({ investigationId, projection, resolveExecutionId, researchBridgeRuntime })}
+            >
+              {published ? "Published to Research" : "Send to Research"}
+            </button>
+          </div>
         </div>
         <div className="compare-workspace__technical">Candidate ID: {projection.candidateId}</div>
       </header>
@@ -268,6 +289,8 @@ export default function CompareWorkspace() {
   const workspace = workspaceRuntime.getWorkspace();
   const selection = workspaceRuntime.getSelection();
   const candidateEvaluations = resolveState.currentExecution?.result?.candidateEvaluations;
+  const investigationId = workspaceRuntime.getActiveInvestigation()?.id;
+  const resolveExecutionId = resolveState.currentExecution?.executionId;
 
   const projectionState = useMemo<ProjectionState>(() => {
     if (candidateEvaluations === undefined) {
@@ -338,6 +361,9 @@ export default function CompareWorkspace() {
     case ComparePairProjectionStatus.FOCUSED_EVENT_KNOWLEDGE_UNAVAILABLE:
       return <main className="compare-workspace"><EmptyState title="Focused EVENT Knowledge unavailable" guidance="The I1B projection cannot resolve canonical Knowledge for the focused EVENT. Case A has not been fabricated." detail={`Focused EVENT: ${projectionState.result.focusedEventId}`} /></main>;
     case ComparePairProjectionStatus.READY:
-      return <main className="compare-workspace"><ReadyWorkspace projection={projectionState.result} /></main>;
+      if (!investigationId) {
+        return <main className="compare-workspace"><EmptyState title="Investigation unavailable" guidance="Research publication requires canonical Investigation ownership." /></main>;
+      }
+      return <main className="compare-workspace"><ReadyWorkspace projection={projectionState.result} investigationId={investigationId} resolveExecutionId={resolveExecutionId} /></main>;
   }
 }

@@ -120,6 +120,21 @@ export interface ResolveCandidateAcceptanceResult {
 
 }
 
+export function createAcceptedResolveCandidateRelationshipId(
+  candidateId: string,
+): string {
+  if (candidateId.trim().length === 0) {
+    throw new Error(
+      "Resolve Candidate Acceptance rejected an empty candidate identity.",
+    );
+  }
+
+  return [
+    "resolve-relationship",
+    candidateId,
+  ].join(":");
+}
+
 // ============================================================
 // MATERIALIZE ACCEPTED CANDIDATE
 // ============================================================
@@ -188,10 +203,9 @@ export function materializeAcceptedResolveCandidate(
   // ----------------------------------------------------------
 
   const relationshipId =
-    [
-      "resolve-relationship",
+    createAcceptedResolveCandidateRelationshipId(
       intelligence.identity.candidateId,
-    ].join(":");
+    );
 
   const relationship:
     KnowledgeRelationship = {

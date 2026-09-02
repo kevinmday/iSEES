@@ -35,6 +35,18 @@ interface ResearchInboxInstrumentProps {
   ) => void;
 }
 
+const candidateDimensionOrder = [
+  ["NARRATIVE", "Narrative"],
+  ["OBSERVABILITY", "Observability"],
+  ["INFRASTRUCTURE", "Infrastructure"],
+  ["TOPOLOGY", "Topology"],
+  ["GEOGRAPHY", "Geography"],
+] as const;
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -51,6 +63,10 @@ export default function ResearchInboxInstrument({
     entry:
       typeof researchDesk.entries[number],
   ): void {
+
+    if (!("graph" in entry.anchor)) {
+      return;
+    }
 
     const node: ReferenceNode = {
 
@@ -346,9 +362,8 @@ export default function ResearchInboxInstrument({
                           "#718096",
                       }}
                     >
-                      Double-click a manifold node
-                      or edge to collect it for
-                      research.
+                      Collect an inspectable item from
+                      Manifold or Compare for research.
                     </div>
 
                   </div>
@@ -359,110 +374,81 @@ export default function ResearchInboxInstrument({
                   researchDesk
                     .entries
                     .map(
-                      entry => (
+                      entry => {
+                        if ("graph" in entry.anchor) {
+                          return (
+                            <button
+                              key={entry.anchor.anchorId}
+                              type="button"
+                              onClick={() => handleInsert(entry)}
+                              title="Insert this reference into the active Author document."
+                              aria-label={`Insert ${entry.anchor.graph.type} ${entry.anchor.graph.id} into the active Author document.`}
+                              style={{ width: "100%", padding: "9px 0", display: "block", border: 0, borderBottom: "1px solid rgba(148,163,184,0.10)", background: "transparent", color: "inherit", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                            >
+                              <div style={{ color: "#7dd3fc", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em" }}>
+                                {entry.anchor.graph.type}
+                              </div>
+                              <div style={{ marginTop: 3, overflowWrap: "anywhere", color: "#e2e8f0", fontSize: 11 }}>
+                                {entry.anchor.graph.id}
+                              </div>
+                            </button>
+                          );
+                        }
 
-                        <button
-                          key={
-                            entry
-                              .anchor
-                              .anchorId
-                          }
+                        const candidate = entry.anchor.candidate;
+                        const availableCount = candidate.dimensions.filter(dimension => dimension.status === "AVAILABLE").length;
+                        const unavailableCount = candidate.dimensions.length - availableCount;
+                        const inspectionDescription = "Open this deterministic pairwise comparison. Research publication does not accept or create a relationship.";
 
-                          type="button"
-
-                          onClick={
-                            () =>
-                              handleInsert(
-                                entry,
-                              )
-                          }
-
-                          title={
-                            "Insert this reference into the active Author document."
-                          }
-
-                          style={{
-                            width:
-                              "100%",
-
-                            padding:
-                              "9px 0",
-
-                            display:
-                              "block",
-
-                            border:
-                              0,
-
-                            borderBottom:
-                              "1px solid rgba(148,163,184,0.10)",
-
-                            background:
-                              "transparent",
-
-                            color:
-                              "inherit",
-
-                            cursor:
-                              "pointer",
-
-                            fontFamily:
-                              "inherit",
-
-                            textAlign:
-                              "left",
-                          }}
-                        >
-
-                          <div
-                            style={{
-                              color:
-                                "#7dd3fc",
-
-                              fontSize:
-                                10,
-
-                              fontWeight:
-                                700,
-
-                              letterSpacing:
-                                "0.08em",
-                            }}
+                        return (
+                          <details
+                            key={entry.anchor.anchorId}
+                            title={inspectionDescription}
+                            style={{ padding: "9px 0", borderBottom: "1px solid rgba(148,163,184,0.10)" }}
                           >
-                            {
-                              entry
-                                .anchor
-                                .graph
-                                .type
-                            }
-                          </div>
+                            <summary aria-label={inspectionDescription} style={{ cursor: "pointer", listStylePosition: "outside" }}>
+                              <div style={{ display: "inline", color: "#7dd3fc", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em" }}>
+                                PAIRWISE CORRESPONDENCE
+                              </div>
+                              <div style={{ marginTop: 3, overflowWrap: "anywhere", color: "#e2e8f0", fontSize: 11 }}>
+                                {candidate.focusedEventId} ↔ {candidate.comparisonEventId}
+                              </div>
+                              <div style={{ marginTop: 3, color: "#94a3b8", fontSize: 10 }}>
+                                {formatPercent(candidate.aggregate.aggregateSimilarity)} aggregate · {candidate.aggregate.participatingDimensionCount}/{candidate.aggregate.totalDimensionCount} participating
+                              </div>
+                              <div style={{ marginTop: 2, color: "#fbbf24", fontSize: 10 }}>
+                                CANDIDATE — inspection only
+                              </div>
+                            </summary>
 
-                          <div
-                            style={{
-                              marginTop:
-                                3,
+                            <div style={{ marginTop: 9, paddingLeft: 12, display: "grid", gap: 7, fontSize: 10, overflowWrap: "anywhere" }}>
+                              <div><strong>Focused EVENT</strong> {candidate.focusedEventId}<br />Knowledge Object {candidate.focusedEventKnowledgeObjectId}</div>
+                              <div><strong>Comparison EVENT</strong> {candidate.comparisonEventId}<br />Knowledge Object {candidate.comparisonEventKnowledgeObjectId}</div>
+                              <div><strong>Candidate ID</strong> {candidate.candidateId}</div>
+                              <div><strong>Evaluation ID</strong> {candidate.evaluationId}</div>
+                              <div><strong>Resolve execution</strong> {candidate.resolveExecutionId ?? "UNAVAILABLE"}</div>
+                              <div><strong>Canonical lineage</strong><br />LEFT {candidate.leftKnowledgeObjectId}<br />RIGHT {candidate.rightKnowledgeObjectId}</div>
+                              <div><strong>Aggregate availability</strong> AVAILABLE · {formatPercent(candidate.aggregate.aggregateSimilarity)}</div>
+                              <div><strong>Evidence counts</strong> {candidate.aggregate.participatingDimensionCount} participating · {availableCount} available · {unavailableCount} unavailable · {candidate.aggregate.totalDimensionCount} total</div>
 
-                              overflowWrap:
-                                "anywhere",
+                              <div style={{ display: "grid", gap: 4 }}>
+                                {candidateDimensionOrder.map(([dimensionId, label]) => {
+                                  const dimension = candidate.dimensions.find(item => item.dimension === dimensionId);
+                                  if (!dimension) return <div key={dimensionId}><strong>{label}</strong> — INVALID · canonical dimension absent</div>;
+                                  if (dimension.source.availability === "AVAILABLE") {
+                                    return <div key={dimensionId}><strong>{label}</strong> — AVAILABLE · {formatPercent(dimension.source.similarity)}</div>;
+                                  }
+                                  return <div key={dimensionId}><strong>{label}</strong> — UNAVAILABLE · {dimension.source.reason}</div>;
+                                })}
+                              </div>
 
-                              color:
-                                "#e2e8f0",
-
-                              fontSize:
-                                11,
-                            }}
-                          >
-                            {
-                              entry
-                                .anchor
-                                .graph
-                                .id
-                            }
-                          </div>
-
-                        </button>
-
-                      ),
+                              <div><strong>Epistemic status</strong> {candidate.epistemicStatus}</div>
+                              <div><strong>Source</strong> COMPARE pair inspection</div>
+                              <div style={{ color: "#fbbf24" }}>Candidate comparison — not an accepted EDGE. No Author REFERENCE insertion.</div>
+                            </div>
+                          </details>
+                        );
+                      },
                     )
 
                 )
@@ -494,8 +480,8 @@ export default function ResearchInboxInstrument({
                 "0.04em",
             }}
           >
-            Select an item to insert it into
-            the active Author document.
+            Graph references can be inserted into Author.
+            Candidates remain research inspection entries.
           </div>
 
         </>

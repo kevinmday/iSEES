@@ -64,8 +64,21 @@ assert(/WorkspaceMode\.COMPARE[\s\S]*?<CompareSetController \/>/.test(owner), "l
 assert(/WorkspaceMode\.MANIFOLD[\s\S]*?<ManifoldNavigator \/>/.test(owner) && owner.includes("Investigation Library"), "MANIFOLD and non-COMPARE branches remain");
 for (const value of ["useKnowledgeObjects", "useResolveRuntimeState", "useWorkspaceRuntime", "resolveCandidateIntelligenceCollection", "setSelection(option.selection)", "FOCUSED EVENT", "COMPARISON EVENT", "aria-pressed={option.selected}"]) assert(controller.includes(value), `controller contains required contract: ${value}`);
 assert(projection.includes("createWorkspaceCandidateSelection") && projection.includes("resolveComparePairProjection"), "projection uses established selection product and I1B readiness");
-for (const forbidden of ["execute(", "acceptResolveCandidate", "CanonicalKnowledgeSimilarityResolver", "GraphMutation", "ResearchInbox"]) assert(!controller.includes(forbidden) && !projection.includes(forbidden), `forbidden mutation/computation absent: ${forbidden}`);
+for (const forbidden of [
+  "execute(",
+  "executeResolve",
+  "acceptResolveCandidate",
+  "ResolveCandidateAcceptance",
+  "CanonicalKnowledgeSimilarityResolver",
+  "GraphMutation",
+  "createEdge",
+  "setNodes",
+  "setEdges",
+  "ResearchInbox",
+  "publishCompareCandidateToResearch",
+  "createAnchor",
+]) assert(!controller.includes(forbidden) && !projection.includes(forbidden), `forbidden mutation/computation absent: ${forbidden}`);
 const selectors = css.split(/\r?\n/).map(x => x.trim()).filter(x => x.startsWith("."));
 assert(selectors.length > 0 && selectors.every(x => x.startsWith(".compare-set")), "CSS uses only compare-set namespace");
-for (const path of ["src/compare/components/CompareWorkspace.tsx", "src/compare/components/CompareWorkspace.css", "src/surfaces/WorkspaceSurface.tsx", "src/components/RightPanel.tsx"]) { execFileSync("git", ["diff", "--exit-code", "--", path]); assert(true, `${path} remains unchanged`); }
+for (const path of ["src/components/RightPanel.tsx"]) { execFileSync("git", ["diff", "--exit-code", "--", path]); assert(true, `${path} remains unchanged`); }
 console.log("\nAll COMPARE Set Controller invariants passed.");

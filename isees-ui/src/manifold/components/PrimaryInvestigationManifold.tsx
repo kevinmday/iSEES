@@ -113,6 +113,7 @@
 import {
   Fragment,
   useMemo,
+  useState,
 } from "react";
 
 import InvestigationGraph
@@ -128,6 +129,7 @@ import {
 
 import {
   useKnowledgeObjectRuntime,
+  useKnowledgeObjects,
 } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
 
 import {
@@ -157,7 +159,9 @@ import {
 } from "../../resolve/intelligence/ResolveCandidateSelection";
 
 import {
+  createAcceptedResolveCandidateRelationshipId,
   materializeAcceptedResolveCandidate,
+  ResolveAcceptedRelationshipType,
 } from "../../resolve/acceptance/ResolveCandidateAcceptance";
 
 import type {
@@ -190,6 +194,12 @@ export default function PrimaryInvestigationManifold({
 
   const knowledgeRuntime =
     useKnowledgeObjectRuntime();
+
+  const knowledgeObjects =
+    useKnowledgeObjects();
+
+  const [acceptanceError, setAcceptanceError] =
+    useState<{ candidateId: string; message: string } | undefined>();
 
   const workspaceRuntime =
     useWorkspaceRuntime();
@@ -385,34 +395,46 @@ export default function PrimaryInvestigationManifold({
         },
       );
 
+      setAcceptanceError(
+        {
+          candidateId: intelligence.identity.candidateId,
+          message: "Relationship acceptance failed: resolve the current computational context and try again.",
+        },
+      );
+
       return;
 
     }
 
-    const result =
-      materializeAcceptedResolveCandidate(
-        intelligence,
-        knowledgeRuntime.getObjects(),
-      );
+    try {
+      const result =
+        materializeAcceptedResolveCandidate(
+          intelligence,
+          knowledgeRuntime.getObjects(),
+        );
 
-    if (
-      !result.changed
-    ) {
+      if (
+        !result.changed
+      ) {
+
+        setAcceptanceError(undefined);
 
       console.log(
         "P56D-I1-G6 CANDIDATE ALREADY ACCEPTED:",
         result.relationship.id,
       );
 
-      return;
+        return;
 
     }
 
-    knowledgeRuntime.updateObject(
-      result.knowledgeObject,
-    );
+      knowledgeRuntime.updateObject(
+        result.knowledgeObject,
+      );
 
-    console.log(
+      setAcceptanceError(undefined);
+
+      console.log(
       "P56D-I1-G6 CANDIDATE ACCEPTED:",
       {
         candidateId:
@@ -427,7 +449,25 @@ export default function PrimaryInvestigationManifold({
         relationshipId:
           result.relationship.id,
       },
-    );
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unknown acceptance error.";
+
+      setAcceptanceError(
+        {
+          candidateId: intelligence.identity.candidateId,
+          message: `Relationship acceptance failed: ${message}`,
+        },
+      );
+
+      console.error(
+        "CANDIDATE ACCEPTANCE FAILED:",
+        error,
+      );
+    }
 
   }
 
@@ -1011,7 +1051,35 @@ export default function PrimaryInvestigationManifold({
                         CANDIDATE != RELATIONSHIP
                       */}
 
-                      {isSelected && (
+                      {isSelected && (() => {
+
+                        const relationshipId =
+                          createAcceptedResolveCandidateRelationshipId(
+                            intelligence.identity.candidateId,
+                          );
+
+                        const acceptedRelationship =
+                          knowledgeObjects
+                            .find(object =>
+                              object.identity.id === intelligence.identity.leftKnowledgeObjectId,
+                            )
+                            ?.relationships
+                            .find(relationship =>
+                              relationship.id === relationshipId &&
+                              relationship.type === ResolveAcceptedRelationshipType.RESOLVE_CANDIDATE &&
+                              relationship.targetId === intelligence.identity.rightKnowledgeObjectId,
+                            );
+
+                        const accepted =
+                          acceptedRelationship !== undefined;
+
+                        const acceptanceDescription = accepted
+                          ? "This candidate has been accepted as a canonical relationship in the Investigation Manifold."
+                          : "Create a canonical relationship between these events. This changes the Investigation Manifold.";
+
+                        return (
+
+                        <div>
 
                         <button
                           type="button"
@@ -1021,18 +1089,16 @@ export default function PrimaryInvestigationManifold({
                           // Acceptance requires a synchronized projection.
 
                           disabled={
-                            !candidateAcceptanceAllowed
+                            accepted || !candidateAcceptanceAllowed
                           }
 
                           aria-disabled={
-                            !candidateAcceptanceAllowed
+                            accepted || !candidateAcceptanceAllowed
                           }
 
-                          title={
-                            candidateAcceptanceAllowed
-                              ? "Accept this synchronized Resolve candidate as a canonical Knowledge relationship."
-                              : "Resolve the current computational context before accepting this candidate."
-                          }
+                          title={acceptanceDescription}
+
+                          aria-label={acceptanceDescription}
 
                           onClick={
                             event => {
@@ -1068,12 +1134,12 @@ export default function PrimaryInvestigationManifold({
                               "#86efac",
 
                             cursor:
-                              candidateAcceptanceAllowed
+                              candidateAcceptanceAllowed && !accepted
                                 ? "pointer"
                                 : "not-allowed",
 
                             opacity:
-                              candidateAcceptanceAllowed
+                              candidateAcceptanceAllowed || accepted
                                 ? 1
                                 : 0.48,
 
@@ -1094,13 +1160,31 @@ export default function PrimaryInvestigationManifold({
                           }}
                         >
                           {
-                            candidateAcceptanceAllowed
+                            accepted
+                              ? "RELATIONSHIP ACCEPTED"
+                              : candidateAcceptanceAllowed
                               ? "ACCEPT RELATIONSHIP"
                               : "RESOLVE REQUIRED"
                           }
                         </button>
 
-                      )}
+                        {accepted && (
+                          <div role="status" style={{ marginTop: 5, color: "#86efac", fontSize: 10 }}>
+                            Canonical relationship created. EDGE {acceptedRelationship.id}
+                          </div>
+                        )}
+
+                        {!accepted && acceptanceError?.candidateId === intelligence.identity.candidateId && (
+                          <div role="alert" style={{ marginTop: 5, color: "#fca5a5", fontSize: 10 }}>
+                            {acceptanceError.message}
+                          </div>
+                        )}
+
+                        </div>
+
+                        );
+
+                      })()}
 
                     </Fragment>
 

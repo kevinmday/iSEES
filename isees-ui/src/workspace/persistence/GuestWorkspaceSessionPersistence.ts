@@ -354,11 +354,20 @@ function isPersistedResearchState(
     return false;
   }
 
-  return (
-    Array.isArray(
-      value.desk.entries,
-    )
-  );
+  if (!Array.isArray(value.desk.entries)) return false;
+
+  return value.desk.entries.every(entry => {
+    if (!isRecord(entry) || typeof entry.order !== "number" || !isRecord(entry.anchor)) return false;
+    const anchor = entry.anchor;
+    if (!isString(anchor.anchorId) || !isString(anchor.investigationId) || typeof anchor.pinned !== "boolean") return false;
+    if (isRecord(anchor.graph)) {
+      return (anchor.graph.type === "NODE" || anchor.graph.type === "EDGE") && isString(anchor.graph.id) && typeof anchor.graphRevision === "number";
+    }
+    if (!isRecord(anchor.candidate) || anchor.candidate.type !== "CANDIDATE") return false;
+    const candidate = anchor.candidate;
+    const identities = [candidate.candidateId, candidate.evaluationId, candidate.leftKnowledgeObjectId, candidate.rightKnowledgeObjectId, candidate.focusedEventId, candidate.focusedEventKnowledgeObjectId, candidate.comparisonEventId, candidate.comparisonEventKnowledgeObjectId];
+    return identities.every(isString) && candidate.source === "COMPARE_PAIR_INSPECTION" && isRecord(candidate.aggregate) && Array.isArray(candidate.dimensions) && candidate.dimensions.length === 5;
+  });
 
 }
 

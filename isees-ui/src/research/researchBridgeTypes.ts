@@ -37,6 +37,8 @@ export const ResearchAnchorType = {
 
   EDGE: "EDGE",
 
+  CANDIDATE: "CANDIDATE",
+
 } as const;
 
 export type ResearchAnchorType =
@@ -55,7 +57,8 @@ export interface GraphReference {
    */
 
   type:
-    ResearchAnchorType;
+    | typeof ResearchAnchorType.NODE
+    | typeof ResearchAnchorType.EDGE;
 
   /**
    * Runtime graph identifier.
@@ -77,7 +80,7 @@ export interface GraphReference {
  * the live Investigation Graph.
  */
 
-export interface ResearchAnchor {
+export interface ResearchGraphAnchor {
 
   /**
    * Stable anchor identifier.
@@ -130,6 +133,34 @@ export interface ResearchAnchor {
     boolean;
 
 }
+
+export interface ResearchCandidateAnchor {
+  anchorId: string;
+  investigationId: string;
+  candidate: {
+    type: typeof ResearchAnchorType.CANDIDATE;
+    candidateId: string;
+    evaluationId: string;
+    leftKnowledgeObjectId: string;
+    rightKnowledgeObjectId: string;
+    focusedEventId: string;
+    focusedEventKnowledgeObjectId: string;
+    comparisonEventId: string;
+    comparisonEventKnowledgeObjectId: string;
+    resolveExecutionId?: string;
+    epistemicStatus: string;
+    aggregate: import("../resolve/intelligence/ResolveCandidateIntelligenceTypes").ResolveCandidateAggregateIntelligence;
+    dimensions: readonly import("../resolve/intelligence/ResolveCandidateIntelligenceTypes").ResolveCandidateDimensionIntelligence[];
+    source: "COMPARE_PAIR_INSPECTION";
+  };
+  createdAt: Date;
+  notes?: string;
+  pinned: boolean;
+}
+
+export type ResearchAnchor =
+  | ResearchGraphAnchor
+  | ResearchCandidateAnchor;
 
 // ============================================================
 // RESEARCH DESK ENTRY

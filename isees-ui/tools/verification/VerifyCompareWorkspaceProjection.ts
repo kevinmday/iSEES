@@ -113,7 +113,29 @@ execFileSync(
 pass("dormant legacy CompareWorkspace remains unchanged");
 
 assertIncludes(workspaceSurface, "<WorkspaceIdentityHeader />", "persistent WorkspaceIdentityHeader remains mounted");
-assertIncludes(workspaceSurface, "activeMode === WorkspaceMode.MANIFOLD", "Research Inbox visibility remains MANIFOLD/RESEARCH scoped");
+assertIncludes(workspaceSurface, 'from "../manifold/components/ResearchInboxInstrument"', "WorkspaceSurface imports the established shared ResearchInboxInstrument");
+assert(
+  /const researchInboxVisible\s*=\s*activeMode ===\s*WorkspaceMode\.MANIFOLD\s*\|\|\s*activeMode ===\s*WorkspaceMode\.RESEARCH\s*\|\|\s*activeMode ===\s*WorkspaceMode\.COMPARE;/.test(workspaceSurface),
+  "shared Research Inbox visibility is exactly MANIFOLD, RESEARCH/STUDIO, and COMPARE",
+);
+pass("shared Research Inbox visibility is exactly MANIFOLD, RESEARCH/STUDIO, and COMPARE");
+assert((workspaceSurface.match(/<ResearchInboxInstrument\b/g) ?? []).length === 1, "the shared shell mounts exactly one ResearchInboxInstrument");
+pass("the shared shell mounts exactly one ResearchInboxInstrument");
+assertExcludes(compareWorkspace, "ResearchInboxInstrument", "no COMPARE-specific Research Inbox exists");
+assertIncludes(compareWorkspace, 'from "../research/CompareCandidateResearchPublication"', "COMPARE imports the dedicated candidate publication boundary");
+assertIncludes(compareWorkspace, "publishCompareCandidateToResearch({", "COMPARE publication uses the dedicated candidate publication boundary");
+for (const forbidden of [
+  "ResolveCandidateAcceptance",
+  "acceptResolveCandidate",
+  "GraphMutation",
+  "createEdge",
+  "setNodes",
+  "setEdges",
+  "executeResolve",
+  ".execute(",
+]) {
+  assertExcludes(compareWorkspace, forbidden, `CompareWorkspace excludes forbidden mutation/Resolve dependency ${forbidden}`);
+}
 
 console.log("");
 console.log(`All ${passCount} COMPARE Workspace Projection invariants passed.`);

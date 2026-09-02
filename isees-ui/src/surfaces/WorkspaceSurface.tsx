@@ -220,7 +220,9 @@ export default function WorkspaceSurface() {
     activeMode ===
       WorkspaceMode.MANIFOLD ||
     activeMode ===
-      WorkspaceMode.RESEARCH;
+      WorkspaceMode.RESEARCH ||
+    activeMode ===
+      WorkspaceMode.COMPARE;
 
   return (
 
