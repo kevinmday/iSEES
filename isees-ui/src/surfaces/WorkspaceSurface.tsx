@@ -60,6 +60,11 @@ import OverviewWorkspace
 import ManifoldWorkspace
   from "../workspace/surfaces/ManifoldWorkspace";
 
+import CompareWorkspace
+  from "../compare/components/CompareWorkspace";
+
+import "../compare/components/CompareWorkspace.css";
+
 import StudioShell
   from "../author/components/StudioShell";
 
@@ -135,9 +140,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.COMPARE:
 
       return (
-        <PlaceholderSurface
-          title="Comparative Analysis Workspace"
-        />
+        <CompareWorkspace />
       );
 
     case WorkspaceMode.NARRATIVE:
