@@ -69,6 +69,9 @@ import LayersWorkspace
 import EvidenceWorkspace
   from "../workspace/surfaces/EvidenceWorkspace";
 
+import TimelineWorkspace
+  from "../timeline/components/TimelineWorkspace";
+
 import "../compare/components/CompareWorkspace.css";
 
 import StudioShell
@@ -168,9 +171,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.TIMELINE:
 
       return (
-        <PlaceholderSurface
-          title="Timeline Workspace"
-        />
+        <TimelineWorkspace />
       );
 
     case WorkspaceMode.LAYERS:

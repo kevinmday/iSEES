@@ -82,6 +82,6 @@ assert.deepEqual(ready.focusedItems.find(item => item.itemId === "instant-offset
 assert.deepEqual(ready.focusedItems.find(item => item.itemId === "instant-offset")!.mediaReferenceIds, ["media:1"]);
 assert.deepEqual(Object.keys(ResearchAnchorType).sort(), ["CANDIDATE", "EDGE", "EXPERIMENT", "NODE"]);
 const surface = readFileSync("src/surfaces/WorkspaceSurface.tsx", "utf8");
-assert.match(surface, /case WorkspaceMode\.TIMELINE:[\s\S]*?<PlaceholderSurface[\s\S]*?title="Timeline Workspace"/);
+assert.match(surface, /case WorkspaceMode\.TIMELINE:[\s\S]*?<TimelineWorkspace\s*\/>/);
 
 console.log("PASS VerifyTimelineTemporalProjection — 28 deterministic temporal projection contracts verified");
