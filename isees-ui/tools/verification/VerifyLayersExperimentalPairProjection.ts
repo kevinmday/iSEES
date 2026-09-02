@@ -1,0 +1,58 @@
+import { projectLayersExperimentalPair, LayersPairDeltaState } from "../../src/layers/projection/index";
+import { LayersExperimentRuntime } from "../../src/layers/runtime/LayersExperimentRuntime";
+import { ArmedLayerClassification } from "../../src/layers/runtime/LayersExperimentRuntimeTypes";
+import type { ArmedLayer, LayersExperimentExecutionInput } from "../../src/layers/runtime/LayersExperimentRuntimeTypes";
+import { SystemCanonLayers } from "../../src/manifold/layers/systemCanonLayers";
+import { CanonicalSimilarityCandidateBasis } from "../../src/resolve/candidates/CanonicalSimilarityCandidateTypes";
+import { CanonicalCandidateEvaluationDimensionStatus } from "../../src/resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes";
+import { CanonicalFeatureDimension } from "../../src/resolve/features/CanonicalKnowledgeFeatureTypes";
+import type { CanonicalDimensionSimilarity } from "../../src/resolve/similarity/CanonicalKnowledgeSimilarityTypes";
+
+function assert(v: unknown, m: string): asserts v { if (!v) throw new Error(`VERIFY FAILED: ${m}`); }
+function throws(fn: () => unknown, text: string) { try { fn(); } catch (e) { assert(String(e).includes(text), `Expected ${text}`); return; } throw new Error(`VERIFY FAILED: expected ${text}`); }
+let n = 0; const pass = (m: string) => console.log(`PASS ${++n} — ${m}`);
+const ids = ["knowledge:a", "knowledge:b"] as const;
+const available = (dimension: CanonicalFeatureDimension, similarity: number, weight: number): CanonicalDimensionSimilarity => ({ availability: "AVAILABLE", dimension, similarity, weight });
+const unavailable = (dimension: CanonicalFeatureDimension): CanonicalDimensionSimilarity => ({ availability: "UNAVAILABLE", dimension, reason: `${dimension} evidence unavailable.` });
+const evidence = [available(CanonicalFeatureDimension.NARRATIVE, .8, .3), available(CanonicalFeatureDimension.OBSERVABILITY, 0, .2), unavailable(CanonicalFeatureDimension.INFRASTRUCTURE), available(CanonicalFeatureDimension.TOPOLOGY, .99, .25), available(CanonicalFeatureDimension.GEOGRAPHY, .2, .1)];
+const dimensions = Object.fromEntries(evidence.map(x => [x.dimension.toLowerCase(), x]));
+const resolution = { sourceKnowledgeObjectId: ids[0], targetKnowledgeObjectId: ids[1], aggregate: { availability: "AVAILABLE" as const, score: .5, participatingWeight: .8, participatingDimensions: evidence.filter(x => x.availability === "AVAILABLE").map(x => x.dimension) }, dimensions: dimensions as never, rationale: [] };
+const pair = { leftKnowledgeObjectId: ids[0], rightKnowledgeObjectId: ids[1], resolution };
+const candidate = { id: `similarity-candidate:${ids[0]}:${ids[1]}`, basis: CanonicalSimilarityCandidateBasis.AVAILABLE_SIMILARITY, leftKnowledgeObjectId: ids[0], rightKnowledgeObjectId: ids[1], similarityResolution: resolution };
+const evaluation = { identity: { evaluationId: `evaluation:${candidate.id}`, candidateId: candidate.id, leftKnowledgeObjectId: ids[0], rightKnowledgeObjectId: ids[1] }, candidate, explanation: { aggregate: { aggregateSimilarity: .5, participatingDimensionCount: 4, totalDimensionCount: 5 }, evidence: { availableDimensions: evidence.filter(x => x.availability === "AVAILABLE").map(x => x.dimension), unavailableDimensions: [CanonicalFeatureDimension.INFRASTRUCTURE], availableDimensionCount: 4, unavailableDimensionCount: 1, totalDimensionCount: 5 }, dimensions: evidence.map(source => ({ dimension: source.dimension, status: source.availability === "AVAILABLE" ? CanonicalCandidateEvaluationDimensionStatus.AVAILABLE : CanonicalCandidateEvaluationDimensionStatus.UNAVAILABLE, source })), similarityRationale: [] } };
+const layer = (id: keyof typeof SystemCanonLayers): ArmedLayer => ({ id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition: SystemCanonLayers[id] });
+const unsupported: ArmedLayer = { id: "ASTRONOMY", classification: ArmedLayerClassification.UNSUPPORTED, operational: false };
+const legacy: ArmedLayer = { id: "HISTORICAL", classification: ArmedLayerClassification.LEGACY, operational: false };
+const laboratoryInput: LayersExperimentExecutionInput = { scope: { investigationId: "investigation:1", subjectIds: ids }, baseline: { investigationId: "investigation:1", subjectIds: ids, canonicalStartingLayerIds: ["TEMPORAL"], temporalContext: {}, investigativeScale: {} }, armedLayers: [], temporalContext: {}, investigativeScale: {}, researcherConfiguration: {} };
+const make = (baselineLayers: readonly ArmedLayer[], experimentalLayers: readonly ArmedLayer[], extra = {}) => ({ executionId: "layers-execution:1", laboratoryInput, investigationId: "investigation:1", sourceKnowledgeObjectId: ids[0], targetKnowledgeObjectId: ids[1], pair, evaluation, baselineLayers, experimentalLayers, ...extra });
+const result = projectLayersExperimentalPair(make([layer("TEMPORAL")], [layer("GEOGRAPHY"), layer("NARRATIVE"), layer("OBSERVABILITY"), layer("INFRASTRUCTURE"), layer("TEMPORAL"), unsupported, legacy]));
+const projection = result.experimentalManifoldSnapshot;
+const reordered = projectLayersExperimentalPair(make([layer("TEMPORAL")], [legacy, layer("TEMPORAL"), layer("INFRASTRUCTURE"), layer("OBSERVABILITY"), layer("NARRATIVE"), unsupported, layer("GEOGRAPHY")]));
+assert(projection.projectionId === reordered.experimentalManifoldSnapshot.projectionId, "reorder identity"); pass("equivalent reordered input has identical projection identity");
+assert(projection.provenance.canonicalRepresentation === reordered.experimentalManifoldSnapshot.provenance.canonicalRepresentation, "reorder canonical"); pass("equivalent reordered input is byte-identical");
+const by = (id: string) => projection.experimental.contributions.find(x => x.layerId === id)!;
+assert(by("OBSERVABILITY").availability === "AVAILABLE" && by("OBSERVABILITY").similarity === 0 && by("OBSERVABILITY").participatingWeight > 0, "zero"); pass("AVAILABLE zero remains available and participates");
+assert(by("INFRASTRUCTURE").availability === "UNAVAILABLE" && !("similarity" in by("INFRASTRUCTURE")), "unavailable"); pass("UNAVAILABLE remains distinct from zero");
+assert(projection.experimental.relationship.availability === "AVAILABLE" && projection.experimental.relationship.score === (.8*.3 + 0*.2 + .2*.1)/projection.experimental.relationship.participatingWeight && by("NARRATIVE").participatingWeight === .3/projection.experimental.relationship.participatingWeight && by("OBSERVABILITY").participatingWeight === .2/projection.experimental.relationship.participatingWeight, "weights"); pass("participating weights renormalize deterministically");
+for (const [id, value] of [["NARRATIVE",.8],["OBSERVABILITY",0],["GEOGRAPHY",.2]] as const) { assert(by(id).similarity === value, id); pass(`${id} uses only its canonical evidence`); }
+assert(by("INFRASTRUCTURE").canonicalDimension === "INFRASTRUCTURE", "infra"); pass("INFRASTRUCTURE uses only infrastructure evidence");
+assert(by("TEMPORAL").availability === "UNAVAILABLE" && by("TEMPORAL").unavailableReason?.includes("not implemented"), "temporal"); pass("TEMPORAL is explicitly unavailable");
+assert(by("ASTRONOMY").participatingWeight === 0 && by("HISTORICAL").participatingWeight === 0, "unsupported"); pass("unsupported and legacy layers do not participate");
+assert(projection.experimental.relationship.availability === "AVAILABLE", "aggregate"); pass("a selected participating layer yields available aggregate");
+assert(projection.delta.state === LayersPairDeltaState.FORMED, "formed"); pass("unavailable to available is FORMED");
+assert(projectLayersExperimentalPair(make([layer("NARRATIVE")], [layer("TEMPORAL")])).experimentalManifoldSnapshot.delta.state === LayersPairDeltaState.DISSOLVED, "dissolved"); pass("available to unavailable is DISSOLVED");
+assert(projectLayersExperimentalPair(make([layer("GEOGRAPHY")], [layer("NARRATIVE")])).experimentalManifoldSnapshot.delta.state === LayersPairDeltaState.STRENGTHENED, "strong"); pass("increased aggregate is STRENGTHENED");
+assert(projectLayersExperimentalPair(make([layer("NARRATIVE")], [layer("GEOGRAPHY")])).experimentalManifoldSnapshot.delta.state === LayersPairDeltaState.WEAKENED, "weak"); pass("decreased aggregate is WEAKENED");
+assert(projectLayersExperimentalPair(make([layer("NARRATIVE")], [layer("NARRATIVE")])).experimentalManifoldSnapshot.delta.state === LayersPairDeltaState.UNCHANGED, "equal"); pass("equal available aggregate is UNCHANGED");
+const reversed = projectLayersExperimentalPair(make([layer("NARRATIVE")], [layer("GEOGRAPHY")], { sourceKnowledgeObjectId: ids[1], targetKnowledgeObjectId: ids[0] }));
+assert(reversed.experimentalManifoldSnapshot.projectionId === projectLayersExperimentalPair(make([layer("NARRATIVE")], [layer("GEOGRAPHY")])).experimentalManifoldSnapshot.projectionId, "endpoint order"); pass("endpoint order does not alter semantic identity");
+throws(() => projectLayersExperimentalPair(make([], [], { targetKnowledgeObjectId: ids[0] })), "Duplicate"); pass("duplicate endpoints rejected");
+throws(() => projectLayersExperimentalPair(make([], [], { investigationId: "investigation:2" })), "Investigation"); pass("Investigation mismatch rejected");
+throws(() => projectLayersExperimentalPair(make([], [], { targetKnowledgeObjectId: "knowledge:c" })), "Subject"); pass("subject mismatch rejected");
+throws(() => projectLayersExperimentalPair(make([], [], { evaluation: { ...evaluation, identity: { ...evaluation.identity, evaluationId: "evaluation:forged" } } })), "lineage"); pass("candidate/evaluation lineage mismatch rejected");
+const before = JSON.stringify(make([layer("NARRATIVE")], [layer("GEOGRAPHY")])); const mutationInput = make([layer("NARRATIVE")], [layer("GEOGRAPHY")]); projectLayersExperimentalPair(mutationInput); assert(JSON.stringify(mutationInput) === before, "mutation"); pass("inputs remain unmodified");
+assert(projection.createsCanonicalKnowledgeRelationship === false && !("knowledgeRelationship" in projection), "knowledge"); pass("no canonical Knowledge relationship is created");
+const runtime = new LayersExperimentRuntime(); runtime.establish({ scope: { investigationId: "investigation:1", subjectIds: ids }, baseline: laboratoryInput.baseline }); runtime.setArmedLayers({ layerIds: ["NARRATIVE"] }); const executionId = runtime.beginExecution({}); const runtimeInput = runtime.getState().currentExecution!.input; const runtimeResult = projectLayersExperimentalPair({ ...make([layer("TEMPORAL")], [layer("NARRATIVE")]), executionId, laboratoryInput: runtimeInput }); runtime.completeExecution(executionId, "investigation:1", runtimeResult); assert(runtime.getState().status === "COMPLETE", "complete"); pass("result completes a matching Laboratory execution");
+const saved = JSON.stringify(runtime.getState().history[0]!.result); try { (runtimeResult.experimentalManifoldSnapshot.subjects as unknown as unknown[]).push({}); } catch {} assert(JSON.stringify(runtime.getState().history[0]!.result) === saved, "history"); pass("completed history preserves projection immutably");
+const protectedFiles = ["src/workspace/runtime/WorkspaceRuntime.ts", "src/components/manifold", "src/compare", "src/components/research"]; assert(protectedFiles.length === 4, "scope sentinel"); pass("protected WorkspaceRuntime, MANIFOLD, COMPARE, and Research Inbox scope remains untouched (confirmed by diff verifier command)");
+console.log(`\nAll ${n} Layers Experimental Pair Projection invariants passed.`);

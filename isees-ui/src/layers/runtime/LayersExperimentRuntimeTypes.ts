@@ -1,4 +1,5 @@
 import type { LayerDefinition } from "../../manifold/layers/layerTypes";
+import type { LayersExperimentalPairProjection, LayersPairDelta, LayersLayerContribution, LayersExperimentalPairProjectionProvenance } from "../projection/LayersExperimentalPairProjectionTypes";
 
 export const LayersExperimentStatus = {
   EMPTY: "EMPTY",
@@ -78,11 +79,11 @@ export interface LayersExperimentUnavailableInput {
 
 export interface LayersExperimentResult {
   outcome: "COMPUTED" | "UNAVAILABLE";
-  experimentalManifoldSnapshot?: unknown;
-  baselineDelta?: unknown;
-  layerContributions?: readonly unknown[];
+  experimentalManifoldSnapshot?: LayersExperimentalPairProjection;
+  baselineDelta?: LayersPairDelta;
+  layerContributions?: readonly LayersLayerContribution[];
   unavailableInputs: readonly LayersExperimentUnavailableInput[];
-  provenance?: unknown;
+  provenance?: LayersExperimentalPairProjectionProvenance;
 }
 
 export interface LayersExperimentError {
