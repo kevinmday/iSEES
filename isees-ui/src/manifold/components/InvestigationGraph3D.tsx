@@ -100,6 +100,49 @@ interface Point3D {
   z: number;
 }
 
+const NODE_DOUBLE_CLICK_INTERVAL_MS =
+  350;
+
+export interface PendingNodeClick {
+  nodeId: string;
+  timestamp: number;
+}
+
+export interface NodeClickRecognition {
+  collect: boolean;
+  pending: PendingNodeClick | null;
+}
+
+export function recognizeNodeDoubleClick(
+  pending: PendingNodeClick | null,
+  nodeId: string,
+  timestamp: number,
+): NodeClickRecognition {
+  const elapsed =
+    pending
+      ? timestamp - pending.timestamp
+      : Number.POSITIVE_INFINITY;
+
+  if (
+    pending?.nodeId === nodeId &&
+    elapsed >= 0 &&
+    elapsed <= NODE_DOUBLE_CLICK_INTERVAL_MS
+  ) {
+    return {
+      collect: true,
+      pending: null,
+    };
+  }
+
+  return {
+    collect: false,
+    pending: {
+      nodeId,
+      timestamp,
+    },
+  };
+}
+
 
 interface NavigationControls3D {
   target: Point3D & {
@@ -356,6 +399,9 @@ export default function InvestigationGraph3D({
 
   const fittedTopologyRef =
     useRef<string | null>(null);
+
+  const pendingNodeClickRef =
+    useRef<PendingNodeClick | null>(null);
 
   const topologyIdentity =
     useMemo(
@@ -940,7 +986,17 @@ export default function InvestigationGraph3D({
             nodeId: projected.id,
           });
 
-          if (event.detail >= 2) {
+          const recognition =
+            recognizeNodeDoubleClick(
+              pendingNodeClickRef.current,
+              projected.id,
+              event.timeStamp,
+            );
+
+          pendingNodeClickRef.current =
+            recognition.pending;
+
+          if (recognition.collect) {
             onCollectNode?.(projected);
           }
         }}
