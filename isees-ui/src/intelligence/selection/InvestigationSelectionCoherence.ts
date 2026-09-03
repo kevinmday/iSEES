@@ -34,9 +34,10 @@ function focusedEventKnowledgeObjectId(
 }
 
 /**
- * Returns a revision-owned non-EVENT NODE, a focused imported EVENT NODE,
- * an EDGE in the focused EVENT's established graph component, or a Resolve
- * candidate whose pair contains that EVENT.
+ * Returns an exact active-current-revision-owned NODE, an EDGE in the focused
+ * EVENT's established graph component, or a Resolve candidate whose pair
+ * contains that EVENT. NODE selection is independent of focused-EVENT
+ * ownership.
  * Stale state is not repaired or mutated; it simply has no projection.
  */
 export function resolveCoherentInvestigationSelection(
@@ -55,10 +56,7 @@ export function resolveCoherentInvestigationSelection(
         candidate => candidate.id === selection.nodeId,
       );
       if (!node) return undefined;
-      if (node.type !== KnowledgeObjectType.EVENT) return selection;
-
-      const focusedNodeId = focusedEventKnowledgeObjectId(investigation, knowledgeObjects);
-      return focusedNodeId === selection.nodeId ? selection : undefined;
+      return selection;
     } catch {
       return undefined;
     }
