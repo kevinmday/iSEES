@@ -127,6 +127,9 @@ import { LayersExperimentRuntimeProvider } from "./layers/runtime";
 import { LayersPresentationSelectionProvider } from "./layers/components/LayersPresentationSelection";
 import LayersLaboratoryNavigator from "./layers/components/LayersLaboratoryNavigator";
 import LayersExperimentalIntelligence from "./layers/components/LayersExperimentalIntelligence";
+import TimelineNavigator from "./timeline/components/TimelineNavigator";
+import TimelineInspector from "./timeline/components/TimelineInspector";
+import { TimelineInspectionProvider } from "./timeline/context/TimelineInspectionContext";
 import { WorkspaceMode } from "./workspace/runtime/WorkspaceRuntimeTypes";
 import { useWorkspaceMode } from "./workspace/runtime/WorkspaceRuntimeContext";
 
@@ -269,6 +272,7 @@ function OperatorUI() {
                           <EventProvider>
 
                             <LayersPresentationSelectionProvider>
+                            <TimelineInspectionProvider>
                             <MainLayout
 
                               left={
@@ -284,6 +288,7 @@ function OperatorUI() {
                               }
 
                             />
+                            </TimelineInspectionProvider>
                             </LayersPresentationSelectionProvider>
 
                           </EventProvider>
@@ -400,13 +405,19 @@ export default function App() {
 }
 
 function ModeAwareLeftPanel() {
-  return useWorkspaceMode() === WorkspaceMode.LAYERS
+  const mode = useWorkspaceMode();
+  return mode === WorkspaceMode.LAYERS
     ? <LayersLaboratoryNavigator />
+    : mode === WorkspaceMode.TIMELINE
+      ? <TimelineNavigator />
     : <InvestigationControl />;
 }
 
 function ModeAwareRightPanel() {
-  return useWorkspaceMode() === WorkspaceMode.LAYERS
+  const mode = useWorkspaceMode();
+  return mode === WorkspaceMode.LAYERS
     ? <LayersExperimentalIntelligence />
+    : mode === WorkspaceMode.TIMELINE
+      ? <TimelineInspector />
     : <RightPanel />;
 }

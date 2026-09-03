@@ -15,6 +15,7 @@ const surface = readFileSync("src/surfaces/WorkspaceSurface.tsx", "utf8");
 const component = readFileSync("src/timeline/components/TimelineWorkspace.tsx", "utf8");
 const css = readFileSync("src/timeline/components/TimelineWorkspace.css", "utf8");
 const adapter = readFileSync("src/timeline/projection/TimelineSourceRecordAdapter.ts", "utf8");
+const timelineContext = readFileSync("src/timeline/context/TimelineInspectionContext.tsx", "utf8");
 const presentation = readFileSync("src/timeline/presentation/TimelineTemporalPresentation.ts", "utf8");
 const combined = `${component}\n${adapter}\n${presentation}`;
 
@@ -22,19 +23,18 @@ assert.match(surface, /case WorkspaceMode\.TIMELINE:[\s\S]*?<TimelineWorkspace\s
 assert.doesNotMatch(surface, /case WorkspaceMode\.TIMELINE:[\s\S]{0,160}<PlaceholderSurface/);
 assert.match(surface, /from "\.\.\/timeline\/components\/TimelineWorkspace"/);
 assert.doesNotMatch(combined, /Nimitz|TIC TAC|TICTAC|Rendlesham/i);
-assert.match(component, /runtime\.getActiveInvestigation\(\)/);
-assert.match(component, /investigation\?\.workspace\.focused_event_id/);
+assert.match(timelineContext, /runtime\.getActiveInvestigation\(\)/);
+assert.match(timelineContext, /investigation\?\.workspace\.focused_event_id/);
 assert.match(component, /projectTimelineTemporal/);
-assert.match(component, /projection\.focusedItems\.map/);
+assert.match(component, /projection\.focusedItems/);
 for (const token of ["INSTANT", "DATE", "INTERVAL", "OPEN_INTERVAL", "DURATION", "SEQUENCE", "UNKNOWN", "Approximate", "Inferred", "Disputed", "Date only", "Sequence only"]) assert.ok(presentation.includes(token), `missing explicit presentation: ${token}`);
 assert.match(component, /NO_TEMPORAL_RECORDS/);
 assert.doesNotMatch(component, /1970-01-01/);
 assert.doesNotMatch(adapter, /investigation\.createdAt|workspace\.created_at/);
 assert.doesNotMatch(adapter, /artifact.*created_at|created_at.*artifact/i);
 assert.doesNotMatch(adapter, /Date\.parse|match\([^)]*eventId|split\([^)]*eventId|substring\([^)]*eventId/);
-assert.match(component, /inspection\?\.investigationId === projection\.investigationId/);
-assert.match(component, /inspection\.focusedEventId === projection\.focusedEventId/);
-assert.match(component, /useEffect\(\(\) => \{ setInspection\(undefined\); \}, \[investigation\?\.id, focusedEventId\]\)/);
+assert.match(timelineContext, /setInspection\(undefined\)/);
+assert.match(timelineContext, /\[investigation\?\.id, focusedEventId\]/);
 assert.doesNotMatch(component, /setSelection|clearSelection/);
 assert.doesNotMatch(component, /ResearchBridge|publish|createAnchor/);
 assert.deepEqual(Object.keys(ResearchAnchorType).sort(), ["CANDIDATE", "EDGE", "EXPERIMENT", "NODE"]);
@@ -46,13 +46,12 @@ assert.equal(resolveTimelineComposition(3), TimelineCompositionKind.MULTI_EVENT_
 for (const invalidCount of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
   assert.throws(() => resolveTimelineComposition(invalidCount));
 }
-assert.match(component, /const qualifiedComparisonCount = 0/);
-assert.match(component, /resolveTimelineComposition\(qualifiedComparisonCount\)/);
+assert.match(component, /qualifiedComparisonCount: timeline\.candidates\.length/);
+assert.match(component, /resolveTimelineComposition/);
 assert.doesNotMatch(component, /imported_events\.length/);
 assert.doesNotMatch(component, /resolveCompareCandidateOptionProjection|resolveComparePairProjection|resolveCandidateIntelligenceCollection/);
-assert.doesNotMatch(component, /comparison panel|compared timeline|compared-event|multi-event overview/i);
-assert.doesNotMatch(component, /comparedItems\.map|comparisonItems\.map/);
-assert.match(css, /@media\(max-width:760px\).*grid-template-columns:minmax\(0,1fr\)/);
+assert.match(timelineContext, /resolveCompareCandidateOptionProjection/);
+assert.match(css, /@media\(max-width:980px\).*grid-template-columns:minmax\(0,1fr\)/);
 assert.match(component, /<button type="button" aria-pressed=\{selected\} onClick=\{onInspect\}>/);
 assert.match(css, /button\[aria-pressed=true\]/);
 assert.match(css, /button:focus-visible/);

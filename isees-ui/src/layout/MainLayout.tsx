@@ -47,8 +47,9 @@ export default function MainLayout({
   const workspaceMode =
     useWorkspaceMode();
   const layersMode = workspaceMode === WorkspaceMode.LAYERS;
-  const leftInstrumentName = layersMode ? "Laboratory Navigator" : "Investigation Control";
-  const rightInstrumentName = layersMode ? "Experimental Intelligence" : "Selection Intelligence";
+  const timelineMode = workspaceMode === WorkspaceMode.TIMELINE;
+  const leftInstrumentName = layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
+  const rightInstrumentName = layersMode ? "Experimental Intelligence" : timelineMode ? "Timeline Inspector" : "Selection Intelligence";
 
   const [
     workspaceExpanded,
@@ -445,6 +446,8 @@ export default function MainLayout({
             <div className="selection-intelligence__description">
               {layersMode
                 ? "Inspect the experimental subjects, layers, wires, delta, contributions, and deterministic provenance."
+                : timelineMode
+                  ? "Inspect temporal records, Event lanes, correspondences, provenance, and supporting evidence."
                 : "Deterministic inspection of the active node, edge, cluster, or Resolve candidate."}
             </div>
           </header>

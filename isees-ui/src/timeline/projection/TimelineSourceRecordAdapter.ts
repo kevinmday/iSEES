@@ -47,12 +47,12 @@ function currentGraphEventNode(investigation: Investigation, eventId: string): G
  * Admits only explicitly typed temporal fields. Creation timestamps, the 1970
  * unspecified sentinel, identifiers, titles, and narrative prose are ignored.
  */
-export function adaptFocusedEventTimelineSourceRecords(
+export function adaptEventTimelineSourceRecords(
   investigation: Investigation,
+  eventId: string,
   knowledgeObjects: readonly KnowledgeObject[],
 ): readonly TimelineSourceRecord[] {
-  const eventId = investigation.workspace.focused_event_id;
-  if (!eventId) return Object.freeze([]);
+  if (!eventId.trim() || !investigation.workspace.imported_events.some(reference => reference.event_id === eventId)) return Object.freeze([]);
   const object = canonicalEventObject(eventId, knowledgeObjects);
   if (!object) return Object.freeze([]);
   const graphNode = currentGraphEventNode(investigation, eventId);
@@ -87,4 +87,12 @@ export function adaptFocusedEventTimelineSourceRecords(
     evidenceReferenceIds: Object.freeze([]),
     mediaReferenceIds: Object.freeze([]),
   } satisfies TimelineSourceRecord)]);
+}
+
+export function adaptFocusedEventTimelineSourceRecords(
+  investigation: Investigation,
+  knowledgeObjects: readonly KnowledgeObject[],
+): readonly TimelineSourceRecord[] {
+  const eventId = investigation.workspace.focused_event_id;
+  return eventId ? adaptEventTimelineSourceRecords(investigation, eventId, knowledgeObjects) : Object.freeze([]);
 }
