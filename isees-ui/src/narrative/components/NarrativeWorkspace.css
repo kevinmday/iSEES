@@ -11,6 +11,13 @@
 .narrative-workspace__region--normalized { border-color: rgba(103, 232, 249, .34); box-shadow: inset 0 1px rgba(255,255,255,.03), 0 0 26px rgba(34,211,238,.035); }
 .narrative-workspace__region--compared { border-color: rgba(251, 191, 36, .3); }
 .narrative-workspace__region-header { position: sticky; top: 0; z-index: 2; display: grid; gap: 5px; padding: 16px; border-bottom: 1px solid var(--narrative-line); background: rgba(7, 17, 27, .98); }
+.narrative-workspace__normalized-heading { min-width: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.narrative-workspace__normalized-heading > div:first-child { min-width: 0; display: grid; gap: 5px; }
+.narrative-workspace__publish { flex: 0 0 auto; display: grid; justify-items: end; gap: 6px; }
+.narrative-workspace__publish button { padding: 6px 9px; border: 1px solid #22d3ee; border-radius: 6px; background: rgba(8, 51, 68, .82); color: #cffafe; font: 700 10px/1.2 var(--font-family-mono, ui-monospace, Consolas, monospace); cursor: pointer; }
+.narrative-workspace__publish button:disabled { border-color: #45606d; background: #111d25; color: #7890a3; cursor: default; }
+.narrative-workspace__publication-confirmation { max-width: 220px; display: grid; gap: 2px; text-align: right; color: #9bb1c1; font-size: 9px; }
+.narrative-workspace__publication-confirmation strong { color: #67e8f9; }
 .narrative-workspace__region--compared .narrative-workspace__region-header { border-bottom-color: rgba(251,191,36,.3); }
 .narrative-workspace__region-header h2, .narrative-workspace__state h2 { margin: 0; color: #f5fbff; font: 600 17px/1.25 var(--font-family-sans, system-ui, sans-serif); overflow-wrap: anywhere; }
 .narrative-workspace__region-header code, .narrative-workspace__state code, .narrative-workspace__identity-strip code { color: #9cddeb; overflow-wrap: anywhere; word-break: break-word; }
@@ -80,5 +87,8 @@
   .narrative-workspace__dimension-result { justify-content: flex-start; flex-wrap: wrap; }
   .narrative-workspace__dimension-result dd { text-align: left; }
   .narrative-workspace__secondary dl > div, .narrative-workspace__unsupported dl > div { grid-template-columns: minmax(0,1fr); }
+  .narrative-workspace__normalized-heading { flex-direction: column; }
+  .narrative-workspace__publish { justify-items: start; }
+  .narrative-workspace__publication-confirmation { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .narrative-workspace * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }

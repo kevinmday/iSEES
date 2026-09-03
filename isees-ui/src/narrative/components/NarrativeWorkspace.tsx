@@ -1,6 +1,8 @@
 import { useMemo, type ReactNode } from "react";
 
 import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
+import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
+import { publishCompareCandidateToResearch } from "../../compare/research/CompareCandidateResearchPublication";
 import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
 import { resolveNarrativeWorkspaceProjection } from "../projection/NarrativeWorkspaceProjection";
 import {
@@ -162,15 +164,35 @@ function AvailableExactSet({ title, result }: { title: string; result: Narrative
     : <div><dt>{title}</dt><dd><span className="narrative-workspace__badge narrative-workspace__badge--unavailable">UNAVAILABLE</span> {result.reason}</dd></div>;
 }
 
-function NormalizedRegion({ projection }: { projection: NarrativeWorkspaceReadyProjection }) {
+function NormalizedRegion({ projection, resolveExecutionId }: { projection: NarrativeWorkspaceReadyProjection; resolveExecutionId?: string }) {
   const { normalizedCenter } = projection;
+  const researchBridgeRuntime = useResearchBridge();
+  const researchDesk = useResearchDesk();
+  const anchorId = ["research", projection.investigationId, "CANDIDATE", projection.comparePair.candidateId, projection.comparePair.evaluationId].join(":");
+  const published = researchDesk.entries.some(entry => entry.anchor.anchorId === anchorId);
+  const publicationUnavailable = !resolveExecutionId;
+  const publicationDescription = publicationUnavailable
+    ? "A coherent Resolve execution is required before publication."
+    : published
+      ? "This pairwise comparison is preserved in Research Inbox. No relationship was accepted."
+      : "Preserve this pairwise comparison in Research Inbox for inspection and writing. This does not accept the relationship.";
   return (
     <section className="narrative-workspace__region narrative-workspace__region--normalized" aria-labelledby="narrative-normalized-title">
       <header className="narrative-workspace__region-header">
-        <span className="narrative-workspace__eyebrow">NORMALIZED NARRATIVE</span>
-        <h2 id="narrative-normalized-title">iSEES normalized comparison</h2>
-        <code>{projection.candidate.candidateId}</code>
-        <span className="narrative-workspace__material">Revision {projection.currentRevisionId}</span>
+        <div className="narrative-workspace__normalized-heading">
+          <div>
+            <span className="narrative-workspace__eyebrow">NORMALIZED NARRATIVE</span>
+            <h2 id="narrative-normalized-title">iSEES normalized comparison</h2>
+            <code>{projection.candidate.candidateId}</code>
+            <span className="narrative-workspace__material">Revision {projection.currentRevisionId}</span>
+          </div>
+          <div className="narrative-workspace__publish">
+            <button type="button" disabled={published || publicationUnavailable} title={publicationDescription} aria-label={publicationDescription} onClick={() => publishCompareCandidateToResearch({ investigationId: projection.investigationId, projection: projection.comparePair, resolveExecutionId, researchBridgeRuntime })}>
+              {published ? "Published to Research" : "Send to Research"}
+            </button>
+            {published && <div className="narrative-workspace__publication-confirmation" aria-live="polite"><strong>Added to Research Inbox</strong><span>Pairwise correspondence preserved. No relationship was accepted.</span></div>}
+          </div>
+        </div>
       </header>
 
       <div className="narrative-workspace__normalized-body">
@@ -261,7 +283,7 @@ export default function NarrativeWorkspace() {
       return (
         <main className="narrative-workspace">
           <NarrativeRegion role="FOCUSED NARRATIVE" narrative={projection.focusedNarrative} />
-          <NormalizedRegion projection={projection} />
+          <NormalizedRegion projection={projection} resolveExecutionId={currentExecution?.executionId} />
           <NarrativeRegion role="COMPARED NARRATIVE" narrative={projection.comparedNarrative} compared />
         </main>
       );

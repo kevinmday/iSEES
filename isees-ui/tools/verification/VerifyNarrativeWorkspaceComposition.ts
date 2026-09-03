@@ -42,7 +42,10 @@ for (const [mode, component] of [["OVERVIEW", "OverviewWorkspace"], ["MANIFOLD",
 assert(/case WorkspaceMode\.INTENTION:[\s\S]*?<PlaceholderSurface[\s\S]*?title="Intention Workspace"/.test(workspaceSurface), "INTENTION route remains present"); pass("all other WorkspaceSurface MODE branches remain present");
 includes(workspaceSurface, "<WorkspaceIdentityHeader />", "persistent WorkspaceIdentityHeader remains at the shared boundary");
 const inboxVisibility = workspaceSurface.match(/const researchInboxVisible\s*=[\s\S]*?;/)?.[0] ?? "";
-assert(inboxVisibility.length > 0 && !inboxVisibility.includes("WorkspaceMode.NARRATIVE"), "Research Inbox visibility excludes NARRATIVE"); pass("Research Inbox visibility excludes NARRATIVE");
+assert(inboxVisibility.length > 0 && inboxVisibility.includes("WorkspaceMode.NARRATIVE"), "Research Inbox visibility includes NARRATIVE in the existing allowlist"); pass("Research Inbox visibility includes NARRATIVE in the existing allowlist");
+for (const mode of ["MANIFOLD", "RESEARCH", "COMPARE", "LAYERS", "EVIDENCE"]) assert(inboxVisibility.includes(`WorkspaceMode.${mode}`), `Research Inbox visibility preserves ${mode}`);
+for (const mode of ["OVERVIEW", "TIMELINE", "INTENTION"]) assert(!inboxVisibility.includes(`WorkspaceMode.${mode}`), `Research Inbox visibility continues to exclude ${mode}`);
+pass("all other Research Inbox mode visibility remains unchanged");
 includes(surface, 'from "../projection/NarrativeWorkspaceProjection"', "NarrativeWorkspace imports the I1 resolver");
 includes(surface, "resolveNarrativeWorkspaceProjection({", "NarrativeWorkspace calls the I1 resolver");
 includes(surface, "workspaceRuntime.getActiveInvestigation()", "NarrativeWorkspace reads the active Investigation from WorkspaceRuntime");
@@ -63,7 +66,15 @@ for (const dimension of ["NARRATIVE", "OBSERVABILITY", "INFRASTRUCTURE", "TOPOLO
 includes(surface, "secondaryExactComparison", "exact secondary comparison is rendered");
 includes(surface, "projection.unsupported", "unsupported analysis is rendered explicitly");
 assert(/narrative\.paragraphs\.map\(\(paragraph, index\) => <p key=\{index\}>\{paragraph\}<\/p>\)/.test(surface), "canonical narrative paragraphs render directly and in array order"); pass("canonical narrative paragraphs render directly and in array order");
-for (const forbidden of ["useResearchBridge", "useResearchDesk", "ResearchBridgeRuntime", "publish", "ResearchInbox", "fetch(", "XMLHttpRequest", "localStorage", "sessionStorage", "setTimeout", "setInterval"]) excludes(surface, forbidden, `NarrativeWorkspace excludes side-effect dependency ${forbidden}`);
+includes(surface, "publishCompareCandidateToResearch", "center publication reuses the established COMPARE publisher");
+includes(surface, '"Send to Research"', "center header exposes the initial publication label");
+includes(surface, '"Published to Research"', "center header exposes the published label");
+includes(surface, "Added to Research Inbox", "center header exposes publication confirmation");
+includes(surface, "Pairwise correspondence preserved. No relationship was accepted.", "center header confirms correspondence without acceptance");
+const narrativeRegionSource = surface.slice(surface.indexOf("function NarrativeRegion"), surface.indexOf("function ExactSet"));
+excludes(narrativeRegionSource, "publishCompareCandidateToResearch", "raw narrative columns contain no publication publisher");
+excludes(narrativeRegionSource, "Send to Research", "raw narrative columns contain no publication control");
+for (const forbidden of ["fetch(", "XMLHttpRequest", "localStorage", "sessionStorage", "setTimeout", "setInterval"]) excludes(surface, forbidden, `NarrativeWorkspace excludes side-effect dependency ${forbidden}`);
 for (const forbidden of ["executeResolve", ".execute(", "GraphMutation", "createEdge", "setNodes", "setEdges", "currentRevisionId ="]) excludes(surface, forbidden, `NarrativeWorkspace excludes mutation dependency ${forbidden}`);
 for (const forbidden of ["assistant", "Assistant", "OpenAI", "LLM", "Studio", "Author", "Editor", "contentEditable", "textarea", '<input']) excludes(surface, forbidden, `NarrativeWorkspace excludes AI/STUDIO/editor dependency ${forbidden}`);
 const cssSelectors = css.split(/\r?\n/).map(line => line.trim()).filter(line => line.startsWith("."));

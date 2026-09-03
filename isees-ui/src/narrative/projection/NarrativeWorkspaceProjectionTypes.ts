@@ -4,6 +4,7 @@ import type { CanonicalSimilarityCandidateEvaluation } from "../../resolve/evalu
 import type { CanonicalKnowledgeFeatureSet } from "../../resolve/features/CanonicalKnowledgeFeatureTypes";
 import type { ResolveCandidateDimensionIntelligence } from "../../resolve/intelligence/ResolveCandidateIntelligenceTypes";
 import type { WorkspaceSelection } from "../../workspace/runtime/WorkspaceRuntimeTypes";
+import type { ComparePairProjectionReady } from "../../compare/projection/ComparePairProjectionTypes";
 
 export const NarrativeWorkspaceProjectionStatus = { READY: "READY", NO_INVESTIGATION: "NO_INVESTIGATION", NO_FOCUSED_EVENT: "NO_FOCUSED_EVENT", NO_COMPARISON: "NO_COMPARISON", STALE_SELECTION: "STALE_SELECTION", UNAVAILABLE: "UNAVAILABLE" } as const;
 export type NarrativeWorkspaceProjectionStatus = (typeof NarrativeWorkspaceProjectionStatus)[keyof typeof NarrativeWorkspaceProjectionStatus];
@@ -63,6 +64,7 @@ export interface NarrativeWorkspaceReadyProjection {
   readonly investigationId: string;
   readonly currentRevisionId: string;
   readonly candidate: NarrativeCandidateIdentity;
+  readonly comparePair: ComparePairProjectionReady;
   readonly focusedNarrative: SystemCanonNarrativeProjection;
   readonly normalizedCenter: NarrativeNormalizedCenterProjection;
   readonly comparedNarrative: SystemCanonNarrativeProjection;

@@ -230,6 +230,8 @@ export default function WorkspaceSurface() {
     activeMode ===
       WorkspaceMode.COMPARE ||
     activeMode ===
+      WorkspaceMode.NARRATIVE ||
+    activeMode ===
       WorkspaceMode.LAYERS ||
     activeMode ===
       WorkspaceMode.EVIDENCE;

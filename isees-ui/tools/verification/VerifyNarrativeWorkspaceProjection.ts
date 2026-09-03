@@ -89,6 +89,27 @@ const before = JSON.stringify({ investigation, knowledge, evaluations });
 const roosevelt = project(rooseveltEvaluation);
 const rendlesham = project(rendleshamEvaluation);
 
+assert(roosevelt.comparePair.status === "READY", "READY result exposes the established READY COMPARE pair");
+assert(roosevelt.comparePair.candidateId === roosevelt.candidate.candidateId && roosevelt.comparePair.evaluationId === roosevelt.candidate.evaluationId, "candidate and evaluation identity are unchanged in the exposed pair");
+assert(roosevelt.comparePair.focusedEventId === NIMITZ && roosevelt.comparePair.comparisonEventId === ROOSEVELT, "focused and compared EVENT identity are unchanged in the exposed pair");
+assert(
+  roosevelt.comparePair.aggregate ===
+    roosevelt.comparePair.sourceCandidateIntelligence.explanation.aggregate,
+  "aggregate retains the established COMPARE reference",
+);
+equal(
+  roosevelt.comparePair.aggregate,
+  roosevelt.comparePair.sourceCandidateIntelligence.sourceEvaluation.explanation.aggregate,
+  "aggregate remains structurally equal to its authoritative source evaluation",
+);
+assert(
+  roosevelt.comparePair.epistemicStatus ===
+    roosevelt.comparePair.sourceCandidateIntelligence.epistemicStatus,
+  "epistemic status retains the established COMPARE value",
+);
+assert(roosevelt.comparePair.dimensions === roosevelt.normalizedCenter.resolveDimensions && roosevelt.comparePair.dimensions.length === 5, "all five dimension results retain the exact established COMPARE array");
+assert(roosevelt.comparePair.sourceCandidateIntelligence.sourceEvaluation === rooseveltEvaluation, "Resolve lineage retains the exact source evaluation without recomputation or transformation");
+
 assert(roosevelt.focusedNarrative.canonicalEventId === NIMITZ && roosevelt.comparedNarrative.canonicalEventId === ROOSEVELT, "Nimitz-focused Roosevelt-compared identities are exact");
 assert(rendlesham.focusedNarrative.canonicalEventId === NIMITZ && rendlesham.comparedNarrative.canonicalEventId === RENDLESHAM, "Nimitz-focused Rendlesham-compared identities are exact");
 assert(roosevelt.focusedNarrative.canonicalEventId === rendlesham.focusedNarrative.canonicalEventId, "focused EVENT remains E-TICTAC-2004 across candidate changes");

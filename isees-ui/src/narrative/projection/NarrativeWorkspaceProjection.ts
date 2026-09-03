@@ -85,6 +85,7 @@ export function resolveNarrativeWorkspaceProjection(input: NarrativeWorkspacePro
   const facilityReason = "Canonical facility types are not mutually available.";
   return { status: NarrativeWorkspaceProjectionStatus.READY, investigationId: investigation.id, currentRevisionId: revision.id,
     candidate: { candidateId: pair.candidateId, evaluationId: pair.evaluationId, leftKnowledgeObjectId: pair.leftKnowledgeObjectId, rightKnowledgeObjectId: pair.rightKnowledgeObjectId },
+    comparePair: pair,
     focusedNarrative,
     normalizedCenter: { focusedProfile, comparedProfile, resolveDimensions: pair.dimensions,
       secondaryExactComparison: { classification: "SECONDARY_EXACT_CANONICAL_SET_COMPARISON", sharedSemanticTraits: traits.shared, focusedOnlySemanticTraits: traits.leftOnly, comparedOnlySemanticTraits: traits.rightOnly,
