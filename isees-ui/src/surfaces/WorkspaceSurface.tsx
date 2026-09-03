@@ -72,6 +72,9 @@ import EvidenceWorkspace
 import TimelineWorkspace
   from "../timeline/components/TimelineWorkspace";
 
+import NarrativeWorkspace
+  from "../narrative/components/NarrativeWorkspace";
+
 import "../compare/components/CompareWorkspace.css";
 
 import StudioShell
@@ -157,9 +160,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.NARRATIVE:
 
       return (
-        <PlaceholderSurface
-          title="Narrative Workspace"
-        />
+        <NarrativeWorkspace />
       );
 
     case WorkspaceMode.EVIDENCE:

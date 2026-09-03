@@ -47,18 +47,30 @@ function assertExcludes(source: string, value: string, message: string): void {
   pass(message);
 }
 
+function workspaceModeCase(source: string, mode: string): string {
+  const marker = `case WorkspaceMode.${mode}:`;
+  const start = source.indexOf(marker);
+  assert(start >= 0, `WorkspaceMode.${mode} case exists`);
+  const remainder = source.slice(start + marker.length);
+  const nextCase = remainder.search(/\bcase WorkspaceMode\.[A-Z_]+:/);
+  return nextCase >= 0
+    ? source.slice(start, start + marker.length + nextCase)
+    : source.slice(start);
+}
+
 assertIncludes(workspaceSurface, 'from "../compare/components/CompareWorkspace"', "active WorkspaceSurface imports the production CompareWorkspace");
 assert(/case WorkspaceMode\.COMPARE:[\s\S]*?<CompareWorkspace \/>/.test(workspaceSurface), "WorkspaceMode.COMPARE renders the production CompareWorkspace");
 pass("WorkspaceMode.COMPARE renders the production CompareWorkspace");
 assertExcludes(workspaceSurface, "Comparative Analysis Workspace", "legacy COMPARE placeholder copy is removed from the active router");
 
 for (const placeholder of [
-  "Narrative Workspace",
-  "Timeline Workspace",
   "Intention Workspace",
 ]) {
   assertIncludes(workspaceSurface, placeholder, `${placeholder} route remains intact`);
 }
+
+const timelineCase = workspaceModeCase(workspaceSurface, "TIMELINE");
+assertIncludes(timelineCase, "<TimelineWorkspace />", "WorkspaceMode.TIMELINE renders the production TimelineWorkspace");
 
 assertIncludes(workspaceSurface, evidenceWorkspaceImport, "EVIDENCE independently imports EvidenceWorkspace");
 assert(/case WorkspaceMode\.EVIDENCE:[\s\S]*?<EvidenceWorkspace \/>/.test(workspaceSurface), "WorkspaceMode.EVIDENCE independently renders EvidenceWorkspace");
