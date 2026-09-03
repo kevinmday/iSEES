@@ -1,4 +1,5 @@
 import type { Investigation } from "../../investigation/investigationTypes";
+import { resolveCurrentOperationalRevision } from "../../investigation/revision/OperationalGraphRevision";
 import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
 import { KnowledgeObjectType } from "../../knowledge/model/KnowledgeObjectTypes";
 import type { ResolveExecutionRecord } from "../../resolve/runtime/ResolveRuntimeTypes";
@@ -33,8 +34,9 @@ function focusedEventKnowledgeObjectId(
 }
 
 /**
- * Returns only a selection that belongs to the focused EVENT's established
- * graph component, or a Resolve candidate whose pair contains that EVENT.
+ * Returns a revision-owned non-EVENT NODE, a focused imported EVENT NODE,
+ * an EDGE in the focused EVENT's established graph component, or a Resolve
+ * candidate whose pair contains that EVENT.
  * Stale state is not repaired or mutated; it simply has no projection.
  */
 export function resolveCoherentInvestigationSelection(
@@ -44,6 +46,22 @@ export function resolveCoherentInvestigationSelection(
 ): WorkspaceSelection | undefined {
   if (!investigation || !selection || selection.kind === WorkspaceSelectionKind.NONE) {
     return undefined;
+  }
+
+  if (selection.kind === WorkspaceSelectionKind.NODE) {
+    try {
+      const revision = resolveCurrentOperationalRevision(investigation);
+      const node = revision.manifold.graph.nodes.find(
+        candidate => candidate.id === selection.nodeId,
+      );
+      if (!node) return undefined;
+      if (node.type !== KnowledgeObjectType.EVENT) return selection;
+
+      const focusedNodeId = focusedEventKnowledgeObjectId(investigation, knowledgeObjects);
+      return focusedNodeId === selection.nodeId ? selection : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   const focusedNodeId = focusedEventKnowledgeObjectId(investigation, knowledgeObjects);
@@ -70,10 +88,6 @@ export function resolveCoherentInvestigationSelection(
         changed = true;
       }
     }
-  }
-
-  if (selection.kind === WorkspaceSelectionKind.NODE) {
-    return connected.has(selection.nodeId) ? selection : undefined;
   }
 
   const edge = graph.edges.find(candidate => candidate.id === selection.edgeId);

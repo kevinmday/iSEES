@@ -156,6 +156,14 @@ export function validateOperationalRevisionInvestigation(investigation: Investig
   if (matches[0] !== investigation.revisions[investigation.revisions.length - 1]) throw new Error("Current revision must be the latest revision.");
 }
 
+export function rehydrateOperationalRevisionInvestigation(
+  investigation: Investigation,
+): Investigation {
+  const rehydrated = deepFreeze(cloneCanonicalValue(investigation) as Investigation);
+  validateOperationalRevisionInvestigation(rehydrated);
+  return rehydrated;
+}
+
 function revisionOptions(investigation: Investigation, revisionId: string, graph: InvestigationGraph, options: OperationalRevisionOptions): ManifoldRevision {
   const recordedAt = options.recordedAt ?? investigation.updatedAt;
   requireIdentity(recordedAt, "Operational revision timestamp");

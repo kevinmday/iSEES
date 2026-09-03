@@ -54,6 +54,10 @@ import type {
   GuestWorkspaceSessionSnapshot,
 } from "./GuestWorkspaceSessionPersistenceTypes";
 
+import {
+  rehydrateOperationalRevisionInvestigation,
+} from "../../investigation/revision/OperationalGraphRevision";
+
 
 // ============================================================
 // RESTORATION DEPENDENCIES
@@ -342,8 +346,16 @@ function restoreWorkspace(
   // INVESTIGATION
   // ----------------------------------------------------------
 
+  const runtimeInvestigation =
+    investigation.revisions.length > 0 ||
+    investigation.currentRevisionId !== undefined
+      ? rehydrateOperationalRevisionInvestigation(
+          investigation,
+        )
+      : investigation;
+
   runtime.setActiveInvestigation(
-    investigation,
+    runtimeInvestigation,
   );
 
   // ----------------------------------------------------------
