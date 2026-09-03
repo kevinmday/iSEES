@@ -56,6 +56,10 @@ import type {
 } from "../../investigation/investigationTypes";
 
 import {
+  validateOperationalRevisionInvestigation,
+} from "../../investigation/revision/OperationalGraphRevision";
+
+import {
   WorkspaceMode,
   WorkspaceLayoutMode,
 } from "./WorkspaceRuntimeTypes";
@@ -800,11 +804,13 @@ export class WorkspaceRuntime {
   // ==========================================================
 
   /**
-   * Installs the canonical active Investigation.
+   * Legacy Guest restoration compatibility boundary.
    *
-   * No casts or parallel Investigation context are required
-   * downstream. ResolveRuntime receives this same canonical
-   * Investigation contract.
+   * Ordinary production intake must use activateInvestigation(),
+   * which validates operational revision completeness and publishes
+   * Investigation plus Workspace atomically. This setter remains
+   * temporarily available only to the revisionless Guest restoration
+   * path scheduled for I4A-5.
    */
   setActiveInvestigation(
     investigation:
@@ -1060,8 +1066,28 @@ export class WorkspaceRuntime {
       Investigation,
   ): void {
 
+    validateOperationalRevisionInvestigation(
+      investigation,
+    );
+
     const workspace =
       investigation.workspace;
+
+    const focusedEventId =
+      workspace.focused_event_id;
+
+    if (
+      focusedEventId === null ||
+      !focusedEventId.trim() ||
+      workspace.imported_events.filter(
+        reference =>
+          reference.event_id === focusedEventId,
+      ).length !== 1
+    ) {
+      throw new Error(
+        "Activated Investigation must own exactly one focused Event reference.",
+      );
+    }
 
     this.state = {
 

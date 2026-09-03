@@ -36,6 +36,10 @@ import {
   useWorkspaceRuntime,
 } from "../../workspace/runtime/WorkspaceRuntimeContext";
 
+import {
+  useKnowledgeObjects,
+} from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+
 // ============================================================
 // REPOSITORY STATE
 // ============================================================
@@ -127,6 +131,9 @@ export function FederationProvider({
 
   const workspaceRuntime =
     useWorkspaceRuntime();
+
+  const knowledgeObjects =
+    useKnowledgeObjects();
 
   const [repositories,
     setRepositories] =
@@ -373,6 +380,7 @@ async function refresh() {
       repository.adapter,
       eventId,
       workspaceRuntime,
+      knowledgeObjects,
     );
 
   }
@@ -431,6 +439,8 @@ async function refresh() {
         preview,
 
         searchText,
+
+        knowledgeObjects,
 
       ]
 

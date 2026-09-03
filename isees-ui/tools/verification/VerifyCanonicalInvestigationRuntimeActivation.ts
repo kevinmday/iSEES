@@ -19,6 +19,14 @@ import {
   WorkspaceRuntime,
 } from "../../src/workspace/runtime/WorkspaceRuntime";
 
+import {
+  CANONICAL_EVENTS,
+} from "../../src/canonical/runtimeCorpus";
+
+import {
+  adaptSystemCanonToKnowledge,
+} from "../../src/knowledge/ingestion/SystemCanonKnowledgeAdapter";
+
 function assert(
   condition: unknown,
   message: string,
@@ -83,6 +91,11 @@ async function verify(): Promise<void> {
   const runtime =
     new WorkspaceRuntime();
 
+  const knowledge =
+    adaptSystemCanonToKnowledge(
+      CANONICAL_EVENTS,
+    );
+
   let notificationCount =
     0;
 
@@ -114,6 +127,7 @@ async function verify(): Promise<void> {
       adapter,
       "E-TICTAC-2004",
       runtime,
+      knowledge,
     );
 
   unsubscribe();
@@ -182,9 +196,19 @@ async function verify(): Promise<void> {
     "PASS 6 — canonical Investigation and Workspace publish atomically",
   );
 
+  assert(
+    result.investigation.currentRevisionId === "REV-0001" &&
+    result.investigation.revisions.length === 1,
+    "canonical activation did not install exactly one initial operational revision",
+  );
+
+  console.log(
+    "PASS 7 — canonical activation is revision-complete",
+  );
+
   console.log("");
   console.log(
-    "P57-UI-A7-I1B VERIFIED — 6 PASS",
+    "P57-UI-A7-I1B VERIFIED — 7 PASS",
   );
   console.log("");
 }

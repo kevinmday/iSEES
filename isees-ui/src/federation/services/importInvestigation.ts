@@ -23,6 +23,16 @@ import type {
 } from "../../investigation/investigationTypes";
 
 import type {
+  KnowledgeObject,
+} from "../../knowledge/model/KnowledgeObject";
+
+import {
+  materializeInitialOperationalRevision,
+  resolveCurrentOperationalRevision,
+  validateOperationalRevisionInvestigation,
+} from "../../investigation/revision/OperationalGraphRevision";
+
+import type {
   Workspace,
   WorkspaceReferenceSource,
 } from "../../workspace/workspaceTypes";
@@ -367,6 +377,7 @@ export async function importInvestigationIntoWorkspace(
   adapter: FederationAdapter,
   eventId: string,
   runtime: WorkspaceRuntime,
+  admittedKnowledge: readonly KnowledgeObject[],
 ): Promise<CanonicalInvestigationImportResult> {
 
   const result =
@@ -375,10 +386,52 @@ export async function importInvestigationIntoWorkspace(
       eventId,
     );
 
-  runtime.activateInvestigation(
-    result.investigation,
+  const investigation =
+    materializeInitialOperationalRevision(
+      result.investigation,
+      admittedKnowledge,
+      {
+        recordedAt:
+          result.investigation.updatedAt,
+      },
+    );
+
+  validateOperationalRevisionInvestigation(
+    investigation,
   );
 
-  return result;
+  const currentRevision =
+    resolveCurrentOperationalRevision(
+      investigation,
+    );
+
+  const focusedEventId =
+    investigation.workspace.focused_event_id;
+
+  const focusedEventMatches =
+    currentRevision.manifold.graph.nodes.filter(
+      node =>
+        node.type === "EVENT" &&
+        (
+          node.id === focusedEventId ||
+          node.metadata?.sourceId === focusedEventId ||
+          node.metadata?.eventId === focusedEventId
+        ),
+    );
+
+  if (focusedEventMatches.length !== 1) {
+    throw new Error(
+      `Focused Event ${focusedEventId} resolved ${focusedEventMatches.length} times in the initial operational revision.`,
+    );
+  }
+
+  runtime.activateInvestigation(
+    investigation,
+  );
+
+  return {
+    ...result,
+    investigation,
+  };
 
 }

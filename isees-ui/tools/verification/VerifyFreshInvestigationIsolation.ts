@@ -9,6 +9,7 @@ import { DEFAULT_INVESTIGATION } from "../../src/investigation/defaultInvestigat
 import { WorkspaceRuntime } from "../../src/workspace/runtime/WorkspaceRuntime";
 import type { Investigation } from "../../src/investigation/investigationTypes";
 import type { ResolveExecutionRecord } from "../../src/resolve/runtime/ResolveRuntimeTypes";
+import { materializeInitialOperationalRevision } from "../../src/investigation/revision/OperationalGraphRevision";
 
 let passes = 0;
 function assert(value: unknown, message: string): asserts value {
@@ -62,10 +63,14 @@ assert(resolveCoherentInvestigationSelection(investigation, knowledgeObjects, va
 const staleCandidate = { ...validCandidate, leftKnowledgeObjectId: "system:event:E-RENDLESHAM-1980" };
 assert(resolveCoherentInvestigationSelection(investigation, knowledgeObjects, staleCandidate) === undefined, "unrelated Resolve candidate residue is not projected");
 
+const runtimeInvestigation = materializeInitialOperationalRevision(investigation, knowledgeObjects);
 const runtime = new WorkspaceRuntime();
-runtime.activateInvestigation(investigation);
+runtime.activateInvestigation(runtimeInvestigation);
 runtime.setSelection(validCandidate);
-const nextInvestigation: Investigation = { ...investigation, id: "investigation:genuinely-different" };
+const nextInvestigation = materializeInitialOperationalRevision(
+  { ...investigation, id: "investigation:genuinely-different" },
+  knowledgeObjects,
+);
 runtime.activateInvestigation(nextInvestigation);
 assert(runtime.getSelection() === undefined, "different-Investigation activation clears transient Workspace selection");
 assert(workspaceRuntimeSource.includes("selection:") && !workspaceRuntimeSource.includes("deleteKnowledge") && !workspaceRuntimeSource.includes("KnowledgeObjectRuntime"), "activation clears no canonical Knowledge");
