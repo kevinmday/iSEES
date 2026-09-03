@@ -1,6 +1,7 @@
 import type { Investigation } from "../../investigation/investigationTypes";
 import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
 import { KnowledgeObjectType } from "../../knowledge/model/KnowledgeObjectTypes";
+import type { GraphNode } from "../../manifold/graphTypes";
 import {
   TimelineTemporalPrecision,
   TimelineTemporalSemantic,
@@ -26,6 +27,22 @@ function canonicalEventObject(eventId: string, objects: readonly KnowledgeObject
   return matches.length === 1 ? matches[0] : undefined;
 }
 
+function currentGraphEventNode(investigation: Investigation, eventId: string): GraphNode | undefined {
+  const graph = investigation.revisions.find(
+    revision => revision.id === investigation.currentRevisionId,
+  )?.manifold.graph;
+  if (!graph) return undefined;
+
+  const matches = graph.nodes.filter(node => {
+    if (node.type !== "EVENT") return false;
+    const sourceId = node.metadata?.sourceId;
+    const retainedEventId = node.metadata?.eventId;
+    return node.id === eventId || sourceId === eventId || retainedEventId === eventId;
+  });
+
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
 /**
  * Admits only explicitly typed temporal fields. Creation timestamps, the 1970
  * unspecified sentinel, identifiers, titles, and narrative prose are ignored.
@@ -38,6 +55,7 @@ export function adaptFocusedEventTimelineSourceRecords(
   if (!eventId) return Object.freeze([]);
   const object = canonicalEventObject(eventId, knowledgeObjects);
   if (!object) return Object.freeze([]);
+  const graphNode = currentGraphEventNode(investigation, eventId);
 
   const payload = object.payload as CanonicalEventPayload | undefined;
   const duration = payload?.source === "SYSTEM_CANON" && payload.sourceKind === "CANONICAL_REPLAY_EVENT"
@@ -55,7 +73,7 @@ export function adaptFocusedEventTimelineSourceRecords(
     semantic: TimelineTemporalSemantic.OCCURRENCE,
     precision: TimelineTemporalPrecision.APPROXIMATE,
     temporal: Object.freeze({ kind: "DURATION", value: duration, unit: "MINUTES" }),
-    subject: Object.freeze({ type: "NODE", id: object.identity.id }),
+    ...(graphNode ? { subject: Object.freeze({ type: "NODE" as const, id: graphNode.id }) } : {}),
     provenance: Object.freeze({
       sourceType: "SYSTEM_CANON",
       sourceId: eventId,

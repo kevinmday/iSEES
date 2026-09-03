@@ -8,6 +8,8 @@ import { projectTimelineTemporal } from "../../src/timeline/projection/TimelineT
 import { presentTimelinePrecision, presentTimelineTemporalValue } from "../../src/timeline/presentation/TimelineTemporalPresentation.ts";
 import { TimelineCompositionKind, resolveTimelineComposition } from "../../src/timeline/presentation/TimelineComposition.ts";
 import { ResearchAnchorType } from "../../src/research/researchBridgeTypes.ts";
+import { buildInvestigationGraph } from "../../src/manifold/graphBuilder.ts";
+import { SystemCanonAdapter } from "../../src/corpus/adapters/systemCanonAdapter.ts";
 
 const surface = readFileSync("src/surfaces/WorkspaceSurface.tsx", "utf8");
 const component = readFileSync("src/timeline/components/TimelineWorkspace.tsx", "utf8");
@@ -58,10 +60,14 @@ assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
 
 const eventId = "E-TICTAC-2004";
 const knowledge = adaptSystemCanonToKnowledge(CANONICAL_EVENTS.filter(event => event.event_id === eventId));
-const graph = { nodes: [{ id: "system:event:E-TICTAC-2004", label: eventId, type: "EVENT" as const }], edges: [], statistics: { nodeCount: 1, edgeCount: 0, eventCount: 1, facilityCount: 0, artifactCount: 0, personCount: 0, organizationCount: 0, locationCount: 0, narrativeCount: 0, hypothesisCount: 0 } };
-const investigation: Investigation = { id: "INV-I2", name: "Dynamic Investigation", description: "", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", createdBy: "verify", status: "ACTIVE", workspace: { id: "WS-I2", name: "", description: "", imported_events: [{ event_id: eventId, source: "SYSTEM_CANON" }], focused_event_id: eventId, investigations: [], artifacts: [], active_layers: [], created_at: "2026-01-01T00:00:00Z" }, currentRevisionId: "REV-I2", revisions: [{ id: "REV-I2", revisionNumber: 1, timestamp: "2026-01-01T00:00:00Z", operator: "verify", branch: "MAIN", message: "", manifold: { id: "M-I2", timestamp: "2026-01-01T00:00:00Z", algorithmVersion: "1", activeLayers: [], graph } }] };
+const corpus = await new SystemCanonAdapter().importEvents();
+const productionWorkspace = { id: "WS-I2", name: "", description: "", imported_events: [{ event_id: eventId, source: "SYSTEM_CANON" as const }], focused_event_id: eventId, investigations: [], artifacts: [], active_layers: [], created_at: "2026-01-01T00:00:00Z" };
+const graph = buildInvestigationGraph(corpus, productionWorkspace);
+const investigation: Investigation = { id: "INV-I2", name: "Dynamic Investigation", description: "", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", createdBy: "verify", status: "ACTIVE", workspace: productionWorkspace, currentRevisionId: "REV-I2", revisions: [{ id: "REV-I2", revisionNumber: 1, timestamp: "2026-01-01T00:00:00Z", operator: "verify", branch: "MAIN", message: "", manifold: { id: "M-I2", timestamp: "2026-01-01T00:00:00Z", algorithmVersion: "1", activeLayers: [], graph } }] };
 const records = adaptFocusedEventTimelineSourceRecords(investigation, knowledge);
 assert.equal(records.length, 1);
+assert.notEqual(knowledge[0]!.identity.id, graph.nodes.find(node => node.id === eventId)!.id);
+assert.equal(records[0]!.subject?.id, graph.nodes.find(node => node.id === eventId)!.id);
 assert.equal(records[0]!.temporal.kind, "DURATION");
 assert.equal(records[0]!.semantic, "OCCURRENCE");
 assert.equal(records[0]!.precision, "APPROXIMATE");
@@ -72,7 +78,27 @@ if (projection.status === "READY") {
   assert.equal(presentTimelineTemporalValue(projection.focusedItems[0]!.temporal), "300 minutes");
   assert.equal(presentTimelinePrecision(projection.focusedItems[0]!), "Approximate");
   assert.notEqual(presentTimelineTemporalValue(projection.focusedItems[0]!.temporal), projection.focusedItems[0]!.orderKey);
+  assert.equal(projection.focusedItems[0]!.subject.availability, "AVAILABLE");
 }
+const withoutSubjectGraph: Investigation = { ...investigation, revisions: [{ ...investigation.revisions[0]!, manifold: { ...investigation.revisions[0]!.manifold, graph: { ...graph, nodes: graph.nodes.filter(node => node.id !== eventId) } } }] };
+const withoutSubjectRecords = adaptFocusedEventTimelineSourceRecords(withoutSubjectGraph, knowledge);
+assert.equal(withoutSubjectRecords[0]!.subject, undefined);
+const withoutSubjectProjection = projectTimelineTemporal({ investigation: withoutSubjectGraph, knowledgeObjects: knowledge, records: withoutSubjectRecords });
+assert.equal(withoutSubjectProjection.status, "READY");
+if (withoutSubjectProjection.status === "READY") assert.equal(withoutSubjectProjection.focusedItems[0]!.subject.availability, "UNAVAILABLE");
+const duplicateEventNode = { ...graph.nodes.find(node => node.id === eventId)!, id: "alternate-event-node", metadata: { eventId } };
+const ambiguousGraph: Investigation = { ...investigation, revisions: [{ ...investigation.revisions[0]!, manifold: { ...investigation.revisions[0]!.manifold, graph: { ...graph, nodes: [...graph.nodes, duplicateEventNode] } } }] };
+const ambiguousFirst = adaptFocusedEventTimelineSourceRecords(ambiguousGraph, knowledge);
+const ambiguousSecond = adaptFocusedEventTimelineSourceRecords(ambiguousGraph, knowledge);
+assert.equal(ambiguousFirst[0]!.subject, undefined);
+assert.deepEqual(ambiguousFirst, ambiguousSecond);
+const falseClaim = [{ ...withoutSubjectRecords[0]!, subject: { type: "NODE" as const, id: "system:event:E-TICTAC-2004" } }];
+assert.equal(projectTimelineTemporal({ investigation: withoutSubjectGraph, knowledgeObjects: knowledge, records: falseClaim }).status, "INVALID_SOURCE_TEMPORAL_RECORD");
+const crossInvestigationClaim = [{ ...records[0]!, investigationId: "INV-OTHER" }];
+assert.equal(projectTimelineTemporal({ investigation, knowledgeObjects: knowledge, records: crossInvestigationClaim }).status, "INVALID_SOURCE_TEMPORAL_RECORD");
+assert.equal(JSON.stringify(projection).includes("resolved 0 times"), false);
+assert.doesNotMatch(adapter, /E-TICTAC-2004|system:event:E-TICTAC-2004/);
+assert.doesNotMatch(adapter, /label\s*===|\.label\s*===/);
 const emptyKnowledge = knowledge.map(object => object.type === "EVENT" ? { ...object, payload: { source: "SYSTEM_CANON", sourceKind: "CANONICAL_REPLAY_EVENT", canonicalEvent: {} } } : object);
 assert.equal(adaptFocusedEventTimelineSourceRecords(investigation, emptyKnowledge).length, 0);
 assert.equal(projectTimelineTemporal({ investigation, knowledgeObjects: emptyKnowledge, records: [] }).status, "NO_TEMPORAL_RECORDS");
