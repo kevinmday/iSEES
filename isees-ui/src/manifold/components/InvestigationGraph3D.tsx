@@ -143,6 +143,49 @@ export function recognizeNodeDoubleClick(
   };
 }
 
+const EDGE_DOUBLE_CLICK_INTERVAL_MS =
+  350;
+
+export interface PendingEdgeClick {
+  edgeId: string;
+  timestamp: number;
+}
+
+export interface EdgeClickRecognition {
+  collect: boolean;
+  pending: PendingEdgeClick | null;
+}
+
+export function recognizeEdgeDoubleClick(
+  pending: PendingEdgeClick | null,
+  edgeId: string,
+  timestamp: number,
+): EdgeClickRecognition {
+  const elapsed =
+    pending
+      ? timestamp - pending.timestamp
+      : Number.POSITIVE_INFINITY;
+
+  if (
+    pending?.edgeId === edgeId &&
+    elapsed >= 0 &&
+    elapsed <= EDGE_DOUBLE_CLICK_INTERVAL_MS
+  ) {
+    return {
+      collect: true,
+      pending: null,
+    };
+  }
+
+  return {
+    collect: false,
+    pending: {
+      edgeId,
+      timestamp,
+    },
+  };
+}
+
 
 interface NavigationControls3D {
   target: Point3D & {
@@ -402,6 +445,9 @@ export default function InvestigationGraph3D({
 
   const pendingNodeClickRef =
     useRef<PendingNodeClick | null>(null);
+
+  const pendingEdgeClickRef =
+    useRef<PendingEdgeClick | null>(null);
 
   const topologyIdentity =
     useMemo(
@@ -1009,7 +1055,17 @@ export default function InvestigationGraph3D({
             edgeId: projected.id,
           });
 
-          if (event.detail >= 2) {
+          const recognition =
+            recognizeEdgeDoubleClick(
+              pendingEdgeClickRef.current,
+              projected.id,
+              event.timeStamp,
+            );
+
+          pendingEdgeClickRef.current =
+            recognition.pending;
+
+          if (recognition.collect) {
             onCollectEdge?.(projected);
           }
         }}

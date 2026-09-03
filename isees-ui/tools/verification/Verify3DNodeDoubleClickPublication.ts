@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
@@ -7,11 +6,6 @@ import ts from "typescript";
 const productionPath =
   "src/manifold/components/InvestigationGraph3D.tsx";
 const source = readFileSync(productionPath, "utf8");
-const baseline = execFileSync(
-  "git",
-  ["show", `HEAD:isees-ui/${productionPath}`],
-  { encoding: "utf8" },
-);
 
 let assertionCount = 0;
 
@@ -127,18 +121,14 @@ verify(
 );
 verify(!nodeHandler.includes("event.detail"), "NODE handler does not use event.detail");
 
-const edgePattern =
-  /onLinkClick=\{\(link, event\) => \{[\s\S]*?\n        \}\}/;
-const currentEdgeHandler = source
-  .replaceAll("\r\n", "\n")
-  .match(edgePattern)?.[0];
-const baselineEdgeHandler = baseline
-  .replaceAll("\r\n", "\n")
-  .match(edgePattern)?.[0];
 verify(
-  currentEdgeHandler !== undefined &&
-    currentEdgeHandler === baselineEdgeHandler,
-  "3D EDGE handler and publication code are byte-identical to HEAD",
+  source.includes("useRef<PendingNodeClick | null>(null)") &&
+    source.includes("useRef<PendingEdgeClick | null>(null)") &&
+    nodeHandler.includes("recognizeNodeDoubleClick(") &&
+    nodeHandler.includes("pendingNodeClickRef.current") &&
+    !nodeHandler.includes("recognizeEdgeDoubleClick(") &&
+    !nodeHandler.includes("pendingEdgeClickRef.current"),
+  "NODE and EDGE pending state remains separate and the NODE handler uses only NODE recognition",
 );
 
 console.log(
