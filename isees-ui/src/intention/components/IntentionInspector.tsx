@@ -5,9 +5,9 @@ import "./IntentionWorkspace.css";
 
 function Id({ children }: { readonly children: string | undefined }) { return <code>{children ?? "NONE"}</code>; }
 function Derivations({ ids }: { readonly ids: readonly string[] }) {
-  const { state } = useIntentionWorkspace();
+  const { state, resolvedSelection, selectDerivation } = useIntentionWorkspace();
   if (state.status !== "AVAILABLE") return null;
-  return <section><h3>Associated derivations</h3>{ids.map(id => { const item = state.projection.derivations.find(value => value.id === id); return item ? <p key={id}><Id>{item.id}</Id><br />{item.metricName} · {item.availability} · {item.epistemicClassification}</p> : null; })}</section>;
+  return <section><h3>Associated derivations</h3><div className="intention-derivation-list">{ids.map(id => { const item = state.projection.derivations.find(value => value.id === id); const selected = resolvedSelection.kind === IntentionSelectionKind.INTENTION_METRIC_DERIVATION && resolvedSelection.derivation.id === id; return item ? <button type="button" key={id} className="intention-derivation-control" aria-label={`Select ${item.metricName} derivation, ${item.availability}`} aria-pressed={selected} onClick={() => selectDerivation(id)}><strong>{item.metricName}</strong><span>{item.symbol} · {item.availability}</span><code>{item.id}</code></button> : null; })}</div></section>;
 }
 function Derivation({ value }: { readonly value: IntentionMetricDerivation }) {
   const equation = resolveIntentionEquation(value.equationId);
