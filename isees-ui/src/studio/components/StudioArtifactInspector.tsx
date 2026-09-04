@@ -5,9 +5,10 @@ import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntime
 import { restoreStudioDocument } from "../api/StudioDocumentRestoration";
 import { authoredBlockCount, composeStudioVersionCommand, sourceBackedBlockCount } from "../api/StudioAuthorDocumentAdapter";
 import { studioApi, StudioApiError, type ProjectionFormat, type StudioArtifactProjection, type StudioLifecycle, type StudioScope } from "../api/StudioApi";
+import { hasDurableArtifactVersion, isExpectedUnsavedArtifact, STUDIO_ARTIFACT_EMPTY_ACTION, STUDIO_ARTIFACT_EMPTY_MESSAGE, STUDIO_PROJECTION_EMPTY_MESSAGE } from "./StudioArtifactInspectorSemantics";
 import "./StudioArtifactInspector.css";
 
-type RequestState = "LOADING" | "READY" | "EMPTY" | "SUCCESS" | "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR";
+type RequestState = "LOADING" | "READY" | "EMPTY" | "NOT_CREATED" | "SUCCESS" | "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR";
 const lifecycle: StudioLifecycle[] = ["DRAFT", "CANDIDATE_KNOWLEDGE_ARTIFACT", "MANIFOLD_CANDIDATE_NODE", "REVIEW_TEST", "ACCEPTED_KNOWLEDGE"];
 const labels: Record<StudioLifecycle, string> = { DRAFT: "Draft", CANDIDATE_KNOWLEDGE_ARTIFACT: "Candidate Knowledge Artifact", MANIFOLD_CANDIDATE_NODE: "Manifold Candidate Node", REVIEW_TEST: "Review / Test", ACCEPTED_KNOWLEDGE: "Accepted Knowledge", RETURNED: "Returned", REJECTED: "Rejected" };
 const actionTarget = { candidate: "DRAFT", publication: "CANDIDATE_KNOWLEDGE_ARTIFACT", review: "MANIFOLD_CANDIDATE_NODE", accept: "REVIEW_TEST", return: "REVIEW_TEST", reject: "REVIEW_TEST" } as const;
@@ -44,6 +45,7 @@ export default function StudioArtifactInspector() {
   const refresh = useCallback(async (expectedScope = scope, expectedDocument = document) => {
     const sequence = ++requestSequence.current;
     setArtifact(undefined);
+    setPreview(undefined);
     if (!expectedScope) { setState("EMPTY"); setMessage("Canonical Investigation or principal unavailable."); return undefined; }
     setState("LOADING"); setMessage("Loading the Investigation-scoped artifact…");
     try {
@@ -59,10 +61,17 @@ export default function StudioArtifactInspector() {
         runtime.setActiveDocument(restored);
       }
       setArtifact(exact);
-      setState(exact ? "READY" : "EMPTY");
-      setMessage(exact ? "Canonical artifact synchronized." : "No durable artifact has been created for this draft.");
+      setState(exact ? "READY" : expectedDocument ? "NOT_CREATED" : "EMPTY");
+      setMessage(exact ? "Canonical artifact synchronized." : expectedDocument ? STUDIO_ARTIFACT_EMPTY_MESSAGE : "No durable artifact has been created for this draft.");
       return exact;
-    } catch (error) { if (sequence === requestSequence.current) handleError(error); return undefined; }
+    } catch (error) {
+      if (sequence === requestSequence.current) {
+        if (isExpectedUnsavedArtifact(error, Boolean(expectedScope && expectedDocument))) {
+          setState("NOT_CREATED"); setMessage(STUDIO_ARTIFACT_EMPTY_MESSAGE);
+        } else handleError(error);
+      }
+      return undefined;
+    }
   }, [document, handleError, runtime, scope]);
 
   useEffect(() => { void refresh(); return () => { requestSequence.current += 1; }; }, [refresh]);
@@ -105,6 +114,7 @@ export default function StudioArtifactInspector() {
 
   const current = activeArtifact?.artifact;
   const version = activeArtifact?.currentVersion;
+  const durableVersionExists = hasDurableArtifactVersion(current?.artifactId, current?.currentVersionId, version?.versionId);
   const contentConsistent = activeArtifact && document ? JSON.stringify(version?.document) === JSON.stringify(document) : undefined;
   const activeSnapshots = activeArtifact?.sourceSnapshots.filter(snapshot => version?.sourceSnapshotIds.includes(snapshot.snapshotId)) ?? [];
   const snapshotState = !activeArtifact ? "Not yet captured" : activeSnapshots.some(item => item.resolutionStatus === "STALE") ? "Stale" : activeSnapshots.some(item => ["MISSING", "UNAVAILABLE", "REDACTED"].includes(item.resolutionStatus)) ? "Unavailable" : activeSnapshots.length ? (activeSnapshots.every(item => item.resolutionStatus === "AVAILABLE") ? "Consistent" : "Not yet resolved") : "No snapshots";
@@ -113,7 +123,7 @@ export default function StudioArtifactInspector() {
 
   return <aside className="studio-inspector" data-permanent="true" aria-label="Artifact Inspector">
     <header className="studio-inspector__header"><div className="studio-inspector__kicker">STUDIO / CANONICAL</div><h2>Artifact Inspector</h2><span className={`studio-inspector__state studio-inspector__state--${state.toLowerCase()}`}>{state.replaceAll("_", " ")}</span></header>
-    <p className="studio-inspector__message" role={state === "ERROR" || state === "CONFLICT" || state === "STALE_REVISION" || state === "FORBIDDEN" || state === "UNAVAILABLE_BACKEND" ? "alert" : "status"}>{message}</p>
+    <p className="studio-inspector__message" role={state === "ERROR" || state === "CONFLICT" || state === "STALE_REVISION" || state === "FORBIDDEN" || state === "UNAVAILABLE_BACKEND" ? "alert" : "status"}>{message}{state === "NOT_CREATED" && <> {STUDIO_ARTIFACT_EMPTY_ACTION}</>}</p>
     <section className="studio-inspector__card"><h3>Artifact identity</h3><dl className="studio-inspector__facts">
       <dt>Artifact ID</dt><dd>{display(current?.artifactId)}</dd><dt>Author / principal</dt><dd>{display(current?.ownerPrincipalId ?? operator.identity?.operatorId)}</dd><dt>Investigation</dt><dd>{display(investigation?.id)}</dd><dt>Focused event</dt><dd>{display(investigation?.workspace.focused_event_id)}</dd><dt>Compared event</dt><dd>{display(version?.comparisonContext?.comparisonEventId)}</dd><dt>Version</dt><dd>{current ? `v${current.currentVersionNumber} · r${current.revision}` : "Not yet created"}</dd><dt>Created</dt><dd>{formatTime(current?.createdAt)}</dd><dt>Modified</dt><dd>{formatTime(current?.updatedAt)}</dd><dt>Source snapshot</dt><dd>{version?.sourceSnapshotIds.length === 1 ? version.sourceSnapshotIds[0] : version?.sourceSnapshotIds.length ? `${version.sourceSnapshotIds.length} snapshots` : "Unavailable / not yet created"}</dd><dt>Citations / claims</dt><dd>{version ? `${version.citations.length} / ${version.claims.length}` : "Not yet represented"}</dd><dt>Lifecycle</dt><dd>{current ? labels[current.lifecycleState] : "Not yet created"}</dd><dt>Draft state</dt><dd>{dirty ? "Dirty · unsaved changes" : artifact ? "Saved" : "Not yet saved"}</dd>
     </dl><button className="studio-inspector__button studio-inspector__button--primary" disabled={Boolean(saveReason)} aria-describedby={saveReason ? "studio-save-reason" : undefined} onClick={save}>{inFlight === "Save Draft" ? "Saving Draft…" : "Save Draft"}</button>{saveReason && <p id="studio-save-reason" className="studio-inspector__disabled-reason">{saveReason}</p>}</section>
@@ -125,6 +135,6 @@ export default function StudioArtifactInspector() {
 
     <section className="studio-inspector__card"><h3>Source &amp; claim lineage</h3><div className="studio-inspector__metrics"><span><b>{sourceBackedBlockCount(document)}</b> source-backed blocks</span><span><b>{authoredBlockCount(document)}</b> authored blocks</span></div><p>Snapshot: {snapshotState}</p>{version ? <div className="studio-inspector__lineage-list">{version.claims.length ? version.claims.map(claim => { const mappings = version.claimSourceMappings?.filter(mapping => mapping.claimId === claim.claimId) ?? []; return <article key={claim.claimId} className="studio-inspector__lineage-row"><strong>{claim.claimId}</strong><span>{claim.lineageState === "ORPHANED" ? "MISSING CITATION" : claim.lineageState}</span><small>{claim.claimText || "Authored claim text unavailable"}</small>{mappings.length ? mappings.map(mapping => { const source = activeSnapshots.find(snapshot => snapshot.snapshotId === mapping.sourceSnapshotId); return <dl key={mapping.mappingId}><dt>Source block</dt><dd>{mapping.sourceSnapshotId}</dd><dt>Canonical source</dt><dd>{source?.sourceIdentity ?? "Canonical identity unavailable"}</dd><dt>Provenance</dt><dd>{source?.resolutionStatus ?? "UNKNOWN"}</dd></dl>; }) : <em>No canonical claim/source mapping.</em>}</article>; }) : <p className="studio-inspector__empty-lineage">No authored claims are represented in this version.</p>}{activeSnapshots.length ? activeSnapshots.map(source => <div className="studio-inspector__source-row" key={source.snapshotId}><strong>{source.snapshotId}</strong><span>{source.sourceIdentity}</span><small>{source.sourceWorkspace} · {source.sourceKind} · {source.resolutionStatus}</small></div>) : <p className="studio-inspector__empty-lineage">No source-backed blocks are represented in this version.</p>}</div> : <p className="studio-inspector__empty-lineage">Lineage is empty until a canonical artifact version is saved.</p>}<p className="studio-inspector__boundary">Only canonical mappings are shown. Source presence records lineage; it does not establish scientific validity.</p></section>
 
-    <section className="studio-inspector__card"><h3>Output projections</h3><div className="studio-inspector__projections">{(["PDF", "DOCX", "HTML"] as ProjectionFormat[]).map(format => { const records = activeArtifact?.projections.filter(item => item.projectionFormat === format && item.artifactVersionId === current?.currentVersionId) ?? []; const latest = records.at(-1); return <article className="studio-inspector__projection" key={format}><div><strong>{format}</strong><span>{latest ? latest.readinessState.replaceAll("_", " ") : "NOT VALIDATED"}</span></div><dl><dt>Consistency</dt><dd>{contentConsistent === undefined ? "Unavailable" : contentConsistent ? "Current version" : "Draft changed"}</dd><dt>Validation</dt><dd>{latest ? `${latest.validatorVersion} · ${formatTime(latest.validatedAt)}` : "Not yet run"}</dd><dt>Materialization</dt><dd>{latest?.outputIdentity ? latest.outputIdentity : latest?.materializationState ?? "Not materialized"}</dd></dl><div className="studio-inspector__projection-actions"><button className="studio-inspector__button" disabled={!activeArtifact || dirty || Boolean(inFlight)} title={dirty ? "Save the current draft before validation." : undefined} onClick={() => validate(format)}>Validate</button><button className="studio-inspector__button" disabled={!document} onClick={() => setPreview(preview === format ? undefined : format)}>Preview</button><button className="studio-inspector__button" disabled title="No authoritative output materializer is configured in the browser.">Materialize</button></div>{preview === format && <p className="studio-inspector__preview">Browser-only content preview. This is not an authoritative exported {format} file. {document?.metadata.title}</p>}{latest?.validationWarnings.map(warning => <p className="studio-inspector__warning" key={warning}>{warning}</p>)}</article>; })}</div></section>
+    <section className="studio-inspector__card"><h3>Output projections</h3>{!durableVersionExists && <p className="studio-inspector__disabled-reason">{STUDIO_PROJECTION_EMPTY_MESSAGE}</p>}<div className="studio-inspector__projections">{(["PDF", "DOCX", "HTML"] as ProjectionFormat[]).map(format => { const records = activeArtifact?.projections.filter(item => item.projectionFormat === format && item.artifactVersionId === current?.currentVersionId) ?? []; const latest = records.at(-1); return <article className="studio-inspector__projection" key={format}><div><strong>{format}</strong><span>{latest ? latest.readinessState.replaceAll("_", " ") : "NOT VALIDATED"}</span></div><dl><dt>Consistency</dt><dd>{contentConsistent === undefined ? "Unavailable" : contentConsistent ? "Current version" : "Draft changed"}</dd><dt>Validation</dt><dd>{latest ? `${latest.validatorVersion} · ${formatTime(latest.validatedAt)}` : "Not yet run"}</dd><dt>Materialization</dt><dd>{latest?.outputIdentity ? latest.outputIdentity : latest?.materializationState ?? "Not materialized"}</dd></dl><div className="studio-inspector__projection-actions"><button className="studio-inspector__button" disabled={!durableVersionExists || dirty || Boolean(inFlight)} title={dirty ? "Save the current draft before validation." : undefined} onClick={() => validate(format)}>Validate</button><button className="studio-inspector__button" disabled={!durableVersionExists} onClick={() => setPreview(preview === format ? undefined : format)}>Preview</button><button className="studio-inspector__button" disabled title="No authoritative output materializer is configured in the browser.">Materialize</button></div>{durableVersionExists && preview === format && <p className="studio-inspector__preview">Browser-only content preview. This is not an authoritative exported {format} file. {document?.metadata.title}</p>}{latest?.validationWarnings.map(warning => <p className="studio-inspector__warning" key={warning}>{warning}</p>)}</article>; })}</div></section>
   </aside>;
 }
