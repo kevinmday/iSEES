@@ -52,12 +52,12 @@ export default function AuthorEditorSurface() {
 
   return <div className="author-canvas" aria-label="Authoring Canvas">
     <div className="author-canvas__rail"><span>AUTHORING CANVAS</span><strong>{document.nodes.length} structured blocks</strong></div>
-    <article className="author-paper">
+    <article className="author-paper" aria-labelledby="studio-authoring-heading">
       <header className="author-paper__header"><span>INVESTIGATION DRAFT · {investigation.id}</span><input aria-label="Document title" defaultValue={document.metadata.title} onBlur={event => runtime.updateDocumentTitle(event.currentTarget.value)} /><p>{document.metadata.description || "Structured research document · provenance remains attached to source-backed blocks."}</p></header>
       {SECTIONS.map(section => {
         const nodes = document.nodes.filter(node => sectionFor(node) === section && !(node.type === AuthorNodeTypes.HEADING && (node as HeadingNode).text !== section));
         return <section className="author-section" key={section} aria-label={section}>
-          <div className="author-section__label"><span>{String(SECTIONS.indexOf(section) + 1).padStart(2, "0")}</span><h2>{section}</h2><small>{nodes.length ? `${nodes.length} block${nodes.length === 1 ? "" : "s"}` : "Ready"}</small></div>
+          <div className="author-section__label"><span>{String(SECTIONS.indexOf(section) + 1).padStart(2, "0")}</span><h2 id={section === "Abstract" ? "studio-authoring-heading" : undefined}>{section}</h2><small>{nodes.length ? `${nodes.length} block${nodes.length === 1 ? "" : "s"}` : "Ready"}</small></div>
           {nodes.length === 0 && <div className="author-section__empty">No authored material in this section.</div>}
           {nodes.map(node => {
             const selected = selectedNodeId === node.id;
@@ -72,14 +72,14 @@ export default function AuthorEditorSurface() {
               {node.type === AuthorNodeTypes.IMAGE && <div className="author-block__placeholder">Figure · {String((node as AuthorNode & { source: string }).source)}</div>}
               {node.type === AuthorNodeTypes.TABLE && <div className="author-block__placeholder">Table · {(node as AuthorNode & { rows: number }).rows} rows</div>}
               {research && <details className="author-provenance"><summary>Inspect exact provenance</summary><dl><dt>Source identity</dt><dd>{research.sourceIdentity}</dd><dt>Workspace / kind</dt><dd>{research.sourceWorkspace} · {research.sourceKind}</dd><dt>Investigation</dt><dd>{research.sourceInvestigationId}</dd><dt>Projection</dt><dd>{research.sourceProjectionId ?? "Not supplied"}</dd><dt>Classification</dt><dd>{research.classification}</dd><dt>Insertability</dt><dd>{research.insertability.state} · {research.insertability.reason}</dd><dt>Captured representation</dt><dd><pre>{JSON.stringify(research.capturedRepresentation, null, 2)}</pre></dd></dl></details>}
-              {selected && <div className="author-block__actions"><button disabled={document.nodes.indexOf(node) === 0} onClick={() => runtime.moveNode(node.id, "UP")}>Move up</button><button disabled={document.nodes.indexOf(node) === document.nodes.length - 1} onClick={() => runtime.moveNode(node.id, "DOWN")}>Move down</button><button className="is-remove" onClick={() => { runtime.removeNode(node.id); setSelectedNodeId(undefined); }}>Remove from draft</button></div>}
+              {selected && <div className="author-block__actions"><button disabled={document.nodes.indexOf(node) === 0} aria-label={`Move ${node.id} up`} onClick={() => runtime.moveNode(node.id, "UP")}>Move up</button><button disabled={document.nodes.indexOf(node) === document.nodes.length - 1} aria-label={`Move ${node.id} down`} onClick={() => runtime.moveNode(node.id, "DOWN")}>Move down</button><button className="is-remove" aria-label={`Remove ${node.id} from draft`} onClick={() => { runtime.removeNode(node.id); setSelectedNodeId(undefined); }}>Remove from draft</button></div>}
             </article>;
           })}
         </section>;
       })}
       {document.nodes.length === 0 && <div className="author-paper__empty"><strong>Empty draft</strong><span>Add an authored section below or insert a qualified source from the Research Inbox.</span></div>}
       <section className="author-composer" aria-label="New authored text section"><div><span>NEW AUTHORED SECTION</span><h2>Extend the draft</h2></div><select value={newSection} onChange={event => setNewSection(event.target.value as typeof newSection)}>{SECTIONS.map(section => <option key={section}>{section}</option>)}</select><textarea value={newText} onChange={event => setNewText(event.target.value)} placeholder="Write researcher-authored narrative…" /><button disabled={!newText.trim()} onClick={addSection}>Insert section</button></section>
-      <footer className="author-paper__inspector-boundary">Artifact Inspector reserved for the next production cycle.</footer>
+      <footer className="author-paper__inspector-boundary">Draft content is owned by the canonical Author runtime. Artifact lifecycle and output status appear in the permanent inspector.</footer>
     </article>
   </div>;
 }

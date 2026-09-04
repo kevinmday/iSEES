@@ -33,3 +33,5 @@
 .studio-research-inbox__actions { display:flex; gap:6px; } .studio-research-inbox__actions button { flex:1; padding:5px; border:1px solid #334155; border-radius:4px; background:#111c2e; color:#cbd5e1; cursor:pointer; }
 .studio-research-inbox__insert { min-height:34px; border:1px solid #2563eb; border-radius:5px; background:#1d4ed8; color:white; font-weight:800; cursor:pointer; }
 .studio-research-inbox__insert:disabled { border-color:#334155; background:#1e293b; color:#64748b; cursor:not-allowed; }
+.studio-research-inbox button:focus-visible, .studio-research-inbox input:focus-visible, .studio-research-inbox select:focus-visible { outline:2px solid #38bdf8; outline-offset:2px; }
+.studio-research-inbox__actions .studio-research-inbox__remove { border-color:#991b1b; color:#fecaca; }

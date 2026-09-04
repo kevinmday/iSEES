@@ -106,8 +106,8 @@ export default function StudioResearchInbox() {
       {grouped.map(group => <section key={group.title} className="studio-research-inbox__group"><h3>{group.title}<span>{group.entries.length}</span></h3>{group.entries.map(({ anchor }) => {
         const selectedCard = anchor.anchorId === projection.selectedAnchorId;
         const warning = warningFor(anchor);
-        return <article key={anchor.anchorId} className={`studio-research-card${selectedCard ? " studio-research-card--selected" : ""}`} onClick={() => { setSelectedAnchorId(anchor.anchorId); setNotice(undefined); }} aria-selected={selectedCard}>
-          <button className="studio-research-card__select" type="button" aria-label={`Select ${anchor.display.title}`}>
+        return <article key={anchor.anchorId} className={`studio-research-card${selectedCard ? " studio-research-card--selected" : ""}`}>
+          <button className="studio-research-card__select" type="button" aria-pressed={selectedCard} aria-label={`Select ${anchor.display.title}`} onClick={() => { setSelectedAnchorId(anchor.anchorId); setNotice(undefined); }}>
             <span className="studio-research-card__meta">{anchor.sourceWorkspace} · {anchor.kind.replaceAll("_", " ")}</span>
             <strong>{anchor.display.title}</strong><span>{anchor.display.summary}</span>
             <span className="studio-research-card__identity">{anchor.sourceIdentity}</span>
@@ -122,9 +122,10 @@ export default function StudioResearchInbox() {
       {selected ? <>
         <div className="studio-research-inbox__selected"><span>Selected source</span><strong>{selected.display.title}</strong></div>
         {selected.insertability.state === "INSPECTION_ONLY" && <div className="studio-research-inbox__disabled-reason">Inspection only: {selected.insertability.reason}</div>}
-        <div className="studio-research-inbox__actions"><button type="button" onClick={() => runtime.pinAnchor(selected.anchorId, !selected.pinned)}>{selected.pinned ? "Unpin" : "Pin"}</button><button type="button" onClick={removeSelected}>Remove</button></div>
+        <div className="studio-research-inbox__actions"><button type="button" onClick={() => runtime.pinAnchor(selected.anchorId, !selected.pinned)}>{selected.pinned ? "Unpin" : "Pin"}</button><button className="studio-research-inbox__remove" type="button" aria-label={`Remove ${selected.display.title} from this Investigation's Research Inbox`} onClick={removeSelected}>Remove source</button></div>
       </> : <div className="studio-research-inbox__selected-empty">Select one source to inspect or insert.</div>}
-      <button className="studio-research-inbox__insert" type="button" disabled={!selected || selected.insertability.state !== "INSERTABLE"} onClick={insertSelected}>Insert into Draft</button>
+      <button className="studio-research-inbox__insert" type="button" disabled={!selected || selected.insertability.state !== "INSERTABLE"} aria-describedby="studio-insert-reason" onClick={insertSelected}>Insert into Draft</button>
+      {(!selected || selected.insertability.state !== "INSERTABLE") && <div id="studio-insert-reason" className="studio-research-inbox__disabled-reason">{selected ? `Insertion unavailable: ${selected.insertability.reason}` : "Insertion unavailable: select a source first."}</div>}
     </footer>
   </aside>;
 }
