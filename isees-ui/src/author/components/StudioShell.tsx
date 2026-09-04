@@ -35,6 +35,8 @@ import AuthorEditorSurface
 
 import StudioResearchInbox
   from "../../studio/components/StudioResearchInbox";
+import StudioArtifactInspector
+  from "../../studio/components/StudioArtifactInspector";
 
 import "./StudioShell.css";
 import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
@@ -104,6 +106,8 @@ export default function StudioShell() {
       <StudioStatusBar />
 
         </main>
+
+        <StudioArtifactInspector />
 
       </div>
 

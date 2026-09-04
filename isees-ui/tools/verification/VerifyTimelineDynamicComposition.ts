@@ -18,6 +18,8 @@ const css = readFileSync("src/timeline/components/TimelineWorkspace.css", "utf8"
 const researchTypes = readFileSync("src/research/researchBridgeTypes.ts", "utf8");
 const mainLayout = readFileSync("src/layout/MainLayout.tsx", "utf8");
 const eventPresentation = readFileSync("src/timeline/presentation/TimelineEventPresentation.ts", "utf8");
+const typedResearchAdapters = readFileSync("src/studio/sources/TypedResearchSourceAdapters.ts", "utf8");
+const directResearchPublication = readFileSync("src/studio/sources/DirectResearchPublication.ts", "utf8");
 
 assert.equal(resolveTimelineComposition({ qualifiedComparisonCount: 0, selectedComparisonAvailable: false, overviewRequested: true }), TimelineCompositionKind.FOCUSED_ONLY);
 assert.equal(resolveTimelineComposition({ qualifiedComparisonCount: 1, selectedComparisonAvailable: true, overviewRequested: true }), TimelineCompositionKind.PAIRWISE);
@@ -56,7 +58,17 @@ assert.match(workspace, /INSPECT PAIR/);
 assert.match(workspace, /Add sourced temporal evidence in EVIDENCE or inspect another qualified comparison/);
 assert.match(inspector, /Research publication unavailable/);
 assert.match(inspector, /Technical details and provenance/);
-assert.doesNotMatch(inspector, /ResearchBridge|publish|collectAnchor/);
+assert.match(inspector, /useResearchBridge/);
+assert.match(inspector, /collectTypedResearchSource/);
+assert.match(inspector, /timelineMomentResearchAnchor/);
+assert.match(inspector, /timelineCorrespondenceResearchAnchor/);
+assert.match(inspector, /Add to Research Inbox/);
+assert.match(typedResearchAdapters, /sourceWorkspace: "TIMELINE"/);
+assert.match(typedResearchAdapters, /sourceIdentity: context\.moment\.itemId/);
+assert.match(typedResearchAdapters, /sourceIdentity: context\.correspondence\.correspondenceId/);
+assert.match(typedResearchAdapters, /Timeline correspondence is unresolved and is not an accepted relationship/);
+assert.match(directResearchPublication, /runtime\.createAnchor\(create\(\)\)/);
+for (const forbidden of ["createEdge", "acceptResolveCandidate", "executeResolve", "setActiveLayers"]) assert.doesNotMatch(inspector + typedResearchAdapters + directResearchPublication, new RegExp(forbidden), `Timeline publication does not mutate canonical state: ${forbidden}`);
 assert.match(adapter, /adaptEventTimelineSourceRecords/);
 assert.match(adapter, /matches\.length === 1/);
 assert.doesNotMatch(adapter, /Date\.parse|event_name|node\.label/);

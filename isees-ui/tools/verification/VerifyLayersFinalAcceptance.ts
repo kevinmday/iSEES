@@ -18,6 +18,7 @@ const inboxCss = read("src/manifold/components/ResearchInboxInstrument.css");
 const author = read("src/author/components/AuthorEditorSurface.tsx");
 const persistence = read("src/workspace/persistence/GuestWorkspaceSessionPersistence.ts");
 const restoration = read("src/workspace/persistence/GuestWorkspaceSessionRestorer.ts");
+const researchAuthorAdapter = read("src/studio/sources/ResearchAnchorAuthorInsertion.ts");
 
 assert(surface.includes("workspace-surface__projection--layers"));
 assert(surfaceCss.includes("--layers-inbox-collapsed-clearance: 60px"), "collapsed LAYERS dock has bottom clearance");
@@ -60,11 +61,14 @@ assert(summary.includes("Nimitz Tic Tac Encounter ↔ Roosevelt Carrier Group En
 for (const field of ["FORMED", "INFRASTRUCTURE", "40.0%", "Baseline UNAVAILABLE", "EXPERIMENTAL / NON-CANONICAL"]) assert(summary.includes(field), `Author experiment reference includes ${field}`);
 assert.equal(JSON.stringify(anchor), before, "reference presentation does not mutate the immutable Research snapshot");
 for (const sourceField of ["experiment.caseAEventId", "experiment.caseBEventId", "projection.delta.state", "projection.provenance.experimentalLayerIds", "projection.experimental.relationship", "projection.baseline.relationship"]) assert(inbox.includes(sourceField), `reference field derives from Research snapshot: ${sourceField}`);
-assert(inbox.includes('source: "RESEARCH_BRIDGE"'));
-assert(inbox.includes("targetId: projection.projectionId"));
-assert(author.includes('aria-label="Structured Research reference details"'));
-assert(author.includes("(node as ReferenceNode).summary"));
-assert(inbox.includes('if ("graph" in entry.anchor)') && inbox.includes('if ("candidate" in entry.anchor)'), "NODE, EDGE, and COMPARE candidate handling remains compatible");
+assert(inbox.includes("createAuthorReferenceFromResearchAnchor"), "shared Inbox delegates author insertion to the canonical typed Research adapter");
+assert(researchAuthorAdapter.includes('source: "RESEARCH_BRIDGE"'));
+assert(researchAuthorAdapter.includes("targetId: anchor.sourceIdentity"));
+for (const field of ["sourceInvestigationId", "sourceWorkspace", "sourceRevisionId", "sourceExecutionId", "sourceProjectionId", "capturedRepresentation"]) assert(researchAuthorAdapter.includes(field), `typed author reference preserves ${field}`);
+assert(author.includes('className="author-provenance"') && author.includes("Inspect exact provenance"), "structured Research references expose exact provenance details");
+for (const field of ["research.sourceIdentity", "research.sourceWorkspace", "research.sourceKind", "research.sourceInvestigationId", "research.sourceProjectionId", "research.classification", "research.insertability", "research.capturedRepresentation"]) assert(author.includes(field), `author provenance presentation preserves ${field}`);
+assert(author.includes("reference.summary"));
+assert(researchAuthorAdapter.includes('anchor.kind === "GRAPH" ? anchor.graph.type : "DOCUMENT"') && researchAuthorAdapter.includes("targetId: anchor.sourceIdentity"), "canonical typed adapter preserves NODE/EDGE targets and document-backed COMPARE candidates");
 
 const research = new ResearchBridgeRuntime();
 research.createAnchor(anchor);
