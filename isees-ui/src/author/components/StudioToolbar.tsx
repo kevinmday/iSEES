@@ -84,6 +84,7 @@ import {
 import {
   useKnowledgeObjectRuntime,
 } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
 
 import type {
   ComputationalAuthorDocument,
@@ -292,6 +293,8 @@ function createAuthorDocument():
 
 export default function StudioToolbar() {
 
+  const activeInvestigation = useActiveInvestigation();
+
   const runtime =
     useAuthorDocumentRuntime();
 
@@ -335,6 +338,8 @@ export default function StudioToolbar() {
 
   const handleNewDocument =
     () => {
+
+      if (!activeInvestigation) return;
 
       const newDocument =
         createAuthorDocument();
@@ -777,7 +782,8 @@ export default function StudioToolbar() {
 
         <button
           type="button"
-          style={buttonStyle}
+          style={activeInvestigation ? buttonStyle : disabledButtonStyle}
+          disabled={!activeInvestigation}
           onClick={handleNewDocument}
         >
 

@@ -22,6 +22,7 @@
 import type {
   CSSProperties,
 } from "react";
+import { useEffect } from "react";
 
 import StudioToolbar
   from "./StudioToolbar";
@@ -36,6 +37,8 @@ import StudioResearchInbox
   from "../../studio/components/StudioResearchInbox";
 
 import "./StudioShell.css";
+import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
+import { useAuthorDocumentRuntime } from "../runtime/AuthorDocumentRuntimeContext";
 
 // ============================================================
 // STYLES
@@ -64,6 +67,13 @@ const shellStyle: CSSProperties = {
 // ============================================================
 
 export default function StudioShell() {
+
+  const investigation = useActiveInvestigation();
+  const authorRuntime = useAuthorDocumentRuntime();
+
+  useEffect(() => {
+    authorRuntime.activateInvestigation(investigation?.id);
+  }, [authorRuntime, investigation?.id]);
 
   return (
 

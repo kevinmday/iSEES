@@ -51,6 +51,12 @@ type AuthorDocumentRuntimeListener =
 
 export class AuthorDocumentRuntime {
 
+  private activeInvestigationId: string | undefined;
+
+  private documentsByInvestigation = new Map<string, ComputationalAuthorDocument>();
+
+  private lastInsertedNodeId: string | undefined;
+
   private state:
     AuthorDocumentRuntimeState = {
 
@@ -102,6 +108,14 @@ export class AuthorDocumentRuntime {
 
     return this.state.dirty;
 
+  }
+
+  getActiveInvestigationId(): string | undefined {
+    return this.activeInvestigationId;
+  }
+
+  getLastInsertedNodeId(): string | undefined {
+    return this.lastInsertedNodeId;
   }
 
   // ==========================================================
@@ -174,8 +188,34 @@ export class AuthorDocumentRuntime {
 
     };
 
+    if (this.activeInvestigationId) {
+      this.documentsByInvestigation.set(this.activeInvestigationId, document);
+    }
+
     this.notify();
 
+  }
+
+  /** Keeps one canonical draft per Investigation without introducing a UI document owner. */
+  activateInvestigation(investigationId: string | undefined): void {
+    if (this.activeInvestigationId === investigationId) return;
+
+    if (this.activeInvestigationId && this.state.activeDocument) {
+      this.documentsByInvestigation.set(this.activeInvestigationId, this.state.activeDocument);
+    }
+
+    const firstActivation = this.activeInvestigationId === undefined && investigationId !== undefined;
+    const nextDocument = firstActivation
+      ? this.state.activeDocument
+      : investigationId
+        ? this.documentsByInvestigation.get(investigationId)
+        : undefined;
+
+    this.activeInvestigationId = investigationId;
+    if (investigationId && nextDocument) this.documentsByInvestigation.set(investigationId, nextDocument);
+    this.lastInsertedNodeId = undefined;
+    this.state = { ...this.state, activeDocument: nextDocument, dirty: false, revision: this.state.revision + 1 };
+    this.notify();
   }
 
   clearActiveDocument():
@@ -226,7 +266,7 @@ export class AuthorDocumentRuntime {
   insertNode(
     node:
       AuthorNode,
-  ): void {
+  ): "INSERTED" | "DUPLICATE" | "NO_ACTIVE_DOCUMENT" | "INVESTIGATION_MISMATCH" {
 
     const document =
       this.state.activeDocument;
@@ -236,13 +276,38 @@ export class AuthorDocumentRuntime {
       undefined
     ) {
 
-      return;
+      return "NO_ACTIVE_DOCUMENT";
 
+    }
+
+    if (node.type === "REFERENCE") {
+      const reference = node as import("../model/AuthorNodeTypes").ReferenceNode;
+      if (this.activeInvestigationId && reference.researchSource?.sourceInvestigationId && reference.researchSource.sourceInvestigationId !== this.activeInvestigationId) {
+        return "INVESTIGATION_MISMATCH";
+      }
+      if (reference.researchSource) {
+        const existing = document.nodes.find(candidate =>
+          candidate.type === "REFERENCE" &&
+          (candidate as import("../model/AuthorNodeTypes").ReferenceNode).researchSource?.anchorId === reference.researchSource?.anchorId
+        );
+        if (existing) {
+          this.lastInsertedNodeId = existing.id;
+          this.state = { ...this.state, revision: this.state.revision + 1 };
+          this.notify();
+          return "DUPLICATE";
+        }
+      }
+    }
+
+    if (this.activeInvestigationId) {
+      this.documentsByInvestigation.delete(this.activeInvestigationId);
     }
 
     document.nodes.push(
       node,
     );
+
+    this.lastInsertedNodeId = node.id;
 
     this.state = {
 
@@ -258,6 +323,52 @@ export class AuthorDocumentRuntime {
 
     this.notify();
 
+    return "INSERTED";
+
+  }
+
+  updateNodeText(nodeId: string, text: string): boolean {
+    const node = this.state.activeDocument?.nodes.find(candidate => candidate.id === nodeId);
+    if (!node || !("text" in node) || typeof node.text !== "string") return false;
+    node.text = text;
+    this.publishDraftMutation(nodeId);
+    return true;
+  }
+
+  updateDocumentTitle(title: string): boolean {
+    const document = this.state.activeDocument;
+    if (!document || !title.trim()) return false;
+    document.metadata.title = title.trim();
+    document.metadata.modifiedAt = new Date();
+    this.publishDraftMutation();
+    return true;
+  }
+
+  moveNode(nodeId: string, direction: "UP" | "DOWN"): boolean {
+    const nodes = this.state.activeDocument?.nodes;
+    if (!nodes) return false;
+    const index = nodes.findIndex(node => node.id === nodeId);
+    const destination = direction === "UP" ? index - 1 : index + 1;
+    if (index < 0 || destination < 0 || destination >= nodes.length) return false;
+    [nodes[index], nodes[destination]] = [nodes[destination]!, nodes[index]!];
+    this.publishDraftMutation(nodeId);
+    return true;
+  }
+
+  removeNode(nodeId: string): boolean {
+    const nodes = this.state.activeDocument?.nodes;
+    if (!nodes) return false;
+    const index = nodes.findIndex(node => node.id === nodeId);
+    if (index < 0) return false;
+    nodes.splice(index, 1);
+    this.publishDraftMutation();
+    return true;
+  }
+
+  private publishDraftMutation(nodeId?: string): void {
+    this.lastInsertedNodeId = nodeId;
+    this.state = { ...this.state, dirty: true, revision: this.state.revision + 1 };
+    this.notify();
   }
 
   // ==========================================================

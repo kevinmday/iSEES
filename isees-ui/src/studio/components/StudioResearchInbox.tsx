@@ -71,8 +71,11 @@ export default function StudioResearchInbox() {
 
   function insertSelected() {
     if (!selected || selected.investigationId !== investigationId || selected.insertability.state !== "INSERTABLE") return;
-    authorDocumentRuntime.insertNode(createAuthorReferenceFromResearchAnchor(selected, crypto.randomUUID()));
-    setNotice(`Inserted “${selected.display.title}” into the draft with its exact source provenance.`);
+    const result = authorDocumentRuntime.insertNode(createAuthorReferenceFromResearchAnchor(selected, `research-reference:${selected.anchorId}`));
+    if (result === "INSERTED") setNotice(`Inserted “${selected.display.title}” into the draft with its exact source provenance.`);
+    else if (result === "DUPLICATE") setNotice(`“${selected.display.title}” is already in this draft. The existing source-backed block was selected.`);
+    else if (result === "NO_ACTIVE_DOCUMENT") setNotice("Create or open a draft before inserting this source.");
+    else setNotice("Insertion blocked because the source belongs to another active Investigation.");
   }
 
   return <aside className="studio-research-inbox" aria-label="STUDIO Research Inbox" data-permanent="true">

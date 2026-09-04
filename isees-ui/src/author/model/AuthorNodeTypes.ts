@@ -111,6 +111,10 @@ export interface ParagraphNode
   text:
     string;
 
+  /** Optional production-canvas section; omitted by legacy artifacts. */
+  section?:
+    string;
+
 }
 
 // ============================================================
@@ -251,6 +255,7 @@ export interface ReferenceNode
     sourceExecutionId?: string;
     sourceProjectionId?: string;
     classification: "CANONICAL" | "RESEARCHER_GENERATED" | "UNDETERMINED";
+    insertability: Readonly<{ state: "INSERTABLE" | "INSPECTION_ONLY"; reason: string }>;
     capturedRepresentation: unknown;
   }>;
 
