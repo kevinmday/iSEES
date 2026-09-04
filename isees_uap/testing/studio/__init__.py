@@ -1,0 +1,1 @@
+"""STUDIO domain contract tests."""
