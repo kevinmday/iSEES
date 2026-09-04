@@ -59,15 +59,14 @@ function workspaceModeCase(source: string, mode: string): string {
 }
 
 assertIncludes(workspaceSurface, 'from "../compare/components/CompareWorkspace"', "active WorkspaceSurface imports the production CompareWorkspace");
-assert(/case WorkspaceMode\.COMPARE:[\s\S]*?<CompareWorkspace \/>/.test(workspaceSurface), "WorkspaceMode.COMPARE renders the production CompareWorkspace");
-pass("WorkspaceMode.COMPARE renders the production CompareWorkspace");
+const compareCase = workspaceModeCase(workspaceSurface, "COMPARE");
+assertIncludes(compareCase, "<CompareWorkspace />", "WorkspaceMode.COMPARE renders the production CompareWorkspace");
 assertExcludes(workspaceSurface, "Comparative Analysis Workspace", "legacy COMPARE placeholder copy is removed from the active router");
 
-for (const placeholder of [
-  "Intention Workspace",
-]) {
-  assertIncludes(workspaceSurface, placeholder, `${placeholder} route remains intact`);
-}
+assertIncludes(workspaceSurface, 'from "../intention/components/IntentionWorkspace"', "active WorkspaceSurface imports the production IntentionWorkspace");
+const intentionCase = workspaceModeCase(workspaceSurface, "INTENTION");
+assertIncludes(intentionCase, "<IntentionWorkspace />", "WorkspaceMode.INTENTION renders the production IntentionWorkspace");
+assertExcludes(intentionCase, "<PlaceholderSurface", "WorkspaceMode.INTENTION no longer uses PlaceholderSurface");
 
 const timelineCase = workspaceModeCase(workspaceSurface, "TIMELINE");
 assertIncludes(timelineCase, "<TimelineWorkspace />", "WorkspaceMode.TIMELINE renders the production TimelineWorkspace");

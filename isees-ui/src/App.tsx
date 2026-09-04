@@ -132,6 +132,9 @@ import TimelineInspector from "./timeline/components/TimelineInspector";
 import { TimelineInspectionProvider } from "./timeline/context/TimelineInspectionContext";
 import { WorkspaceMode } from "./workspace/runtime/WorkspaceRuntimeTypes";
 import { useWorkspaceMode } from "./workspace/runtime/WorkspaceRuntimeContext";
+import { IntentionWorkspaceProvider } from "./intention/runtime/IntentionWorkspaceContext";
+import IntentionNavigator from "./intention/components/IntentionNavigator";
+import IntentionInspector from "./intention/components/IntentionInspector";
 
 import {
 
@@ -273,6 +276,7 @@ function OperatorUI() {
 
                             <LayersPresentationSelectionProvider>
                             <TimelineInspectionProvider>
+                            <IntentionWorkspaceProvider>
                             <MainLayout
 
                               left={
@@ -288,6 +292,7 @@ function OperatorUI() {
                               }
 
                             />
+                            </IntentionWorkspaceProvider>
                             </TimelineInspectionProvider>
                             </LayersPresentationSelectionProvider>
 
@@ -410,6 +415,8 @@ function ModeAwareLeftPanel() {
     ? <LayersLaboratoryNavigator />
     : mode === WorkspaceMode.TIMELINE
       ? <TimelineNavigator />
+    : mode === WorkspaceMode.INTENTION
+      ? <IntentionNavigator />
     : <InvestigationControl />;
 }
 
@@ -419,5 +426,7 @@ function ModeAwareRightPanel() {
     ? <LayersExperimentalIntelligence />
     : mode === WorkspaceMode.TIMELINE
       ? <TimelineInspector />
+    : mode === WorkspaceMode.INTENTION
+      ? <IntentionInspector />
     : <RightPanel />;
 }

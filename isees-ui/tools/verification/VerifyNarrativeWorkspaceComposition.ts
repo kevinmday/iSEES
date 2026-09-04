@@ -39,12 +39,22 @@ excludes(narrativeCase, '"Narrative Workspace"', "old NARRATIVE placeholder lite
 for (const [mode, component] of [["OVERVIEW", "OverviewWorkspace"], ["MANIFOLD", "ManifoldWorkspace"], ["COMPARE", "CompareWorkspace"], ["EVIDENCE", "EvidenceWorkspace"], ["TIMELINE", "TimelineWorkspace"], ["LAYERS", "LayersWorkspace"], ["RESEARCH", "StudioShell"]]) {
   assert(new RegExp(`case WorkspaceMode\\.${mode}:[\\s\\S]*?<${component} \\/>`).test(workspaceSurface), `${mode} route remains present`);
 }
-assert(/case WorkspaceMode\.INTENTION:[\s\S]*?<PlaceholderSurface[\s\S]*?title="Intention Workspace"/.test(workspaceSurface), "INTENTION route remains present"); pass("all other WorkspaceSurface MODE branches remain present");
+includes(workspaceSurface, 'from "../intention/components/IntentionWorkspace"', "active WorkspaceSurface imports the production IntentionWorkspace");
+const intentionCase = workspaceModeCase(workspaceSurface, "INTENTION");
+includes(intentionCase, "<IntentionWorkspace />", "WorkspaceMode.INTENTION renders the production IntentionWorkspace");
+excludes(intentionCase, "PlaceholderSurface", "WorkspaceMode.INTENTION no longer uses PlaceholderSurface");
+pass("all other WorkspaceSurface MODE branches remain present");
 includes(workspaceSurface, "<WorkspaceIdentityHeader />", "persistent WorkspaceIdentityHeader remains at the shared boundary");
 const inboxVisibility = workspaceSurface.match(/const researchInboxVisible\s*=[\s\S]*?;/)?.[0] ?? "";
 assert(inboxVisibility.length > 0 && inboxVisibility.includes("WorkspaceMode.NARRATIVE"), "Research Inbox visibility includes NARRATIVE in the existing allowlist"); pass("Research Inbox visibility includes NARRATIVE in the existing allowlist");
 for (const mode of ["MANIFOLD", "RESEARCH", "COMPARE", "LAYERS", "EVIDENCE"]) assert(inboxVisibility.includes(`WorkspaceMode.${mode}`), `Research Inbox visibility preserves ${mode}`);
-for (const mode of ["OVERVIEW", "TIMELINE", "INTENTION"]) assert(!inboxVisibility.includes(`WorkspaceMode.${mode}`), `Research Inbox visibility continues to exclude ${mode}`);
+includes(inboxVisibility, "WorkspaceMode.INTENTION", "Research Inbox visibility includes INTENTION in the existing allowlist");
+for (const mode of ["OVERVIEW", "TIMELINE"]) assert(!inboxVisibility.includes(`WorkspaceMode.${mode}`), `Research Inbox visibility continues to exclude ${mode}`);
+assert((workspaceSurface.match(/<ResearchInboxInstrument\b/g) ?? []).length === 1, "shared shell composes exactly one ResearchInboxInstrument"); pass("shared shell composes exactly one ResearchInboxInstrument");
+assert(/const \[\s*researchInboxExpanded,\s*setResearchInboxExpanded,\s*\] = useState\(false\);/.test(workspaceSurface), "shared shell retains the collapsed Research Inbox state owner"); pass("shared shell retains the collapsed Research Inbox state owner");
+assert(/<ResearchInboxInstrument\s+expanded=\{\s*researchInboxExpanded\s*\}\s+onExpandedChange=\{\s*setResearchInboxExpanded\s*\}/.test(workspaceSurface), "shared Research Inbox remains wired to its existing state owner"); pass("shared Research Inbox remains wired to its existing state owner");
+excludes(intentionCase, "ResearchInboxInstrument", "INTENTION route introduces no mode-specific Research Inbox implementation");
+excludes(intentionCase, "researchInboxExpanded", "INTENTION route introduces no mode-specific Research Inbox state owner");
 pass("all other Research Inbox mode visibility remains unchanged");
 includes(surface, 'from "../projection/NarrativeWorkspaceProjection"', "NarrativeWorkspace imports the I1 resolver");
 includes(surface, "resolveNarrativeWorkspaceProjection({", "NarrativeWorkspace calls the I1 resolver");
@@ -86,8 +96,9 @@ includes(css, "overflow-x: hidden", "horizontal overflow protection exists");
 includes(css, "position: static", "stacked layout disables sticky region headers");
 excludes(compareVerifier, '"Timeline Workspace"', "COMPARE verifier no longer requires the obsolete TIMELINE placeholder literal");
 assert(/const timelineCase = workspaceModeCase\(workspaceSurface, "TIMELINE"\);[\s\S]*?assertIncludes\(timelineCase, "<TimelineWorkspace \/>"/.test(compareVerifier), "COMPARE verifier case-bounds the production TIMELINE route assertion"); pass("COMPARE verifier case-bounds the production TIMELINE route assertion");
-includes(compareVerifier, '"Intention Workspace"', "COMPARE verifier retains INTENTION placeholder protection");
-assert(/for \(const placeholder of \[\s*"Intention Workspace",?\s*\]\)/.test(compareVerifier), "COMPARE verifier keeps INTENTION alone in placeholder protection"); pass("COMPARE verifier keeps INTENTION alone in placeholder protection");
+includes(compareVerifier, 'const intentionCase = workspaceModeCase(workspaceSurface, "INTENTION");', "COMPARE verifier declares a case-bounded INTENTION route");
+includes(compareVerifier, 'assertIncludes(intentionCase, "<IntentionWorkspace />"', "COMPARE verifier asserts that the bounded INTENTION case renders IntentionWorkspace");
+includes(compareVerifier, 'assertExcludes(intentionCase, "<PlaceholderSurface"', "COMPARE verifier asserts that the bounded INTENTION case excludes PlaceholderSurface");
 excludes(compareVerifier, '"Narrative Workspace"', "COMPARE verifier no longer requires the obsolete NARRATIVE placeholder");
 
 console.log("");

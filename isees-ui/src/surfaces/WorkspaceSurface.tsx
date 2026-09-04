@@ -75,6 +75,9 @@ import TimelineWorkspace
 import NarrativeWorkspace
   from "../narrative/components/NarrativeWorkspace";
 
+import IntentionWorkspace
+  from "../intention/components/IntentionWorkspace";
+
 import "../compare/components/CompareWorkspace.css";
 
 import StudioShell
@@ -87,44 +90,6 @@ import WorkspaceIdentityHeader
   from "../components/workspace/WorkspaceIdentityHeader";
 
 import "./WorkspaceSurface.css";
-
-// ============================================================
-// PLACEHOLDER SURFACE
-// ============================================================
-
-function PlaceholderSurface({
-  title,
-}: {
-  title: string;
-}) {
-
-  return (
-
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: 520,
-
-        border: "1px solid #223047",
-        borderRadius: 10,
-
-        background: "#09111f",
-
-        color: "#94a3b8",
-
-        fontSize: 28,
-        fontWeight: 700,
-        letterSpacing: 1,
-      }}
-    >
-      {title}
-    </div>
-
-  );
-
-}
 
 // ============================================================
 // ACTIVE WORKSPACE
@@ -184,9 +149,7 @@ function ActiveWorkspace() {
     case WorkspaceMode.INTENTION:
 
       return (
-        <PlaceholderSurface
-          title="Intention Workspace"
-        />
+        <IntentionWorkspace />
       );
 
     case WorkspaceMode.RESEARCH:
@@ -234,7 +197,9 @@ export default function WorkspaceSurface() {
     activeMode ===
       WorkspaceMode.LAYERS ||
     activeMode ===
-      WorkspaceMode.EVIDENCE;
+      WorkspaceMode.EVIDENCE ||
+    activeMode ===
+      WorkspaceMode.INTENTION;
 
 
   return (
