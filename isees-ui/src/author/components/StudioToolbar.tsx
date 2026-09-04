@@ -117,8 +117,10 @@ const toolbarStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 16,
-  height: 48,
-  padding: "0 16px",
+  minHeight: 48,
+  padding: "8px 16px",
+  boxSizing: "border-box",
+  flexWrap: "wrap",
   borderBottom: "1px solid #1e293b",
   background: "#0f172a",
   flexShrink: 0,
@@ -135,6 +137,8 @@ const rightStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 12,
+  flexWrap: "wrap",
+  flexShrink: 0,
 };
 
 const titleStyle: CSSProperties = {

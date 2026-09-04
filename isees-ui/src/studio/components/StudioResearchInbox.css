@@ -1,4 +1,4 @@
-.studio-research-inbox { display:flex; flex-direction:column; min-width:0; min-height:0; border-right:1px solid #1e293b; background:#07101f; color:#cbd5e1; font-size:12px; }
+.studio-research-inbox { display:flex; flex-direction:column; min-width:0; min-height:0; height:100%; overflow:hidden; border-right:1px solid #1e293b; background:#07101f; color:#cbd5e1; font-size:12px; }
 .studio-research-inbox__header { display:flex; align-items:center; justify-content:space-between; min-height:64px; padding:0 16px; border-bottom:1px solid #1e293b; }
 .studio-research-inbox__header h2 { margin:2px 0 0; color:#f8fafc; font-size:16px; }
 .studio-research-inbox__eyebrow { color:#60a5fa; font-size:9px; font-weight:800; letter-spacing:.14em; }

@@ -10,7 +10,7 @@ const css = read("src/author/components/StudioShell.css");
 const inspector = read("src/studio/components/StudioArtifactInspector.tsx");
 const api = read("src/studio/api/StudioApi.ts");
 assert.match(shell, /<StudioResearchInbox\s*\/>[\s\S]*<main[\s\S]*<StudioArtifactInspector\s*\/>/, "permanent three-column order");
-assert.match(css, /grid-template-columns:[^;]+minmax\(0, 1fr\)[^;]+clamp\(300px, 21vw, 360px\)/);
+assert.match(css, /grid-template-columns:[^;]+minmax\(0, 1fr\)[^;]+clamp\(320px, 23vw, 380px\)/);
 assert.doesNotMatch(inspector, /new AuthorDocumentRuntime|useState<.*ComputationalAuthorDocument/, "React does not own the author document");
 for (const route of ["candidate/publication", "review-submissions", "acceptance", "returns", "rejections", "projections/validations"]) assert.ok(inspector.includes(route), `route composed: ${route}`);
 for (const state of ["CONFLICT", "STALE_REVISION", "FORBIDDEN", "UNAVAILABLE_BACKEND", "ERROR"]) assert.ok(api.includes(state), `explicit API state: ${state}`);

@@ -39,8 +39,9 @@ import StudioArtifactInspector
   from "../../studio/components/StudioArtifactInspector";
 
 import "./StudioShell.css";
-import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
+import { useActiveInvestigation, useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import { useAuthorDocumentRuntime } from "../runtime/AuthorDocumentRuntimeContext";
+import { WorkspaceMode } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
 // ============================================================
 // STYLES
@@ -71,15 +72,31 @@ const shellStyle: CSSProperties = {
 export default function StudioShell() {
 
   const investigation = useActiveInvestigation();
+  const workspaceRuntime = useWorkspaceRuntime();
   const authorRuntime = useAuthorDocumentRuntime();
 
   useEffect(() => {
     authorRuntime.activateInvestigation(investigation?.id);
   }, [authorRuntime, investigation?.id]);
 
+  if (!investigation) {
+    return (
+      <section className="studio-shell__blocked" role="status" aria-label="STUDIO unavailable">
+        <div className="studio-shell__blocked-card">
+          <span>STUDIO / INVESTIGATION REQUIRED</span>
+          <h1>No active Investigation</h1>
+          <p>STUDIO consumes an already-active Investigation. Return to OVERVIEW to open or create an Investigation before authoring.</p>
+          <button type="button" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.OVERVIEW)}>
+            Return to OVERVIEW
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
 
-    <div style={shellStyle}>
+    <div style={shellStyle} data-studio-workspace="three-column">
 
       <div className="studio-shell__workspace">
 

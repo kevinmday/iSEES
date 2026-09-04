@@ -46,6 +46,7 @@ export default function MainLayout({
 
   const workspaceMode =
     useWorkspaceMode();
+  const studioMode = workspaceMode === WorkspaceMode.RESEARCH;
   const layersMode = workspaceMode === WorkspaceMode.LAYERS;
   const timelineMode = workspaceMode === WorkspaceMode.TIMELINE;
   const leftInstrumentName = layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
@@ -213,7 +214,7 @@ export default function MainLayout({
 
         {/* LEFT PANEL RESTORE CONTROL */}
 
-        {!workspaceExpanded && leftPanelCollapsed && (
+        {!studioMode && !workspaceExpanded && leftPanelCollapsed && (
           <div
             style={{
               display: "flex",
@@ -243,7 +244,7 @@ export default function MainLayout({
           </div>
         )}
 
-        <div
+        {!studioMode && <div
           style={{
             display:
               workspaceExpanded || leftPanelCollapsed
@@ -301,7 +302,7 @@ export default function MainLayout({
           >
             {left}
           </div>
-        </div>
+        </div>}
 
         {/* =================================================== */}
         {/* CENTER PANEL — WORKSPACE PROJECTION */}
@@ -321,7 +322,7 @@ export default function MainLayout({
 
           {/* WORKSPACE LAYOUT CONTROL */}
 
-          <button
+          {!studioMode && <button
             type="button"
             onClick={() =>
               setWorkspaceExpanded(
@@ -353,7 +354,7 @@ export default function MainLayout({
                 ? "Restore"
                 : "Expand"
             }
-          </button>
+          </button>}
 
           {/* =============================================== */}
           {/* WORKSPACE PROJECTION HOST */}
@@ -370,7 +371,7 @@ export default function MainLayout({
               flexDirection: "column",
               overflow: "hidden",
               margin: 0,
-              padding: "16px",
+              padding: studioMode ? "0" : "16px",
               boxSizing: "border-box",
             }}
           >
@@ -384,7 +385,7 @@ export default function MainLayout({
 
         {/* RIGHT PANEL RESTORE CONTROL */}
 
-        {!workspaceExpanded && rightPanelCollapsed && (
+        {!studioMode && !workspaceExpanded && rightPanelCollapsed && (
           <div className="selection-intelligence-restore">
             <button
               type="button"
@@ -404,7 +405,7 @@ export default function MainLayout({
 
         {/* RIGHT PANEL SHELL */}
 
-        <aside
+        {!studioMode && <aside
           className={[
             "selection-intelligence",
             workspaceExpanded || rightPanelCollapsed
@@ -457,7 +458,7 @@ export default function MainLayout({
           <div className="selection-intelligence__body">
             {right}
           </div>
-        </aside>
+        </aside>}
       </div>
 
       {/* ===================================================== */}

@@ -10,6 +10,7 @@
     "verify:candidate-evidence-contracts": "node --experimental-strip-types tools/verification/VerifyCandidateEvidenceContracts.ts",
     "verify:candidate-evidence-runtime": "node --experimental-strip-types VerifyCandidateEvidenceRuntime.ts",
     "verify:studio-final": "node --experimental-strip-types tools/verification/VerifyStudioFinalAcceptance.ts",
+    "verify:studio-shell-ownership": "node --experimental-strip-types tools/verification/VerifyStudioShellOwnership.ts",
     "preview": "vite preview"
   },
   "dependencies": {

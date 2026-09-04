@@ -284,7 +284,7 @@ export default function WorkspaceSurface() {
             flex: "1 1 auto",
             minWidth: 0,
             minHeight: 0,
-            overflow: "auto",
+            overflow: activeMode === WorkspaceMode.RESEARCH ? "hidden" : "auto",
           }}
         >
           <ActiveWorkspace />

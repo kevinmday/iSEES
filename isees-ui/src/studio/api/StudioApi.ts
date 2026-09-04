@@ -1,6 +1,6 @@
 export const STUDIO_API_BASE_URL = (import.meta.env.VITE_STUDIO_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
   ?? (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
-  ?? "http://127.0.0.1:8001";
+  ?? "http://127.0.0.1:8000";
 
 export type StudioLifecycle = "DRAFT" | "CANDIDATE_KNOWLEDGE_ARTIFACT" | "MANIFOLD_CANDIDATE_NODE" | "REVIEW_TEST" | "ACCEPTED_KNOWLEDGE" | "RETURNED" | "REJECTED";
 export type ProjectionFormat = "HTML" | "PDF" | "DOCX";
