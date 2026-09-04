@@ -164,6 +164,22 @@ def test_unavailable_provider_and_unauthorized_scope_fail_closed():
     assert repo.calls == 0
 
 
+def test_frontend_artifact_design_wire_parity_is_strict_and_reaches_provider_boundary():
+    wire = {"designId": "investigation-report", "designVersion": "1"}
+    request = command(artifactDesign=wire)
+    assert request.context.artifactDesign.model_dump(mode="json") == wire
+    svc, repo = make_service()
+    with pytest.raises(DraftingProviderUnavailable):
+        svc.generate_draft_proposal("i1", request)
+    assert repo.calls == 0
+    with pytest.raises(ValidationError):
+        GenerateDraftProposal.model_validate({
+            **request.model_dump(mode="json"),
+            "context": {**request.context.model_dump(mode="json"),
+                "artifactDesign": {**wire, "label": "presentation only"}},
+        })
+
+
 def test_api_route_path_body_owner_and_safe_errors():
     svc, _ = make_service(Provider())
     app.dependency_overrides[service] = lambda: svc

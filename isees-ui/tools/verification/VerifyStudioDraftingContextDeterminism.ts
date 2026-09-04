@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createTypedResearchAnchor } from "../../src/research/ResearchAnchorContract.ts";
 import { assembleStudioDraftingContext, canonicalSerializeDraftingContext } from "../../src/studio/drafting/StudioDraftingContext.ts";
+import { STUDIO_DRAFTING_LIMITS } from "../../src/studio/drafting/StudioDraftingTypes.ts";
 
 const at = new Date("2026-01-02T03:04:05.000Z");
 const source = (identity: string, changes: Record<string, unknown> = {}) => createTypedResearchAnchor({ investigationId: "investigation:A", kind: "EVIDENCE_RECORD", sourceWorkspace: "EVIDENCE", sourceIdentity: identity, collectedAt: at, classification: "CANONICAL", sourceRevisionId: "revision:1", display: { title: identity, summary: `summary:${identity}` }, insertability: { state: "INSERTABLE", reason: "Qualified." }, capturedRepresentation: { schemaVersion: "evidence/v1", mediaType: "application/json", value: { z: 2, a: 1 } }, ...changes } as never);
@@ -31,6 +32,9 @@ assert.deepEqual(all.context.excludedSources.map(item => item.reason).sort(), ["
 await assert.rejects(() => assembleStudioDraftingContext({ ...base, selectedSourceAnchorIds: ["missing"] }), /not in the active Investigation/);
 await assert.rejects(() => assembleStudioDraftingContext({ ...base, selectedSourceAnchorIds: [a.anchorId, a.anchorId] }), /unique/);
 await assert.rejects(() => assembleStudioDraftingContext({ ...base, selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: [] }), /At least one/);
+await assert.rejects(() => assembleStudioDraftingContext({ ...base, draftingInstruction: "" }), /Enter drafting instructions/);
+await assert.rejects(() => assembleStudioDraftingContext({ ...base, draftingInstruction: "x".repeat(STUDIO_DRAFTING_LIMITS.maxInstructionChars + 1) }), /exceed 8000/, "over-limit instructions are rejected without truncation");
+await assert.rejects(() => assembleStudioDraftingContext({ ...base, draftingInstruction: "", selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: [] }), /At least one/, "empty context is the actionable blocker before a blank instruction");
 await assert.rejects(() => assembleStudioDraftingContext({ ...base, selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: ["reference:1"] }), /REFERENCE/);
 await assert.rejects(() => assembleStudioDraftingContext({ ...base, researchProjection: { status: "AVAILABLE", investigationId: "investigation:A", entries: [{ anchor: source("cross", { investigationId: "investigation:B" }), order: 0 }] } }), /cross-Investigation/);
 await assert.rejects(() => assembleStudioDraftingContext({ ...base, selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: ["note:2"], document: { identity: { id: "document:1", createdAt: at }, nodes: [{ id: "note:2", type: "PARAGRAPH", text: "x".repeat(32_001) }] } as never }), /byte limit/);

@@ -47,7 +47,7 @@ function noteText(node: Record<string, unknown>): string | undefined {
 export async function assembleStudioDraftingContext(input: AssembleStudioDraftingContextInput): Promise<AssembledStudioDraftingContext> {
   if (!input.investigationId || input.researchProjection.investigationId !== input.investigationId) fail("INVESTIGATION_MISMATCH", "Research projection must match the active Investigation.");
   const mode = input.sourceSelectionMode ?? "SUBSET";
-  if (input.draftingInstruction.length < 1 || input.draftingInstruction.length > STUDIO_DRAFTING_LIMITS.maxInstructionChars) fail("INVALID_INSTRUCTION", "Drafting instruction is outside the allowed length.");
+  if (input.draftingInstruction.length > STUDIO_DRAFTING_LIMITS.maxInstructionChars) fail("INVALID_INSTRUCTION", `Drafting instructions exceed ${STUDIO_DRAFTING_LIMITS.maxInstructionChars} characters.`);
   const requested = input.selectedSourceAnchorIds;
   if (new Set(requested).size !== requested.length) fail("DUPLICATE_SOURCE", "Selected source identities must be unique.");
   if (mode === "ALL" && requested.length) fail("INVALID_ALL_SELECTION", "ALL requires an empty explicit source list.");
@@ -82,7 +82,8 @@ export async function assembleStudioDraftingContext(input: AssembleStudioDraftin
   if (notes.length > STUDIO_DRAFTING_LIMITS.maxNotes) fail("TOO_MANY_NOTES", "Researcher-note count exceeds the limit.");
   const sources = await Promise.all(eligible.sort((a, b) => ordinal(a.anchorId, b.anchorId)).map(sourceRecord));
   if (!sources.length && !notes.length) fail("EMPTY_CONTEXT", "At least one eligible source or researcher note is required.");
-  const context = { contextContractVersion: STUDIO_DRAFTING_CONTEXT_VERSION, investigationId: input.investigationId, documentId: input.document.identity.id, baseIdentity: { documentRuntimeRevision: input.documentRuntimeRevision, artifactId: input.durableBase?.artifactId ?? null, artifactVersionId: input.durableBase?.artifactVersionId ?? null, artifactRevision: input.durableBase?.artifactRevision ?? null }, sourceSelectionMode: mode, selectedSourceAnchorIds: mode === "SUBSET" ? [...requested].sort(ordinal) : [], selectedResearcherNoteNodeIds: notes.map(note => note.nodeId), artifactDesign: input.artifactDesign, draftingInstruction: input.draftingInstruction, sources, researcherNotes: notes, excludedSources: excluded.sort((a, b) => ordinal(a.anchorId, b.anchorId)) };
+  if (!input.draftingInstruction.length) fail("INVALID_INSTRUCTION", "Enter drafting instructions before generating a draft.");
+  const context = { contextContractVersion: STUDIO_DRAFTING_CONTEXT_VERSION, investigationId: input.investigationId, documentId: input.document.identity.id, baseIdentity: { documentRuntimeRevision: input.documentRuntimeRevision, artifactId: input.durableBase?.artifactId ?? null, artifactVersionId: input.durableBase?.artifactVersionId ?? null, artifactRevision: input.durableBase?.artifactRevision ?? null }, sourceSelectionMode: mode, selectedSourceAnchorIds: mode === "SUBSET" ? [...requested].sort(ordinal) : [], selectedResearcherNoteNodeIds: notes.map(note => note.nodeId), artifactDesign: { designId: input.artifactDesign.designId, designVersion: input.artifactDesign.designVersion }, draftingInstruction: input.draftingInstruction, sources, researcherNotes: notes, excludedSources: excluded.sort((a, b) => ordinal(a.anchorId, b.anchorId)) };
   const canonicalContext = canonicalSerializeDraftingContext(context);
   if (bytes(canonicalContext) > STUDIO_DRAFTING_LIMITS.maxContextBytes) fail("CONTEXT_TOO_LARGE", "Drafting context exceeds the byte limit.");
   return { context, canonicalContext, contextHash: await sha256Canonical(context) };
