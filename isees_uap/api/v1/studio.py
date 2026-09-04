@@ -8,9 +8,11 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
 from fastapi.responses import JSONResponse
 
+from isees_uap.candidate_evidence.config import candidate_database_path
 from isees_uap.studio.config import studio_database_path
 from isees_uap.studio.errors import ArtifactNotFound, OwnershipAccessFailure, StudioError
 from isees_uap.studio.hashing import canonical_json
+from isees_uap.studio.investigation_authority import CandidateEvidenceInvestigationAuthority
 from isees_uap.studio.schemas import (
     AcceptStudioArtifact, CreateCandidateKnowledgeArtifact, CreateStudioDraft,
     PublishStudioCandidateNode, RecordMaterializedProjection, RejectStudioArtifact,
@@ -22,11 +24,6 @@ from isees_uap.studio.sqlite_repository import SQLiteStudioRepository
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/studio-artifacts", tags=["studio"])
 IdentityPath = Annotated[str, Path(min_length=1, pattern=r".*\S.*")]
-
-
-class _UnavailableAccess:
-    def resolve_access(self, **_: Any):
-        raise RuntimeError("authoritative Investigation access is not configured")
 
 
 class _UnavailableSourceResolution:
@@ -50,8 +47,8 @@ def repository() -> SQLiteStudioRepository:
 
 
 def service(repo: SQLiteStudioRepository = Depends(repository)) -> StudioService:
-    # Production deliberately fails closed until authoritative adapters are composed.
-    return StudioService(repo, _UnavailableAccess(), _UnavailableSourceResolution(),
+    authority = CandidateEvidenceInvestigationAuthority(candidate_database_path())
+    return StudioService(repo, authority, _UnavailableSourceResolution(),
                          _UnavailablePublication(), _UnavailableAcceptance())
 
 

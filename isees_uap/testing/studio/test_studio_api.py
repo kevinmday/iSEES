@@ -5,6 +5,7 @@ import pytest
 
 from isees_uap.api import app
 from isees_uap.api.v1.studio import repository, service
+from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEvidenceRepository
 from isees_uap.studio.config import studio_database_path
 from isees_uap.studio.errors import (
     AcceptanceFailure, IdempotencyConflict, InvalidClaimSourceMapping,
@@ -177,18 +178,66 @@ def test_api_create_list_load_conflicts_and_strictness(tmp_path):
         app.dependency_overrides.clear()
 
 
-def test_production_composition_fails_closed(tmp_path):
-    repo = SQLiteStudioRepository(tmp_path / "production.db")
-    app.dependency_overrides[repository] = lambda: repo
+def test_production_composition_uses_canonical_investigation_authority(tmp_path, monkeypatch):
+    authority_path = tmp_path / "authority.db"
+    studio_path = tmp_path / "production.db"
+    monkeypatch.setenv("ISEES_CANDIDATE_DB_PATH", str(authority_path))
+    monkeypatch.setenv("ISEES_STUDIO_DB_PATH", str(studio_path))
+    repository.cache_clear()
+
+    # Import/configuration and adapter composition are read-only until a route
+    # actually asks the STUDIO repository to perform work.
+    assert not authority_path.exists()
+    assert not studio_path.exists()
+
+    authority = SQLiteCandidateEvidenceRepository(authority_path)
+    authority.create(command={
+        "schemaVersion": "candidate-evidence-command/v1",
+        "investigationId": "i1",
+        "idempotencyKey": "authority-membership",
+        "submissionIdentity": "submission-1",
+        "source": {"title": "Authority seed"},
+    }, principal_id="p1", origin="SUBMISSION")
+
     client = TestClient(app)
     try:
-        response = client.post("/api/v1/investigations/i1/studio-artifacts", json=payload(),
-                               headers={"X-ISEES-Principal-Id": "p1"})
+        response = client.get("/api/v1/investigations/i1/studio-artifacts",
+                              headers={"X-ISEES-Principal-Id": "p1"})
+        assert response.status_code == 200
+        assert response.json() == {"investigationId": "i1", "items": []}
+        assert studio_path.exists()
+
+        for investigation_id, principal_id in (("unknown", "p1"), ("i1", "other")):
+            denied = client.get(f"/api/v1/investigations/{investigation_id}/studio-artifacts",
+                                headers={"X-ISEES-Principal-Id": principal_id})
+            assert denied.status_code == 404
+            assert denied.json()["error"]["code"] == "STUDIO_ARTIFACT_NOT_FOUND"
+
+        created = client.post("/api/v1/investigations/i1/studio-artifacts", json=payload(),
+                              headers={"X-ISEES-Principal-Id": "p1"})
+        assert created.status_code == 201
+        repo = repository()
+        assert len(repo.list(investigation_id="i1", principal_id="p1")) == 1
+    finally:
+        repository.cache_clear()
+
+
+def test_production_composition_fails_closed_when_authority_store_is_unavailable(
+        tmp_path, monkeypatch):
+    authority_path = tmp_path / "missing-authority.db"
+    monkeypatch.setenv("ISEES_CANDIDATE_DB_PATH", str(authority_path))
+    monkeypatch.setenv("ISEES_STUDIO_DB_PATH", str(tmp_path / "studio.db"))
+    repository.cache_clear()
+    try:
+        response = TestClient(app).get(
+            "/api/v1/investigations/i1/studio-artifacts",
+            headers={"X-ISEES-Principal-Id": "p1"},
+        )
         assert response.status_code == 503
         assert response.json()["error"]["code"] == "EXTERNAL_AUTHORITY_UNAVAILABLE"
-        assert repo.list(investigation_id="i1", principal_id="p1") == []
+        assert not authority_path.exists()
     finally:
-        app.dependency_overrides.clear()
+        repository.cache_clear()
 
 
 @pytest.mark.parametrize("endpoint,body,expected", [
