@@ -34,10 +34,12 @@ class IdempotencyConflict(StudioError):
 
 class InvalidSourceSnapshot(StudioError):
     code = "INVALID_SOURCE_SNAPSHOT"
+    status_code = 422
 
 
 class InvalidClaimSourceMapping(StudioError):
     code = "INVALID_CLAIM_SOURCE_MAPPING"
+    status_code = 422
 
 
 class UnresolvedProjectionReadiness(StudioError):
@@ -52,9 +54,9 @@ class UnavailableExternalAuthority(StudioError):
 
 class PublicationFailure(StudioError):
     code = "PUBLICATION_FAILURE"
-    status_code = 502
+    status_code = 503
 
 
 class AcceptanceFailure(StudioError):
     code = "ACCEPTANCE_FAILURE"
-    status_code = 502
+    status_code = 503

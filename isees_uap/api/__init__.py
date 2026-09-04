@@ -14,6 +14,8 @@ from isees_uap.analysis.cluster_engine import run_cluster_engine
 from isees_uap.api.submit_report import build_report
 from isees_uap.api.v1.candidate_evidence import candidate_error_handler, router as candidate_evidence_router
 from isees_uap.candidate_evidence.errors import CandidateEvidenceError
+from isees_uap.api.v1.studio import router as studio_router, studio_error_handler
+from isees_uap.studio.errors import StudioError
 
 # ------------------------------------------------------------
 # APP INIT
@@ -22,6 +24,8 @@ from isees_uap.candidate_evidence.errors import CandidateEvidenceError
 app = FastAPI()
 app.include_router(candidate_evidence_router)
 app.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
+app.include_router(studio_router)
+app.add_exception_handler(StudioError, studio_error_handler)
 
 # ------------------------------------------------------------
 # CORS

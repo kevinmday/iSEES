@@ -60,6 +60,10 @@ class StudioService:
         if not result.allowed:
             raise OwnershipAccessFailure("Studio artifact was not found")
 
+    def authorize_read(self, principal_id: str, investigation_id: str) -> None:
+        """Apply the same fail-closed Investigation boundary to repository reads."""
+        self._authorize(principal_id, investigation_id)
+
     @staticmethod
     def _path(path_id: str, body_id: str) -> None:
         if path_id != body_id:
@@ -94,6 +98,23 @@ class StudioService:
             record=IdempotencyRecord(canonical_hash(command.model_dump(mode="json")),
                                      result.model_dump(mode="json")),
         )
+        return result
+
+    def _persist(self, record: StudioAggregateRecord, command: Any, operation: str,
+                 result: StudioCommandResult, expected_revision: int | None) -> StudioCommandResult:
+        """Use the durable repository's atomic aggregate/idempotency boundary."""
+        atomic = getattr(self.repository, "persist_command", None)
+        if atomic is None:
+            if expected_revision is None:
+                self.repository.create(record=record)
+            else:
+                self.repository.replace(record=record, expected_revision=expected_revision)
+            return self._remember(command, operation, result)
+        atomic(record=record, expected_revision=expected_revision,
+               scope=self._scope(command, operation),
+               idempotency=IdempotencyRecord(
+                   canonical_hash(command.model_dump(mode="json")),
+                   result.model_dump(mode="json")))
         return result
 
     def _begin(self, path_id: str, command: Any, operation: str) -> StudioCommandResult | None:
@@ -220,8 +241,7 @@ class StudioService:
         record = StudioAggregateRecord(StudioArtifact(
             artifact_id, command.investigationId, command.principalId, 0,
             StudioLifecycle.DRAFT, 1, version.version_id, now, now), (version,), snapshots)
-        self.repository.create(record=record)
-        return self._remember(command, operation, self._result(record))
+        return self._persist(record, command, operation, self._result(record), None)
 
     def save_version(self, path_id: str, command: SaveStudioArtifactVersion) -> StudioCommandResult:
         operation = "SAVE_VERSION"
@@ -230,6 +250,8 @@ class StudioService:
         record = self._load(command)
         if record.artifact.lifecycle_state not in (StudioLifecycle.DRAFT, StudioLifecycle.RETURNED):
             raise InvalidLifecycleTransition("Versions may be saved only in DRAFT or RETURNED")
+        if command.versionId and any(item.version_id == command.versionId for item in record.versions):
+            raise RevisionConflict("Artifact version identity already exists")
         version, snapshots = self._build_version(command, record.artifact.artifact_id,
                                                   record.artifact.current_version_number + 1,
                                                   record.artifact.current_version_id)
@@ -240,8 +262,7 @@ class StudioService:
                            manifold_candidate_node_id=None, updated_at=self.clock())
         updated = replace(record, artifact=artifact, versions=record.versions + (version,),
                           source_snapshots=record.source_snapshots + snapshots)
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
-        return self._remember(command, operation, self._result(updated))
+        return self._persist(updated, command, operation, self._result(updated), command.expectedRevision)
 
     def create_candidate(self, path_id: str, command: CreateCandidateKnowledgeArtifact) -> StudioCommandResult:
         operation = "CREATE_CANDIDATE"
@@ -263,9 +284,9 @@ class StudioService:
                            candidate_artifact_id=candidate_id, updated_at=self.clock())
         updated = replace(record, artifact=artifact,
                           candidates=record.candidates if existing else record.candidates + (candidate,))
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
-        return self._remember(command, operation, self._result(
-            updated, readinessState=candidate.readiness_state.value, warnings=list(candidate.validation_warnings)))
+        result = self._result(updated, readinessState=candidate.readiness_state.value,
+                              warnings=list(candidate.validation_warnings))
+        return self._persist(updated, command, operation, result, command.expectedRevision)
 
     def publish_candidate(self, path_id: str, command: PublishStudioCandidateNode) -> StudioCommandResult:
         operation = "PUBLISH_CANDIDATE"
@@ -287,8 +308,8 @@ class StudioService:
                            manifold_candidate_node_id=receipt.candidate_node_id, updated_at=self.clock())
         updated = replace(record, artifact=artifact,
                           publication_receipts=record.publication_receipts + (receipt.__dict__,))
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
-        return self._remember(command, operation, self._result(updated, receiptId=receipt.receipt_id))
+        return self._persist(updated, command, operation,
+                             self._result(updated, receiptId=receipt.receipt_id), command.expectedRevision)
 
     def submit_for_review(self, path_id: str, command: SubmitStudioForReview) -> StudioCommandResult:
         return self._simple_transition(path_id, command, "SUBMIT_REVIEW", StudioLifecycle.REVIEW_TEST)
@@ -304,8 +325,7 @@ class StudioService:
         artifact = replace(record.artifact, revision=record.artifact.revision + 1,
                            lifecycle_state=target, updated_at=self.clock())
         updated = replace(record, artifact=artifact)
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
-        return self._remember(command, operation, self._result(updated))
+        return self._persist(updated, command, operation, self._result(updated), command.expectedRevision)
 
     def accept(self, path_id: str, command: AcceptStudioArtifact) -> StudioCommandResult:
         return self._review(path_id, command, "ACCEPT", ReviewDecisionType.ACCEPT)
@@ -351,9 +371,8 @@ class StudioService:
         updated = replace(record, artifact=artifact,
                           review_decisions=record.review_decisions + (decision,),
                           acceptance_receipts=record.acceptance_receipts + ((receipt_data,) if receipt_data else ()))
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
         result = self._result(updated, receiptId=receipt_data["receipt_id"] if receipt_data else None)
-        return self._remember(command, operation, result)
+        return self._persist(updated, command, operation, result, command.expectedRevision)
 
     def validate_projection(self, path_id: str, command: ValidateStudioProjection) -> StudioCommandResult:
         operation = "VALIDATE_PROJECTION"
@@ -374,9 +393,9 @@ class StudioService:
             command.validatorVersion, self.clock())
         artifact = replace(record.artifact, revision=record.artifact.revision + 1, updated_at=self.clock())
         updated = replace(record, artifact=artifact, projections=record.projections + (projection,))
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
-        return self._remember(command, operation, self._result(
-            updated, projectionId=projection_id, readinessState=readiness.value, warnings=warnings))
+        result = self._result(updated, projectionId=projection_id,
+                              readinessState=readiness.value, warnings=warnings)
+        return self._persist(updated, command, operation, result, command.expectedRevision)
 
     def record_materialized_projection(self, path_id: str,
                                        command: RecordMaterializedProjection) -> StudioCommandResult:
@@ -401,6 +420,6 @@ class StudioService:
                             for p in record.projections)
         artifact = replace(record.artifact, revision=record.artifact.revision + 1, updated_at=self.clock())
         updated = replace(record, artifact=artifact, projections=projections)
-        self.repository.replace(record=updated, expected_revision=command.expectedRevision)
-        return self._remember(command, operation, self._result(updated, projectionId=projection.projection_id,
-                                                                readinessState=projection.readiness_state.value))
+        result = self._result(updated, projectionId=projection.projection_id,
+                              readinessState=projection.readiness_state.value)
+        return self._persist(updated, command, operation, result, command.expectedRevision)
