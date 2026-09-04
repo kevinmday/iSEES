@@ -64,6 +64,9 @@ function formatPercent(value: number): string {
 }
 
 export function collectionConfirmationFor(anchor: ResearchAnchor): string {
+  if (anchor.kind !== "GRAPH" && anchor.kind !== "COMPARE_CANDIDATE" && anchor.kind !== "LAYERS_EXPERIMENT") {
+    return "Added to Research Inbox";
+  }
   if ("experiment" in anchor) {
     return "Experimental result added to Research Inbox.";
   }
@@ -458,7 +461,7 @@ export default function ResearchInboxInstrument({
 
                         if (entry.anchor.kind !== "COMPARE_CANDIDATE") {
                           const anchor = entry.anchor;
-                          return <button key={anchor.anchorId} type="button" disabled={anchor.insertability.state !== "INSERTABLE"} onClick={() => handleInsert(entry)} title={anchor.insertability.reason} style={{ width: "100%", padding: "9px 0", display: "block", border: 0, borderBottom: "1px solid rgba(148,163,184,0.10)", background: "transparent", color: "inherit", cursor: anchor.insertability.state === "INSERTABLE" ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}><div style={{ color: "#7dd3fc", fontSize: 10, fontWeight: 700 }}>{anchor.kind}</div><div style={{ color: "#e2e8f0", fontSize: 11 }}>{anchor.display.title}</div><div style={{ color: "#94a3b8", fontSize: 10 }}>{anchor.display.summary}</div></button>;
+                          return <button key={anchor.anchorId} type="button" disabled={anchor.insertability.state !== "INSERTABLE"} onClick={() => handleInsert(entry)} title={anchor.insertability.reason} style={{ width: "100%", padding: "9px 0", display: "block", border: 0, borderBottom: "1px solid rgba(148,163,184,0.10)", background: "transparent", color: "inherit", cursor: anchor.insertability.state === "INSERTABLE" ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}><div style={{ color: "#7dd3fc", fontSize: 10, fontWeight: 700 }}>{anchor.sourceWorkspace} · {anchor.kind}</div><div style={{ color: "#e2e8f0", fontSize: 11 }}>{anchor.display.title}</div><div style={{ color: "#94a3b8", fontSize: 10 }}>{anchor.display.summary}</div><div style={{ color: anchor.insertability.state === "INSERTABLE" ? "#86efac" : "#fbbf24", fontSize: 10 }}>{anchor.insertability.state.replaceAll("_", " ")} · {anchor.insertability.reason}</div></button>;
                         }
                         const candidate = entry.anchor.candidate;
                         const availableCount = candidate.dimensions.filter(dimension => dimension.status === "AVAILABLE").length;

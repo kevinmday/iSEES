@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
 import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
@@ -21,6 +21,8 @@ import { useResolveRuntimeState } from "../../resolve/runtime/ResolveRuntimeCont
 import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 
 import "./NarrativeWorkspace.css";
+import { narrativePassageResearchAnchor } from "../../studio/sources/TypedResearchSourceAdapters";
+import { collectTypedResearchSource } from "../../studio/sources/DirectResearchPublication";
 
 const EMPTY_CANDIDATE_EVALUATIONS = Object.freeze([]);
 
@@ -138,7 +140,9 @@ function DimensionResult({ result }: { result: ResolveCandidateDimensionIntellig
   );
 }
 
-function NarrativeRegion({ role, narrative, compared = false }: { role: string; narrative: SystemCanonNarrativeProjection; compared?: boolean }) {
+function NarrativeRegion({ role, narrative, investigationId, revisionId, compared = false }: { role: string; narrative: SystemCanonNarrativeProjection; investigationId: string; revisionId: string; compared?: boolean }) {
+  const research = useResearchBridge();
+  const [feedback, setFeedback] = useState<string>();
   return (
     <section className={`narrative-workspace__region narrative-workspace__region--prose${compared ? " narrative-workspace__region--compared" : " narrative-workspace__region--focused"}`} aria-labelledby={`narrative-${compared ? "compared" : "focused"}-title`}>
       <header className="narrative-workspace__region-header">
@@ -148,7 +152,8 @@ function NarrativeRegion({ role, narrative, compared = false }: { role: string; 
         <span className="narrative-workspace__material">{narrative.materialClassification}</span>
       </header>
       <div className="narrative-workspace__paragraphs">
-        {narrative.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+        {narrative.paragraphs.map((paragraph) => { const passageId = `narrative-passage:${encodeURIComponent(narrative.knowledgeObjectId)}:${encodeURIComponent(revisionId)}:${encodeURIComponent(paragraph)}`; return <div key={passageId}><p>{paragraph}</p><button type="button" onClick={() => setFeedback(collectTypedResearchSource(research, () => narrativePassageResearchAnchor({ investigationId, passageId, revisionId, projectionId: `narrative:${revisionId}`, narrative, passage: paragraph })).message)}>Add passage to Research Inbox</button></div>; })}
+        {feedback && <p role="status" aria-live="polite">{feedback}</p>}
       </div>
     </section>
   );
@@ -282,9 +287,9 @@ export default function NarrativeWorkspace() {
     case NarrativeWorkspaceProjectionStatus.READY:
       return (
         <main className="narrative-workspace">
-          <NarrativeRegion role="FOCUSED NARRATIVE" narrative={projection.focusedNarrative} />
+          <NarrativeRegion role="FOCUSED NARRATIVE" narrative={projection.focusedNarrative} investigationId={projection.investigationId} revisionId={projection.currentRevisionId} />
           <NormalizedRegion projection={projection} resolveExecutionId={currentExecution?.executionId} />
-          <NarrativeRegion role="COMPARED NARRATIVE" narrative={projection.comparedNarrative} compared />
+          <NarrativeRegion role="COMPARED NARRATIVE" narrative={projection.comparedNarrative} investigationId={projection.investigationId} revisionId={projection.currentRevisionId} compared />
         </main>
       );
   }

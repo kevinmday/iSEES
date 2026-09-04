@@ -20,6 +20,9 @@ function requireQualified(input: TypedResearchSourceInput): void {
   if (!input.capturedRepresentation.schemaVersion.trim() || !input.capturedRepresentation.mediaType.trim()) throw new Error("Research source requires a qualified captured representation.");
   const projectionKinds: readonly ResearchAnchorKind[] = [ResearchAnchorKind.NARRATIVE_PASSAGE, ResearchAnchorKind.TIMELINE_MOMENT, ResearchAnchorKind.TIMELINE_CORRESPONDENCE, ResearchAnchorKind.INTENTION_DERIVATION, ResearchAnchorKind.INTENTION_HYPOTHESIS];
   if (projectionKinds.includes(input.kind) && !input.sourceProjectionId?.trim()) throw new Error(`${input.kind} requires exact projection identity.`);
+  const revisionKinds: readonly ResearchAnchorKind[] = [ResearchAnchorKind.MEDIA, ResearchAnchorKind.NARRATIVE_PASSAGE, ResearchAnchorKind.TIMELINE_MOMENT, ResearchAnchorKind.TIMELINE_CORRESPONDENCE, ResearchAnchorKind.INTENTION_DERIVATION, ResearchAnchorKind.INTENTION_HYPOTHESIS];
+  if (revisionKinds.includes(input.kind) && !input.sourceRevisionId?.trim()) throw new Error(`${input.kind} requires exact revision identity.`);
+  if ((input.kind === ResearchAnchorKind.INTENTION_DERIVATION || input.kind === ResearchAnchorKind.INTENTION_HYPOTHESIS) && !input.sourceExecutionId?.trim()) throw new Error(`${input.kind} requires exact execution identity.`);
 }
 
 function requireRuntimeTimestamp(value: unknown, label: string): Date {

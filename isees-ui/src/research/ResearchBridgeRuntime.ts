@@ -149,7 +149,7 @@ export class ResearchBridgeRuntime {
   createAnchor(
     anchor:
       ResearchAnchor,
-  ): void {
+  ): "ADDED" | "ALREADY_PRESENT" {
 
     const qualifiedAnchor = migrateResearchAnchor(anchor);
     if (
@@ -165,7 +165,7 @@ export class ResearchBridgeRuntime {
 
     ) {
 
-      return;
+      return "ALREADY_PRESENT";
 
     }
 
@@ -191,6 +191,7 @@ export class ResearchBridgeRuntime {
     };
 
     this.notify({ kind: "CREATE", anchor: qualifiedAnchor });
+    return "ADDED";
 
   }
 

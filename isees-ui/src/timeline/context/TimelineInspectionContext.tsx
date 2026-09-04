@@ -6,14 +6,14 @@ import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRunt
 import { resolveCandidateIntelligenceCollection } from "../../resolve/intelligence/ResolveCandidateIntelligenceResolver";
 import { useResolveRuntimeState } from "../../resolve/runtime/ResolveRuntimeContext";
 import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
-import type { TimelineTemporalItem } from "../projection";
+import type { TimelineTemporalItem, TimelineCorrespondence } from "../projection";
 import { adaptEventTimelineSourceRecords } from "../projection/TimelineSourceRecordAdapter";
 import { resolveTimelineEventTitle } from "../presentation/TimelineEventPresentation";
 
 export type TimelineInspection =
   | Readonly<{ kind: "ITEM"; investigationId: string; focusedEventId: string; comparedEventId?: string; item: TimelineTemporalItem }>
   | Readonly<{ kind: "LANE"; investigationId: string; focusedEventId: string; comparedEventId?: string; eventId: string; role: "FOCUSED" | "COMPARED" }>
-  | Readonly<{ kind: "CORRESPONDENCE"; investigationId: string; focusedEventId: string; comparedEventId: string; correspondenceId: string; explanation: string; status: string }>;
+  | Readonly<{ kind: "CORRESPONDENCE"; investigationId: string; focusedEventId: string; comparedEventId: string; correspondence: TimelineCorrespondence }>;
 
 type TimelineContextValue = Readonly<{
   investigation: ReturnType<ReturnType<typeof useWorkspaceRuntime>["getActiveInvestigation"]>;

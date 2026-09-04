@@ -8,6 +8,9 @@ import { createEvidenceWorkspaceView, projectInvestigationEvidence, resolveEvide
 import type { EvidenceInspectionSelection, EvidenceOptionalValue, EvidenceWorkspaceFilters } from "../../evidence/projection/EvidenceWorkspaceProjectionTypes";
 import { useWorkspaceRuntime } from "../runtime/WorkspaceRuntimeContext";
 import "./EvidenceWorkspace.css";
+import { useResearchBridge } from "../../research/ResearchBridgeContext";
+import { evidenceRecordResearchAnchor } from "../../studio/sources/TypedResearchSourceAdapters";
+import { collectTypedResearchSource } from "../../studio/sources/DirectResearchPublication";
 
 function presentOptional<T>(field: EvidenceOptionalValue<T>, format: (value: T) => string = String): string {
   return field.status === "KNOWN" ? format(field.value) : "UNKNOWN";
@@ -17,6 +20,7 @@ function sourceLocator(record: ApiCandidateRecord): string { const reference = r
 
 export default function EvidenceWorkspace() {
   const runtime = useWorkspaceRuntime();
+  const research = useResearchBridge();
   const operator = useOperatorIdentity();
   const investigation = runtime.getActiveInvestigation();
   const projection = useMemo(
@@ -29,6 +33,7 @@ export default function EvidenceWorkspace() {
   const [candidateRequest, setCandidateRequest] = useState<CandidateRequestState>(EMPTY_CANDIDATE_REQUEST);
   const [submission, setSubmission] = useState({ title: "", url: "" });
   const [commandError, setCommandError] = useState<string>();
+  const [collectionFeedback, setCollectionFeedback] = useState<string>();
   const principalId = operator.identity?.operatorId;
   const apiScope = useMemo<CandidateEvidenceApiScope | undefined>(() => investigation && principalId ? { investigationId: investigation.id, principalId } : undefined, [investigation, principalId]);
 
@@ -224,6 +229,8 @@ export default function EvidenceWorkspace() {
                   <div><dt>Source derivation identifiers</dt><dd>{presentOptional(inspected.sourceDerivationIdentifiers, (ids) => ids.join(", "))}</dd></div>
                   <div><dt>Payload</dt><dd>{inspected.payload.status} · {inspected.payload.reason}</dd></div>
                 </dl>
+                <button type="button" onClick={() => setCollectionFeedback(collectTypedResearchSource(research, () => evidenceRecordResearchAnchor(inspected)).message)}>Add to Research Inbox</button>
+                {collectionFeedback && <p role="status" aria-live="polite">{collectionFeedback}</p>}
               </>
             )}
           </aside>
