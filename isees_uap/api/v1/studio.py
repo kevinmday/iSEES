@@ -6,10 +6,10 @@ from functools import lru_cache
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from isees_uap.candidate_evidence.config import candidate_database_path
-from isees_uap.studio.config import studio_database_path
+from isees_uap.studio.config import studio_database_path, studio_output_root
 from isees_uap.studio.drafting import ProviderUnavailableError
 from isees_uap.studio.errors import ArtifactNotFound, OwnershipAccessFailure, StudioError
 from isees_uap.studio.hashing import canonical_json
@@ -22,6 +22,8 @@ from isees_uap.studio.schemas import (
 )
 from isees_uap.studio.service import StudioService
 from isees_uap.studio.sqlite_repository import SQLiteStudioRepository
+from isees_uap.studio.models import MaterializationState, ProjectionFormat
+from isees_uap.studio.pdf_materializer import PdfOutputStore
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/studio-artifacts", tags=["studio"])
 IdentityPath = Annotated[str, Path(min_length=1, pattern=r".*\S.*")]
@@ -98,6 +100,9 @@ def _projection(record: Any, lifecycle_events: list[dict[str, Any]]) -> dict[str
         return item
     value = transport(json.loads(canonical_json(record)))
     a = value["artifact"]
+    projections = value["projections"]
+    for projection in projections:
+        projection.pop("outputLocation", None)
     return {
         "artifact": a,
         "currentVersion": next(v for v in value["versions"] if v["versionId"] == a["currentVersionId"]),
@@ -107,7 +112,7 @@ def _projection(record: Any, lifecycle_events: list[dict[str, Any]]) -> dict[str
         "candidatePublicationReceipts": value["publicationReceipts"],
         "acceptanceReceipts": value["acceptanceReceipts"],
         "reviewDecisions": value["reviewDecisions"],
-        "projections": value["projections"],
+        "projections": projections,
         "lifecycleEvents": transport(lifecycle_events),
     }
 
@@ -223,6 +228,36 @@ def materialize_projection(investigation_id: IdentityPath, artifact_id: Identity
                            command: RecordMaterializedProjection, owner: str = Depends(principal),
                            svc: StudioService = Depends(service)):
     return _review("record_materialized_projection", investigation_id, artifact_id, command, owner, svc)
+
+
+@router.get("/{artifact_id}/projections/{projection_id}/download")
+def download_projection(investigation_id: IdentityPath, artifact_id: IdentityPath,
+                        projection_id: IdentityPath, owner: str = Depends(principal),
+                        repo: SQLiteStudioRepository = Depends(repository),
+                        svc: StudioService = Depends(service)):
+    svc.authorize_read(owner, investigation_id)
+    record = repo.get_scoped(investigation_id=investigation_id, artifact_id=artifact_id,
+                             principal_id=owner)
+    if record is None:
+        raise ArtifactNotFound("Studio artifact was not found")
+    projection = next((item for item in record.projections
+                       if item.projection_id == projection_id), None)
+    if (projection is None or projection.artifact_version_id != record.artifact.current_version_id
+            or projection.projection_format != ProjectionFormat.PDF
+            or projection.materialization_state != MaterializationState.MATERIALIZED
+            or not projection.output_location or not projection.output_hash):
+        raise ArtifactNotFound("Studio PDF output was not found")
+    try:
+        path = PdfOutputStore(studio_output_root()).path_for_location(projection.output_location)
+        if not path.is_file(): raise FileNotFoundError
+        import hashlib
+        if f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}" != projection.output_hash:
+            raise FileNotFoundError
+    except (OSError, ValueError, FileNotFoundError):
+        raise ArtifactNotFound("Studio PDF output was not found") from None
+    safe_name = f"studio-{record.artifact.current_version_number}-{projection.projection_id}.pdf"
+    safe_name = "".join(char if char.isalnum() or char in ".-_" else "-" for char in safe_name)
+    return FileResponse(path, media_type="application/pdf", filename=safe_name)
 
 
 async def studio_error_handler(request: Request, error: StudioError) -> JSONResponse:

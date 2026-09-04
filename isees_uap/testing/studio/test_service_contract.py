@@ -247,8 +247,7 @@ def test_projection_validation_and_materialization_are_separate(env):
     assert repo.records["a1"].projections[0].materialization_state.value == "NOT_MATERIALIZED"
     service.record_materialized_projection("i1", RecordMaterializedProjection(
         investigationId="i1", principalId="p1", idempotencyKey="materialize", artifactId="a1",
-        expectedRevision=1, projectionId=validated.projectionId, materializerVersion="pdf/v1",
-        outputIdentity="output:1", outputLocation="objects/output.pdf", outputHash="sha256:" + "a" * 64))
+        expectedRevision=1, projectionId=validated.projectionId, artifactVersionId="v1"))
     assert repo.records["a1"].projections[0].materialization_state.value == "MATERIALIZED"
     assert repo.records["a1"].artifact.lifecycle_state.value == "DRAFT"
 
@@ -265,8 +264,7 @@ def test_unresolved_required_lineage_blocks_materialization(env):
     with pytest.raises(UnresolvedProjectionReadiness):
         service.record_materialized_projection("i1", RecordMaterializedProjection(
             investigationId="i1", principalId="p1", idempotencyKey="m", artifactId="a1",
-            expectedRevision=1, projectionId="projection:1", materializerVersion="m1",
-            outputIdentity="o", outputLocation="x", outputHash="sha256:" + "b" * 64))
+            expectedRevision=1, projectionId="projection:1", artifactVersionId="v1"))
 
 
 def test_external_authorities_fail_closed(env):

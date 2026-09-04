@@ -1,0 +1,4 @@
+fastapi
+pydantic
+reportlab==4.4.3
+uvicorn

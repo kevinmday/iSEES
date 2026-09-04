@@ -8,7 +8,7 @@ export type StudioLifecycle = "DRAFT" | "CANDIDATE_KNOWLEDGE_ARTIFACT" | "MANIFO
 export type ProjectionFormat = "HTML" | "PDF" | "DOCX";
 
 export interface StudioScope { readonly investigationId: string; readonly principalId: string }
-export interface StudioProjectionRecord { projectionId: string; artifactVersionId: string; projectionFormat: ProjectionFormat; readinessState: "READY" | "READY_WITH_WARNINGS" | "NOT_READY"; validationWarnings: string[]; materializationState: "NOT_MATERIALIZED" | "MATERIALIZED" | "FAILED"; validatorVersion: string; validatedAt: string; outputIdentity?: string; outputLocation?: string; outputHash?: string; materializedAt?: string }
+export interface StudioProjectionRecord { projectionId: string; artifactVersionId: string; projectionFormat: ProjectionFormat; readinessState: "READY" | "READY_WITH_WARNINGS" | "NOT_READY"; validationWarnings: string[]; materializationState: "NOT_MATERIALIZED" | "MATERIALIZED" | "FAILED"; validatorVersion: string; validatedAt: string; materializerVersion?: string; outputIdentity?: string; outputHash?: string; materializedAt?: string }
 export interface StudioArtifactProjection {
   artifact: { artifactId: string; investigationId: string; ownerPrincipalId: string; revision: number; lifecycleState: StudioLifecycle; currentVersionNumber: number; currentVersionId: string; createdAt: string; updatedAt: string; candidateArtifactId?: string; manifoldCandidateNodeId?: string };
   currentVersion: { versionId: string; versionNumber: number; parentVersionId: string | null; authorSchemaVersion: string; document: unknown; sourceSnapshotIds: string[]; claims: Array<{ claimId: string; claimText?: string; lineageState: "SUPPORTED" | "UNRESOLVED" | "CONTRADICTED" | "ORPHANED" }>; citations: Array<{ citationId: string; sourceSnapshotId: string }>; claimSourceMappings: Array<{ mappingId: string; claimId: string; sourceSnapshotId: string; relationshipType: string; citationId?: string }>; contentHash: string; createdAt: string; comparisonContext?: { focusedEventId?: string; comparisonEventId?: string } | null };
@@ -48,9 +48,27 @@ async function request<T>(scope: StudioScope, path: string, init?: RequestInit):
   return body as T;
 }
 
+async function download(scope: StudioScope, path: string): Promise<{ blob: Blob; filename: string }> {
+  let response: Response;
+  try {
+    response = await fetch(`${STUDIO_API_BASE_URL}/api/v1/investigations/${encodeURIComponent(scope.investigationId)}/studio-artifacts${path}`, {
+      headers: { "X-ISEES-Principal-Id": scope.principalId },
+    });
+  } catch { throw new StudioApiError("UNAVAILABLE_BACKEND", "The STUDIO PDF download is unavailable."); }
+  if (!response.ok) {
+    const body = await response.json().catch(() => undefined) as { error?: { code?: string; message?: string } } | undefined;
+    throw new StudioApiError(response.status === 404 ? "FORBIDDEN" : "ERROR", safeMessage(body?.error?.message), body?.error?.code);
+  }
+  if (response.headers.get("Content-Type")?.split(";")[0] !== "application/pdf") throw new StudioApiError("ERROR", "The server did not return an authoritative PDF.");
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? "studio-document.pdf";
+  return { blob: await response.blob(), filename: filename.replace(/[^a-zA-Z0-9._-]/g, "-") };
+}
+
 export const studioApi = {
   list: (scope: StudioScope) => request<{ investigationId: string; items: StudioArtifactProjection[] }>(scope, ""),
   get: (scope: StudioScope, artifactId: string) => request<StudioArtifactProjection>(scope, `/${encodeURIComponent(artifactId)}`),
   post: <T>(scope: StudioScope, path: string, command: object) => request<T>(scope, path, { method: "POST", body: JSON.stringify(command) }),
+  downloadPdf: (scope: StudioScope, artifactId: string, projectionId: string) => download(scope, `/${encodeURIComponent(artifactId)}/projections/${encodeURIComponent(projectionId)}/download`),
   generateDraftProposal: (scope: StudioScope, command: StudioDraftingRequest, signal?: AbortSignal) => request<StudioDraftProposal>(scope, "/drafting-proposals", { method: "POST", body: JSON.stringify(command), signal }),
 };

@@ -21,3 +21,10 @@ def studio_database_path() -> Path:
     configured = os.environ.get("ISEES_STUDIO_DB_PATH")
     path = Path(configured) if configured else Path("runtime/studio.sqlite3")
     return path.expanduser().resolve()
+
+
+def studio_output_root() -> Path:
+    """Backend-owned root for durable Studio projection outputs."""
+    configured = os.environ.get("ISEES_STUDIO_OUTPUT_ROOT")
+    path = Path(configured) if configured else Path("runtime/studio-outputs")
+    return path.expanduser().resolve()

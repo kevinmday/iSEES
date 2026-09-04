@@ -92,7 +92,7 @@ def test_all_mutation_routes_forward_path_and_header_owned_command():
         ("returns", mutation("return", 0, candidateArtifactId="c1", targetScope="ARTIFACT", reason="fix"), "return_artifact"),
         ("rejections", mutation("reject", 0, candidateArtifactId="c1", targetScope="ARTIFACT", reason="no"), "reject"),
         ("projections/validations", mutation("validate", 0, artifactVersionId="v1", projectionFormat="PDF", validatorVersion="v1"), "validate_projection"),
-        ("projections/materializations", mutation("materialize", 0, projectionId="pr1", materializerVersion="m1", outputIdentity="o1", outputLocation="object/o1", outputHash="sha256:" + "a" * 64), "record_materialized_projection"),
+        ("projections/materializations", mutation("materialize", 0, projectionId="pr1", artifactVersionId="v1"), "record_materialized_projection"),
     ]
     try:
         for suffix, body, _ in requests:
@@ -144,7 +144,7 @@ def test_api_complete_lifecycle_and_projection_commands(tmp_path):
         assert client.post(root + "/a1/review-submissions", json=mutation("review", 3, candidateArtifactId="c1"), headers=h).status_code == 200
         validation = mutation("validate", 4, projectionId="pr1", artifactVersionId="v2", projectionFormat="PDF", validatorVersion="v1")
         assert client.post(root + "/a1/projections/validations", json=validation, headers=h).json()["readinessState"] == "READY"
-        materialize = mutation("materialize", 5, projectionId="pr1", materializerVersion="m1", outputIdentity="o1", outputLocation="objects/o1", outputHash="sha256:" + "b" * 64)
+        materialize = mutation("materialize", 5, projectionId="pr1", artifactVersionId="v2")
         assert client.post(root + "/a1/projections/materializations", json=materialize, headers=h).status_code == 200
         accepted = client.post(root + "/a1/acceptance", json=mutation("accept", 6, candidateArtifactId="c1", targetScope="ARTIFACT", reason="approved"), headers=h)
         assert accepted.status_code == 200 and accepted.json()["lifecycleState"] == "ACCEPTED_KNOWLEDGE"

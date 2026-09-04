@@ -156,8 +156,7 @@ def test_complete_lifecycle_projection_and_replay_restore_after_restart(tmp_path
         projectionId="projection-1", artifactVersionId="a1:v1", projectionFormat="PDF",
         citationStyleConfiguration={"style": "apa"}, validatorVersion="validator/v1"))
     svc.record_materialized_projection("i1", existing(RecordMaterializedProjection, "materialize", 4,
-        projectionId="projection-1", materializerVersion="renderer/v1", outputIdentity="output-1",
-        outputLocation="objects/output-1.pdf", outputHash="sha256:" + "a" * 64))
+        projectionId="projection-1", artifactVersionId="a1:v1"))
     accepted = svc.accept("i1", existing(AcceptStudioArtifact, "accept", 5,
         candidateArtifactId="candidate-1", targetScope="ARTIFACT", reason="approved"))
     before = repo.get(artifact_id="a1"); events = repo.lifecycle_events(artifact_id="a1")
@@ -170,7 +169,7 @@ def test_complete_lifecycle_projection_and_replay_restore_after_restart(tmp_path
     assert len(restored.versions[0].claim_source_mappings) == 1
     assert len(restored.candidates) == len(restored.publication_receipts) == 1
     assert len(restored.acceptance_receipts) == len(restored.review_decisions) == 1
-    assert restored.projections[0].output_hash == "sha256:" + "a" * 64
+    assert restored.projections[0].output_hash.startswith("sha256:")
     assert [event["sequence"] for event in events] == list(range(7))
     assert [(e["prior_revision"], e["resulting_revision"]) for e in events] == [(0, 0)] + [(i, i + 1) for i in range(6)]
     replay = lifecycle_service(reopened).accept("i1", existing(AcceptStudioArtifact, "accept", 5,
@@ -234,7 +233,6 @@ def test_failed_materialization_leaves_projection_and_replay_state_unchanged(tmp
     before = repo.get(artifact_id="a1")
     with pytest.raises(UnresolvedProjectionReadiness):
         svc.record_materialized_projection("i1", existing(RecordMaterializedProjection, "failed", 1,
-            projectionId="projection-1", materializerVersion="renderer/v1", outputIdentity="output-1",
-            outputLocation="objects/output-1", outputHash="sha256:" + "c" * 64))
+            projectionId="projection-1", artifactVersionId="a1:v1"))
     assert repo.get(artifact_id="a1") == before
     assert repo.get_idempotency(scope=("p1", "i1", "MATERIALIZE_PROJECTION", "failed")) is None

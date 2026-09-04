@@ -165,10 +165,7 @@ class ValidateStudioProjection(ExistingMutation):
 
 class RecordMaterializedProjection(ExistingMutation):
     projectionId: Identity
-    materializerVersion: Identity
-    outputIdentity: Identity
-    outputLocation: Identity
-    outputHash: Annotated[str, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
+    artifactVersionId: Identity
 
 
 class StudioCommandResult(StrictModel):
@@ -184,6 +181,11 @@ class StudioCommandResult(StrictModel):
     readinessState: str | None = None
     warnings: list[str] = Field(default_factory=list)
     receiptId: str | None = None
+    materializationState: str | None = None
+    materializerVersion: str | None = None
+    outputIdentity: str | None = None
+    outputHash: str | None = None
+    materializedAt: datetime | None = None
 
 
 class DraftingBaseIdentity(StrictModel):

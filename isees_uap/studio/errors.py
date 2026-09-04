@@ -47,6 +47,11 @@ class UnresolvedProjectionReadiness(StudioError):
     status_code = 409
 
 
+class MaterializationFailure(StudioError):
+    code = "MATERIALIZATION_FAILURE"
+    status_code = 503
+
+
 class UnavailableExternalAuthority(StudioError):
     code = "EXTERNAL_AUTHORITY_UNAVAILABLE"
     status_code = 503

@@ -14,6 +14,7 @@
     "verify:studio-artifact-empty": "node --experimental-strip-types tools/verification/VerifyStudioArtifactInspectorEmptyState.ts",
     "verify:studio-first-save": "node --experimental-strip-types tools/verification/VerifyStudioFirstSaveTransition.ts",
     "verify:studio-projection-consistency": "node --experimental-strip-types tools/verification/VerifyStudioProjectionConsistency.ts",
+    "verify:studio-pdf-materialization": "node --experimental-strip-types tools/verification/VerifyStudioPdfMaterialization.ts",
     "preview": "vite preview"
   },
   "dependencies": {

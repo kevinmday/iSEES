@@ -8,7 +8,7 @@ from uuid import uuid4
 from .errors import (
     AcceptanceFailure, ArtifactNotFound, IdempotencyConflict,
     InvalidClaimSourceMapping, InvalidLifecycleTransition, InvalidSourceSnapshot,
-    InvestigationMismatch, OwnershipAccessFailure, PublicationFailure,
+    InvestigationMismatch, MaterializationFailure, OwnershipAccessFailure, PublicationFailure,
     RevisionConflict, UnavailableExternalAuthority, UnresolvedProjectionReadiness,
 )
 from .hashing import canonical_hash
@@ -34,6 +34,8 @@ from .schemas import (
     DraftProposal, GenerateDraftProposal,
 )
 from .drafting import ProviderUnavailableError, generate
+from .config import studio_output_root
+from .pdf_materializer import MATERIALIZER_VERSION, PdfOutputStore, render_pdf
 
 
 class _UnavailableDraftingProvider:
@@ -54,7 +56,8 @@ class StudioService:
                  publication_port: ManifoldCandidatePublicationPort,
                  accepted_knowledge_port: AcceptedKnowledgePort,
                  drafting_provider: StudioDraftingProvider | None = None,
-                 *, clock: Callable[[], datetime] = _now):
+                 *, clock: Callable[[], datetime] = _now,
+                 pdf_output_store: PdfOutputStore | None = None):
         self.repository = repository
         self.access_port = access_port
         self.source_resolution_port = source_resolution_port
@@ -62,6 +65,7 @@ class StudioService:
         self.accepted_knowledge_port = accepted_knowledge_port
         self.drafting_provider = drafting_provider or _UnavailableDraftingProvider()
         self.clock = clock
+        self.pdf_output_store = pdf_output_store or PdfOutputStore(studio_output_root())
 
     def generate_draft_proposal(self, path_id: str, command: GenerateDraftProposal) -> DraftProposal:
         self._path(path_id, command.investigationId)
@@ -445,19 +449,48 @@ class StudioService:
         if not matches:
             raise ArtifactNotFound("Projection validation was not found")
         projection = matches[-1]
-        if projection.readiness_state != ReadinessState.READY:
+        if (projection.artifact_version_id != command.artifactVersionId
+                or projection.artifact_version_id != record.artifact.current_version_id):
+            raise ArtifactNotFound("Projection validation was not found")
+        if projection.projection_format != ProjectionFormat.PDF:
+            raise UnresolvedProjectionReadiness("Only PDF projections can be materialized")
+        if projection.readiness_state != ReadinessState.READY or projection.validation_warnings:
             raise UnresolvedProjectionReadiness("Projection is not ready for materialization")
         if projection.materialization_state == MaterializationState.MATERIALIZED:
             raise RevisionConflict("Projection is already materialized")
+        version = next((item for item in record.versions
+                        if item.version_id == projection.artifact_version_id), None)
+        if version is None:
+            raise ArtifactNotFound("Artifact version was not found")
+        snapshots = tuple(item for item in record.source_snapshots
+                          if item.snapshot_id in version.source_snapshot_ids)
+        identity = self.pdf_output_store.identity(
+            record.artifact.artifact_id, version.version_id, projection.projection_id)
+        try:
+            stored = self.pdf_output_store.store(
+                identity, render_pdf(record.artifact, version, snapshots))
+        except Exception as exc:
+            raise MaterializationFailure("PDF materialization failed before canonical state changed") from exc
+        materialized_at = self.clock()
         materialized = replace(
             projection, materialization_state=MaterializationState.MATERIALIZED,
-            materializer_version=command.materializerVersion, output_identity=command.outputIdentity,
-            output_location=command.outputLocation, output_hash=command.outputHash,
-            materialized_at=self.clock())
+            materializer_version=MATERIALIZER_VERSION, output_identity=stored.output_identity,
+            output_location=stored.output_location, output_hash=stored.output_hash,
+            materialized_at=materialized_at)
         projections = tuple(materialized if p.projection_id == projection.projection_id else p
                             for p in record.projections)
         artifact = replace(record.artifact, revision=record.artifact.revision + 1, updated_at=self.clock())
         updated = replace(record, artifact=artifact, projections=projections)
-        result = self._result(updated, projectionId=projection.projection_id,
-                              readinessState=projection.readiness_state.value)
-        return self._persist(updated, command, operation, result, command.expectedRevision)
+        result = self._result(
+            updated, projectionId=projection.projection_id,
+            readinessState=projection.readiness_state.value,
+            materializationState=MaterializationState.MATERIALIZED.value,
+            materializerVersion=MATERIALIZER_VERSION, outputIdentity=stored.output_identity,
+            outputHash=stored.output_hash, materializedAt=materialized_at)
+        try:
+            return self._persist(updated, command, operation, result, command.expectedRevision)
+        except Exception:
+            if stored.created:
+                try: stored.path.unlink()
+                except FileNotFoundError: pass
+            raise
