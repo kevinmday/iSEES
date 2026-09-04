@@ -33,8 +33,11 @@ import type {
   ResearchAnchor,
   ResearchBridgeRequest,
   ResearchDesk,
+  ResearchInboxProjection,
+  ResearchInboxQuery,
 
 } from "./researchBridgeTypes";
+import { migrateResearchAnchor } from "./ResearchAnchorContract.ts";
 
 // ============================================================
 // TYPES
@@ -84,6 +87,24 @@ export class ResearchBridgeRuntime {
 
   }
 
+  projectInvestigation(query: ResearchInboxQuery): ResearchInboxProjection {
+    if (!query.investigationId) return { status: "NO_ACTIVE_INVESTIGATION", entries: [] };
+    const needle = query.searchQuery?.trim().toLocaleLowerCase() ?? "";
+    const entries = this.desk.entries
+      .filter(entry => entry.anchor.investigationId === query.investigationId)
+      .map(entry => ({ ...entry, anchor: migrateResearchAnchor(entry.anchor) }))
+      .filter(entry => !query.sourceWorkspace || entry.anchor.sourceWorkspace === query.sourceWorkspace)
+      .filter(entry => !query.sourceKind || entry.anchor.kind === query.sourceKind)
+      .filter(entry => !query.insertableOnly || entry.anchor.insertability.state === "INSERTABLE")
+      .filter(entry => !needle || [entry.anchor.display.title, entry.anchor.display.summary, entry.anchor.sourceIdentity, entry.anchor.kind].some(value => value.toLocaleLowerCase().includes(needle)))
+      .sort((left, right) => {
+        if (query.pinnedFirst !== false && left.anchor.pinned !== right.anchor.pinned) return left.anchor.pinned ? -1 : 1;
+        return left.order - right.order || left.anchor.anchorId.localeCompare(right.anchor.anchorId);
+      });
+    const selectedAnchorId = query.selectedAnchorId && entries.some(entry => entry.anchor.anchorId === query.selectedAnchorId) ? query.selectedAnchorId : undefined;
+    return { status: "AVAILABLE", investigationId: query.investigationId, entries, selectedAnchorId };
+  }
+
   // ==========================================================
   // OBSERVERS
   // ==========================================================
@@ -130,6 +151,7 @@ export class ResearchBridgeRuntime {
       ResearchAnchor,
   ): void {
 
+    const qualifiedAnchor = migrateResearchAnchor(anchor);
     if (
 
       this.desk.entries.some(
@@ -137,7 +159,7 @@ export class ResearchBridgeRuntime {
         entry =>
 
           entry.anchor.anchorId ===
-          anchor.anchorId
+          qualifiedAnchor.anchorId
 
       )
 
@@ -157,7 +179,7 @@ export class ResearchBridgeRuntime {
 
         {
 
-          anchor,
+          anchor: qualifiedAnchor,
 
           order:
             this.desk.entries.length,
@@ -168,7 +190,7 @@ export class ResearchBridgeRuntime {
 
     };
 
-    this.notify({ kind: "CREATE", anchor });
+    this.notify({ kind: "CREATE", anchor: qualifiedAnchor });
 
   }
 
@@ -263,11 +285,7 @@ export class ResearchBridgeRuntime {
 
             ...entry,
 
-            anchor: {
-
-              ...entry.anchor,
-
-            },
+            anchor: migrateResearchAnchor(entry.anchor),
 
           }),
 
@@ -355,8 +373,8 @@ export class ResearchBridgeRuntime {
         request.graph.id,
       ].join(":");
 
-    const anchor:
-      ResearchAnchor = {
+    const createdAt = new Date();
+    const anchor = migrateResearchAnchor({
 
         anchorId,
 
@@ -369,13 +387,12 @@ export class ResearchBridgeRuntime {
         graphRevision:
           request.graphRevision,
 
-        createdAt:
-          new Date(),
+        createdAt,
 
         pinned:
           false,
 
-      };
+      } as unknown as Record<string, unknown>);
 
     this.createAnchor(
       anchor,

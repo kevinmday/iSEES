@@ -2,6 +2,7 @@ import { ResearchAnchorType, type ResearchExperimentAnchor } from "../../researc
 import type { ResearchBridgeRuntime } from "../../research/ResearchBridgeRuntime";
 import type { LayersExperimentExecution } from "../runtime/LayersExperimentRuntimeTypes";
 import type { LayersExperimentalPairProjection } from "../projection";
+import { migrateResearchAnchor } from "../../research/ResearchAnchorContract";
 
 export interface LayersExperimentResearchPublicationInput {
   investigationId: string;
@@ -22,7 +23,7 @@ export function createLayersExperimentResearchAnchor(
   if (input.investigationId !== input.projection.investigationId || input.execution.input.scope.investigationId !== input.investigationId) {
     throw new Error("Research publication Investigation identity does not match the completed experiment.");
   }
-  return Object.freeze({
+  return migrateResearchAnchor(Object.freeze({
     anchorId: ["research", input.investigationId, "EXPERIMENT", input.projection.projectionId].join(":"),
     investigationId: input.investigationId,
     experiment: Object.freeze({
@@ -34,7 +35,7 @@ export function createLayersExperimentResearchAnchor(
     }),
     createdAt: new Date(),
     pinned: false,
-  });
+  }) as unknown as Record<string, unknown>) as ResearchExperimentAnchor;
 }
 
 export function publishLayersExperimentToResearch(input: LayersExperimentResearchPublicationInput): ResearchExperimentAnchor {

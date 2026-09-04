@@ -18,6 +18,7 @@ import {
 } from "react";
 
 import {
+  useResearchBridge,
   useResearchDesk,
   useResearchMutation,
 } from "../../research/ResearchBridgeContext";
@@ -28,10 +29,8 @@ import {
   authorDocumentRuntime,
 } from "../../author/runtime/AuthorDocumentRuntime";
 
-import {
-  AuthorNodeTypes,
-  type ReferenceNode,
-} from "../../author/model/AuthorNodeTypes";
+import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
+import { createAuthorReferenceFromResearchAnchor } from "../../studio/sources/ResearchAnchorAuthorInsertion";
 
 import type {
   ResearchAnchor,
@@ -39,7 +38,6 @@ import type {
 
 import {
   eventDisplayName,
-  experimentReferenceSummary,
 } from "../../research/LayersExperimentReferencePresentation";
 
 // ============================================================
@@ -87,8 +85,10 @@ export default function ResearchInboxInstrument({
   onExpandedChange,
 }: ResearchInboxInstrumentProps) {
 
-  const researchDesk =
-    useResearchDesk();
+  const researchRuntime = useResearchBridge();
+  useResearchDesk();
+  const activeInvestigation = useActiveInvestigation();
+  const researchDesk = researchRuntime.projectInvestigation({ investigationId: activeInvestigation?.id });
 
   const researchMutation =
     useResearchMutation();
@@ -106,6 +106,7 @@ export default function ResearchInboxInstrument({
     if (
       researchMutation === initialMutation.current ||
       researchMutation?.kind !== "CREATE"
+      || researchMutation.anchor.investigationId !== activeInvestigation?.id
     ) {
       initialMutation.current = researchMutation;
       return;
@@ -124,61 +125,15 @@ export default function ResearchInboxInstrument({
     }, 2400);
 
     return () => window.clearTimeout(timeout);
-  }, [researchMutation]);
+  }, [activeInvestigation?.id, researchMutation]);
 
   function handleInsert(
     entry:
       typeof researchDesk.entries[number],
   ): void {
 
-    if ("candidate" in entry.anchor) {
-      return;
-    }
-
-    if ("experiment" in entry.anchor) {
-      const experiment = entry.anchor.experiment;
-      const projection = experiment.projection;
-      const node: ReferenceNode = {
-        id: crypto.randomUUID(), type: AuthorNodeTypes.REFERENCE, targetType: "DOCUMENT", targetId: projection.projectionId,
-        title: `LAYERS experiment · ${projection.delta.state}`,
-        source: "RESEARCH_BRIDGE", corpusId: entry.anchor.anchorId, insertedAt: new Date(),
-        summary: experimentReferenceSummary(entry.anchor),
-      };
-      authorDocumentRuntime.insertNode(node);
-      return;
-    }
-
-    const node: ReferenceNode = {
-
-      id:
-        crypto.randomUUID(),
-
-      type:
-        AuthorNodeTypes.REFERENCE,
-
-      targetType:
-        entry.anchor.graph.type,
-
-      targetId:
-        entry.anchor.graph.id,
-
-      title:
-        entry.anchor.graph.id,
-
-      source:
-        "RESEARCH_BRIDGE",
-
-      corpusId:
-        entry.anchor.anchorId,
-
-      insertedAt:
-        new Date(),
-
-    };
-
-    authorDocumentRuntime.insertNode(
-      node,
-    );
+    if (entry.anchor.investigationId !== activeInvestigation?.id || entry.anchor.insertability.state !== "INSERTABLE") return;
+    authorDocumentRuntime.insertNode(createAuthorReferenceFromResearchAnchor(entry.anchor, crypto.randomUUID()));
 
   }
 
@@ -501,6 +456,10 @@ export default function ResearchInboxInstrument({
                           </button>;
                         }
 
+                        if (entry.anchor.kind !== "COMPARE_CANDIDATE") {
+                          const anchor = entry.anchor;
+                          return <button key={anchor.anchorId} type="button" disabled={anchor.insertability.state !== "INSERTABLE"} onClick={() => handleInsert(entry)} title={anchor.insertability.reason} style={{ width: "100%", padding: "9px 0", display: "block", border: 0, borderBottom: "1px solid rgba(148,163,184,0.10)", background: "transparent", color: "inherit", cursor: anchor.insertability.state === "INSERTABLE" ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}><div style={{ color: "#7dd3fc", fontSize: 10, fontWeight: 700 }}>{anchor.kind}</div><div style={{ color: "#e2e8f0", fontSize: 11 }}>{anchor.display.title}</div><div style={{ color: "#94a3b8", fontSize: 10 }}>{anchor.display.summary}</div></button>;
+                        }
                         const candidate = entry.anchor.candidate;
                         const availableCount = candidate.dimensions.filter(dimension => dimension.status === "AVAILABLE").length;
                         const unavailableCount = candidate.dimensions.length - availableCount;

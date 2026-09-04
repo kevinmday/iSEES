@@ -57,6 +57,7 @@ import type {
   GuestWorkspaceSessionRestoreResult,
   GuestWorkspaceSessionSnapshot,
 } from "./GuestWorkspaceSessionPersistenceTypes";
+import { migrateResearchAnchor } from "../../research/ResearchAnchorContract.ts";
 
 
 // ============================================================
@@ -360,6 +361,9 @@ function isPersistedResearchState(
     if (!isRecord(entry) || typeof entry.order !== "number" || !isRecord(entry.anchor)) return false;
     const anchor = entry.anchor;
     if (!isString(anchor.anchorId) || !isString(anchor.investigationId) || typeof anchor.pinned !== "boolean") return false;
+    if (anchor.schemaVersion === "research-anchor/v2") {
+      try { migrateResearchAnchor(anchor); return true; } catch { return false; }
+    }
     if (isRecord(anchor.graph)) {
       return (anchor.graph.type === "NODE" || anchor.graph.type === "EDGE") && isString(anchor.graph.id) && typeof anchor.graphRevision === "number";
     }

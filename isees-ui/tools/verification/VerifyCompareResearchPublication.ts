@@ -5,6 +5,7 @@ import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/rese
 import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence";
 import { createCompareCandidateResearchAnchor, publishCompareCandidateToResearch } from "../../src/compare/research/CompareCandidateResearchPublication";
 import { ComparePairProjectionStatus, type ComparePairProjectionReady } from "../../src/compare/projection/ComparePairProjectionTypes";
+import { migrateResearchAnchor } from "../../src/research/ResearchAnchorContract";
 
 const dimensions = ["NARRATIVE", "OBSERVABILITY", "INFRASTRUCTURE", "TOPOLOGY", "GEOGRAPHY"].map((dimension, index) => ({
   dimension,
@@ -76,7 +77,24 @@ const parsedGuestSnapshot: unknown = JSON.parse(serializedGuestSnapshot);
 assert.equal(isGuestWorkspaceSessionSnapshot(parsedGuestSnapshot), true);
 assert(isGuestWorkspaceSessionSnapshot(parsedGuestSnapshot));
 restored.restoreDesk(parsedGuestSnapshot.research.desk);
-assert.deepEqual(restored.getDesk(), parsedGuestSnapshot.research.desk);
+const canonicalPersistedDesk = {
+  ...parsedGuestSnapshot.research.desk,
+  entries: parsedGuestSnapshot.research.desk.entries.map(entry => ({
+    ...entry,
+    anchor: migrateResearchAnchor(entry.anchor),
+  })),
+};
+assert.deepEqual(restored.getDesk(), canonicalPersistedDesk);
+assert(restored.getDesk().entries.every(entry => entry.anchor.createdAt instanceof Date));
+assert(restored.getDesk().entries.every(entry => entry.anchor.collectedAt instanceof Date));
+const malformedTimestampSnapshot = structuredClone(parsedGuestSnapshot);
+malformedTimestampSnapshot.research.desk.entries[0].anchor.collectedAt = "not-a-timestamp";
+assert.equal(isGuestWorkspaceSessionSnapshot(malformedTimestampSnapshot), false);
+assert.throws(() => restored.restoreDesk(malformedTimestampSnapshot.research.desk));
+const malformedCreationTimestampSnapshot = structuredClone(parsedGuestSnapshot);
+malformedCreationTimestampSnapshot.research.desk.entries[0].anchor.createdAt = "2026-01-01";
+assert.equal(isGuestWorkspaceSessionSnapshot(malformedCreationTimestampSnapshot), false);
+assert.throws(() => restored.restoreDesk(malformedCreationTimestampSnapshot.research.desk));
 
 const graphAnchors: ResearchAnchor[] = [
   { anchorId: "n", investigationId: "i", graph: { type: ResearchAnchorType.NODE, id: "node" }, graphRevision: 1, createdAt: new Date(0), pinned: false },

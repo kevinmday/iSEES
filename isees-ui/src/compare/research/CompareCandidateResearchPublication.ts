@@ -1,6 +1,7 @@
 import { ResearchAnchorType, type ResearchCandidateAnchor } from "../../research/researchBridgeTypes";
 import type { ResearchBridgeRuntime } from "../../research/ResearchBridgeRuntime";
 import { ComparePairProjectionStatus, type ComparePairProjectionReady } from "../projection/ComparePairProjectionTypes";
+import { migrateResearchAnchor } from "../../research/ResearchAnchorContract";
 
 export interface CompareCandidateResearchPublicationInput {
   investigationId: string;
@@ -15,7 +16,7 @@ export function createCompareCandidateResearchAnchor(
   if (input.projection.status !== ComparePairProjectionStatus.READY) {
     throw new Error("Research publication requires a READY COMPARE Pair Projection.");
   }
-  return {
+  return migrateResearchAnchor({
     anchorId: ["research", input.investigationId, "CANDIDATE", input.projection.candidateId, input.projection.evaluationId].join(":"),
     investigationId: input.investigationId,
     candidate: {
@@ -36,7 +37,7 @@ export function createCompareCandidateResearchAnchor(
     },
     createdAt: new Date(),
     pinned: false,
-  };
+  } as unknown as Record<string, unknown>) as ResearchCandidateAnchor;
 }
 
 export function publishCompareCandidateToResearch(input: CompareCandidateResearchPublicationInput): ResearchCandidateAnchor {

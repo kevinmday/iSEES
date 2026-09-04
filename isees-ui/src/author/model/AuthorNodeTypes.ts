@@ -240,6 +240,20 @@ export interface ReferenceNode
   insertedAt:
     Date;
 
+  /** Frozen Research ingress provenance. A REFERENCE does not imply a claim or citation. */
+  researchSource?: Readonly<{
+    anchorId: string;
+    sourceKind: string;
+    sourceIdentity: string;
+    sourceInvestigationId: string;
+    sourceWorkspace: string;
+    sourceRevisionId?: string;
+    sourceExecutionId?: string;
+    sourceProjectionId?: string;
+    classification: "CANONICAL" | "RESEARCHER_GENERATED" | "UNDETERMINED";
+    capturedRepresentation: unknown;
+  }>;
+
 }
 
 // ============================================================

@@ -180,6 +180,10 @@ const restoredCurrentRevision = resolveCurrentOperationalRevision(restoredInvest
 assert(restoredCurrentRevision.id === restoredInvestigation!.currentRevisionId, "browser-restored current operational revision passes validation");
 assert(restoredCurrentRevision.manifold.graph.nodes.filter(node => node.id === rafSelection.nodeId).length === 1, "RAF Bentwaters exists exactly once in the browser-restored current revision");
 assert(JSON.stringify(restoredResearchRuntime.getDesk()) === sourceResearchDesk, "browser-restored Research Inbox state remains intact");
+assert(restoredResearchRuntime.projectInvestigation({ investigationId: operationalInvestigation.id }).entries.length === 1, "reopened Investigation restores its Research projection");
+assert(restoredResearchRuntime.projectInvestigation({ investigationId: nextInvestigation.id }).entries.length === 0, "fresh Investigation sees no prior Research anchors");
+assert(restoredResearchRuntime.getDesk().entries.length === 1, "hiding prior Research does not delete stored anchors");
+assert(restoredResearchRuntime.projectInvestigation({}).status === "NO_ACTIVE_INVESTIGATION", "missing active Investigation yields an explicit empty Research projection");
 
 const oldExecution = { input: { investigation: { ...investigation, id: "investigation:old" } } } as ResolveExecutionRecord;
 assert(resolveCurrentInvestigationExecution(investigation, oldExecution) === undefined, "prior Investigation Resolve product is dormant before a fresh Resolve run");
