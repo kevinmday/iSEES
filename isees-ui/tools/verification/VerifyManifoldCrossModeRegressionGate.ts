@@ -164,6 +164,16 @@ if (process.argv[2] === verifierFlag) {
     "host delivers independent NODE and EDGE collection callbacks to the 3D projection",
   );
   sourceContract(
+    graphHost.includes(".getActiveInvestigation()") &&
+      /function handleCollectNode\([\s\S]*?if \(!activeInvestigation\)[\s\S]*?investigationId:\s*activeInvestigation\.id/.test(graphHost) &&
+      /function handleCollectEdge\([\s\S]*?if \(!activeInvestigation\)[\s\S]*?investigationId:\s*activeInvestigation\.id/.test(graphHost),
+    "NODE and EDGE publication fail closed and qualify anchors with the active Investigation",
+  );
+  sourceContract(
+    !/investigationId:\s*focusedEventId/.test(graphHost),
+    "focused EVENT identity is never used as Research investigation ownership",
+  );
+  sourceContract(
     toolbar.includes('action="VIEW_2D"') &&
       toolbar.includes('action="VIEW_3D"') &&
       graphHost.includes('action === "VIEW_2D"') &&

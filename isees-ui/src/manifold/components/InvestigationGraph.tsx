@@ -107,6 +107,10 @@ export default function InvestigationGraph({
   const workspaceRuntime =
     useWorkspaceRuntime();
 
+  const activeInvestigation =
+    workspaceRuntime
+      .getActiveInvestigation();
+
   const focusedEventId =
     workspaceRuntime
       .getWorkspace()
@@ -256,14 +260,14 @@ function handleCollectNode(
   node: GraphNode,
 ): void {
 
-  if (!focusedEventId) {
+  if (!activeInvestigation) {
     return;
   }
 
   researchBridgeRuntime.bridge({
 
     investigationId:
-      focusedEventId,
+      activeInvestigation.id,
 
     graph: {
 
@@ -287,14 +291,14 @@ function handleCollectEdge(
     GraphEdge,
 ): void {
 
-  if (!focusedEventId) {
+  if (!activeInvestigation) {
     return;
   }
 
   researchBridgeRuntime.bridge({
 
     investigationId:
-      focusedEventId,
+      activeInvestigation.id,
 
     graph: {
 
