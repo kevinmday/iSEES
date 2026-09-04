@@ -29,6 +29,10 @@ class Repo:
     """Deterministic, explicitly non-durable test fake."""
     def __init__(self): self.records, self.keys = {}, {}
     def get(self, *, artifact_id): return self.records.get(artifact_id)
+    def list(self, *, investigation_id, principal_id):
+        return [record for record in self.records.values()
+                if record.artifact.investigation_id == investigation_id
+                and record.artifact.owner_principal_id == principal_id]
     def create(self, *, record): self.records[record.artifact.artifact_id] = record
     def replace(self, *, record, expected_revision):
         current = self.records[record.artifact.artifact_id]
@@ -268,10 +272,14 @@ def test_unresolved_required_lineage_blocks_materialization(env):
 def test_external_authorities_fail_closed(env):
     service, _, access, sources, publisher, acceptor = env
     access.fail = True
-    with pytest.raises(UnavailableExternalAuthority): service.create_draft("i1", draft())
+    with pytest.raises(UnavailableExternalAuthority): service.authorize_read("p1", "i1")
+    # First creation establishes its own principal/Investigation ownership
+    # boundary and therefore does not depend on pre-existing external state.
+    service.create_draft("i1", draft())
     access.fail = False; sources.fail = True
-    with pytest.raises(UnavailableExternalAuthority): service.create_draft("i1", draft(key="two"))
-    sources.fail = False; create(env, key="three")
+    with pytest.raises(UnavailableExternalAuthority):
+        service.create_draft("i1", draft(key="two", artifact="a2"))
+    sources.fail = False
     service.create_candidate("i1", candidate_command())
     publisher.fail = True
     with pytest.raises(PublicationFailure): service.publish_candidate("i1", PublishStudioCandidateNode(

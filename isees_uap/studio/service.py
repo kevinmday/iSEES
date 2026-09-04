@@ -68,6 +68,13 @@ class StudioService:
         return generate(self.drafting_provider, command)
 
     def _authorize(self, principal_id: str, investigation_id: str) -> None:
+        # A durable Studio artifact is itself authoritative evidence that this
+        # principal owns Studio state in the Investigation.  This is especially
+        # important for empty workspaces, which have no Candidate Evidence row
+        # from which the adapter below could infer access.
+        if self.repository.list(
+                investigation_id=investigation_id, principal_id=principal_id):
+            return
         try:
             result = self.access_port.resolve_access(
                 principal_id=principal_id, investigation_id=investigation_id)
@@ -137,6 +144,23 @@ class StudioService:
         self._path(path_id, command.investigationId)
         self._authorize(command.principalId, command.investigationId)
         return self._replay(command, operation)
+
+    def _begin_create(self, path_id: str, command: CreateStudioDraft,
+                      operation: str) -> StudioCommandResult | None:
+        """Validate first creation without requiring pre-existing scope state."""
+        self._path(path_id, command.investigationId)
+        replay = self._replay(command, operation)
+        if replay is not None:
+            return replay
+        if command.artifactId is None:
+            return None
+        existing = self.repository.get(artifact_id=command.artifactId)
+        if existing is None:
+            return None
+        if (existing.artifact.investigation_id != command.investigationId
+                or existing.artifact.owner_principal_id != command.principalId):
+            raise ArtifactNotFound("Studio artifact was not found")
+        raise RevisionConflict("Artifact identity already exists")
 
     @staticmethod
     def _result(record: StudioAggregateRecord, **extra: Any) -> StudioCommandResult:
@@ -247,11 +271,9 @@ class StudioService:
 
     def create_draft(self, path_id: str, command: CreateStudioDraft) -> StudioCommandResult:
         operation = "CREATE_DRAFT"
-        replay = self._begin(path_id, command, operation)
+        replay = self._begin_create(path_id, command, operation)
         if replay: return replay
         artifact_id = command.artifactId or str(uuid4())
-        if self.repository.get(artifact_id=artifact_id) is not None:
-            raise RevisionConflict("Artifact identity already exists")
         version, snapshots = self._build_version(command, artifact_id, 1, None)
         now = self.clock()
         record = StudioAggregateRecord(StudioArtifact(

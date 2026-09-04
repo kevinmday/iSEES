@@ -240,6 +240,61 @@ def test_production_composition_fails_closed_when_authority_store_is_unavailable
         repository.cache_clear()
 
 
+def test_production_first_save_establishes_empty_studio_scope(tmp_path, monkeypatch):
+    authority_path = tmp_path / "empty-authority.db"
+    studio_path = tmp_path / "first-save.db"
+    monkeypatch.setenv("ISEES_CANDIDATE_DB_PATH", str(authority_path))
+    monkeypatch.setenv("ISEES_STUDIO_DB_PATH", str(studio_path))
+    repository.cache_clear()
+    SQLiteCandidateEvidenceRepository(authority_path)
+    client = TestClient(app)
+    headers = {"X-ISEES-Principal-Id": "guest:new"}
+    root = "/api/v1/investigations/INV-EMPTY/studio-artifacts"
+    command = payload(
+        investigationId="INV-EMPTY", principalId="guest:new",
+        artifactId="author:document-1", versionId="author:document-1:v1",
+        authorSchemaVersion="computational-author-document/v1",
+        document={"schemaVersion": "computational-author-document/v1", "identity": {
+            "id": "author:document-1"}, "nodes": []}, sourceSnapshots=[], claims=[],
+        citations=[], claimSourceMappings=[])
+    try:
+        before = client.get(root, headers=headers)
+        assert before.status_code == 404
+        assert before.json()["error"]["code"] == "STUDIO_ARTIFACT_NOT_FOUND"
+
+        created = client.post(root, json=command, headers=headers)
+        assert created.status_code == 201
+        assert created.json()["artifactId"] == "author:document-1"
+        assert created.json()["currentVersionId"] == "author:document-1:v1"
+
+        loaded = client.get(root + "/author:document-1", headers=headers)
+        assert loaded.status_code == 200
+        assert loaded.json()["artifact"]["currentVersionNumber"] == 1
+        assert loaded.json()["currentVersion"]["document"]["nodes"] == []
+
+        replay = client.post(root, json=command, headers=headers)
+        assert replay.status_code == 200 and replay.json()["replayed"] is True
+        aggregate = repository().get(artifact_id="author:document-1")
+        assert aggregate is not None and len(aggregate.versions) == 1
+
+        changed = client.post(root, json={**command, "document": {
+            **command["document"], "nodes": [{"id": "changed"}]}}, headers=headers)
+        assert changed.status_code == 409
+        assert changed.json()["error"]["code"] == "IDEMPOTENCY_KEY_REUSE"
+
+        takeover = client.post(root, json={**command, "principalId": "guest:other",
+            "idempotencyKey": "takeover"}, headers={"X-ISEES-Principal-Id": "guest:other"})
+        assert takeover.status_code == 404
+        assert takeover.json()["error"]["code"] == "STUDIO_ARTIFACT_NOT_FOUND"
+
+        mismatch = client.post("/api/v1/investigations/OTHER/studio-artifacts",
+            json={**command, "idempotencyKey": "mismatch"}, headers=headers)
+        assert mismatch.status_code == 412
+        assert mismatch.json()["error"]["code"] == "INVESTIGATION_MISMATCH"
+    finally:
+        repository.cache_clear()
+
+
 @pytest.mark.parametrize("endpoint,body,expected", [
     ("candidate/publication", mutation("publish-down", 1, candidateArtifactId="c1"), "PUBLICATION_FAILURE"),
     ("acceptance", mutation("accept-down", 3, candidateArtifactId="c1", targetScope="ARTIFACT", reason="ok"), "ACCEPTANCE_FAILURE"),

@@ -12,6 +12,7 @@
     "verify:studio-final": "node --experimental-strip-types tools/verification/VerifyStudioFinalAcceptance.ts",
     "verify:studio-shell-ownership": "node --experimental-strip-types tools/verification/VerifyStudioShellOwnership.ts",
     "verify:studio-artifact-empty": "node --experimental-strip-types tools/verification/VerifyStudioArtifactInspectorEmptyState.ts",
+    "verify:studio-first-save": "node --experimental-strip-types tools/verification/VerifyStudioFirstSaveTransition.ts",
     "preview": "vite preview"
   },
   "dependencies": {
