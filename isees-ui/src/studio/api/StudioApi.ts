@@ -1,3 +1,5 @@
+import type { StudioDraftProposal, StudioDraftingRequest } from "../drafting/StudioDraftingTypes";
+
 export const STUDIO_API_BASE_URL = (import.meta.env.VITE_STUDIO_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
   ?? (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
   ?? "http://127.0.0.1:8000";
@@ -50,4 +52,5 @@ export const studioApi = {
   list: (scope: StudioScope) => request<{ investigationId: string; items: StudioArtifactProjection[] }>(scope, ""),
   get: (scope: StudioScope, artifactId: string) => request<StudioArtifactProjection>(scope, `/${encodeURIComponent(artifactId)}`),
   post: <T>(scope: StudioScope, path: string, command: object) => request<T>(scope, path, { method: "POST", body: JSON.stringify(command) }),
+  generateDraftProposal: (scope: StudioScope, command: StudioDraftingRequest) => request<StudioDraftProposal>(scope, "/drafting-proposals", { method: "POST", body: JSON.stringify(command) }),
 };

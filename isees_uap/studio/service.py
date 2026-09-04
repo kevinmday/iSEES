@@ -23,7 +23,7 @@ from .models import (
 )
 from .ports import (
     AcceptedKnowledgePort, InvestigationAccessPort,
-    ManifoldCandidatePublicationPort, StudioSourceResolutionPort,
+    ManifoldCandidatePublicationPort, StudioDraftingProvider, StudioSourceResolutionPort,
 )
 from .repository import IdempotencyRecord, StudioAggregateRecord, StudioRepository
 from .schemas import (
@@ -31,7 +31,17 @@ from .schemas import (
     RecordMaterializedProjection, RejectStudioArtifact, ReturnStudioArtifact,
     SaveStudioArtifactVersion, StudioCommandResult, SubmitStudioForReview,
     ValidateStudioProjection, PublishStudioCandidateNode,
+    DraftProposal, GenerateDraftProposal,
 )
+from .drafting import ProviderUnavailableError, generate
+
+
+class _UnavailableDraftingProvider:
+    provider_id = "unavailable"
+    model_id = "unavailable"
+
+    def generate_proposal(self, *, request: Any) -> Any:
+        raise ProviderUnavailableError()
 
 
 def _now() -> datetime:
@@ -43,13 +53,20 @@ class StudioService:
                  source_resolution_port: StudioSourceResolutionPort,
                  publication_port: ManifoldCandidatePublicationPort,
                  accepted_knowledge_port: AcceptedKnowledgePort,
+                 drafting_provider: StudioDraftingProvider | None = None,
                  *, clock: Callable[[], datetime] = _now):
         self.repository = repository
         self.access_port = access_port
         self.source_resolution_port = source_resolution_port
         self.publication_port = publication_port
         self.accepted_knowledge_port = accepted_knowledge_port
+        self.drafting_provider = drafting_provider or _UnavailableDraftingProvider()
         self.clock = clock
+
+    def generate_draft_proposal(self, path_id: str, command: GenerateDraftProposal) -> DraftProposal:
+        self._path(path_id, command.investigationId)
+        self._authorize(command.principalId, command.investigationId)
+        return generate(self.drafting_provider, command)
 
     def _authorize(self, principal_id: str, investigation_id: str) -> None:
         try:

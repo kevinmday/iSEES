@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from isees_uap.candidate_evidence.config import candidate_database_path
 from isees_uap.studio.config import studio_database_path
+from isees_uap.studio.drafting import ProviderUnavailableError
 from isees_uap.studio.errors import ArtifactNotFound, OwnershipAccessFailure, StudioError
 from isees_uap.studio.hashing import canonical_json
 from isees_uap.studio.investigation_authority import CandidateEvidenceInvestigationAuthority
@@ -17,7 +18,7 @@ from isees_uap.studio.schemas import (
     AcceptStudioArtifact, CreateCandidateKnowledgeArtifact, CreateStudioDraft,
     PublishStudioCandidateNode, RecordMaterializedProjection, RejectStudioArtifact,
     ReturnStudioArtifact, SaveStudioArtifactVersion, SubmitStudioForReview,
-    ValidateStudioProjection,
+    ValidateStudioProjection, GenerateDraftProposal, DraftProposal,
 )
 from isees_uap.studio.service import StudioService
 from isees_uap.studio.sqlite_repository import SQLiteStudioRepository
@@ -41,6 +42,14 @@ class _UnavailableAcceptance:
         raise RuntimeError("accepted Knowledge persistence is not configured")
 
 
+class _UnavailableDrafting:
+    provider_id = "unavailable"
+    model_id = "unavailable"
+
+    def generate_proposal(self, **_: Any):
+        raise ProviderUnavailableError()
+
+
 @lru_cache(maxsize=1)
 def repository() -> SQLiteStudioRepository:
     return SQLiteStudioRepository(studio_database_path())
@@ -49,7 +58,7 @@ def repository() -> SQLiteStudioRepository:
 def service(repo: SQLiteStudioRepository = Depends(repository)) -> StudioService:
     authority = CandidateEvidenceInvestigationAuthority(candidate_database_path())
     return StudioService(repo, authority, _UnavailableSourceResolution(),
-                         _UnavailablePublication(), _UnavailableAcceptance())
+                         _UnavailablePublication(), _UnavailableAcceptance(), _UnavailableDrafting())
 
 
 def principal(x_isees_principal_id: str = Header(min_length=1)) -> str:
@@ -97,6 +106,14 @@ def create_draft(investigation_id: IdentityPath, command: CreateStudioDraft,
     result = svc.create_draft(investigation_id, command)
     return JSONResponse(status_code=200 if result.replayed else 201,
                         content=result.model_dump(mode="json"))
+
+
+@router.post("/drafting-proposals", response_model=DraftProposal)
+def generate_drafting_proposal(investigation_id: IdentityPath, command: GenerateDraftProposal,
+                               owner: str = Depends(principal),
+                               svc: StudioService = Depends(service)):
+    _ownership(command, owner)
+    return svc.generate_draft_proposal(investigation_id, command)
 
 
 @router.get("")

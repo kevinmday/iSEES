@@ -48,3 +48,12 @@ class AcceptedKnowledgePort(Protocol):
     def accept_candidate(self, *, investigation_id: str, artifact_id: str,
                          artifact_version_id: str, candidate_artifact_id: str,
                          principal_id: str) -> AcceptanceReceipt: ...
+
+
+class StudioDraftingProvider(Protocol):
+    """Provider-neutral, bounded drafting port. Implementations receive no credentials or URL."""
+
+    provider_id: str
+    model_id: str
+
+    def generate_proposal(self, *, request: Any) -> Any: ...

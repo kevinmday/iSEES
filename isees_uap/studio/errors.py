@@ -60,3 +60,28 @@ class PublicationFailure(StudioError):
 class AcceptanceFailure(StudioError):
     code = "ACCEPTANCE_FAILURE"
     status_code = 503
+
+
+class InvalidDraftingContext(StudioError):
+    code = "INVALID_DRAFTING_CONTEXT"
+    status_code = 422
+
+
+class DraftingProviderUnavailable(StudioError):
+    code = "DRAFTING_PROVIDER_UNAVAILABLE"
+    status_code = 503
+
+
+class DraftingProviderTimeout(StudioError):
+    code = "DRAFTING_PROVIDER_TIMEOUT"
+    status_code = 504
+
+
+class DraftingProviderFailure(StudioError):
+    code = "DRAFTING_PROVIDER_FAILURE"
+    status_code = 502
+
+
+class InvalidDraftingProviderResponse(StudioError):
+    code = "INVALID_DRAFTING_PROVIDER_RESPONSE"
+    status_code = 502
