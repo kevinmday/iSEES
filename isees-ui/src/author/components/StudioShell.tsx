@@ -23,6 +23,7 @@ import type {
   CSSProperties,
 } from "react";
 import { useEffect } from "react";
+import { useState } from "react";
 
 import StudioToolbar
   from "./StudioToolbar";
@@ -37,6 +38,7 @@ import StudioResearchInbox
   from "../../studio/components/StudioResearchInbox";
 import StudioArtifactInspector
   from "../../studio/components/StudioArtifactInspector";
+import StudioDraftingPanel from "../../studio/components/StudioDraftingPanel";
 
 import "./StudioShell.css";
 import { useActiveInvestigation, useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
@@ -74,6 +76,7 @@ export default function StudioShell() {
   const investigation = useActiveInvestigation();
   const workspaceRuntime = useWorkspaceRuntime();
   const authorRuntime = useAuthorDocumentRuntime();
+  const [rightMode, setRightMode] = useState<"ARTIFACT" | "DRAFTING">("ARTIFACT");
 
   useEffect(() => {
     authorRuntime.activateInvestigation(investigation?.id);
@@ -124,7 +127,14 @@ export default function StudioShell() {
 
         </main>
 
-        <StudioArtifactInspector />
+        <aside className="studio-shell__right-authority" aria-label="STUDIO artifact authority">
+          <nav className="studio-shell__right-tabs" aria-label="STUDIO artifact workspace">
+            <button type="button" aria-pressed={rightMode === "ARTIFACT"} onClick={() => setRightMode("ARTIFACT")}>Artifact Inspector</button>
+            <button type="button" aria-pressed={rightMode === "DRAFTING"} onClick={() => setRightMode("DRAFTING")}>Artifact Drafting</button>
+          </nav>
+          <div className="studio-shell__right-panel" hidden={rightMode !== "ARTIFACT"}><StudioArtifactInspector /></div>
+          <div className="studio-shell__right-panel" hidden={rightMode !== "DRAFTING"}><StudioDraftingPanel /></div>
+        </aside>
 
       </div>
 

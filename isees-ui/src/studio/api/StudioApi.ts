@@ -52,5 +52,5 @@ export const studioApi = {
   list: (scope: StudioScope) => request<{ investigationId: string; items: StudioArtifactProjection[] }>(scope, ""),
   get: (scope: StudioScope, artifactId: string) => request<StudioArtifactProjection>(scope, `/${encodeURIComponent(artifactId)}`),
   post: <T>(scope: StudioScope, path: string, command: object) => request<T>(scope, path, { method: "POST", body: JSON.stringify(command) }),
-  generateDraftProposal: (scope: StudioScope, command: StudioDraftingRequest) => request<StudioDraftProposal>(scope, "/drafting-proposals", { method: "POST", body: JSON.stringify(command) }),
+  generateDraftProposal: (scope: StudioScope, command: StudioDraftingRequest, signal?: AbortSignal) => request<StudioDraftProposal>(scope, "/drafting-proposals", { method: "POST", body: JSON.stringify(command), signal }),
 };

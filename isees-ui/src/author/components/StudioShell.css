@@ -31,3 +31,10 @@
   min-height: 0;
   overflow: hidden;
 }
+
+.studio-shell__right-authority { display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid #1e293b;background:#07101f; }
+.studio-shell__right-tabs { display:grid;grid-template-columns:1fr 1fr;flex:none;padding:6px;gap:5px;border-bottom:1px solid #1e293b; }
+.studio-shell__right-tabs button { min-width:0;padding:7px 4px;border:1px solid #334155;border-radius:4px;background:#0b1525;color:#94a3b8;font:700 10px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer; }
+.studio-shell__right-tabs button[aria-pressed="true"] { border-color:#2563eb;background:#172554;color:#dbeafe; }
+.studio-shell__right-tabs button:focus-visible { outline:2px solid #38bdf8;outline-offset:2px; }
+.studio-shell__right-panel { flex:1;min-width:0;min-height:0;overflow:hidden; }.studio-shell__right-panel[hidden] { display:none; }
