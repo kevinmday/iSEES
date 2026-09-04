@@ -32,6 +32,11 @@ import StudioStatusBar
 import AuthorEditorSurface
   from "./AuthorEditorSurface";
 
+import StudioResearchInbox
+  from "../../studio/components/StudioResearchInbox";
+
+import "./StudioShell.css";
+
 // ============================================================
 // STYLES
 // ============================================================
@@ -64,6 +69,12 @@ export default function StudioShell() {
 
     <div style={shellStyle}>
 
+      <div className="studio-shell__workspace">
+
+        <StudioResearchInbox />
+
+        <main className="studio-shell__authoring">
+
       {/* ===================================================== */}
       {/* TOOLBAR */}
       {/* ===================================================== */}
@@ -81,6 +92,10 @@ export default function StudioShell() {
       {/* ===================================================== */}
 
       <StudioStatusBar />
+
+        </main>
+
+      </div>
 
     </div>
 

@@ -96,7 +96,7 @@ export class ResearchBridgeRuntime {
       .filter(entry => !query.sourceWorkspace || entry.anchor.sourceWorkspace === query.sourceWorkspace)
       .filter(entry => !query.sourceKind || entry.anchor.kind === query.sourceKind)
       .filter(entry => !query.insertableOnly || entry.anchor.insertability.state === "INSERTABLE")
-      .filter(entry => !needle || [entry.anchor.display.title, entry.anchor.display.summary, entry.anchor.sourceIdentity, entry.anchor.kind].some(value => value.toLocaleLowerCase().includes(needle)))
+      .filter(entry => !needle || [entry.anchor.display.title, entry.anchor.display.summary, entry.anchor.sourceIdentity, entry.anchor.sourceWorkspace, entry.anchor.kind].some(value => value.toLocaleLowerCase().includes(needle)))
       .sort((left, right) => {
         if (query.pinnedFirst !== false && left.anchor.pinned !== right.anchor.pinned) return left.anchor.pinned ? -1 : 1;
         return left.order - right.order || left.anchor.anchorId.localeCompare(right.anchor.anchorId);

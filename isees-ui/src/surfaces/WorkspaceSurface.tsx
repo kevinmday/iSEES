@@ -189,8 +189,6 @@ export default function WorkspaceSurface() {
     activeMode ===
       WorkspaceMode.MANIFOLD ||
     activeMode ===
-      WorkspaceMode.RESEARCH ||
-    activeMode ===
       WorkspaceMode.COMPARE ||
     activeMode ===
       WorkspaceMode.NARRATIVE ||
