@@ -1,0 +1,14 @@
+import type { Investigation, InvestigationRevision } from "../../investigation/investigationTypes";
+import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
+import type { CanonicalSimilarityCandidateEvaluation } from "../../resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes";
+import type { ResolveComputationResult } from "../../resolve/runtime/ResolveRuntimeTypes";
+import type { IntentionAvailability, IntentionEpistemicClassification } from "../contracts/IntentionAvailability";
+import type { IntentionHypothesis, IntentionValidationStatus } from "../contracts/IntentionHypothesis";
+import type { IntentionMetricDerivation } from "../contracts/IntentionMetricDerivation";
+
+export interface IntentionModelDefinition { readonly id: string; readonly version: string; readonly configurationId: string; readonly unorderedConfigurationValues?: readonly string[]; }
+export interface IntentionProjectionInput { readonly investigation?: Investigation; readonly currentRevision?: InvestigationRevision; readonly focusedEventId?: string | null; readonly selectedCandidate?: CanonicalSimilarityCandidateEvaluation; readonly resolveExecution?: ResolveComputationResult; readonly knowledgeObjects: readonly KnowledgeObject[]; readonly model: IntentionModelDefinition; }
+export interface IntentionProjectedNode { readonly id: string; readonly owner: "INTENTION"; readonly sourceKnowledgeId: string; readonly canonicalEventId: string; readonly role: "FOCUSED_EVENT" | "COMPARE_EVENT"; readonly metricDerivationIds: readonly string[]; }
+export interface IntentionProjectedLink { readonly id: string; readonly owner: "INTENTION"; readonly sourceNodeId: string; readonly targetNodeId: string; readonly kind: "DESCRIPTIVE_RESOLVE_COMPARISON"; readonly metricDerivationIds: readonly string[]; }
+export interface IntentionProjectionLineage { readonly investigationId: string; readonly operationalRevisionId: string; readonly focusedEventId: string; readonly resolveExecutionId?: string; readonly candidateId?: string; readonly evaluationId?: string; readonly sourceKnowledgeIds: readonly string[]; readonly sourceRelationshipIds: readonly string[]; readonly modelId: string; readonly modelVersion: string; readonly configurationId: string; }
+export interface IntentionProjection { readonly id: string; readonly executionId: string; readonly availability: IntentionAvailability; readonly epistemicClassification: IntentionEpistemicClassification; readonly nodes: readonly IntentionProjectedNode[]; readonly links: readonly IntentionProjectedLink[]; readonly derivations: readonly IntentionMetricDerivation[]; readonly lineage: IntentionProjectionLineage; readonly hypotheses: readonly IntentionHypothesis[]; readonly validationStatus: IntentionValidationStatus; readonly canonicalRepresentation: string; readonly reason?: string; }
