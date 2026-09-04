@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import copy
+import json
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -71,6 +74,14 @@ def command(**context_changes):
         "investigationId": "i1", "principalId": "p1", "contextHash": "sha256:" + "0" * 64,
         "context": context(**context_changes)})
     return parsed.model_copy(update={"contextHash": canonical_hash(parsed.context.model_dump(mode="json"))})
+
+
+def browser_request():
+    fixture = Path(__file__).resolve().parents[3] / "isees-ui" / "tools" / "verification" / "fixtures" / "studio-drafting-browser-context.json"
+    value = json.loads(fixture.read_text(encoding="utf-8"))
+    return {"requestContractVersion": "studio-drafting-request/v1",
+            "investigationId": value["context"]["investigationId"], "principalId": "principal:1",
+            "contextHash": value["contextHash"], "context": value["context"]}
 
 
 class Provider:
@@ -160,6 +171,60 @@ def test_unavailable_provider_does_not_require_persisted_investigation_membershi
     svc, repo = make_service()
     with pytest.raises(DraftingProviderUnavailable): svc.generate_draft_proposal("i1", command())
     assert repo.calls == 0
+
+
+def test_real_browser_context_preserves_wire_hash_and_reaches_unavailable_provider():
+    wire = browser_request()
+    request = GenerateDraftProposal.model_validate(wire)
+    assert request.context.sources[0].collectedAt == "2026-09-04T19:02:55.079Z"
+    assert canonical_hash(request.context.model_dump(mode="json")) == wire["contextHash"]
+    reordered = copy.deepcopy(wire)
+    nested = reordered["context"]["sources"][0]["capturedRepresentation"]
+    reordered["context"]["sources"][0]["capturedRepresentation"] = {
+        key: nested[key] for key in reversed(list(nested))}
+    assert canonical_hash(GenerateDraftProposal.model_validate(reordered).context.model_dump(mode="json")) == wire["contextHash"]
+    svc, repo = make_service()
+    app.dependency_overrides[drafting_service] = lambda: svc
+    try:
+        client = TestClient(app)
+        for _ in range(2):
+            response = client.post(
+                f"/api/v1/investigations/{wire['investigationId']}/studio-artifacts/drafting-proposals",
+                json=wire, headers={"X-ISEES-Principal-Id": wire["principalId"]})
+            assert response.status_code == 503
+            assert response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
+        assert repo.calls == 0
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda value: value["context"]["sources"][0].update(displayTitle="tampered"),
+    lambda value: value["context"]["sources"][0].update(collectedAt="2026-09-04T19:02:55.080Z"),
+    lambda value: value["context"].update(draftingInstruction="tampered"),
+    lambda value: value["context"].update(selectedSourceAnchorIds=value["context"]["selectedSourceAnchorIds"][:1]),
+    lambda value: value["context"].update(artifactDesign={"designId": "brief", "designVersion": "1"}),
+    lambda value: value["context"].update(documentId="author:tampered"),
+])
+def test_real_browser_context_tampering_fails_closed(mutation):
+    wire = browser_request()
+    mutation(wire)
+    parsed = GenerateDraftProposal.model_validate(wire)
+    provider = Provider(); svc, repo = make_service(provider)
+    with pytest.raises(InvalidDraftingContext):
+        svc.generate_draft_proposal(wire["investigationId"], parsed)
+    assert provider.calls == 0 and repo.calls == 0
+
+
+@pytest.mark.parametrize("timestamp", [
+    "2026-09-04T19:02:55.079000Z", "2026-09-04T19:02:55.079+00:00",
+    "2026-09-04T19:02:55.07Z", "2026-02-30T19:02:55.079Z", "not-a-date",
+])
+def test_drafting_timestamps_reject_non_browser_or_invalid_wire_values(timestamp):
+    wire = browser_request()
+    wire["context"]["sources"][0]["collectedAt"] = timestamp
+    with pytest.raises(ValidationError):
+        GenerateDraftProposal.model_validate(wire)
 
 
 def test_proposal_authority_is_request_scoped_and_fail_closed():

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from .config import (
     STUDIO_DRAFTING_MAX_GENERATED_TEXT_BYTES, STUDIO_DRAFTING_MAX_INSTRUCTION_CHARS,
@@ -14,6 +14,23 @@ from .config import (
 
 Identity = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 IdempotencyKey = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+def _validate_drafting_timestamp(value: str) -> str:
+    """Keep the browser's canonical UTC wire text while rejecting invalid instants."""
+    pattern = "%Y-%m-%dT%H:%M:%SZ" if "." not in value else "%Y-%m-%dT%H:%M:%S.%fZ"
+    datetime.strptime(value, pattern)
+    return value
+
+
+# Browser Date.toISOString() values retain their exact hashed wire spelling. The
+# frontend omits only a zero millisecond component, so no offsets or other
+# fractional precision are accepted at this drafting-context boundary.
+DraftingTimestamp = Annotated[
+    str,
+    StringConstraints(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$"),
+    AfterValidator(_validate_drafting_timestamp),
+]
 
 
 class StrictModel(BaseModel):
@@ -200,8 +217,8 @@ class DraftingSource(StrictModel):
     captureSchemaVersion: Identity
     captureMediaType: Identity
     capturedRepresentation: Any
-    collectedAt: datetime
-    createdAt: datetime
+    collectedAt: DraftingTimestamp
+    createdAt: DraftingTimestamp
     immutableSourceHash: Annotated[str, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
 
 

@@ -1,0 +1,67 @@
+{
+  "context": {
+    "contextContractVersion": "studio-drafting-context/v1",
+    "investigationId": "INV-SYSTEM_CANON-E-TICTAC-2004",
+    "documentId": "author:25c32bc8-59cb-4bce-a681-c8088f2d7062",
+    "baseIdentity": { "documentRuntimeRevision": 2, "artifactId": null, "artifactVersionId": null, "artifactRevision": null },
+    "sourceSelectionMode": "SUBSET",
+    "selectedSourceAnchorIds": [
+      "research:INV-SYSTEM_CANON-E-TICTAC-2004:NODE:system:entity:e2-hawkeye-sensor-grid",
+      "research:INV-SYSTEM_CANON-E-TICTAC-2004:NODE:system:entity:β-sensor"
+    ],
+    "selectedResearcherNoteNodeIds": [],
+    "artifactDesign": { "designId": "investigation-report", "designVersion": "1" },
+    "draftingInstruction": "Draft the findings — café.",
+    "sources": [
+      {
+        "anchorId": "research:INV-SYSTEM_CANON-E-TICTAC-2004:NODE:system:entity:e2-hawkeye-sensor-grid",
+        "investigationId": "INV-SYSTEM_CANON-E-TICTAC-2004",
+        "sourceWorkspace": "MANIFOLD",
+        "sourceIdentity": "NODE:system:entity:e2-hawkeye-sensor-grid",
+        "sourceKind": "GRAPH",
+        "classification": "CANONICAL",
+        "insertionState": "INSERTABLE",
+        "insertionReason": "Exact graph identity and revision are available.",
+        "displayTitle": "system:entity:e2-hawkeye-sensor-grid",
+        "displaySummary": "NODE at graph revision 1",
+        "sourceRevisionId": "1",
+        "sourceExecutionId": null,
+        "sourceProjectionId": null,
+        "graphIdentity": "NODE:system:entity:e2-hawkeye-sensor-grid",
+        "graphRevision": 1,
+        "captureSchemaVersion": "research-graph/v1",
+        "captureMediaType": "application/json",
+        "capturedRepresentation": { "values": [1, null, "café", { "z": 2, "a": "雪" }], "graphRevision": 1, "graph": { "type": "NODE", "id": "system:entity:e2-hawkeye-sensor-grid" } },
+        "collectedAt": "2026-09-04T19:02:55.079Z",
+        "createdAt": "2026-09-04T19:02:55.079Z",
+        "immutableSourceHash": "sha256:5d2fbf6e31244f8275c562d8ed985bb8416d8877677118b8f7f7c552537369da"
+      },
+      {
+        "anchorId": "research:INV-SYSTEM_CANON-E-TICTAC-2004:NODE:system:entity:β-sensor",
+        "investigationId": "INV-SYSTEM_CANON-E-TICTAC-2004",
+        "sourceWorkspace": "MANIFOLD",
+        "sourceIdentity": "NODE:system:entity:β-sensor",
+        "sourceKind": "GRAPH",
+        "classification": "CANONICAL",
+        "insertionState": "INSERTABLE",
+        "insertionReason": "Exact graph identity and revision are available.",
+        "displayTitle": "system:entity:β-sensor",
+        "displaySummary": "NODE at graph revision 2",
+        "sourceRevisionId": "2",
+        "sourceExecutionId": null,
+        "sourceProjectionId": null,
+        "graphIdentity": "NODE:system:entity:β-sensor",
+        "graphRevision": 2,
+        "captureSchemaVersion": "research-graph/v1",
+        "captureMediaType": "application/json",
+        "capturedRepresentation": { "graph": { "id": "system:entity:β-sensor", "type": "NODE" }, "graphRevision": 2, "values": [3, 5, 8] },
+        "collectedAt": "2026-09-04T19:03:06.841Z",
+        "createdAt": "2026-09-04T19:03:06.841Z",
+        "immutableSourceHash": "sha256:27124627295beb93505eff08b066e311dd3f25c1273c458274ee0eff39db42bd"
+      }
+    ],
+    "researcherNotes": [],
+    "excludedSources": []
+  },
+  "contextHash": "sha256:9c1e6e06a1e089e65ad9a7aedae032c4be434a2ef0a2e6e5391efdba8d3e0b9f"
+}

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { createTypedResearchAnchor } from "../../src/research/ResearchAnchorContract.ts";
 import { STUDIO_ARTIFACT_DESIGNS } from "../../src/studio/drafting/StudioArtifactDesigns.ts";
-import { assembleStudioDraftingContext } from "../../src/studio/drafting/StudioDraftingContext.ts";
+import { assembleStudioDraftingContext, canonicalSerializeDraftingContext, sha256Canonical } from "../../src/studio/drafting/StudioDraftingContext.ts";
 
 const at = new Date("2026-01-02T03:04:05Z");
 const anchor = createTypedResearchAnchor({ investigationId: "investigation:A", kind: "EVIDENCE_RECORD", sourceWorkspace: "EVIDENCE", sourceIdentity: "evidence:1", collectedAt: at, classification: "CANONICAL", display: { title: "Evidence", summary: "Exact" }, insertability: { state: "INSERTABLE", reason: "Qualified." }, capturedRepresentation: { schemaVersion: "evidence/v1", mediaType: "application/json", value: { exact: true } } } as never);
@@ -18,4 +20,17 @@ for (const key of ["label", "purpose", "sectionPlan", "draftingGuidance", "prove
 const relabeled = await assembleStudioDraftingContext({ ...input, artifactDesign: { ...design, label: "Presentation-only relabel" } });
 assert.equal(relabeled.canonicalContext, first.canonicalContext, "presentation labels do not alter canonical request context");
 assert.equal(relabeled.contextHash, first.contextHash, "presentation labels do not alter the context hash");
+
+const browserFixture = JSON.parse(readFileSync("tools/verification/fixtures/studio-drafting-browser-context.json", "utf8")) as { context: unknown; contextHash: string };
+const frontendCanonical = canonicalSerializeDraftingContext(browserFixture.context);
+assert.equal(await sha256Canonical(browserFixture.context), browserFixture.contextHash, "browser-shaped frontend hash matches the parity fixture");
+const python = spawnSync("python", ["-c", [
+  "import base64,json,sys",
+  "from isees_uap.studio.hashing import canonical_json",
+  "from isees_uap.studio.schemas import DraftingContext",
+  "value=DraftingContext.model_validate(json.loads(base64.b64decode(sys.stdin.buffer.read()).decode('utf-8')))",
+  "sys.stdout.buffer.write(canonical_json(value.model_dump(mode='json')).encode('utf-8'))",
+].join(";")], { cwd: "..", input: Buffer.from(JSON.stringify(browserFixture.context), "utf8").toString("base64"), encoding: "utf8" });
+assert.equal(python.status, 0, python.stderr);
+assert.equal(python.stdout, frontendCanonical, "TypeScript and Python canonical JSON are byte-for-byte identical");
 console.log("VerifyStudioDraftingRequestParity: PASS");
