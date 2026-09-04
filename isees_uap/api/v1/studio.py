@@ -61,6 +61,19 @@ def service(repo: SQLiteStudioRepository = Depends(repository)) -> StudioService
                          _UnavailablePublication(), _UnavailableAcceptance(), _UnavailableDrafting())
 
 
+class _DraftingOnlyRepository:
+    """Fail if the unapplied proposal path ever reaches durable artifact storage."""
+
+    def __getattr__(self, name: str):
+        raise RuntimeError(f"Drafting proposal attempted durable repository operation: {name}")
+
+
+def drafting_service() -> StudioService:
+    authority = CandidateEvidenceInvestigationAuthority(candidate_database_path())
+    return StudioService(_DraftingOnlyRepository(), authority, _UnavailableSourceResolution(),
+                         _UnavailablePublication(), _UnavailableAcceptance(), _UnavailableDrafting())
+
+
 def principal(x_isees_principal_id: str = Header(min_length=1)) -> str:
     """Local ownership claim only; this header is not completed authentication."""
     if not x_isees_principal_id.strip():
@@ -111,7 +124,7 @@ def create_draft(investigation_id: IdentityPath, command: CreateStudioDraft,
 @router.post("/drafting-proposals", response_model=DraftProposal)
 def generate_drafting_proposal(investigation_id: IdentityPath, command: GenerateDraftProposal,
                                owner: str = Depends(principal),
-                               svc: StudioService = Depends(service)):
+                               svc: StudioService = Depends(drafting_service)):
     _ownership(command, owner)
     return svc.generate_draft_proposal(investigation_id, command)
 

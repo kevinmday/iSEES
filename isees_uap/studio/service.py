@@ -65,7 +65,6 @@ class StudioService:
 
     def generate_draft_proposal(self, path_id: str, command: GenerateDraftProposal) -> DraftProposal:
         self._path(path_id, command.investigationId)
-        self._authorize(command.principalId, command.investigationId)
         return generate(self.drafting_provider, command)
 
     def _authorize(self, principal_id: str, investigation_id: str) -> None:

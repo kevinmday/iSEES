@@ -6,11 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from isees_uap.api import app
-from isees_uap.api.v1.studio import service
+from isees_uap.api.v1.studio import drafting_service
 from isees_uap.studio.drafting import ProviderFailureError, ProviderTimeoutError
 from isees_uap.studio.errors import (
     DraftingProviderFailure, DraftingProviderTimeout, DraftingProviderUnavailable,
-    InvalidDraftingContext, InvalidDraftingProviderResponse, OwnershipAccessFailure,
+    InvalidDraftingContext, InvalidDraftingProviderResponse,
 )
 from isees_uap.studio.hashing import canonical_hash
 from isees_uap.studio.ports import AccessResult, SourceResolutionResult
@@ -156,12 +156,24 @@ def test_provider_failures_are_explicit_and_sanitized(behavior, error):
     assert "secret" not in str(caught.value) and "evidence" not in str(caught.value)
 
 
-def test_unavailable_provider_and_unauthorized_scope_fail_closed():
+def test_unavailable_provider_does_not_require_persisted_investigation_membership():
     svc, repo = make_service()
     with pytest.raises(DraftingProviderUnavailable): svc.generate_draft_proposal("i1", command())
-    denied, _ = make_service(Provider(), Access(False))
-    with pytest.raises(OwnershipAccessFailure): denied.generate_draft_proposal("i1", command())
     assert repo.calls == 0
+
+
+def test_proposal_authority_is_request_scoped_and_fail_closed():
+    provider = Provider()
+
+    class UnexpectedDurableAuthority:
+        def resolve_access(self, **_):
+            raise AssertionError("durable Investigation membership boundary touched")
+
+    svc, repo = make_service(provider, UnexpectedDurableAuthority())
+    assert svc.generate_draft_proposal("i1", command()).outcome == "GENERATED"
+    with pytest.raises(InvalidDraftingContext):
+        svc.generate_draft_proposal("i1", command(investigationId="i2"))
+    assert provider.calls == 1 and repo.calls == 0
 
 
 def test_frontend_artifact_design_wire_parity_is_strict_and_reaches_provider_boundary():
@@ -182,7 +194,7 @@ def test_frontend_artifact_design_wire_parity_is_strict_and_reaches_provider_bou
 
 def test_api_route_path_body_owner_and_safe_errors():
     svc, _ = make_service(Provider())
-    app.dependency_overrides[service] = lambda: svc
+    app.dependency_overrides[drafting_service] = lambda: svc
     body = command().model_dump(mode="json")
     client = TestClient(app); url = "/api/v1/investigations/i1/studio-artifacts/drafting-proposals"
     try:
@@ -196,7 +208,7 @@ def test_api_route_path_body_owner_and_safe_errors():
 
 def test_api_unavailable_error_leaks_no_credentials_or_source_payload():
     svc, _ = make_service()
-    app.dependency_overrides[service] = lambda: svc
+    app.dependency_overrides[drafting_service] = lambda: svc
     body = command().model_dump(mode="json")
     try:
         response = TestClient(app).post("/api/v1/investigations/i1/studio-artifacts/drafting-proposals",
@@ -204,3 +216,28 @@ def test_api_unavailable_error_leaks_no_credentials_or_source_payload():
         assert response.status_code == 503 and response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
         assert "evidence:1" not in response.text and "credential" not in response.text.lower()
     finally: app.dependency_overrides.clear()
+
+
+def test_production_unavailable_proposal_does_not_open_or_mutate_durable_stores(tmp_path, monkeypatch):
+    from isees_uap.api.v1.studio import repository
+
+    authority_path = tmp_path / "candidate-authority.db"
+    studio_path = tmp_path / "studio.db"
+    monkeypatch.setenv("ISEES_CANDIDATE_DB_PATH", str(authority_path))
+    monkeypatch.setenv("ISEES_STUDIO_DB_PATH", str(studio_path))
+    repository.cache_clear()
+    body = command().model_dump(mode="json")
+    try:
+        client = TestClient(app)
+        for _ in range(2):
+            response = client.post(
+                "/api/v1/investigations/i1/studio-artifacts/drafting-proposals",
+                json=body,
+                headers={"X-ISEES-Principal-Id": "p1"},
+            )
+            assert response.status_code == 503
+            assert response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
+        assert not authority_path.exists()
+        assert not studio_path.exists()
+    finally:
+        repository.cache_clear()
