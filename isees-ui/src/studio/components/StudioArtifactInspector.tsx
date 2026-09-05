@@ -24,7 +24,7 @@ export default function StudioArtifactInspector() {
   const operator = useOperatorIdentity();
   const document = useAuthorDocument();
   const dirty = useAuthorDocumentDirty();
-  useAuthorDocumentRevision();
+  const revision = useAuthorDocumentRevision();
   const runtime = useAuthorDocumentRuntime();
   const scope = useMemo<StudioScope | undefined>(() => investigation && operator.identity ? { investigationId: investigation.id, principalId: operator.identity.operatorId } : undefined, [investigation, operator.identity]);
   const [artifact, setArtifact] = useState<StudioArtifactProjection>();
@@ -33,10 +33,12 @@ export default function StudioArtifactInspector() {
   const [inFlight, setInFlight] = useState<string>();
   const [reviewReason, setReviewReason] = useState("");
   const [preview, setPreview] = useState<ProjectionFormat>();
-  const [contentHashResult, setContentHashResult] = useState<{ artifact: StudioArtifactProjection; document: object; hash: string }>();
+  const [contentHashResult, setContentHashResult] = useState<{ artifact: StudioArtifactProjection; document: object; revision: number; hash: string }>();
   const requestSequence = useRef(0);
   const activeArtifact = artifact && scope && document
     && artifact.artifact.investigationId === scope.investigationId
+    && artifact.artifact.ownerPrincipalId === scope.principalId
+    && artifact.artifact.artifactId === document.identity.id
     && (artifact.currentVersion.document as { identity?: { id?: string } } | undefined)?.identity?.id === document.identity.id
     ? artifact : undefined;
 
@@ -54,18 +56,18 @@ export default function StudioArtifactInspector() {
     try {
       const result = await studioApi.list(expectedScope);
       if (sequence !== requestSequence.current) return undefined;
-      const scoped = result.items.filter(item => item.artifact.investigationId === expectedScope.investigationId);
+      const scoped = result.items.filter(item => item.artifact.investigationId === expectedScope.investigationId && item.artifact.ownerPrincipalId === expectedScope.principalId);
       const exact = expectedDocument
-        ? scoped.find(item => (item.currentVersion.document as { identity?: { id?: string } } | undefined)?.identity?.id === expectedDocument.identity.id)
+        ? scoped.find(item => item.artifact.artifactId === expectedDocument.identity.id && (item.currentVersion.document as { identity?: { id?: string } } | undefined)?.identity?.id === expectedDocument.identity.id)
         : scoped.toSorted((left, right) => right.artifact.updatedAt.localeCompare(left.artifact.updatedAt))[0];
       if (!expectedDocument && exact) {
         const restored = restoreStudioDocument(exact.currentVersion.document);
         if (!restored) { setState("ERROR"); setMessage("The saved artifact document could not be restored safely."); return undefined; }
-        runtime.setActiveDocument(restored);
+        runtime.restoreActiveDocument(restored);
       }
       setArtifact(exact);
       setState(exact ? "READY" : expectedDocument ? "NOT_CREATED" : "EMPTY");
-      setMessage(exact ? "Canonical artifact synchronized." : expectedDocument ? STUDIO_ARTIFACT_EMPTY_MESSAGE : "No durable artifact has been created for this draft.");
+      setMessage(exact ? "Canonical artifact loaded; comparing the active draft." : expectedDocument ? STUDIO_ARTIFACT_EMPTY_MESSAGE : "No durable artifact has been created for this draft.");
       return exact;
     } catch (error) {
       if (sequence === requestSequence.current) {
@@ -81,24 +83,29 @@ export default function StudioArtifactInspector() {
 
   useEffect(() => {
     let current = true;
+    const comparedRevision = revision;
+    setContentHashResult(undefined);
     if (scope && document && activeArtifact) void activeStudioContentHash(scope, document, activeArtifact)
-      .then(hash => { if (current) setContentHashResult({ artifact: activeArtifact, document, hash }); })
+      .then(hash => {
+        if (!current) return;
+        setContentHashResult({ artifact: activeArtifact, document, revision: comparedRevision, hash });
+        runtime.reconcileCanonicalState({ investigationId: scope.investigationId, document, revision: comparedRevision, synchronized: hash === activeArtifact.currentVersion.contentHash });
+      })
       .catch(() => { /* Hash failure remains unavailable and fail-closed. */ });
     return () => { current = false; };
-  }, [scope, document, activeArtifact]);
+  }, [scope, document, activeArtifact, revision, runtime]);
 
-  const mutate = useCallback(async (operation: string, path: string, command: object, markClean = false) => {
+  const mutate = useCallback(async (operation: string, path: string, command: object) => {
     if (!scope || inFlight) return;
     setInFlight(operation); setMessage(`${operation} in progress…`);
     try {
       await studioApi.post(scope, path, command);
       const refreshed = await refresh(scope, document);
       if (!refreshed) return;
-      if (markClean) runtime.markClean();
       setState("SUCCESS"); setMessage(`${operation} completed and canonical state refreshed.`);
     } catch (error) { handleError(error); }
     finally { setInFlight(undefined); }
-  }, [document, handleError, inFlight, refresh, runtime, scope]);
+  }, [document, handleError, inFlight, refresh, scope]);
 
   const save = async () => {
     if (!scope || !document || inFlight) return;
@@ -111,8 +118,8 @@ export default function StudioArtifactInspector() {
         return { ...snapshot, immutableSourceHash: await publishCanonicalGraphSource(anchor, scope.principalId) };
       }));
       const verifiedBase = { ...base, sourceSnapshots };
-      if (!activeArtifact) void mutate("Save Draft", "", { ...verifiedBase, artifactId: document.identity.id, versionId: `${document.identity.id}:v1`, idempotencyKey: idempotency("create") }, true);
-      else void mutate("Save Draft", `/${encodeURIComponent(activeArtifact.artifact.artifactId)}/versions`, { ...verifiedBase, artifactId: activeArtifact.artifact.artifactId, expectedRevision: activeArtifact.artifact.revision, idempotencyKey: idempotency("save") }, true);
+      if (!activeArtifact) void mutate("Save Draft", "", { ...verifiedBase, artifactId: document.identity.id, versionId: `${document.identity.id}:v1`, idempotencyKey: idempotency("create") });
+      else void mutate("Save Draft", `/${encodeURIComponent(activeArtifact.artifact.artifactId)}/versions`, { ...verifiedBase, artifactId: activeArtifact.artifact.artifactId, expectedRevision: activeArtifact.artifact.revision, idempotencyKey: idempotency("save") });
     } catch (error) { handleError(error); }
   };
 
@@ -158,7 +165,7 @@ export default function StudioArtifactInspector() {
   const current = activeArtifact?.artifact;
   const version = activeArtifact?.currentVersion;
   const durableVersionExists = hasDurableArtifactVersion(current?.artifactId, current?.currentVersionId, version?.versionId);
-  const activeContentHash = contentHashResult && contentHashResult.artifact === activeArtifact && contentHashResult.document === document ? contentHashResult.hash : undefined;
+  const activeContentHash = contentHashResult && contentHashResult.artifact === activeArtifact && contentHashResult.document === document && contentHashResult.revision === revision ? contentHashResult.hash : undefined;
   const contentConsistent = activeArtifact && document && activeContentHash ? !dirty && activeContentHash === version?.contentHash : undefined;
   const activeSnapshots = activeArtifact?.sourceSnapshots.filter(snapshot => version?.sourceSnapshotIds.includes(snapshot.snapshotId)) ?? [];
   const snapshotState = !activeArtifact ? "Not yet captured" : activeSnapshots.some(item => item.resolutionStatus === "STALE") ? "Stale" : activeSnapshots.some(item => ["MISSING", "UNAVAILABLE", "REDACTED"].includes(item.resolutionStatus)) ? "Unavailable" : activeSnapshots.length ? (activeSnapshots.every(item => item.resolutionStatus === "AVAILABLE") ? "Consistent" : "Not yet resolved") : "No snapshots";

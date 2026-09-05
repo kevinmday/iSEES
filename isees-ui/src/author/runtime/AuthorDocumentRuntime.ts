@@ -55,6 +55,8 @@ export class AuthorDocumentRuntime {
 
   private documentsByInvestigation = new Map<string, ComputationalAuthorDocument>();
 
+  private dirtyByInvestigation = new Map<string, boolean>();
+
   private lastInsertedNodeId: string | undefined;
 
   private state:
@@ -190,10 +192,43 @@ export class AuthorDocumentRuntime {
 
     if (this.activeInvestigationId) {
       this.documentsByInvestigation.set(this.activeInvestigationId, document);
+      this.dirtyByInvestigation.set(this.activeInvestigationId, false);
     }
 
     this.notify();
 
+  }
+
+  /**
+   * Browser restoration proves only that local work survived. It does not prove
+   * equality with the canonical Studio artifact, so restored work remains dirty
+   * until the canonical reconciliation boundary explicitly proves otherwise.
+   */
+  restoreActiveDocument(
+    document: ComputationalAuthorDocument,
+  ): void {
+    this.setActiveDocument(document);
+    this.markDirty();
+  }
+
+  /** Applies a canonical comparison only while its exact runtime snapshot is current. */
+  reconcileCanonicalState(input: {
+    investigationId: string;
+    document: ComputationalAuthorDocument;
+    revision: number;
+    synchronized: boolean;
+  }): boolean {
+    if (
+      this.activeInvestigationId !== input.investigationId ||
+      this.state.activeDocument !== input.document ||
+      this.state.revision !== input.revision
+    ) {
+      return false;
+    }
+
+    if (input.synchronized) this.markClean();
+    else this.markDirty();
+    return true;
   }
 
   /** Keeps one canonical draft per Investigation without introducing a UI document owner. */
@@ -202,6 +237,7 @@ export class AuthorDocumentRuntime {
 
     if (this.activeInvestigationId && this.state.activeDocument) {
       this.documentsByInvestigation.set(this.activeInvestigationId, this.state.activeDocument);
+      this.dirtyByInvestigation.set(this.activeInvestigationId, this.state.dirty);
     }
 
     const firstActivation = this.activeInvestigationId === undefined && investigationId !== undefined;
@@ -214,7 +250,8 @@ export class AuthorDocumentRuntime {
     this.activeInvestigationId = investigationId;
     if (investigationId && nextDocument) this.documentsByInvestigation.set(investigationId, nextDocument);
     this.lastInsertedNodeId = undefined;
-    this.state = { ...this.state, activeDocument: nextDocument, dirty: false, revision: this.state.revision + 1 };
+    const nextDirty = firstActivation ? this.state.dirty : investigationId ? (this.dirtyByInvestigation.get(investigationId) ?? false) : false;
+    this.state = { ...this.state, activeDocument: nextDocument, dirty: nextDirty, revision: this.state.revision + 1 };
     this.notify();
   }
 
@@ -244,6 +281,8 @@ export class AuthorDocumentRuntime {
         this.state.revision + 1,
 
     };
+
+    if (this.activeInvestigationId) this.dirtyByInvestigation.set(this.activeInvestigationId, false);
 
     this.notify();
 
@@ -321,6 +360,8 @@ export class AuthorDocumentRuntime {
 
     };
 
+    if (this.activeInvestigationId) this.dirtyByInvestigation.set(this.activeInvestigationId, true);
+
     this.notify();
 
     return "INSERTED";
@@ -368,6 +409,7 @@ export class AuthorDocumentRuntime {
   private publishDraftMutation(nodeId?: string): void {
     this.lastInsertedNodeId = nodeId;
     this.state = { ...this.state, dirty: true, revision: this.state.revision + 1 };
+    if (this.activeInvestigationId) this.dirtyByInvestigation.set(this.activeInvestigationId, true);
     this.notify();
   }
 
@@ -398,6 +440,8 @@ export class AuthorDocumentRuntime {
 
     };
 
+    if (this.activeInvestigationId) this.dirtyByInvestigation.set(this.activeInvestigationId, true);
+
     this.notify();
 
   }
@@ -424,6 +468,8 @@ export class AuthorDocumentRuntime {
         this.state.revision + 1,
 
     };
+
+    if (this.activeInvestigationId) this.dirtyByInvestigation.set(this.activeInvestigationId, false);
 
     this.notify();
 

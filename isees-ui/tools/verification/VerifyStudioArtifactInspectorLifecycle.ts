@@ -15,10 +15,10 @@ assert.doesNotMatch(inspector, /new AuthorDocumentRuntime|useState<.*Computation
 for (const route of ["candidate/publication", "review-submissions", "acceptance", "returns", "rejections", "projections/validations"]) assert.ok(inspector.includes(route), `route composed: ${route}`);
 for (const state of ["CONFLICT", "STALE_REVISION", "FORBIDDEN", "UNAVAILABLE_BACKEND", "ERROR"]) assert.ok(api.includes(state), `explicit API state: ${state}`);
 for (const format of ["PDF", "DOCX", "HTML"]) assert.ok(inspector.includes(`\"${format}\"`), `${format} projection composed`);
-assert.match(inspector, /No authoritative output materializer is configured/, "materialization fails closed");
+assert.match(inspector, /canMaterializeProjection\(/, "materialization eligibility fails closed through canonical projection semantics");
 assert.match(inspector, /does not create accepted knowledge or an accepted relationship/, "publication is not falsely accepted");
 assert.match(inspector, /expectedRevision/); assert.match(inspector, /idempotencyKey/); assert.match(inspector, /if \(!scope \|\| inFlight\) return/); assert.match(inspector, /await refresh\(scope, document\)/);
-assert.match(inspector, /item\.artifact\.investigationId === expectedScope\.investigationId/, "artifact selection is exactly Investigation scoped");
+assert.match(inspector, /item\.artifact\.investigationId === expectedScope\.investigationId && item\.artifact\.ownerPrincipalId === expectedScope\.principalId/, "artifact selection is exactly Investigation and principal scoped");
 assert.match(inspector, /current\?\.lifecycleState !== actionTarget\[operation\]/, "invalid transitions are disabled with reasons");
 assert.match(inspector, /dirty \? \"Save current changes before advancing lifecycle/, "dirty versions cannot advance");
 

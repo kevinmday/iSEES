@@ -435,13 +435,9 @@ export default function StudioToolbar() {
         url,
       );
 
-      // ------------------------------------------------------
-      // Persistence succeeded from the runtime's perspective.
-      //
-      // Only now acknowledge that the active document is clean.
-      // ------------------------------------------------------
-
-      runtime.markClean();
+      // A local file download is an export convenience, not proof that the
+      // canonical Studio artifact matches this runtime revision. Canonical
+      // reconciliation remains the sole clean-state transition.
 
   };
 

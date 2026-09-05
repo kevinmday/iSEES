@@ -446,7 +446,9 @@ function restoreResearch(
 //
 // Therefore no direct state mutation is required.
 //
-// Runtime dirty/revision state is intentionally not restored.
+// Runtime revision state is intentionally not restored. Browser restoration is
+// not canonical persistence proof, so the document is dirty until Studio
+// reconciliation proves equality with the current canonical version.
 //
 // ============================================================
 
@@ -471,7 +473,7 @@ function restoreAuthoring(
 
   }
 
-  runtime.setActiveDocument(
+  runtime.restoreActiveDocument(
     document,
   );
 
