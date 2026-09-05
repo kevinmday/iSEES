@@ -98,7 +98,7 @@ def test_migration_complete_idempotent_and_reopen(tmp_path):
                 "studio_candidate_publication_receipt", "studio_acceptance_receipt",
                 "studio_review_decision", "studio_projection", "studio_lifecycle_event",
                 "studio_idempotency", "studio_schema_migrations"} <= tables
-        assert connection.execute("SELECT count(*) FROM studio_schema_migrations").fetchone()[0] == 1
+        assert connection.execute("SELECT count(*) FROM studio_schema_migrations").fetchone()[0] == 2
 
 
 def test_migration_refuses_newer_schema_without_resetting_data(tmp_path):

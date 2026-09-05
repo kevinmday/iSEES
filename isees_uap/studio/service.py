@@ -15,7 +15,7 @@ from .hashing import canonical_hash
 from .lifecycle import StudioLifecycle, require_transition
 from .models import (
     CandidateKnowledgeArtifact, ClaimReviewState, ContradictionOrigin, LineageState,
-    MaterializationState, ProjectionFormat, ReadinessState, RelationshipType,
+    MaterializationState, ProjectionFormat, ReadinessState, RelationshipType, ResolutionStatus,
     ReviewDecisionType, ReviewTargetScope, SourceClassification, SourceKind,
     StudioArtifact, StudioArtifactVersion, StudioCitation, StudioClaim,
     StudioClaimSourceMapping, StudioProjectionRecord, StudioReviewDecision,
@@ -189,7 +189,11 @@ class StudioService:
             captured_at=item.capturedAt,
             representation_schema_version=item.representationSchemaVersion,
             media_type=item.mediaType, captured_representation=item.capturedRepresentation,
+            anchor_id=item.anchorId, graph_identity=item.graphIdentity,
+            graph_revision=item.graphRevision, immutable_source_hash=item.immutableSourceHash,
+            insertion_state=item.insertionState, insertion_reason=item.insertionReason,
         ) for item in command.sourceSnapshots)
+        verified_snapshots = []
         for snapshot in snapshots:
             if snapshot.classification == SourceClassification.CANONICAL:
                 if not (snapshot.source_identity and snapshot.source_investigation_id
@@ -199,14 +203,38 @@ class StudioService:
                     raise InvalidSourceSnapshot("Canonical sources require complete stable and revision identity")
                 try:
                     resolved = self.source_resolution_port.resolve_source(
-                        source_identity=snapshot.source_identity,
-                        source_investigation_id=snapshot.source_investigation_id,
-                        source_workspace=snapshot.source_workspace,
-                        source_kind=snapshot.source_kind.value)
+                        snapshot=snapshot, principal_id=command.principalId,
+                        investigation_id=command.investigationId)
                 except Exception as exc:
+                    from .source_resolution import UnsupportedSourceRoute
+                    if isinstance(exc, UnsupportedSourceRoute):
+                        raise InvalidSourceSnapshot(str(exc)) from exc
                     raise UnavailableExternalAuthority("Source authority unavailable") from exc
                 if not resolved.available:
                     raise InvalidSourceSnapshot("Canonical source identity could not be resolved")
+                canonical = resolved.metadata
+                expected = {
+                    "anchorId": snapshot.anchor_id, "investigationId": snapshot.source_investigation_id,
+                    "sourceWorkspace": snapshot.source_workspace,
+                    "sourceIdentity": snapshot.source_identity,
+                    "sourceRevisionId": snapshot.source_revision_id,
+                    "graphIdentity": snapshot.graph_identity, "graphRevision": snapshot.graph_revision,
+                    "classification": snapshot.classification.value,
+                    "representationSchemaVersion": snapshot.representation_schema_version,
+                    "mediaType": snapshot.media_type,
+                    "capturedRepresentation": snapshot.captured_representation,
+                    "immutableSourceHash": snapshot.immutable_source_hash,
+                    "insertionState": snapshot.insertion_state,
+                    "insertionReason": snapshot.insertion_reason,
+                }
+                if canonical and any(canonical.get(key) != value for key, value in expected.items()):
+                    stale = (canonical.get("graphIdentity") == snapshot.graph_identity
+                             and canonical.get("graphRevision") != snapshot.graph_revision)
+                    raise InvalidSourceSnapshot("Canonical source revision is stale" if stale
+                                                else "Canonical source does not match submitted snapshot")
+                snapshot = snapshot.with_resolution(ResolutionStatus.AVAILABLE, canonical)
+            verified_snapshots.append(snapshot)
+        snapshots = tuple(verified_snapshots)
         snapshot_ids = {item.snapshot_id for item in snapshots}
         if len(snapshot_ids) != len(snapshots):
             raise InvalidSourceSnapshot("Snapshot identities must be unique")

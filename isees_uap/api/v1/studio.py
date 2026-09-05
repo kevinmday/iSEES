@@ -24,6 +24,8 @@ from isees_uap.studio.service import StudioService
 from isees_uap.studio.sqlite_repository import SQLiteStudioRepository
 from isees_uap.studio.models import MaterializationState, ProjectionFormat
 from isees_uap.studio.pdf_materializer import PdfOutputStore
+from isees_uap.research_sources import SQLiteResearchSourceRepository, research_source_database_path
+from isees_uap.studio.source_resolution import CandidateEvidenceSourceResolution, ManifoldResearchSourceResolution, RoutedStudioSourceResolution
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/studio-artifacts", tags=["studio"])
 IdentityPath = Annotated[str, Path(min_length=1, pattern=r".*\S.*")]
@@ -59,7 +61,9 @@ def repository() -> SQLiteStudioRepository:
 
 def service(repo: SQLiteStudioRepository = Depends(repository)) -> StudioService:
     authority = CandidateEvidenceInvestigationAuthority(candidate_database_path())
-    return StudioService(repo, authority, _UnavailableSourceResolution(),
+    sources = RoutedStudioSourceResolution(ManifoldResearchSourceResolution(
+        SQLiteResearchSourceRepository(research_source_database_path())), CandidateEvidenceSourceResolution())
+    return StudioService(repo, authority, sources,
                          _UnavailablePublication(), _UnavailableAcceptance(), _UnavailableDrafting())
 
 

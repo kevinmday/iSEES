@@ -34,8 +34,8 @@ class InvestigationAccessPort(Protocol):
 
 
 class StudioSourceResolutionPort(Protocol):
-    def resolve_source(self, *, source_identity: str, source_investigation_id: str,
-                       source_workspace: str, source_kind: str) -> SourceResolutionResult: ...
+    def resolve_source(self, *, snapshot: Any, principal_id: str,
+                       investigation_id: str) -> SourceResolutionResult: ...
 
 
 class ManifoldCandidatePublicationPort(Protocol):

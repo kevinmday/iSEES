@@ -16,6 +16,7 @@ from isees_uap.api.v1.candidate_evidence import candidate_error_handler, router 
 from isees_uap.candidate_evidence.errors import CandidateEvidenceError
 from isees_uap.api.v1.studio import router as studio_router, studio_error_handler
 from isees_uap.studio.errors import StudioError
+from isees_uap.api.v1.research_sources import router as research_sources_router
 
 # ------------------------------------------------------------
 # APP INIT
@@ -23,6 +24,7 @@ from isees_uap.studio.errors import StudioError
 
 app = FastAPI()
 app.include_router(candidate_evidence_router)
+app.include_router(research_sources_router)
 app.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
 app.include_router(studio_router)
 app.add_exception_handler(StudioError, studio_error_handler)

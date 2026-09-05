@@ -7,6 +7,8 @@ import { authoredBlockCount, composeStudioVersionCommand, sourceBackedBlockCount
 import { studioApi, StudioApiError, type ProjectionFormat, type StudioArtifactProjection, type StudioLifecycle, type StudioScope } from "../api/StudioApi";
 import { activeStudioContentHash, canMaterializeProjection, hasDurableArtifactVersion, isExpectedUnsavedArtifact, selectCurrentProjection, STUDIO_ARTIFACT_EMPTY_ACTION, STUDIO_ARTIFACT_EMPTY_MESSAGE, STUDIO_PROJECTION_EMPTY_MESSAGE } from "./StudioArtifactInspectorSemantics";
 import "./StudioArtifactInspector.css";
+import { researchBridgeRuntime } from "../../research/ResearchBridgeRuntime";
+import { publishCanonicalGraphSource } from "../../research/ResearchSourceApi";
 
 type RequestState = "LOADING" | "READY" | "EMPTY" | "NOT_CREATED" | "SUCCESS" | "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR";
 const lifecycle: StudioLifecycle[] = ["DRAFT", "CANDIDATE_KNOWLEDGE_ARTIFACT", "MANIFOLD_CANDIDATE_NODE", "REVIEW_TEST", "ACCEPTED_KNOWLEDGE"];
@@ -98,11 +100,20 @@ export default function StudioArtifactInspector() {
     finally { setInFlight(undefined); }
   }, [document, handleError, inFlight, refresh, runtime, scope]);
 
-  const save = () => {
+  const save = async () => {
     if (!scope || !document || inFlight) return;
-    const base = composeStudioVersionCommand(scope, document);
-    if (!activeArtifact) void mutate("Save Draft", "", { ...base, artifactId: document.identity.id, versionId: `${document.identity.id}:v1`, idempotencyKey: idempotency("create") }, true);
-    else void mutate("Save Draft", `/${encodeURIComponent(activeArtifact.artifact.artifactId)}/versions`, { ...base, artifactId: activeArtifact.artifact.artifactId, expectedRevision: activeArtifact.artifact.revision, idempotencyKey: idempotency("save") }, true);
+    try {
+      const base = composeStudioVersionCommand(scope, document);
+      const anchors = new Map(researchBridgeRuntime.getDesk().entries.map(entry => [entry.anchor.anchorId, entry.anchor]));
+      const sourceSnapshots = await Promise.all(base.sourceSnapshots.map(async snapshot => {
+        const anchor = anchors.get(snapshot.anchorId);
+        if (!anchor || anchor.kind !== "GRAPH") return snapshot;
+        return { ...snapshot, immutableSourceHash: await publishCanonicalGraphSource(anchor, scope.principalId) };
+      }));
+      const verifiedBase = { ...base, sourceSnapshots };
+      if (!activeArtifact) void mutate("Save Draft", "", { ...verifiedBase, artifactId: document.identity.id, versionId: `${document.identity.id}:v1`, idempotencyKey: idempotency("create") }, true);
+      else void mutate("Save Draft", `/${encodeURIComponent(activeArtifact.artifact.artifactId)}/versions`, { ...verifiedBase, artifactId: activeArtifact.artifact.artifactId, expectedRevision: activeArtifact.artifact.revision, idempotencyKey: idempotency("save") }, true);
+    } catch (error) { handleError(error); }
   };
 
   const lifecycleAction = (operation: keyof typeof actionTarget) => {

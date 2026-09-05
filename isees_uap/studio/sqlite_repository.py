@@ -21,7 +21,7 @@ from .models import (
 )
 from .repository import IdempotencyRecord, IdempotencyScope, StudioAggregateRecord
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _sql_statements(script: str):
@@ -211,12 +211,14 @@ class SQLiteStudioRepository:
                 v.content_hash, v.created_by_principal_id, _time(v.created_at)))
             for snapshot_id in v.source_snapshot_ids:
                 s = snapshots[snapshot_id]
-                c.execute("INSERT INTO studio_source_snapshot VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+                c.execute("INSERT INTO studio_source_snapshot VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
                     s.snapshot_id, a.artifact_id, v.version_id, s.source_identity, s.source_investigation_id,
                     s.source_workspace, s.source_kind.value, s.classification.value, _time(s.captured_at),
                     s.representation_schema_version, s.media_type, canonical_json(s.captured_representation),
                     s.snapshot_hash, s.source_revision_id, s.source_execution_id, s.source_projection_id,
-                    s.resolution_status.value, canonical_json(s.resolution_metadata)))
+                    s.resolution_status.value, canonical_json(s.resolution_metadata), s.anchor_id,
+                    s.graph_identity, s.graph_revision, s.immutable_source_hash,
+                    s.insertion_state, s.insertion_reason))
             for claim in v.claims:
                 c.execute("INSERT INTO studio_claim VALUES (?,?,?,?,?,?,?)", (
                     claim.claim_id, a.artifact_id, v.version_id, claim.review_state.value,
@@ -295,11 +297,17 @@ class SQLiteStudioRepository:
             return None
         snapshot_rows = c.execute("SELECT * FROM studio_source_snapshot WHERE artifact_id=? ORDER BY rowid", (artifact_id,)).fetchall()
         snapshots = tuple(StudioSourceSnapshot(
-            s["snapshot_id"], s["source_identity"], s["source_investigation_id"], s["source_workspace"],
-            SourceKind(s["source_kind"]), SourceClassification(s["classification"]), _parse(s["captured_at"]),
-            s["representation_schema_version"], s["media_type"], json.loads(s["captured_representation_json"]),
-            s["snapshot_hash"], s["source_revision_id"], s["source_execution_id"], s["source_projection_id"],
-            ResolutionStatus(s["resolution_status"]), json.loads(s["resolution_metadata_json"]))
+            snapshot_id=s["snapshot_id"], source_identity=s["source_identity"],
+            source_investigation_id=s["source_investigation_id"], source_workspace=s["source_workspace"],
+            source_kind=SourceKind(s["source_kind"]), classification=SourceClassification(s["classification"]),
+            captured_at=_parse(s["captured_at"]), representation_schema_version=s["representation_schema_version"],
+            media_type=s["media_type"], captured_representation=json.loads(s["captured_representation_json"]),
+            snapshot_hash=s["snapshot_hash"], source_revision_id=s["source_revision_id"],
+            source_execution_id=s["source_execution_id"], source_projection_id=s["source_projection_id"],
+            resolution_status=ResolutionStatus(s["resolution_status"]), resolution_metadata=json.loads(s["resolution_metadata_json"]),
+            anchor_id=s["anchor_id"], graph_identity=s["graph_identity"], graph_revision=s["graph_revision"],
+            immutable_source_hash=s["immutable_source_hash"], insertion_state=s["insertion_state"],
+            insertion_reason=s["insertion_reason"])
             for s in snapshot_rows)
         versions = []
         for v in c.execute("SELECT * FROM studio_artifact_version WHERE artifact_id=? ORDER BY version_number", (artifact_id,)):

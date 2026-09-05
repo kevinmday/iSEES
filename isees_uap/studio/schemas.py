@@ -50,6 +50,7 @@ class ExistingMutation(Mutation):
 
 
 class SourceSnapshotInput(StrictModel):
+    anchorId: Identity | None = None
     snapshotId: Identity
     sourceIdentity: Identity
     sourceInvestigationId: Identity
@@ -63,6 +64,11 @@ class SourceSnapshotInput(StrictModel):
     representationSchemaVersion: Identity
     mediaType: Identity
     capturedRepresentation: Any
+    graphIdentity: str | None = None
+    graphRevision: int | None = Field(default=None, ge=1)
+    insertionState: Literal["INSERTABLE"] | None = None
+    insertionReason: str | None = None
+    immutableSourceHash: str | None = None
 
 
 class ClaimInput(StrictModel):

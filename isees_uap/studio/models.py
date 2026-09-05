@@ -122,6 +122,12 @@ class StudioSourceSnapshot:
     source_projection_id: str | None = None
     resolution_status: ResolutionStatus = ResolutionStatus.UNKNOWN
     resolution_metadata: Mapping[str, Any] = field(default_factory=dict)
+    anchor_id: str | None = None
+    graph_identity: str | None = None
+    graph_revision: int | None = None
+    immutable_source_hash: str | None = None
+    insertion_state: str | None = None
+    insertion_reason: str | None = None
 
     def __post_init__(self) -> None:
         _utc(self.captured_at)
