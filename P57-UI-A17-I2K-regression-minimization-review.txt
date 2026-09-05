@@ -1,0 +1,263 @@
+P57-UI-A17-I2K SAFETY-FIRST REGRESSION AND MINIMIZATION REVIEW
+Date: 2026-09-05
+Baseline: 2845e41829cd195558d41ad0964ba47f412ac9dc
+
+SAFETY / SCOPE
+
+- HEAD and origin/hf-deploy both resolve to the required baseline.
+- The initial tracked I2K diff contained 17 modified files (154 insertions, 150 deletions), plus three I2K untracked files: StudioSaveOrchestrator.ts, StudioSaveActionContext.ts, StudioSaveActionProvider.tsx, and the untracked VerifyStudioSaveReliability.ts verifier.
+- Numerous unrelated untracked discovery, patch, help, and backup files are present. They are outside this review and must remain untouched.
+- No staging, commit, push, reset, clean, checkout restoration, or deletion is authorized.
+
+ROOT-CAUSE TRACE AGAINST HEAD
+
+1. Guest-session restoration
+   HEAD restores the persisted Author document directly into AuthorDocumentRuntime. JSON persistence converts Date fields to strings. ResearchBridgeRuntime.restoreDesk is already an authoritative hydration boundary and calls migrateResearchAnchor, which revives and validates Research Anchor collectedAt/createdAt. Author restoration has no equivalent call in HEAD.
+
+2. Author document activation / Investigation switching
+   StudioShell activates AuthorDocumentRuntime for the active Investigation. AuthorDocumentRuntime retains one document and dirty flag per Investigation and refuses stale canonical reconciliation by checking Investigation, document identity, and revision. The provider wrapper does not repair these behaviors and broadens their component lifetime unnecessarily.
+
+3. Source insertion
+   createAuthorReferenceFromResearchAnchor stores insertedAt and the frozen publication/provenance fields already required by StudioAuthorDocumentAdapter: anchor/source identities, source revision, classification, insertability, and capturedRepresentation. ResearchAnchor remains in the persisted Research Desk, whose restore boundary already revives its schema-defined Date fields. Copying the complete graph anchor and extra dates/display onto AuthorNodeTypes is not required by runtime publication.
+
+4. Source-backed save / first creation / later version creation
+   HEAD's Inspector owns Save Draft. It composes snapshots, publishes each available GRAPH Research Anchor first, then invokes mutate for the initial create or version route. The confirmed stop occurs synchronously inside composeStudioVersionCommand when node.insertedAt is a persisted string and `.getTime()` is called. Hydrating Author dates before runtime activation repairs this root cause. Save should remain Inspector-owned, but its operation should be awaited locally so stage-aware failures and canonical refresh are deterministic.
+
+5. Toolbar Save
+   HEAD deliberately downloads the native canonical `.author` JSON artifact. It is an established local export convenience and does not mark canonical Studio state clean. Replacing it with Inspector Save Draft changes behavior and availability and is not required by any confirmed defect.
+
+6. Inspector Save Draft / error rendering
+   HEAD routes all operation errors through the Inspector's global RequestState/message, which makes a failed save appear to be whole-artifact ERROR. A separate Inspector-local save-operation error is required. It must preserve the loaded canonical artifact, dirty runtime document, provenance, and historical projections; report source publication, version POST, canonical reconciliation, or local preparation accurately; and never claim v2 without an exact canonical refresh.
+
+7. PDF validation / materialization / download
+   HEAD gates validation on durable saved version and clean state, materialization on current validated PDF readiness plus ownership and synchronization, and download on a materialized PDF output identity. A dirty v2 draft does not erase a v1 projection. The only required UI addition is an explicit stale-output note; save failure must not replace artifact state or projections.
+
+8. Projection consistency
+   activeStudioContentHash plus AuthorDocumentRuntime.reconcileCanonicalState owns clean-state transition. It is revision-, document-, and Investigation-guarded. Save code must adopt only the exact refreshed canonical version and leave hash reconciliation as the clean transition.
+
+9. Startup migration
+   HEAD creates/reads studio_schema_migrations before BEGIN IMMEDIATE and starts a separate transaction per pending migration. Two cold starters can make the same stale decision. The fix belongs wholly in SQLiteStudioRepository._migrate: acquire BEGIN IMMEDIATE before creating/reading history and apply all pending migrations and history rows in one transaction, rolling back and surfacing unexpected failures.
+
+10. API errors / request IDs
+    Canonical StudioApi errors sanitize messages. requestId is useful only when sourced from the canonical `error.requestId` envelope and allow-list validated before rendering. A response-header fallback is broader than the stated requirement and should not be retained. ResearchSourceApi currently consumes HTTPException `detail` strings; exposing those in staged UI is avoidable. Save errors should use fixed safe stage messages, while retaining only canonical envelope requestId metadata.
+
+FILE-BY-FILE CLASSIFICATION AND RECOMMENDATION
+
+Production files
+
+- isees-ui/src/workspace/persistence/GuestWorkspaceSessionRestorer.ts
+  Classification: ESSENTIAL TO ORIGINAL SAVE FIX.
+  Defect: direct restoration leaves Author Date fields serialized, causing synchronous save extraction failure.
+  Narrower owner: call the existing Author/Studio document hydrator at the Author restoration boundary; do not recursively revive arbitrary strings.
+  Risks: guest restore failure semantics, active document identity, dirty-on-restore, assertions.
+  Coverage: GuestWorkspaceSessionRestoration, StudioRestoredAuthorReconciliation, new reliability verification.
+  Recommendation: retain and simplify to a narrow validated hydration call.
+
+- isees-ui/src/studio/api/StudioDocumentRestoration.ts
+  Classification: ESSENTIAL TO ORIGINAL SAVE FIX.
+  Defect: its existing node date conversion was not validating malformed node dates; persisted Author REFERENCE.insertedAt must be a valid Date before activation.
+  Narrower owner: this is the existing authoritative Studio/Author JSON hydration boundary.
+  Risks: backend artifact refresh, empty/clean restoration, malformed persisted input.
+  Coverage: StudioRestoredAuthorReconciliation, first-save/reliability verification, guest restoration.
+  Recommendation: retain a schema-defined field conversion and fail safely; do not recursively date-coerce unknown data.
+
+- isees-ui/src/studio/components/StudioArtifactInspector.tsx
+  Classification: ESSENTIAL TO ACCURATE ERROR CONDITION and ESSENTIAL TO ORIGINAL SAVE FIX (awaited ordering/reconciliation).
+  Defect: save failure overwrites whole-artifact state; baseline save launches mutate without awaiting it; exact canonical success must be distinguished from operation failure.
+  Narrower owner: yes, keep orchestration and save error locally in the existing Inspector owner.
+  Risks: first save, v2 route/revision, lifecycle actions, refresh races, canonical clean reconciliation, projection/PDF availability.
+  Coverage: all Studio frontend verifiers plus reliability verification.
+  Recommendation: simplify locally; no shared provider/registry.
+
+- isees-ui/src/studio/components/StudioArtifactInspector.css
+  Classification: ESSENTIAL TO ACCURATE ERROR CONDITION.
+  Defect: local operation failure and stale historical output need distinguishable rendering.
+  Narrower owner: Inspector stylesheet is already the narrow owner.
+  Risks: visual only.
+  Coverage: affected-file lint/build and Inspector structural verifiers; browser acceptance remains required.
+  Recommendation: retain only the two local styles.
+
+- isees_uap/studio/sqlite_repository.py
+  Classification: ESSENTIAL TO MIGRATION FIX.
+  Defect: migration history is decided before the write lock.
+  Narrower owner: no; repository migration initializer is exact owner.
+  Risks: first startup, reopen, future-schema refusal, transaction rollback, concurrent cold start.
+  Coverage: focused migration tests and complete Studio backend suite.
+  Recommendation: retain.
+
+- isees-ui/src/studio/api/StudioApi.ts
+  Classification: ESSENTIAL TO ACCURATE ERROR CONDITION only if canonical envelope requestId is displayed.
+  Defect: stage-aware Inspector may safely correlate a canonical API error.
+  Narrower owner: parse `error.requestId` in the existing API boundary; omit header fallback and raw payloads.
+  Risks: all Studio error construction/classification.
+  Coverage: Inspector empty/error verifiers, build.
+  Recommendation: simplify.
+
+- isees-ui/src/research/ResearchSourceApi.ts
+  Classification: ESSENTIAL TO ACCURATE ERROR CONDITION only for fixed safe transport failure and canonical envelope requestId; receipt redesign is UNNECESSARY SCOPE EXPANSION.
+  Defect: publication transport errors need a stable typed classification for stage reporting.
+  Narrower owner: yes, existing API function.
+  Risks: all canonical graph publication callers and return type.
+  Coverage: focused Research authority tests/verifiers and build.
+  Recommendation: simplify; preserve the established string hash return and avoid response-contract expansion.
+
+- isees-ui/src/author/components/StudioShell.tsx
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: none; only hosts new provider.
+  Narrower owner: Inspector local state.
+  Risks: layout tree, remount behavior, Investigation activation.
+  Coverage: Studio shell ownership verifier/build, but tests do not justify mutation.
+  Recommendation: remove mutation.
+
+- isees-ui/src/author/components/StudioToolbar.tsx
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: none; replaces established `.author` download with server Save Draft.
+  Narrower owner: Inspector already owns Save Draft.
+  Risks: toolbar Save behavior, offline export, availability, clean semantics.
+  Coverage: existing toolbar/author verifiers require preservation.
+  Recommendation: remove mutation and preserve HEAD behavior.
+
+- isees-ui/src/author/model/AuthorNodeTypes.ts
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: none for timestamp-safe insertedAt restoration; Research Desk remains publication authority.
+  Narrower owner: hydrate Author insertedAt and use restored Research Anchor.
+  Risks: durable Author schema and all producers/consumers.
+  Coverage: author runtime and source insertion verifiers.
+  Recommendation: remove mutation.
+
+- isees-ui/src/studio/sources/ResearchAnchorAuthorInsertion.ts
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: none when Research Desk restoration is authoritative.
+  Narrower owner: Guest Author hydration.
+  Risks: frozen Author provenance payload/schema size.
+  Coverage: source insertion and restored reconciliation verifiers.
+  Recommendation: remove mutation.
+
+- isees-ui/src/studio/api/StudioSaveOrchestrator.ts (untracked)
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: reimplements existing Inspector save ownership and reconstructs Research Anchors from expanded Author nodes.
+  Narrower owner: existing Inspector save function.
+  Risks: duplicate save ownership, altered idempotency, non-GRAPH source behavior, v1/v2 identity.
+  Coverage: new verifier only; a new test cannot justify production architecture.
+  Recommendation: remove from minimized I2K diff (leave no production dependency).
+
+- isees-ui/src/studio/runtime/StudioSaveActionContext.ts (untracked)
+- isees-ui/src/studio/runtime/StudioSaveActionProvider.tsx (untracked)
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: none; created only to unify two intentionally different Save controls.
+  Narrower owner: preserve toolbar export; repair Inspector locally.
+  Risks: render lifecycle, hook/provider coupling, global shared action state.
+  Coverage: only new structural assertions.
+  Recommendation: remove from minimized I2K diff (leave no production dependency).
+
+- isees_uap/api/v1/research_sources.py
+  Classification: UNNECESSARY SCOPE EXPANSION.
+  Defect repaired: none; client already computes the immutable hash and baseline endpoint persists it.
+  Narrower owner: preserve existing response contract.
+  Risks: API compatibility.
+  Coverage: Research authority tests.
+  Recommendation: remove mutation.
+
+Test/discovery files
+
+- isees_uap/testing/studio/test_sqlite_repository.py
+  Classification: TEST/DISCOVERY ONLY. Retain concurrent cold-start and loud rollback tests.
+- isees-ui/tools/verification/VerifyStudioSaveReliability.ts (untracked)
+  Classification: TEST/DISCOVERY ONLY. Rewrite to verify the minimized local design, not removed provider architecture.
+- isees-ui/tools/verification/VerifyStudioArtifactInspectorEmptyState.ts
+- isees-ui/tools/verification/VerifyStudioFirstSaveTransition.ts
+- isees-ui/tools/verification/VerifyStudioRestoredAuthorReconciliation.ts
+  Classification: TEST/DISCOVERY ONLY. Simplify expectations to the retained design; do not let structural assertions force production expansion.
+- isees-ui/package.json
+  Classification: TEST/DISCOVERY ONLY. A convenience script is not production behavior, but it unnecessarily enlarges the tracked diff. Remove the mutation and run the verifier directly.
+- P57-UI-A17-I2K-studio-save-and-migration-discovery.txt and this review
+  Classification: TEST/DISCOVERY ONLY. Documentation; no runtime effect.
+
+MINIMAL PROVEN DESIGN
+
+1. At GuestWorkspaceSessionRestorer's Author boundary, pass a present persisted document through restoreStudioDocument before AuthorDocumentRuntime.restoreActiveDocument.
+2. In restoreStudioDocument, revive only schema-defined Author dates: identity.createdAt, metadata.modifiedAt, REFERENCE.insertedAt, and node.createdAt where that node schema owns it. Reject invalid required/present dates safely. Do not expand AuthorNodeTypes.
+3. Keep Inspector as the one authoritative Save Draft owner. Preserve toolbar `.author` download exactly.
+4. In Inspector save: prepare command; publish available canonical GRAPH sources first; await the Studio create/version POST; await exact canonical refresh; adopt no fabricated version; preserve runtime document and artifact/projections on every failure. Track a separate local save error with fixed stage-safe copy. Only canonical API-envelope requestId may be rendered after a strict allow-list check.
+5. Preserve PDF gates and show that a dirty draft makes an existing saved PDF historical/stale, not deleted.
+6. Acquire SQLite BEGIN IMMEDIATE before reading migration history and commit all pending migrations atomically. Retain idempotent reopen, concurrent cold-start, newer-schema, and loud unexpected-failure tests.
+
+AUDIT CONCLUSION
+
+The original no-POST defect can and should be fixed primarily through timestamp-safe Author restoration. It does not justify a global/shared Save architecture, toolbar behavior change, Author schema expansion, or Research publication response redesign. Production minimization is proven and may proceed within the boundaries above.
+
+FINAL MINIMIZATION AND VERIFICATION
+
+Tracked production files retained from the original I2K diff
+
+- ResearchSourceApi.ts: simplified to typed/safe transport failure and canonical error-envelope requestId while preserving the established string hash return and endpoint contract.
+- StudioApi.ts: simplified to carry requestId only from the canonical error envelope; header fallback removed.
+- StudioDocumentRestoration.ts: narrowed to schema-defined Author Date fields with fail-safe malformed-date rejection.
+- StudioArtifactInspector.tsx: simplified to Inspector-local ordered save and operation error state; no provider/global registry.
+- StudioArtifactInspector.css: retained only operation-error and historical-output presentation.
+- GuestWorkspaceSessionRestorer.ts: retained narrow Author hydration call.
+- sqlite_repository.py: retained migration lock/atomicity repair.
+
+Tracked test files retained
+
+- VerifyStudioArtifactInspectorEmptyState.ts
+- VerifyStudioFirstSaveTransition.ts
+- VerifyStudioRestoredAuthorReconciliation.ts
+- test_sqlite_repository.py
+
+Files removed from the tracked I2K diff (restored to baseline content)
+
+- package.json
+- StudioShell.tsx
+- AuthorNodeTypes.ts
+- ResearchAnchorAuthorInsertion.ts
+- research_sources.py
+
+StudioToolbar.tsx was also restored byte-for-byte at Git's normalized-content level to its baseline behavior (blob ed52e47ffacb2a3579487edf6d56433a633e3d69). Git status still reports a worktree modification because the apply-patch restoration left mixed physical line endings; `git diff`, `git diff --raw`, and filtered `git hash-object` all prove no content delta. No staging/index refresh was used.
+
+Untracked I2K files preserved because deletion of untracked files was explicitly prohibited
+
+- StudioSaveOrchestrator.ts: disconnected from production ownership and minimally simplified so TypeScript can compile it without Author schema/Research receipt expansion.
+- StudioSaveActionContext.ts and StudioSaveActionProvider.tsx: preserved untouched but unused.
+- VerifyStudioSaveReliability.ts: simplified to verify the minimized design.
+
+Why each remaining tracked production mutation is essential
+
+- GuestWorkspaceSessionRestorer + StudioDocumentRestoration repair the exact persisted insertedAt string failure at the Author hydration boundary and reject malformed dates without recursively reviving arbitrary strings.
+- StudioArtifactInspector + CSS preserve the existing authoritative Save Draft owner, enforce publication-before-POST and exact post-save canonical reconciliation, retain dirty/canonical/PDF state on failure, and render stage-aware operation failure separately.
+- ResearchSourceApi + StudioApi provide typed stage classification and canonical-envelope requestId without exposing raw failure payloads in the Inspector.
+- sqlite_repository.py moves the migration decision under BEGIN IMMEDIATE and makes all pending migrations atomic.
+
+Verification results
+
+- Complete Studio backend suite with isolated ISEES_STUDIO_OUTPUT_ROOT: 91 passed.
+- Initial complete Studio backend run against the shared default output root: 90 passed, 1 unrelated environmental failure caused by a pre-existing deterministic PDF identity containing different bytes. Nothing was deleted; isolated rerun passed.
+- Focused SQLite repository/migration suite: 11 passed, including concurrent cold start, idempotent reopen, malformed pending migration rollback/loud failure, and newer-schema preservation.
+- Focused Research resolution authority: 8 passed.
+- All 15 VerifyStudio*.ts frontend verifiers: passed.
+- VerifyInvestigationScopedResearchSources.ts: passed.
+- Direct VerifyStudioSaveReliability.ts: passed, including real date hydration/malformed-date checks and structural ordering/failure-preservation checks.
+- Legacy VerifyGuestWorkspaceSessionRestoration.ts, VerifyCanonicalEmptyGuestWorkspace.ts, and VerifyCompareResearchPublication.ts could not execute under the installed Node 24 runner because their pre-existing extensionless ESM imports do not resolve. No source mutation was made to accommodate the runner. Their affected TypeScript graph passed `tsc -b`, and the narrow Author hydration behavior passed the executable reliability/restored-reconciliation verifiers.
+- Affected-file ESLint: passed with zero findings after retaining the I2K queueMicrotask/effect-state lint correction in Inspector.
+- npm run build: passed (676 modules transformed); only the existing Vite large-chunk advisory was emitted.
+- git diff --check: passed (line-ending conversion warnings only; no whitespace errors).
+
+Regression requirement disposition
+
+1-6: covered by Studio First Save, Restored Reconciliation, Save Reliability, Structured Authoring Canvas, and Final Acceptance verifiers.
+7-9: ordered publication/POST/exact reconciliation and failure preservation covered by First Save and Save Reliability; backend version behavior covered by 91-test Studio suite.
+10-11: historical PDF distinction and validation/materialization/download gates covered by Save Reliability, PDF Materialization, Projection Consistency, Inspector Lifecycle, and backend suite.
+12: Investigation switching/stale reconciliation covered by Restored Author Reconciliation and Author runtime behavior compiled in the build.
+13-14: exact Author date allow-list and malformed-date failure covered by direct restoration assertions; Research Anchor dates remain owned by migrateResearchAnchor.
+15: toolbar normalized content hash equals HEAD and Studio verifiers pass.
+16: Inspector operation error is separate from canonical artifact RequestState and retains historical artifact/PDF rendering.
+17-19: focused migration tests pass.
+
+Safety confirmation
+
+- Nothing staged (`git diff --cached --name-only` empty).
+- Nothing committed; HEAD remains 2845e41829cd195558d41ad0964ba47f412ac9dc.
+- Nothing pushed; origin/hf-deploy remains 2845e41829cd195558d41ad0964ba47f412ac9dc.
+- No untracked file was deleted.
+- Unrelated files were preserved.
+- Browser acceptance is still required for interactive save/retry copy, stale PDF presentation, and end-to-end network behavior.

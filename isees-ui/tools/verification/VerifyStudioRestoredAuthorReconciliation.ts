@@ -49,5 +49,5 @@ assert.match(status, /dirty[\s\S]*\? "Dirty"[\s\S]*: "Clean"/, "footer projects 
 assert.match(inspector, /dirty \? "Dirty · unsaved changes"/, "Inspector projects the runtime dirty owner");
 assert.match(inspector, /activeArtifact && !dirty \? "The canonical draft has no unsaved changes/, "Save Draft remains enabled for a reconciled difference");
 assert.match(inspector, /contentConsistent === undefined \? "Unavailable" : contentConsistent \? "Current" : "Draft changed"/, "projection consistency reports a reconciled difference as Draft changed");
-assert.match(inspector, /publishCanonicalGraphSource\(anchor, scope\.principalId\)/, "v2 save retains I2I canonical Research publication");
+assert.match(inspector, /publishCanonicalGraphSource\(anchor, scope\.principalId\)[\s\S]*await studioApi\.post/, "v2 save retains I2I canonical Research publication before version creation");
 console.log("PASS VerifyStudioRestoredAuthorReconciliation — fail-safe restore, canonical equality/difference, source lineage, stale revision, edit race, and Investigation switching verified");

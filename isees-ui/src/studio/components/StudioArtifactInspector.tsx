@@ -11,6 +11,8 @@ import { researchBridgeRuntime } from "../../research/ResearchBridgeRuntime";
 import { publishCanonicalGraphSource } from "../../research/ResearchSourceApi";
 
 type RequestState = "LOADING" | "READY" | "EMPTY" | "NOT_CREATED" | "SUCCESS" | "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR";
+type SaveStage = "SOURCE_PUBLICATION" | "VERSION_SAVE" | "CANONICAL_RECONCILIATION" | "CLIENT_ORCHESTRATION";
+interface SaveOperationError { readonly stage: SaveStage; readonly kind: StudioApiError["kind"]; readonly message: string; readonly requestId?: string }
 const lifecycle: StudioLifecycle[] = ["DRAFT", "CANDIDATE_KNOWLEDGE_ARTIFACT", "MANIFOLD_CANDIDATE_NODE", "REVIEW_TEST", "ACCEPTED_KNOWLEDGE"];
 const labels: Record<StudioLifecycle, string> = { DRAFT: "Draft", CANDIDATE_KNOWLEDGE_ARTIFACT: "Candidate Knowledge Artifact", MANIFOLD_CANDIDATE_NODE: "Manifold Candidate Node", REVIEW_TEST: "Review / Test", ACCEPTED_KNOWLEDGE: "Accepted Knowledge", RETURNED: "Returned", REJECTED: "Rejected" };
 const actionTarget = { candidate: "DRAFT", publication: "CANDIDATE_KNOWLEDGE_ARTIFACT", review: "MANIFOLD_CANDIDATE_NODE", accept: "REVIEW_TEST", return: "REVIEW_TEST", reject: "REVIEW_TEST" } as const;
@@ -18,6 +20,16 @@ const actionTarget = { candidate: "DRAFT", publication: "CANDIDATE_KNOWLEDGE_ART
 function idempotency(operation: string): string { return `${operation}:${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`}`; }
 function display(value: unknown): string { return typeof value === "string" && value.trim() ? value : "Unavailable / not yet created"; }
 function formatTime(value: string | undefined): string { if (!value) return "Unavailable / not yet created"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unavailable" : date.toLocaleString(); }
+function saveFailure(stage: SaveStage, error?: unknown): SaveOperationError {
+  const known = error instanceof StudioApiError ? error : undefined;
+  const messages: Record<SaveStage, string> = {
+    SOURCE_PUBLICATION: "Save Draft failed during Research source publication. Your unsaved draft is preserved.",
+    VERSION_SAVE: "Save Draft failed during Studio version save. Your unsaved draft is preserved.",
+    CANONICAL_RECONCILIATION: "The Studio version may have been accepted, but canonical reconciliation is temporarily unavailable. Your draft remains preserved.",
+    CLIENT_ORCHESTRATION: "Save Draft failed while preparing the draft. Your unsaved draft is preserved.",
+  };
+  return { stage, kind: known?.kind ?? "ERROR", message: messages[stage], requestId: known?.requestId };
+}
 
 export default function StudioArtifactInspector() {
   const investigation = useActiveInvestigation();
@@ -34,6 +46,7 @@ export default function StudioArtifactInspector() {
   const [reviewReason, setReviewReason] = useState("");
   const [preview, setPreview] = useState<ProjectionFormat>();
   const [contentHashResult, setContentHashResult] = useState<{ artifact: StudioArtifactProjection; document: object; revision: number; hash: string }>();
+  const [saveError, setSaveError] = useState<SaveOperationError>();
   const requestSequence = useRef(0);
   const activeArtifact = artifact && scope && document
     && artifact.artifact.investigationId === scope.investigationId
@@ -51,6 +64,7 @@ export default function StudioArtifactInspector() {
     const sequence = ++requestSequence.current;
     setArtifact(undefined);
     setPreview(undefined);
+    setSaveError(undefined);
     if (!expectedScope) { setState("EMPTY"); setMessage("Canonical Investigation or principal unavailable."); return undefined; }
     setState("LOADING"); setMessage("Loading the Investigation-scoped artifact…");
     try {
@@ -79,12 +93,11 @@ export default function StudioArtifactInspector() {
     }
   }, [document, handleError, runtime, scope]);
 
-  useEffect(() => { void refresh(); return () => { requestSequence.current += 1; }; }, [refresh]);
+  useEffect(() => { queueMicrotask(() => void refresh()); return () => { requestSequence.current += 1; }; }, [refresh]);
 
   useEffect(() => {
     let current = true;
     const comparedRevision = revision;
-    setContentHashResult(undefined);
     if (scope && document && activeArtifact) void activeStudioContentHash(scope, document, activeArtifact)
       .then(hash => {
         if (!current) return;
@@ -107,21 +120,62 @@ export default function StudioArtifactInspector() {
     finally { setInFlight(undefined); }
   }, [document, handleError, inFlight, refresh, scope]);
 
-  const save = async () => {
+  const save = useCallback(async () => {
     if (!scope || !document || inFlight) return;
+    setInFlight("Save Draft");
+    setSaveError(undefined);
+    let base: ReturnType<typeof composeStudioVersionCommand>;
     try {
-      const base = composeStudioVersionCommand(scope, document);
+      base = composeStudioVersionCommand(scope, document);
+    } catch (error) {
+      setSaveError(saveFailure("CLIENT_ORCHESTRATION", error));
+      setInFlight(undefined);
+      return;
+    }
+    try {
       const anchors = new Map(researchBridgeRuntime.getDesk().entries.map(entry => [entry.anchor.anchorId, entry.anchor]));
       const sourceSnapshots = await Promise.all(base.sourceSnapshots.map(async snapshot => {
         const anchor = anchors.get(snapshot.anchorId);
-        if (!anchor || anchor.kind !== "GRAPH") return snapshot;
+        if (snapshot.sourceKind !== "EVENT_NODE") return snapshot;
+        if (!anchor || anchor.kind !== "GRAPH") {
+          throw new StudioApiError("ERROR", "Research source provenance is unavailable.", "RESEARCH_SOURCE_PROVENANCE_UNAVAILABLE");
+        }
         return { ...snapshot, immutableSourceHash: await publishCanonicalGraphSource(anchor, scope.principalId) };
       }));
-      const verifiedBase = { ...base, sourceSnapshots };
-      if (!activeArtifact) void mutate("Save Draft", "", { ...verifiedBase, artifactId: document.identity.id, versionId: `${document.identity.id}:v1`, idempotencyKey: idempotency("create") });
-      else void mutate("Save Draft", `/${encodeURIComponent(activeArtifact.artifact.artifactId)}/versions`, { ...verifiedBase, artifactId: activeArtifact.artifact.artifactId, expectedRevision: activeArtifact.artifact.revision, idempotencyKey: idempotency("save") });
-    } catch (error) { handleError(error); }
-  };
+      const artifactId = activeArtifact?.artifact.artifactId ?? document.identity.id;
+      const versionNumber = (activeArtifact?.artifact.currentVersionNumber ?? 0) + 1;
+      const versionId = `${artifactId}:v${versionNumber}`;
+      const path = activeArtifact ? `/${encodeURIComponent(artifactId)}/versions` : "";
+      const command = { ...base, sourceSnapshots, artifactId, versionId,
+        ...(activeArtifact ? { expectedRevision: activeArtifact.artifact.revision } : {}),
+        idempotencyKey: idempotency(activeArtifact ? "save" : "create") };
+      try {
+        await studioApi.post(scope, path, command);
+      } catch (error) {
+        setSaveError(saveFailure("VERSION_SAVE", error));
+        return;
+      }
+      let result: { investigationId: string; items: StudioArtifactProjection[] };
+      try {
+        result = await studioApi.list(scope);
+      } catch (error) {
+        setSaveError(saveFailure("CANONICAL_RECONCILIATION", error));
+        return;
+      }
+      const saved = result.items.find(item => item.artifact.investigationId === scope.investigationId
+        && item.artifact.ownerPrincipalId === scope.principalId
+        && item.artifact.artifactId === artifactId
+        && item.artifact.currentVersionId === versionId
+        && (item.currentVersion.document as { identity?: { id?: string } } | undefined)?.identity?.id === document.identity.id);
+      if (!saved) {
+        setSaveError(saveFailure("CANONICAL_RECONCILIATION"));
+        return;
+      }
+      setArtifact(saved); setState("SUCCESS"); setMessage("Save Draft completed and canonical state refreshed.");
+    } catch (error) {
+      setSaveError(saveFailure("SOURCE_PUBLICATION", error));
+    } finally { setInFlight(undefined); }
+  }, [activeArtifact, document, inFlight, scope]);
 
   const lifecycleAction = (operation: keyof typeof actionTarget) => {
     if (!scope || !activeArtifact || inFlight) return;
@@ -171,13 +225,16 @@ export default function StudioArtifactInspector() {
   const snapshotState = !activeArtifact ? "Not yet captured" : activeSnapshots.some(item => item.resolutionStatus === "STALE") ? "Stale" : activeSnapshots.some(item => ["MISSING", "UNAVAILABLE", "REDACTED"].includes(item.resolutionStatus)) ? "Unavailable" : activeSnapshots.length ? (activeSnapshots.every(item => item.resolutionStatus === "AVAILABLE") ? "Consistent" : "Not yet resolved") : "No snapshots";
   const actionReason = (operation: keyof typeof actionTarget) => !activeArtifact ? "Create and save a draft first." : current?.lifecycleState !== actionTarget[operation] ? `Requires ${labels[actionTarget[operation]]}.` : (["accept", "return", "reject"].includes(operation) && !reviewReason.trim()) ? "A review reason is required." : undefined;
   const saveReason = !scope ? "Select an Investigation and establish an operator identity." : !document ? "Create or restore a canonical author draft." : inFlight ? `${inFlight} is in progress.` : activeArtifact && !dirty ? "The canonical draft has no unsaved changes." : current && !["DRAFT", "RETURNED"].includes(current.lifecycleState) ? "Versions may be saved only in Draft or Returned." : undefined;
+  const saveAvailable = !saveReason || Boolean(saveError && !inFlight);
+  const safeRequestId = saveError?.requestId && /^[A-Za-z0-9._:-]{1,128}$/.test(saveError.requestId) ? saveError.requestId : undefined;
+  const failedStage = saveError?.stage === "SOURCE_PUBLICATION" ? "Research Source Publication Failed" : saveError?.stage === "VERSION_SAVE" ? "Studio Version Save Failed" : saveError?.stage === "CANONICAL_RECONCILIATION" ? "Canonical Reconciliation Degraded" : "Client Orchestration Failed";
 
   return <aside className="studio-inspector" data-permanent="true" aria-label="Artifact Inspector">
     <header className="studio-inspector__header"><div className="studio-inspector__kicker">STUDIO / CANONICAL</div><h2>Artifact Inspector</h2><span className={`studio-inspector__state studio-inspector__state--${state.toLowerCase()}`}>{state.replaceAll("_", " ")}</span></header>
     <p className="studio-inspector__message" role={state === "ERROR" || state === "CONFLICT" || state === "STALE_REVISION" || state === "FORBIDDEN" || state === "UNAVAILABLE_BACKEND" ? "alert" : "status"}>{message}{state === "NOT_CREATED" && <> {STUDIO_ARTIFACT_EMPTY_ACTION}</>}</p>
     <section className="studio-inspector__card"><h3>Artifact identity</h3><dl className="studio-inspector__facts">
       <dt>Artifact ID</dt><dd>{display(current?.artifactId)}</dd><dt>Author / principal</dt><dd>{display(current?.ownerPrincipalId ?? operator.identity?.operatorId)}</dd><dt>Investigation</dt><dd>{display(investigation?.id)}</dd><dt>Focused event</dt><dd>{display(investigation?.workspace.focused_event_id)}</dd><dt>Compared event</dt><dd>{display(version?.comparisonContext?.comparisonEventId)}</dd><dt>Version</dt><dd>{current ? `v${current.currentVersionNumber} · r${current.revision}` : "Not yet created"}</dd><dt>Created</dt><dd>{formatTime(current?.createdAt)}</dd><dt>Modified</dt><dd>{formatTime(current?.updatedAt)}</dd><dt>Source snapshot</dt><dd>{version?.sourceSnapshotIds.length === 1 ? version.sourceSnapshotIds[0] : version?.sourceSnapshotIds.length ? `${version.sourceSnapshotIds.length} snapshots` : "Unavailable / not yet created"}</dd><dt>Citations / claims</dt><dd>{version ? `${version.citations.length} / ${version.claims.length}` : "Not yet represented"}</dd><dt>Lifecycle</dt><dd>{current ? labels[current.lifecycleState] : "Not yet created"}</dd><dt>Draft state</dt><dd>{dirty ? "Dirty · unsaved changes" : artifact ? "Saved" : "Not yet saved"}</dd>
-    </dl><button className="studio-inspector__button studio-inspector__button--primary" disabled={Boolean(saveReason)} aria-describedby={saveReason ? "studio-save-reason" : undefined} onClick={save}>{inFlight === "Save Draft" ? "Saving Draft…" : "Save Draft"}</button>{saveReason && <p id="studio-save-reason" className="studio-inspector__disabled-reason">{saveReason}</p>}</section>
+    </dl>{dirty && durableVersionExists && <p className="studio-inspector__historical-note">Saved v{current?.currentVersionNumber} outputs, including its PDF, remain available but do not represent this unsaved draft.</p>}{saveError && <div className="studio-inspector__operation-error" role="alert"><strong>{failedStage}</strong><span>{saveError.message}</span>{safeRequestId && <small>Request ID: {safeRequestId}</small>}</div>}<button className="studio-inspector__button studio-inspector__button--primary" disabled={!saveAvailable} aria-describedby={saveReason && !saveError ? "studio-save-reason" : undefined} onClick={() => void save()}>{inFlight === "Save Draft" ? "Saving Draft…" : saveError ? "Retry Save" : "Save Draft"}</button>{saveReason && !saveError && <p id="studio-save-reason" className="studio-inspector__disabled-reason">{saveReason}</p>}</section>
 
     <section className="studio-inspector__card"><h3>Knowledge lifecycle</h3><ol className="studio-inspector__lifecycle">{lifecycle.map(item => <li key={item} className={current?.lifecycleState === item ? "is-current" : ""}>{labels[item]}</li>)}</ol>{current && ["RETURNED", "REJECTED"].includes(current.lifecycleState) && <div className={`studio-inspector__terminal studio-inspector__terminal--${current.lifecycleState.toLowerCase()}`}>{labels[current.lifecycleState]}</div>}
       <div className="studio-inspector__actions">{(["candidate", "publication", "review"] as const).map(action => { const reason = dirty ? "Save current changes before advancing lifecycle." : actionReason(action); const label = action === "candidate" ? "Save as Candidate Knowledge" : action === "publication" ? "Publish Candidate to Manifold" : "Submit for Review"; return <div className="studio-inspector__action" key={action}><button className="studio-inspector__button" disabled={Boolean(reason || inFlight)} aria-describedby={reason ? `studio-${action}-reason` : undefined} onClick={() => lifecycleAction(action)}>{inFlight === label ? `${label}…` : label}</button>{reason && <span id={`studio-${action}-reason`}>{reason}</span>}</div>; })}</div>

@@ -57,6 +57,7 @@ import type {
 import {
   rehydrateOperationalRevisionInvestigation,
 } from "../../investigation/revision/OperationalGraphRevision";
+import { restoreStudioDocument } from "../../studio/api/StudioDocumentRestoration";
 
 
 // ============================================================
@@ -460,18 +461,20 @@ function restoreAuthoring(
     AuthorDocumentRuntime,
 ): boolean {
 
-  const document =
-    snapshot.authoring.activeDocument;
+  const persistedDocument = snapshot.authoring.activeDocument;
+  const document = persistedDocument === undefined
+    ? undefined
+    : restoreStudioDocument(persistedDocument);
 
-  if (
-    document === undefined
-  ) {
+  if (persistedDocument === undefined) {
 
     runtime.clearActiveDocument();
 
     return false;
 
   }
+
+  if (document === undefined) throw new Error("Cannot restore malformed Author document timestamps.");
 
   runtime.restoreActiveDocument(
     document,

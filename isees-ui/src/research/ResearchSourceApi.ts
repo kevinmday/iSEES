@@ -20,14 +20,19 @@ export async function canonicalGraphPublication(anchor: ResearchAnchor) {
 
 export async function publishCanonicalGraphSource(anchor: ResearchAnchor, principalId: string): Promise<string> {
   const publication = await canonicalGraphPublication(anchor);
-  const response = await fetch(`${API_BASE}/api/v1/investigations/${encodeURIComponent(anchor.investigationId)}/research-sources`, {
-    method: "POST", headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": principalId }, body: JSON.stringify(publication),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/v1/investigations/${encodeURIComponent(anchor.investigationId)}/research-sources`, {
+      method: "POST", headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": principalId }, body: JSON.stringify(publication),
+    });
+  } catch {
+    throw new StudioApiError("UNAVAILABLE_BACKEND", "Canonical Research source authority is temporarily unavailable.", "RESEARCH_SOURCE_AUTHORITY_UNAVAILABLE");
+  }
   if (!response.ok) {
-    const body = await response.json().catch(() => undefined) as { detail?: string; error?: { code?: string; message?: string } } | undefined;
+    const body = await response.json().catch(() => undefined) as { detail?: string; error?: { code?: string; message?: string; requestId?: string } } | undefined;
     const code = body?.error?.code ?? "RESEARCH_SOURCE_PUBLICATION_FAILED";
     const message = body?.error?.message ?? body?.detail ?? "Canonical Research source authority is unavailable.";
-    throw new StudioApiError(response.status >= 500 ? "UNAVAILABLE_BACKEND" : "ERROR", message, code);
+    throw new StudioApiError(response.status >= 500 ? "UNAVAILABLE_BACKEND" : "ERROR", message, code, body?.error?.requestId);
   }
   return publication.immutableSourceHash;
 }

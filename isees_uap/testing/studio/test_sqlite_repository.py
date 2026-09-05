@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import datetime, timezone
 
 import pytest
 
+from isees_uap.studio import sqlite_repository
 from isees_uap.studio.errors import (AcceptanceFailure, IdempotencyConflict, PublicationFailure,
                                      RevisionConflict, UnresolvedProjectionReadiness)
 from isees_uap.studio.ports import AcceptanceReceipt, AccessResult, PublicationReceipt, SourceResolutionResult
@@ -99,6 +101,44 @@ def test_migration_complete_idempotent_and_reopen(tmp_path):
                 "studio_review_decision", "studio_projection", "studio_lifecycle_event",
                 "studio_idempotency", "studio_schema_migrations"} <= tables
         assert connection.execute("SELECT count(*) FROM studio_schema_migrations").fetchone()[0] == 2
+
+
+def test_concurrent_cold_start_serializes_schema_migrations(tmp_path):
+    path = tmp_path / "concurrent-studio.db"
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        repositories = list(workers.map(lambda _: SQLiteStudioRepository(path), range(2)))
+    for repository in repositories:
+        repository.close()
+
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT version, count(*) FROM studio_schema_migrations GROUP BY version ORDER BY version"
+        ).fetchall() == [(1, 1), (2, 1)]
+        columns = [row[1] for row in connection.execute("PRAGMA table_info(studio_source_snapshot)")]
+        for column in ("anchor_id", "graph_identity", "graph_revision", "immutable_source_hash",
+                       "insertion_state", "insertion_reason"):
+            assert columns.count(column) == 1
+
+    SQLiteStudioRepository(path).close()
+
+
+def test_unexpected_malformed_pending_migration_fails_loudly(tmp_path, monkeypatch):
+    path = tmp_path / "malformed.db"
+    original_read_text = sqlite_repository.Path.read_text
+
+    def malformed_second_migration(migration_path, *args, **kwargs):
+        if migration_path.name == "002_studio.sql":
+            return "ALTER TABLE studio_source_snapshot ADD COLUMN broken ("
+        return original_read_text(migration_path, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite_repository.Path, "read_text", malformed_second_migration)
+    with pytest.raises(RuntimeError, match="Incomplete STUDIO migration statement"):
+        SQLiteStudioRepository(path)
+
+    with sqlite3.connect(path) as connection:
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert tables == set()
 
 
 def test_migration_refuses_newer_schema_without_resetting_data(tmp_path):

@@ -20,7 +20,8 @@ export interface StudioArtifactProjection {
 export class StudioApiError extends Error {
   readonly kind: "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR";
   readonly code?: string;
-  constructor(kind: "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR", message: string, code?: string) { super(message); this.kind = kind; this.code = code; }
+  readonly requestId?: string;
+  constructor(kind: "CONFLICT" | "STALE_REVISION" | "FORBIDDEN" | "UNAVAILABLE_BACKEND" | "ERROR", message: string, code?: string, requestId?: string) { super(message); this.kind = kind; this.code = code; this.requestId = requestId; }
 }
 
 function safeMessage(value: unknown): string {
@@ -38,12 +39,12 @@ async function request<T>(scope: StudioScope, path: string, init?: RequestInit):
   } catch {
     throw new StudioApiError("UNAVAILABLE_BACKEND", "The STUDIO backend is unavailable. No change was claimed.");
   }
-  const body = await response.json().catch(() => undefined) as { error?: { code?: string; message?: string }; detail?: unknown } | undefined;
+  const body = await response.json().catch(() => undefined) as { error?: { code?: string; message?: string; requestId?: string }; detail?: unknown } | undefined;
   if (!response.ok) {
     const code = body?.error?.code;
     const message = safeMessage(body?.error?.message ?? (typeof body?.detail === "string" ? body.detail : undefined));
     const kind = response.status === 403 ? "FORBIDDEN" : code === "REVISION_CONFLICT" ? "STALE_REVISION" : response.status === 409 ? "CONFLICT" : response.status >= 500 ? "UNAVAILABLE_BACKEND" : "ERROR";
-    throw new StudioApiError(kind, message, code);
+    throw new StudioApiError(kind, message, code, body?.error?.requestId);
   }
   return body as T;
 }

@@ -23,7 +23,7 @@ assert.match(inspector, /disabled=\{!durableVersionExists\}[\s\S]*?>Preview/);
 assert.match(inspector, /\{durableVersionExists && preview === format &&/, "empty state cannot expose stale browser-only preview");
 assert.equal((inspector.match(/>Preview<\/button>/g) ?? []).length, 1, "one shared durable-version rule covers PDF, DOCX, and HTML");
 assert.match(inspector, /const saveReason = !scope[\s\S]*activeArtifact && !dirty[\s\S]*Versions may be saved only/, "Save Draft prerequisites remain intact");
-assert.match(api, /const code = body\?\.error\?\.code/); assert.match(api, /new StudioApiError\(kind, message, code\)/, "canonical API code remains available without changing HTTP semantics");
+assert.match(api, /const code = body\?\.error\?\.code/); assert.match(api, /new StudioApiError\(kind, message, code, body\?\.error\?\.requestId\)/, "canonical API code and canonical-envelope request identity remain available without changing HTTP semantics");
 assert.doesNotMatch(inspector, /STUDIO_ARTIFACT_NOT_FOUND[\s\S]*FORBIDDEN/, "classification does not weaken ownership handling");
 for (const copy of [STUDIO_ARTIFACT_EMPTY_MESSAGE, STUDIO_ARTIFACT_EMPTY_ACTION, STUDIO_PROJECTION_EMPTY_MESSAGE]) assert.ok(copy.length > 0);
 

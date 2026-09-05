@@ -67,24 +67,23 @@ class SQLiteStudioRepository:
 
     def _migrate(self) -> None:
         with closing(self._connect()) as connection:
-            connection.execute("PRAGMA journal_mode=WAL")
-            connection.execute("CREATE TABLE IF NOT EXISTS studio_schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
-            versions = {row[0] for row in connection.execute("SELECT version FROM studio_schema_migrations")}
-            if versions and max(versions) > SCHEMA_VERSION:
-                raise RuntimeError("STUDIO database schema is newer than this application")
-            for version in range(1, SCHEMA_VERSION + 1):
-                if version in versions:
-                    continue
-                sql = Path(__file__).with_name("migrations").joinpath(f"{version:03d}_studio.sql").read_text(encoding="utf-8")
-                connection.execute("BEGIN IMMEDIATE")
-                try:
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                connection.execute("CREATE TABLE IF NOT EXISTS studio_schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)")
+                versions = {row[0] for row in connection.execute("SELECT version FROM studio_schema_migrations")}
+                if versions and max(versions) > SCHEMA_VERSION:
+                    raise RuntimeError("STUDIO database schema is newer than this application")
+                for version in range(1, SCHEMA_VERSION + 1):
+                    if version in versions:
+                        continue
+                    sql = Path(__file__).with_name("migrations").joinpath(f"{version:03d}_studio.sql").read_text(encoding="utf-8")
                     for statement in _sql_statements(sql):
                         connection.execute(statement)
                     connection.execute("INSERT INTO studio_schema_migrations VALUES (?, ?)", (version, _time(datetime.now(timezone.utc))))
-                    connection.commit()
-                except Exception:
-                    connection.rollback()
-                    raise
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
 
     def get(self, *, artifact_id: str) -> StudioAggregateRecord | None:
         with closing(self._connect()) as connection:
