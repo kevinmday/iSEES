@@ -2,6 +2,8 @@ import type { ArmedLayer, LayersExperimentExecutionInput, LayersExperimentUnavai
 import type { CanonicalSimilarityCandidateEvaluation } from "../../resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes";
 import type { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes";
 import type { CanonicalKnowledgeSimilarityPair } from "../../resolve/similarity/CanonicalKnowledgeSimilarityMatrixTypes";
+import type { CanonicalLayerInputLineageIdentity, CanonicalLayerMissingInputIdentity, CanonicalLayerNormalizationIdentity } from "../evaluators/CanonicalLayerEvaluatorTypes";
+import type { CANONICAL_LAYER_CATALOG_VERSION, LAYERS_EXPERIMENT_SCHEMA_VERSION } from "../catalog/CanonicalLayerCatalogTypes";
 
 export const LayersPairAvailability = { AVAILABLE: "AVAILABLE", UNAVAILABLE: "UNAVAILABLE" } as const;
 export type LayersPairAvailability = (typeof LayersPairAvailability)[keyof typeof LayersPairAvailability];
@@ -46,6 +48,12 @@ export interface LayersLayerContribution {
     readonly canonicalDimension: CanonicalFeatureDimension;
   };
   missingCanonicalInput?: CanonicalFeatureDimension;
+  missingInputs?: readonly CanonicalLayerMissingInputIdentity[];
+  rawLeftSubjectComponents?: Readonly<Record<string, unknown>>;
+  rawRightSubjectComponents?: Readonly<Record<string, unknown>>;
+  normalization?: CanonicalLayerNormalizationIdentity;
+  normalizedResult?: number;
+  availableInputLineage?: readonly CanonicalLayerInputLineageIdentity[];
   availability: LayersPairAvailability;
   similarity?: number;
   canonicalWeight?: number;
@@ -79,6 +87,8 @@ export interface LayersPairDelta {
 }
 
 export interface LayersExperimentalPairProjectionProvenance {
+  experimentSchemaVersion: typeof LAYERS_EXPERIMENT_SCHEMA_VERSION;
+  catalogVersion: typeof CANONICAL_LAYER_CATALOG_VERSION;
   governingEquation: "M = g(L,T,S)";
   executionId: string;
   investigationId: string;
@@ -89,6 +99,7 @@ export interface LayersExperimentalPairProjectionProvenance {
   experimentalLayerIds: readonly string[];
   participatingLayerIds: readonly string[];
   unavailableLayerIds: readonly string[];
+  selectedLayerIds: readonly string[];
   canonicalRepresentation: string;
 }
 

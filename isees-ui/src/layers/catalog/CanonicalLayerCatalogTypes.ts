@@ -1,5 +1,5 @@
 export const CANONICAL_LAYER_CATALOG_VERSION = "layers-catalog/v1" as const;
-export const LAYERS_EXPERIMENT_SCHEMA_VERSION = "layers-experiment/v1" as const;
+export const LAYERS_EXPERIMENT_SCHEMA_VERSION = "layers-experiment/v2" as const;
 export const CANONICAL_LAYER_DEFAULT_PROFILE_VERSION = "layers-default-profiles/v1" as const;
 
 export const CanonicalLayerFamilyId = {

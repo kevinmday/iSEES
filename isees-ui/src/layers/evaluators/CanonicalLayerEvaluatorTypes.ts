@@ -14,24 +14,47 @@ export interface CanonicalLayerEvaluationLineage {
   readonly canonicalDimension: CanonicalFeatureDimension;
 }
 
+export interface CanonicalLayerInputLineageIdentity {
+  readonly inputIdentity: string;
+  readonly sourceIdentity: string;
+  readonly sourceVersion?: string;
+  readonly sourceRevision?: string;
+}
+
+export interface CanonicalLayerMissingInputIdentity {
+  readonly inputIdentity: string;
+  readonly subjectKnowledgeObjectId?: string;
+}
+
+export interface CanonicalLayerNormalizationIdentity {
+  readonly normalizationKey: string;
+  readonly normalizationVersion: string;
+}
+
 interface CanonicalLayerEvaluationBase {
   readonly layerId: string;
   readonly evaluatorKey: string;
   readonly evaluatorVersion: string;
   readonly canonicalDimension: CanonicalFeatureDimension;
   readonly lineage: CanonicalLayerEvaluationLineage;
+  readonly availableInputLineage?: readonly CanonicalLayerInputLineageIdentity[];
 }
 
 export interface AvailableCanonicalLayerEvaluation extends CanonicalLayerEvaluationBase {
   readonly availability: "AVAILABLE";
   readonly similarity: number;
   readonly canonicalWeight: number;
+  readonly rawLeftSubjectComponents?: Readonly<Record<string, unknown>>;
+  readonly rawRightSubjectComponents?: Readonly<Record<string, unknown>>;
+  readonly normalization?: CanonicalLayerNormalizationIdentity;
+  readonly normalizedResult?: number;
 }
 
 export interface UnavailableCanonicalLayerEvaluation extends CanonicalLayerEvaluationBase {
   readonly availability: "UNAVAILABLE";
   readonly reason: string;
   readonly missingCanonicalInput: CanonicalFeatureDimension;
+  readonly missingInputs?: readonly CanonicalLayerMissingInputIdentity[];
 }
 
 export type CanonicalLayerEvaluation = AvailableCanonicalLayerEvaluation | UnavailableCanonicalLayerEvaluation;

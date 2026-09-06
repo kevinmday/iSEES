@@ -31,7 +31,7 @@ export interface ResearchGraphAnchor extends ResearchAnchorBase<"GRAPH"> { reado
 export interface ResearchCandidateAnchor extends ResearchAnchorBase<"COMPARE_CANDIDATE"> {
   readonly candidate: Readonly<{ type: "CANDIDATE"; candidateId: string; evaluationId: string; leftKnowledgeObjectId: string; rightKnowledgeObjectId: string; focusedEventId: string; focusedEventKnowledgeObjectId: string; comparisonEventId: string; comparisonEventKnowledgeObjectId: string; resolveExecutionId?: string; epistemicStatus: string; aggregate: ResolveCandidateAggregateIntelligence; dimensions: readonly ResolveCandidateDimensionIntelligence[]; source: "COMPARE_PAIR_INSPECTION" }>;
 }
-export interface ResearchExperimentAnchor extends ResearchAnchorBase<"LAYERS_EXPERIMENT"> { readonly experiment: Readonly<{ type: "EXPERIMENT"; caseAEventId: string; caseBEventId: string; projection: LayersExperimentalPairProjection; source: "LAYERS_EXPERIMENTAL_LABORATORY" }> }
+export interface ResearchExperimentAnchor extends ResearchAnchorBase<"LAYERS_EXPERIMENT"> { readonly experiment: Readonly<{ type: "EXPERIMENT"; schemaVersion?: "layers-experiment/v1" | "layers-experiment/v2"; caseAEventId: string; caseBEventId: string; projection: LayersExperimentalPairProjection; source: "LAYERS_EXPERIMENTAL_LABORATORY" }> }
 export type TypedSourcePayload = Readonly<{ identity: string; representation: unknown }>;
 export interface ResearchEvidenceAnchor extends ResearchAnchorBase<"EVIDENCE_RECORD"> { readonly evidence: TypedSourcePayload }
 export interface ResearchMediaAnchor extends ResearchAnchorBase<"MEDIA"> { readonly media: TypedSourcePayload }

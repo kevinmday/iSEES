@@ -37,9 +37,13 @@ function registration(layerId: string, requiredCanonicalDimension: CanonicalFeat
       sourceKnowledgeObjectIds: [identity.leftKnowledgeObjectId, identity.rightKnowledgeObjectId] as [string, string],
       canonicalDimension: requiredCanonicalDimension,
     });
+    const availableInputLineage = freeze(identity.leftKnowledgeObjectId < identity.rightKnowledgeObjectId
+      ? [identity.leftKnowledgeObjectId, identity.rightKnowledgeObjectId]
+      : [identity.rightKnowledgeObjectId, identity.leftKnowledgeObjectId]
+    ).map(sourceIdentity => freeze({ inputIdentity: requiredCanonicalDimension, sourceIdentity }));
     return evidence.availability === "UNAVAILABLE"
-      ? freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "UNAVAILABLE", reason: evidence.reason, missingCanonicalInput: requiredCanonicalDimension, lineage })
-      : freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "AVAILABLE", similarity: evidence.similarity, canonicalWeight: weights[requiredCanonicalDimension], lineage });
+      ? freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "UNAVAILABLE", reason: evidence.reason, missingCanonicalInput: requiredCanonicalDimension, missingInputs: [{ inputIdentity: requiredCanonicalDimension }], availableInputLineage: [], lineage })
+      : freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "AVAILABLE", similarity: evidence.similarity, normalizedResult: evidence.similarity, normalization: { normalizationKey: "CANONICAL_DIMENSION_SIMILARITY", normalizationVersion: evaluatorVersion }, canonicalWeight: weights[requiredCanonicalDimension], availableInputLineage, lineage });
   };
   return freeze({ layerId, evaluatorKey, evaluatorVersion, requiredCanonicalDimension, acceptedInputContract: "CANONICAL_SIMILARITY_CANDIDATE_EVALUATION", outputContract: "CANONICAL_LAYER_EVALUATION", evaluate });
 }
