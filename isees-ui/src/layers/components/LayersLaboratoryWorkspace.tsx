@@ -13,7 +13,9 @@ import { projectLayersExperimentalPair } from "../projection";
 import LayersWireManifoldChamber from "./LayersWireManifoldChamber";
 import "./LayersLaboratoryWorkspace.css";
 import { useLayersPresentationSelection } from "./LayersPresentationSelection";
-import { hasOperationalCanonicalMapping } from "./LayersNavigatorCounts";
+import LayerCatalogMatrix from "./LayerCatalogMatrix";
+import { restoreCanonicalLayerProfile } from "../catalog/index.ts";
+import { normalizeOperationalSelection } from "../presentation/LayerCatalogMatrixProjection.ts";
 
 const pct = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value * 100).toFixed(1)}%`;
 const ids = (value: readonly string[]) => value.length ? value.join(" · ") : "NONE";
@@ -71,7 +73,7 @@ export default function LayersLaboratoryWorkspace() {
   if ("error" in source) return <main className="layers-lab layers-lab--empty"><section role="status"><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Laboratory input required</h1><p>{source.error}</p><ol><li>Run Resolve.</li><li>Select a comparison in COMPARE.</li><li>Return to LAYERS.</li></ol><p>Published Research experiments remain available in the Research Inbox. Canonical knowledge remains untouched.</p></section></main>;
   const pairView = source.pairView!;
   const baselineIds = workspace?.active_layers ?? [];
-  const armedIds = scopeIsCurrent ? state.armedLayers.map(layer => layer.id) : baselineIds;
+  const armedIds = scopeIsCurrent ? state.armedLayers.map(layer => layer.id) : normalizeOperationalSelection(baselineIds);
   const projection = scopeIsCurrent ? state.currentExecution?.result?.experimentalManifoldSnapshot : undefined;
 
   function establish(layerIds: readonly string[]) {
@@ -91,7 +93,7 @@ export default function LayersLaboratoryWorkspace() {
 
   return <main className="layers-lab">
     <header className="layers-lab__header"><div><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Experimental relationship chamber</h1><p>Canonical knowledge is untouched by laboratory computation.</p></div><div className="layers-lab__status"><strong>EXPERIMENTAL / NON-CANONICAL</strong><span>{scopeIsCurrent ? state.status : LayersExperimentStatus.READY} · deterministic execution</span></div><dl><div><dt>Investigation</dt><dd>{investigation?.name} · {investigation?.id}</dd></div><div><dt>Case A</dt><dd>{pairView.focusedEventId} · {pairView.caseAKnowledgeObjectId}</dd></div><div><dt>Case B</dt><dd>{pairView.comparisonEventId} · {pairView.caseBKnowledgeObjectId}</dd></div></dl></header>
-    <section className="layers-lab__rack"><Heading number="01" title="Experiment control rack" status={scopeIsCurrent && state.status === LayersExperimentStatus.COMPLETE ? "EXECUTED" : "PREPARED — NOT RUN"}/><div className="layers-lab__controls">{CanonicalLayerRegistry.map(layer => { const armed = armedIds.includes(layer.id), baseline = baselineIds.includes(layer.id), mapped = hasOperationalCanonicalMapping({ id: layer.id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition: layer }); return <button type="button" key={layer.id} aria-pressed={armed} className="layers-lab__layer" onClick={() => { inspect({kind:"LAYER",layerId:layer.id}); establish(armed ? armedIds.filter(id => id !== layer.id) : [...armedIds, layer.id]); }}><span>{layer.id}</span><small>{baseline ? "BASELINE-ACTIVE" : "BASELINE-INACTIVE"} · {armed ? "ARMED" : "DISARMED"} · {mapped ? "MAPPED" : "UNAVAILABLE / UNMAPPED"}</small></button>; })}</div><div className="layers-lab__actions"><button type="button" onClick={run}>Run / Recompute experiment</button><button type="button" onClick={() => establish(baselineIds)}>Reset to baseline</button><span>Control changes prepare input; computation runs only on command.</span></div></section>
+    <section className="layers-lab__rack"><Heading number="01" title="Experiment control area" status={scopeIsCurrent && state.status === LayersExperimentStatus.COMPLETE ? "EXECUTED" : "PREPARED — NOT RUN"}/><LayerCatalogMatrix selectedIds={armedIds} baselineIds={baselineIds} onSelectionChange={establish} restoreProfile={profileId => establish(restoreCanonicalLayerProfile(profileId))}/><div className="layers-lab__primary-action-rail" role="region" aria-label="Experiment execution"><button className="layers-lab__run-action" type="button" onClick={run}>Run / Recompute experiment</button><span>Selection changes prepare input only. Computation runs only on this command.</span></div></section>
     {state.status === LayersExperimentStatus.ERROR && <section className="layers-lab__error" role="alert"><strong>Experiment runtime error</strong><p>{state.error?.message}</p></section>}
     {projection ? <>
       <LayersWireManifoldChamber projection={projection} caseA={pairView.focusedEventId} caseB={pairView.comparisonEventId}/>

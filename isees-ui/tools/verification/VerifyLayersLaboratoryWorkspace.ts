@@ -19,9 +19,9 @@ verify("A11-I2 projection used", workspace.includes("projectLayersExperimentalPa
 verify("canonical COMPARE identity derived", workspace.includes("resolveComparePairProjection") && workspace.includes("WorkspaceSelectionKind.CANDIDATE"));
 verify("complete active ownership gates presentation", workspace.includes("isLayersExperimentScopeCurrent") && workspace.includes("scopeIsCurrent ? state.currentExecution") && !workspace.includes("samePair"));
 verify("no duplicate handoff store", !workspace.includes("localStorage") && !workspace.includes("sessionStorage"));
-verify("registered catalog only", workspace.includes("CanonicalLayerRegistry") && !workspace.includes("Astronomy") && !workspace.includes("Geomagnetics"));
+verify("authoritative catalog matrix", workspace.includes("LayerCatalogMatrix") && !workspace.includes("Astronomy") && !workspace.includes("Geomagnetics"));
 verify("explicit run control", workspace.includes("Run / Recompute experiment"));
-verify("reset to baseline", workspace.includes("Reset to baseline"));
+verify("restore versioned baseline", workspace.includes("restoreCanonicalLayerProfile"));
 verify("concurrent wires", chamber.includes("layers-wire__baseline") && chamber.includes("layers-wire__experiment"));
 verify("all delta states originate in projection", read("src/layers/projection/LayersExperimentalPairProjectionTypes.ts").includes("FORMED") && workspace.includes("projection.delta.state"));
 verify("unavailable is not zero", chamber.includes("UNAVAILABLE (not zero)") && !chamber.includes("?? 0"));

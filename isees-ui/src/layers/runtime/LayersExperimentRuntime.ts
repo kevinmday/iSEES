@@ -117,20 +117,18 @@ function semanticId(input: unknown): string {
 }
 
 function normalizeLayers(selection: ArmedLayerSelection): readonly ArmedLayer[] {
-  const legacy = new Set(identifiers(selection.legacyLayerIds, "Legacy layer identifier"));
+  const legacy = identifiers(selection.legacyLayerIds, "Legacy layer identifier");
   const all = identifiers([...selection.layerIds, ...legacy], "Layer identifier");
   const compatibility = new Map(CanonicalLayerRegistry.map((layer) => [layer.id, layer]));
-  return immutable(all.map((id): ArmedLayer => {
+  return immutable(all.flatMap((id): ArmedLayer[] => {
     const catalogDefinition = getCanonicalLayerDefinition(id);
     const canonicalDefinition = compatibility.get(id);
     if (catalogDefinition) {
-      return { id, classification: ArmedLayerClassification.CANONICAL, operational: catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL, canonicalDefinition };
+      return catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL && catalogDefinition.researcherSelectable && canonicalDefinition
+        ? [{ id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition }]
+        : [];
     }
-    return {
-      id,
-      classification: legacy.has(id) ? ArmedLayerClassification.LEGACY : ArmedLayerClassification.UNSUPPORTED,
-      operational: false,
-    };
+    return [];
   }));
 }
 
