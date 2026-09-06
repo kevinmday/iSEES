@@ -1,233 +1,115 @@
-/* ==========================================================
-   src/identity/components/OperatorEntryScreen.css
-   P57-UI-A2
-   OPERATOR ENTRY SURFACE
-
-   Runtime owns identity behavior.
-   This stylesheet owns presentation only.
-   ========================================================== */
-
 .isees-entry {
+    position: relative;
     min-height: 100vh;
-
+    min-height: 100dvh;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    justify-content: center;
-
-    padding: var(--space-lg);
-
-    background: var(--surface-0);
-    color: var(--text-secondary);
-
+    overflow-x: hidden;
+    overflow-y: auto !important;
+    padding: clamp(1rem, 3.2vw, 3.5rem);
+    background: #02070d url("/images/isees-earth-stars-landing.png") center center / cover no-repeat;
+    color: var(--text-primary);
     font-family: var(--font-family-sans);
 }
 
-.isees-entry__surface {
-    width: min(
-        460px,
-        calc(100vw - var(--space-xxl))
-    );
+.isees-entry, .isees-entry *, .isees-entry *::before, .isees-entry *::after { box-sizing: border-box; }
 
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-
-    gap: 18px;
+.isees-entry__panel {
+    width: clamp(32rem, 40vw, 45rem);
+    padding: clamp(1.5rem, 2.5vw, 2.75rem);
+    border: 1px solid rgba(111, 205, 244, .34);
+    border-left-color: rgba(112, 220, 255, .82);
+    border-radius: var(--surface-radius-sm);
+    background: rgba(2, 12, 21, .72);
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .3), inset 0 0 2rem rgba(48, 158, 214, .035);
+    backdrop-filter: blur(.55rem);
 }
 
-.isees-entry__brand {
-    margin-bottom: 10px;
-    text-align: center;
+.isees-entry__product {
+    margin: 0;
+    color: #e9f9ff;
+    font-size: clamp(1.15rem, 1.6vw, 1.5rem);
+    font-weight: var(--weight-bold);
+    letter-spacing: .18em;
 }
 
 .isees-entry__system-label {
-    margin-bottom: var(--space-sm);
-
-    color: var(--text-caption);
-
+    margin: .5rem 0 0;
+    color: #77d9ff;
     font-family: var(--type-system-family);
-    font-size: var(--type-system-size);
-    font-weight: var(--type-system-weight);
-
-    line-height: var(--line-tight);
-    letter-spacing: .22em;
-    text-transform: uppercase;
+    font-size: max(.7rem, var(--type-system-size));
+    letter-spacing: .2em;
 }
+
+.isees-entry__introduction { margin-block: clamp(1.5rem, 3.4vh, 2.5rem) clamp(1.25rem, 2.6vh, 2rem); }
 
 .isees-entry__title {
+    max-width: 15ch;
     margin: 0;
-
-    color: var(--text-primary);
-
-    font-family: var(--font-family-sans);
-    font-size: 42px;
+    color: #f7fcff;
+    font-size: clamp(2rem, 3.15vw, 3.5rem);
     font-weight: var(--weight-bold);
-
-    line-height: 1;
-    letter-spacing: .08em;
+    line-height: 1.02;
+    letter-spacing: -.025em;
+    text-wrap: balance;
 }
 
-.isees-entry__subtitle {
-    margin: 14px 0 0;
-
-    color: var(--text-caption);
-
+.isees-entry__description, .isees-entry__capabilities {
+    max-width: 54ch;
+    color: #c2d5df;
     font-family: var(--type-body-family);
-    font-size: var(--type-body-size);
-    font-weight: var(--type-body-weight);
-
-    line-height: var(--line-normal);
+    line-height: 1.55;
 }
+.isees-entry__description { margin: 1.15rem 0 0; font-size: max(.98rem, var(--type-body-size)); }
+.isees-entry__capabilities { margin: .65rem 0 0; color: #94afbd; font-size: .85rem; }
+.isees-entry__actions { display: grid; gap: clamp(1rem, 2vh, 1.4rem); }
 
 .isees-entry__button {
     width: 100%;
-
-    padding: 14px 18px;
-
-    border: var(--surface-border);
+    min-height: 3rem;
+    padding: .8rem 1rem;
+    border: 1px solid rgba(112, 189, 226, .38);
     border-radius: var(--surface-radius-sm);
-
-    background: var(--surface-2);
-    color: var(--text-primary);
-
-    font-family: var(--font-family-sans);
-    font-size: var(--font-body);
+    font: inherit;
+    font-size: .8rem;
     font-weight: var(--weight-semibold);
-
-    line-height: var(--line-normal);
-    letter-spacing: .02em;
-
-    transition:
-        background var(--transition-fast),
-        border-color var(--transition-fast),
-        color var(--transition-fast),
-        box-shadow var(--transition-fast),
-        transform var(--transition-fast);
+    letter-spacing: .11em;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
+.isees-entry__button--primary { border-color: #75dcff; background: #087faf; color: #fff; box-shadow: 0 0 1.2rem rgba(31, 178, 232, .2); cursor: pointer; }
+.isees-entry__button--primary:hover { border-color: #b7eeff; background: #0993c7; }
+.isees-entry__button--primary:active { transform: translateY(1px); }
+.isees-entry__button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 6px #087faf; }
 
-.isees-entry__button--primary {
-    border-color: var(--text-disabled);
-    background: var(--surface-2);
-    cursor: pointer;
+.isees-entry__access-copy, .isees-entry__planned-copy, .isees-entry__governing-copy { font-size: .77rem; line-height: 1.45; }
+.isees-entry__access-copy { margin: .55rem .1rem 0; color: #b5cbd5; }
+.isees-entry__account-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.isees-entry__button--planned:disabled { border-color: rgba(122, 156, 174, .3); background: rgba(8, 24, 35, .68); color: #8298a4; cursor: not-allowed; opacity: .84; }
+.isees-entry__planned-copy { margin: .5rem .1rem 0; color: #849da9; }
+.isees-entry__planned-copy strong { display: block; margin-bottom: .15rem; color: #79ccea; font: var(--weight-semibold) .68rem var(--type-system-family); letter-spacing: .15em; text-transform: uppercase; }
+.isees-entry__governing-copy { margin: clamp(1rem, 2vh, 1.5rem) 0 0; padding-top: .9rem; border-top: 1px solid rgba(111, 168, 195, .22); color: #a9c0ca; }
+
+@media (max-width: 900px) {
+    .isees-entry { align-items: flex-end; padding: 1.25rem; background-position: 62% center; }
+    .isees-entry__panel { width: min(39rem, 78vw); }
 }
-
-.isees-entry__button--primary:hover {
-    border-color: var(--color-information);
-    background: var(--surface-1);
+@media (max-width: 620px) {
+    .isees-entry { padding: clamp(.75rem, 3vw, 1rem); background-position: 66% center; }
+    .isees-entry__panel { width: 100%; padding: 1.25rem; background: rgba(2, 12, 21, .78); backdrop-filter: blur(.3rem); }
+    .isees-entry__introduction { margin-block: 1.25rem 1rem; }
+    .isees-entry__account-actions { gap: .75rem; }
 }
-
-.isees-entry__button--primary:active {
-    transform: translateY(1px);
+@media (max-width: 430px) { .isees-entry__account-actions { grid-template-columns: 1fr; } }
+@media (max-height: 760px) and (min-width: 621px) {
+    .isees-entry { align-items: flex-start; }
+    .isees-entry__panel { padding-block: 1.35rem; }
+    .isees-entry__introduction { margin-block: 1rem; }
 }
-
-.isees-entry__button:focus-visible,
-.isees-entry__login:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+@media (prefers-reduced-motion: reduce) {
+    .isees-entry *, .isees-entry *::before, .isees-entry *::after { animation: none; scroll-behavior: auto; transition: none; }
 }
-
-.isees-entry__button--disabled {
-    padding: 13px 18px;
-
-    border-color: var(--border-color);
-
-    background: var(--surface-1);
-    color: var(--text-disabled);
-
-    cursor: not-allowed;
-    opacity: var(--disabled-opacity);
-}
-
-.isees-entry__guidance {
-    margin-top: -8px;
-    text-align: center;
-}
-
-.isees-entry__guidance-title {
-    color: var(--text-muted);
-
-    font-family: var(--font-family-sans);
-    font-size: var(--font-meta);
-    font-weight: var(--weight-semibold);
-
-    line-height: var(--line-normal);
-}
-
-.isees-entry__guidance-detail {
-    margin-top: var(--space-xxs);
-
-    color: var(--text-disabled);
-
-    font-family: var(--font-family-sans);
-    font-size: var(--font-micro);
-
-    line-height: var(--line-normal);
-}
-
-.isees-entry__divider {
-    height: 1px;
-    margin: var(--space-xs) 0;
-    background: var(--divider-color);
-}
-
-.isees-entry__account-guidance {
-    margin-top: -8px;
-
-    color: var(--text-disabled);
-
-    font-family: var(--font-family-sans);
-    font-size: var(--font-micro);
-
-    line-height: var(--line-normal);
-    text-align: center;
-}
-
-.isees-entry__login {
-    align-self: center;
-
-    padding: var(--space-xxs) var(--surface-radius-sm);
-
-    border: 0;
-
-    background: transparent;
-    color: var(--text-disabled);
-
-    font-family: var(--font-family-sans);
-    font-size: var(--font-meta);
-
-    text-decoration: underline;
-    text-underline-offset: 3px;
-
-    cursor: not-allowed;
-    opacity: var(--disabled-opacity);
-}
-
-.isees-entry__persistence-notice {
-    margin: var(--surface-radius-sm) 0 0;
-
-    color: var(--text-disabled);
-
-    font-family: var(--font-family-sans);
-    font-size: 10px;
-
-    line-height: var(--line-normal);
-    text-align: center;
-
-    opacity: .8;
-}
-
-@media (max-width: 540px) {
-    .isees-entry {
-        padding:
-            var(--space-lg)
-            var(--space-md);
-    }
-
-    .isees-entry__surface {
-        width: 100%;
-    }
-
-    .isees-entry__title {
-        font-size: var(--font-display);
-    }
+@media (forced-colors: active) {
+    .isees-entry__panel, .isees-entry__button { border: 1px solid CanvasText; }
+    .isees-entry__button:focus-visible { outline-color: Highlight; box-shadow: none; }
 }
