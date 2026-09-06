@@ -84,12 +84,10 @@ export default function OverviewWorkspace() {
       library: investigationLibrary.state,
     });
 
-  void frontDoorProjection;
-
   if (!investigation) {
     return (
       <div className="overview-workspace">
-        <GuestWelcomeOverview />
+        <GuestWelcomeOverview projection={frontDoorProjection} />
       </div>
     );
   }

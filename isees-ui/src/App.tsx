@@ -76,6 +76,9 @@ import {
 import {
   InvestigationLibraryRuntimeProvider,
 } from "./investigation/library/InvestigationLibraryRuntimeContext";
+import { OverviewSelectionProvider } from "./workspace/surfaces/overview/OverviewSelectionContext";
+import OverviewCaseIntake from "./workspace/surfaces/overview/OverviewCaseIntake";
+import OverviewInspector from "./workspace/surfaces/overview/OverviewInspector";
 
 import {
   EventProvider,
@@ -281,21 +284,7 @@ function OperatorUI() {
                             <LayersPresentationSelectionProvider>
                             <TimelineInspectionProvider>
                             <IntentionWorkspaceProvider>
-                            <MainLayout
-
-                              left={
-                                <ModeAwareLeftPanel />
-                              }
-
-                              center={
-                                <ModeAwarePrimarySurface />
-                              }
-
-                              right={
-                                <ModeAwareRightPanel />
-                              }
-
-                            />
+                            <ModeAwareOperatorLayout />
                             </IntentionWorkspaceProvider>
                             </TimelineInspectionProvider>
                             </LayersPresentationSelectionProvider>
@@ -413,20 +402,38 @@ export default function App() {
 
 }
 
+function OperatorLayout() {
+  return <MainLayout
+    left={<ModeAwareLeftPanel />}
+    center={
+                                <ModeAwarePrimarySurface />
+    }
+    right={<ModeAwareRightPanel />}
+  />;
+}
+
 function ModeAwarePrimarySurface() {
+  return <PrimarySurface />;
+}
+
+function ModeAwareOperatorLayout() {
   const mode = useWorkspaceMode();
   return mode === WorkspaceMode.OVERVIEW
     ? (
       <InvestigationLibraryRuntimeProvider>
-        <PrimarySurface />
+        <OverviewSelectionProvider>
+          <OperatorLayout />
+        </OverviewSelectionProvider>
       </InvestigationLibraryRuntimeProvider>
     )
-    : <PrimarySurface />;
+    : <OperatorLayout />;
 }
 
 function ModeAwareLeftPanel() {
   const mode = useWorkspaceMode();
-  return mode === WorkspaceMode.LAYERS
+  return mode === WorkspaceMode.OVERVIEW
+    ? <OverviewCaseIntake />
+    : mode === WorkspaceMode.LAYERS
     ? <LayersLaboratoryNavigator />
     : mode === WorkspaceMode.TIMELINE
       ? <TimelineNavigator />
@@ -437,7 +444,9 @@ function ModeAwareLeftPanel() {
 
 function ModeAwareRightPanel() {
   const mode = useWorkspaceMode();
-  return mode === WorkspaceMode.LAYERS
+  return mode === WorkspaceMode.OVERVIEW
+    ? <OverviewInspector />
+    : mode === WorkspaceMode.LAYERS
     ? <LayersExperimentalIntelligence />
     : mode === WorkspaceMode.TIMELINE
       ? <TimelineInspector />

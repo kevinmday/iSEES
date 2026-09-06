@@ -47,10 +47,11 @@ export default function MainLayout({
   const workspaceMode =
     useWorkspaceMode();
   const studioMode = workspaceMode === WorkspaceMode.RESEARCH;
+  const overviewMode = workspaceMode === WorkspaceMode.OVERVIEW;
   const layersMode = workspaceMode === WorkspaceMode.LAYERS;
   const timelineMode = workspaceMode === WorkspaceMode.TIMELINE;
-  const leftInstrumentName = layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
-  const rightInstrumentName = layersMode ? "Experimental Intelligence" : timelineMode ? "Timeline Inspector" : "Selection Intelligence";
+  const leftInstrumentName = overviewMode ? "Case Intake" : layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
+  const rightInstrumentName = overviewMode ? "Overview Inspector" : layersMode ? "Experimental Intelligence" : timelineMode ? "Timeline Inspector" : "Selection Intelligence";
 
   const [
     workspaceExpanded,
@@ -423,7 +424,7 @@ export default function MainLayout({
             <div className="selection-intelligence__header-row">
               <div className="selection-intelligence__identity">
                 <div className="selection-intelligence__eyebrow">
-                  {layersMode ? "Laboratory inspection" : "Active selection"}
+                  {overviewMode ? "Front-door inspection" : layersMode ? "Laboratory inspection" : "Active selection"}
                 </div>
 
                 <div className="selection-intelligence__title">
@@ -445,7 +446,9 @@ export default function MainLayout({
             </div>
 
             <div className="selection-intelligence__description">
-              {layersMode
+              {overviewMode
+                ? "Inspect public Canon records, repository orientation, and owned investigation summaries without changing the workspace."
+                : layersMode
                 ? "Inspect the experimental subjects, layers, wires, delta, contributions, and deterministic provenance."
                 : timelineMode
                   ? "Inspect temporal records, Event lanes, correspondences, provenance, and supporting evidence."

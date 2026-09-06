@@ -982,11 +982,46 @@ equal(strictCommittedLoads.join(","), "A", "StrictMode committed mount duplicate
 pass("mode boundary permits only OVERVIEW, cancels exit work, reconciles return authority, and survives StrictMode rehearsal");
 
 for (const visible of [
-  "<GuestWelcomeOverview />", 'className="overview-dashboard"', "Active Investigation",
+  'className="overview-dashboard"', "Active Investigation",
   "Current Investigative Focus", "Active Layers", "No Event Selected",
 ]) assert(overviewSource.includes(visible), `Existing OVERVIEW structure missing ${visible}.`);
-assert(overviewSource.includes("void frontDoorProjection"), "Live projection is not consumed non-visually.");
-pass("existing OVERVIEW visible structure remains present with non-visual live projection");
+const overviewSourceFile = ts.createSourceFile("OverviewWorkspace.tsx", overviewSource, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
+let hardenedProjectionDeclaration = false;
+let discardedProjection = false;
+let guestWelcomeRenderCount = 0;
+let exactProjectionRenderCount = 0;
+function inspectOverviewProjectionSeam(node: ts.Node): void {
+  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "frontDoorProjection") {
+    hardenedProjectionDeclaration = node.initializer !== undefined
+      && ts.isCallExpression(node.initializer)
+      && ts.isIdentifier(node.initializer.expression)
+      && node.initializer.expression.text === "resolveOverviewFrontDoorRuntimeProjection";
+  }
+  if (ts.isVoidExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "frontDoorProjection") {
+    discardedProjection = true;
+  }
+  if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
+      && ts.isIdentifier(node.tagName) && node.tagName.text === "GuestWelcomeOverview") {
+    guestWelcomeRenderCount += 1;
+    const projectionAttribute = node.attributes.properties.find(property =>
+      ts.isJsxAttribute(property) && ts.isIdentifier(property.name) && property.name.text === "projection"
+    );
+    if (projectionAttribute !== undefined && ts.isJsxAttribute(projectionAttribute)
+        && projectionAttribute.initializer !== undefined && ts.isJsxExpression(projectionAttribute.initializer)
+        && projectionAttribute.initializer.expression !== undefined
+        && ts.isIdentifier(projectionAttribute.initializer.expression)
+        && projectionAttribute.initializer.expression.text === "frontDoorProjection") {
+      exactProjectionRenderCount += 1;
+    }
+  }
+  ts.forEachChild(node, inspectOverviewProjectionSeam);
+}
+inspectOverviewProjectionSeam(overviewSourceFile);
+assert(hardenedProjectionDeclaration, "OVERVIEW does not resolve the hardened front-door projection at the welcome seam.");
+assert(!discardedProjection, "OVERVIEW discards the hardened front-door projection.");
+equal(guestWelcomeRenderCount, 1, "GuestWelcomeOverview render count no longer has one auditable projection seam.");
+equal(exactProjectionRenderCount, guestWelcomeRenderCount, "GuestWelcomeOverview received no projection or an alternate/fallback projection.");
+pass("existing OVERVIEW structure remains present and its welcome seam consumes only the exact hardened projection");
 
 assert(!JSON.stringify(returningGuest).includes("activateInvestigation"), "Projection exposed activation behavior.");
 assert(Object.isFrozen(returningGuest) && Object.isFrozen(returningGuest?.library), "Projection is not recursively immutable.");
