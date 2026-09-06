@@ -9,6 +9,7 @@ import type {
   EstablishLayersExperimentInput,
   LayersExperimentError,
   LayersExperimentExecution,
+  LayersExperimentAuthority,
   LayersExperimentResult,
   LayersExperimentState,
 } from "./LayersExperimentRuntimeTypes";
@@ -73,6 +74,37 @@ function stableSerialize(value: unknown): string {
   return JSON.stringify(value);
 }
 
+export function isLayersExperimentScopeCurrent(
+  scope: LayersExperimentState["scope"],
+  authority: LayersExperimentAuthority | undefined,
+): boolean {
+  if (!scope || !authority) return false;
+  return scope.investigationId === authority.investigationId
+    && scope.workspaceId === authority.workspaceId
+    && scope.focusedEventId === authority.focusedEventId
+    && scope.comparisonEventId === authority.comparisonEventId
+    && stableSerialize(scope.subjectIds) === stableSerialize(authority.subjectIds)
+    && scope.compareOrigin.pairId === authority.compareOrigin.pairId
+    && scope.compareOrigin.candidateId === authority.compareOrigin.candidateId
+    && scope.compareOrigin.evaluationId === authority.compareOrigin.evaluationId
+    && scope.resolveOrigin.executionId === authority.resolveOrigin.executionId;
+}
+
+export function isLayersExperimentExecutionCurrent(
+  execution: LayersExperimentExecution | undefined,
+  authority: LayersExperimentAuthority | undefined,
+): boolean {
+  const projection = execution?.result?.experimentalManifoldSnapshot;
+  return !!execution?.result && !!projection
+    && isLayersExperimentScopeCurrent(execution.input.scope, authority)
+    && execution.executionId === projection.executionId
+    && projection.investigationId === authority?.investigationId
+    && projection.candidateId === authority.compareOrigin.candidateId
+    && projection.evaluationId === authority.compareOrigin.evaluationId
+    && projection.pairId === authority.compareOrigin.pairId
+    && stableSerialize(projection.subjects.map(subject => subject.knowledgeObjectId).sort()) === stableSerialize(authority.subjectIds);
+}
+
 function semanticId(input: unknown): string {
   const text = stableSerialize(input);
   let hash = 0xcbf29ce484222325n;
@@ -128,30 +160,31 @@ export class LayersExperimentRuntime {
     const investigationId = requireIdentifier(input.scope.investigationId, "Investigation identity");
     const baselineInvestigationId = requireIdentifier(input.baseline.investigationId, "Baseline Investigation identity");
     if (investigationId !== baselineInvestigationId) throw new Error("Scope and baseline Investigation identities must match.");
-    const workspaceId = optionalIdentifier(input.scope.workspaceId, "Workspace identity");
-    const baselineWorkspaceId = optionalIdentifier(input.baseline.workspaceId, "Baseline workspace identity");
+    const workspaceId = requireIdentifier(input.scope.workspaceId, "Workspace identity");
+    const baselineWorkspaceId = requireIdentifier(input.baseline.workspaceId, "Baseline workspace identity");
     if (workspaceId !== baselineWorkspaceId) throw new Error("Scope and baseline workspace identities must match.");
     const subjectIds = identifiers(input.scope.subjectIds, "Subject identity");
     const baselineSubjectIds = identifiers(input.baseline.subjectIds, "Baseline subject identity");
     if (stableSerialize(subjectIds) !== stableSerialize(baselineSubjectIds)) throw new Error("Scope and baseline subject identities must match.");
     const scope = immutable({
       investigationId, workspaceId,
-      focusedEventId: optionalIdentifier(input.scope.focusedEventId, "Focused event identity"),
-      comparisonEventId: optionalIdentifier(input.scope.comparisonEventId, "Comparison event identity"),
+      focusedEventId: requireIdentifier(input.scope.focusedEventId, "Focused event identity"),
+      comparisonEventId: requireIdentifier(input.scope.comparisonEventId, "Comparison event identity"),
       subjectIds,
-      compareOrigin: input.scope.compareOrigin === undefined ? undefined : {
-        pairId: optionalIdentifier(input.scope.compareOrigin.pairId, "COMPARE pair identity"),
-        candidateId: optionalIdentifier(input.scope.compareOrigin.candidateId, "COMPARE candidate identity"),
+      compareOrigin: {
+        pairId: requireIdentifier(input.scope.compareOrigin?.pairId, "COMPARE pair identity"),
+        candidateId: requireIdentifier(input.scope.compareOrigin?.candidateId, "COMPARE candidate identity"),
+        evaluationId: requireIdentifier(input.scope.compareOrigin?.evaluationId, "Resolve evaluation identity"),
       },
-      resolveOrigin: input.scope.resolveOrigin === undefined ? undefined : {
-        executionId: optionalIdentifier(input.scope.resolveOrigin.executionId, "Resolve execution identity"),
-        manifoldId: optionalIdentifier(input.scope.resolveOrigin.manifoldId, "Manifold identity"),
+      resolveOrigin: {
+        executionId: requireIdentifier(input.scope.resolveOrigin?.executionId, "Resolve execution identity"),
+        manifoldId: optionalIdentifier(input.scope.resolveOrigin?.manifoldId, "Manifold identity"),
       },
     });
     const baseline = immutable({
       investigationId, workspaceId, subjectIds: baselineSubjectIds,
       canonicalStartingLayerIds: identifiers(input.baseline.canonicalStartingLayerIds, "Starting layer identifier"),
-      startingResolveExecutionId: optionalIdentifier(input.baseline.startingResolveExecutionId, "Starting Resolve execution identity"),
+      startingResolveExecutionId: requireIdentifier(input.baseline.startingResolveExecutionId, "Starting Resolve execution identity"),
       startingManifoldId: optionalIdentifier(input.baseline.startingManifoldId, "Starting manifold identity"),
       temporalContext: input.baseline.temporalContext,
       investigativeScale: input.baseline.investigativeScale,

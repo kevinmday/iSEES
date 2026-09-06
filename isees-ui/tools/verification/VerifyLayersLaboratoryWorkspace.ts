@@ -17,6 +17,7 @@ verify("real LayersWorkspace in authoritative switches", surface.includes("<Laye
 verify("stable LayersExperimentRuntime context", context.includes("new LayersExperimentRuntime()") && context.includes("revision"));
 verify("A11-I2 projection used", workspace.includes("projectLayersExperimentalPair"));
 verify("canonical COMPARE identity derived", workspace.includes("resolveComparePairProjection") && workspace.includes("WorkspaceSelectionKind.CANDIDATE"));
+verify("complete active ownership gates presentation", workspace.includes("isLayersExperimentScopeCurrent") && workspace.includes("scopeIsCurrent ? state.currentExecution") && !workspace.includes("samePair"));
 verify("no duplicate handoff store", !workspace.includes("localStorage") && !workspace.includes("sessionStorage"));
 verify("registered catalog only", workspace.includes("CanonicalLayerRegistry") && !workspace.includes("Astronomy") && !workspace.includes("Geomagnetics"));
 verify("explicit run control", workspace.includes("Run / Recompute experiment"));
@@ -27,8 +28,8 @@ verify("unavailable is not zero", chamber.includes("UNAVAILABLE (not zero)") && 
 verify("purpose-built deterministic SVG", chamber.includes("<svg") && chamber.includes("viewBox=\"0 0 900 300\""));
 verify("no random or force simulation", !chamber.match(/random|force-graph|simulation/i));
 verify("non-mutation boundary visible", workspace.includes("Canonical knowledge was not mutated") && workspace.includes("No canonical relationship was created"));
-verify("Research publication is explicit and side-owned", intelligence.includes("Publish Experiment to Research") && intelligence.includes("canPublish"));
+verify("Research publication is explicit and exact-scope owned", intelligence.includes("Publish Experiment to Research") && intelligence.includes("isLayersExperimentExecutionCurrent") && intelligence.includes("activeAuthority"));
 verify("Research Inbox visible in LAYERS", surface.includes("WorkspaceMode.LAYERS"));
 verify("accessibility contracts", workspace.includes("aria-pressed") && chamber.includes("role=\"img\"") && css.includes(":focus-visible"));
 verify("reduced motion contract", css.includes("prefers-reduced-motion"));
-console.log(`VerifyLayersLaboratoryWorkspace: ${passed}/18 checks passed.`);
+console.log(`VerifyLayersLaboratoryWorkspace: ${passed}/19 checks passed.`);

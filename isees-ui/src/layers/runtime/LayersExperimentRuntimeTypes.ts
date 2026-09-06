@@ -13,31 +13,34 @@ export type LayersExperimentStatus =
   (typeof LayersExperimentStatus)[keyof typeof LayersExperimentStatus];
 
 export interface LayersExperimentCompareOrigin {
-  pairId?: string;
-  candidateId?: string;
+  pairId: string;
+  candidateId: string;
+  evaluationId: string;
 }
 
 export interface LayersExperimentResolveOrigin {
-  executionId?: string;
+  executionId: string;
   manifoldId?: string;
 }
 
 export interface LayersExperimentScope {
   investigationId: string;
-  workspaceId?: string;
-  focusedEventId?: string;
-  comparisonEventId?: string;
+  workspaceId: string;
+  focusedEventId: string;
+  comparisonEventId: string;
   subjectIds: readonly string[];
-  compareOrigin?: LayersExperimentCompareOrigin;
-  resolveOrigin?: LayersExperimentResolveOrigin;
+  compareOrigin: LayersExperimentCompareOrigin;
+  resolveOrigin: LayersExperimentResolveOrigin;
 }
+
+export type LayersExperimentAuthority = LayersExperimentScope;
 
 export interface LayersExperimentBaseline {
   investigationId: string;
-  workspaceId?: string;
+  workspaceId: string;
   subjectIds: readonly string[];
   canonicalStartingLayerIds: readonly string[];
-  startingResolveExecutionId?: string;
+  startingResolveExecutionId: string;
   startingManifoldId?: string;
   temporalContext: unknown;
   investigativeScale: unknown;

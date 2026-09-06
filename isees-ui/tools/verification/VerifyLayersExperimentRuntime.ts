@@ -3,6 +3,7 @@ import {
   LayersExperimentRuntime,
   LayersExperimentStatus,
   createUnavailableLayersExperimentResult,
+  isLayersExperimentScopeCurrent,
 } from "../../src/layers/runtime/index.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -30,8 +31,8 @@ const externalBefore = json(externalSystems);
 
 const runtime = new LayersExperimentRuntime();
 throws(() => runtime.establish({
-  scope: { investigationId: "", subjectIds: [] },
-  baseline: { investigationId: "", subjectIds: [], canonicalStartingLayerIds: [], temporalContext: {}, investigativeScale: {} },
+  scope: { investigationId: "", workspaceId: "workspace:none", focusedEventId: "event:none", comparisonEventId: "event:other", subjectIds: [], compareOrigin: { pairId: "pair:none", candidateId: "candidate:none", evaluationId: "evaluation:none" }, resolveOrigin: { executionId: "resolve:none" } },
+  baseline: { investigationId: "", workspaceId: "workspace:none", subjectIds: [], canonicalStartingLayerIds: [], startingResolveExecutionId: "resolve:none", temporalContext: {}, investigativeScale: {} },
 }), "Investigation identity");
 console.log("PASS 1 — missing Investigation identity is rejected");
 
@@ -40,8 +41,8 @@ const investigativeScale = { radius: 5, unit: "km" };
 runtime.establish({
   scope: {
     investigationId: "investigation:alpha", workspaceId: "workspace:alpha",
-    focusedEventId: "event:focus", subjectIds: ["subject:b", "subject:a", "subject:a"],
-    compareOrigin: { pairId: "pair:alpha", candidateId: "candidate:alpha" },
+    focusedEventId: "event:focus", comparisonEventId: "event:comparison", subjectIds: ["subject:b", "subject:a", "subject:a"],
+    compareOrigin: { pairId: "pair:alpha", candidateId: "candidate:alpha", evaluationId: "evaluation:alpha" },
     resolveOrigin: { executionId: "resolve:alpha", manifoldId: "manifold:alpha" },
   },
   baseline: {
@@ -57,6 +58,21 @@ let state = runtime.getState();
 assert(state.status === LayersExperimentStatus.READY && state.scope?.subjectIds.join() === "subject:a,subject:b", "Establishment must preserve normalized scope.");
 assert((state.baseline?.temporalContext as { start: number }).start === 10, "Baseline must be frozen independently of caller values.");
 console.log("PASS 2 — establishment preserves scope and immutable baseline");
+const authority = state.scope!;
+assert(isLayersExperimentScopeCurrent(state.scope, authority), "An unchanged complete authority must remain reusable after leaving and returning to LAYERS.");
+console.log("PASS 19 — unchanged authority remains current across mode presentation lifecycle");
+for (const [name, changed] of [
+  ["investigation", { ...authority, investigationId: "investigation:beta" }],
+  ["workspace", { ...authority, workspaceId: "workspace:beta" }],
+  ["focused event", { ...authority, focusedEventId: "event:other" }],
+  ["comparison event", { ...authority, comparisonEventId: "event:other" }],
+  ["subjects", { ...authority, subjectIds: ["subject:a", "subject:c"] }],
+  ["candidate", { ...authority, compareOrigin: { ...authority.compareOrigin, candidateId: "candidate:beta" } }],
+  ["evaluation", { ...authority, compareOrigin: { ...authority.compareOrigin, evaluationId: "evaluation:beta" } }],
+  ["Resolve execution", { ...authority, resolveOrigin: { ...authority.resolveOrigin, executionId: "resolve:beta" } }],
+] as const) assert(!isLayersExperimentScopeCurrent(state.scope, changed), `${name} change must invalidate the experiment scope.`);
+assert(!isLayersExperimentScopeCurrent(state.scope, undefined), "Fresh investigation without a valid pair must expose no prior scope.");
+console.log("PASS 20 — every active ownership field and missing fresh authority invalidate stale state");
 
 runtime.setArmedLayers({ layerIds: ["TEMPORAL", "OBSERVABILITY", "TEMPORAL", "FUTURE_LAYER"], legacyLayerIds: ["OLD_LAYER"] });
 assert(json(externalSystems.workspaceRuntime.activeLayers) === '["OBSERVABILITY"]', "Arming Laboratory layers must not mutate WorkspaceRuntime.");
@@ -130,4 +146,4 @@ assert(state.status === LayersExperimentStatus.EMPTY && state.history.length ===
 console.log("PASS 16 — reset affects only the Laboratory");
 assert(json(externalSystems) === externalBefore, "Protected systems must remain unchanged.");
 console.log("PASS 18 — Knowledge, WorkspaceRuntime, MANIFOLD, COMPARE, and Research Inbox remain unchanged");
-console.log("\nAll 18 Layers Experiment Runtime behavioral invariants passed.");
+console.log("\nAll 20 Layers Experiment Runtime behavioral invariants passed.");

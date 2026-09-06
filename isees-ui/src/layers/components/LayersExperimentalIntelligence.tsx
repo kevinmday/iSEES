@@ -1,6 +1,13 @@
 import { useMemo } from "react";
+import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
+import { WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
+import { useResolveRuntimeState } from "../../resolve/runtime/ResolveRuntimeContext";
+import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+import { resolveComparePairProjection } from "../../compare/projection/ComparePairProjectionResolver";
+import { ComparePairProjectionStatus } from "../../compare/projection/ComparePairProjectionTypes";
+import { resolveCandidateIntelligenceCollection } from "../../resolve/intelligence/ResolveCandidateIntelligenceResolver";
 import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
-import { useLayersExperimentState, LayersExperimentStatus } from "../runtime";
+import { useLayersExperimentState, LayersExperimentStatus, isLayersExperimentExecutionCurrent, type LayersExperimentAuthority } from "../runtime";
 import { publishLayersExperimentToResearch } from "../research/LayersExperimentResearchPublication";
 import { useLayersPresentationSelection } from "./LayersPresentationSelection";
 import "./LayersSideInstruments.css";
@@ -9,18 +16,35 @@ const pct = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value 
 const unavailableReason = (reason?: string) => reason?.replaceAll("_", " ") ?? "Evidence unavailable for the active baseline layers";
 export default function LayersExperimentalIntelligence() {
   const state = useLayersExperimentState();
+  const workspaceRuntime = useWorkspaceRuntime();
+  const resolveState = useResolveRuntimeState();
+  const knowledge = useKnowledgeObjects();
   const bridge = useResearchBridge();
   const desk = useResearchDesk();
   const { selection, select } = useLayersPresentationSelection();
-  const execution = [...state.history].reverse().find(item => item.result?.experimentalManifoldSnapshot);
+  const workspace = workspaceRuntime.getWorkspace();
+  const investigation = workspaceRuntime.getActiveInvestigation();
+  const candidateSelection = workspaceRuntime.getSelection();
+  const completedResolve = resolveState.currentExecution?.result;
+  const activeAuthority = useMemo<LayersExperimentAuthority | undefined>(() => {
+    if (!workspace?.focused_event_id || !investigation || !completedResolve || candidateSelection?.kind !== WorkspaceSelectionKind.CANDIDATE) return undefined;
+    if (completedResolve.provenance.investigationId !== investigation.id || resolveState.currentExecution?.executionId !== completedResolve.executionId) return undefined;
+    const intelligence = resolveCandidateIntelligenceCollection(completedResolve.candidateEvaluations.evaluations).intelligence;
+    try {
+      const pair = resolveComparePairProjection(workspace.focused_event_id, knowledge, candidateSelection, intelligence);
+      if (pair.status !== ComparePairProjectionStatus.READY) return undefined;
+      return { investigationId: investigation.id, workspaceId: workspace.id, focusedEventId: workspace.focused_event_id, comparisonEventId: pair.comparisonEventId, subjectIds: [pair.leftKnowledgeObjectId, pair.rightKnowledgeObjectId].sort(), compareOrigin: { pairId: `canonical-pair:${pair.leftKnowledgeObjectId}:${pair.rightKnowledgeObjectId}`, candidateId: pair.candidateId, evaluationId: pair.evaluationId }, resolveOrigin: { executionId: completedResolve.executionId } };
+    } catch { return undefined; }
+  }, [candidateSelection, completedResolve, investigation, knowledge, resolveState.currentExecution?.executionId, workspace]);
+  const execution = isLayersExperimentExecutionCurrent(state.currentExecution, activeAuthority) ? state.currentExecution : undefined;
   const projection = execution?.result?.experimentalManifoldSnapshot;
   const published = !!projection && desk.entries.some(entry => entry.anchor.anchorId === `research:${projection.investigationId}:EXPERIMENT:${projection.projectionId}`);
   const contribution = projection && (selection.kind === "LAYER" || selection.kind === "CONTRIBUTION") ? projection.layerContributions.find(item => item.layerId === selection.layerId) : undefined;
-  const canPublish = !!execution?.result && !!projection && execution.executionId === projection.executionId;
+  const canPublish = isLayersExperimentExecutionCurrent(execution, activeAuthority);
   const guidance = state.status === LayersExperimentStatus.EXECUTING ? "Experiment executing. Inspection will update on completion."
     : state.status === LayersExperimentStatus.ERROR ? `Experiment runtime error: ${state.error?.message ?? "unknown error"}`
     : "Prepare and run an experiment to inspect its immutable result.";
-  const subjectLabels = useMemo(() => ({ a: state.scope?.focusedEventId ?? projection?.subjects[0].knowledgeObjectId ?? "UNAVAILABLE", b: state.scope?.comparisonEventId ?? projection?.subjects[1].knowledgeObjectId ?? "UNAVAILABLE" }), [projection, state.scope]);
+  const subjectLabels = useMemo(() => ({ a: activeAuthority?.focusedEventId ?? "UNAVAILABLE", b: activeAuthority?.comparisonEventId ?? "UNAVAILABLE" }), [activeAuthority]);
   function publish() {
     if (!canPublish || !execution || !projection) return;
     publishLayersExperimentToResearch({ investigationId: projection.investigationId, caseAEventId: subjectLabels.a, caseBEventId: subjectLabels.b, execution, projection, researchBridgeRuntime: bridge });

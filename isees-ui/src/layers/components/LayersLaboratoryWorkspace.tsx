@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import { WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 import { useResolveRuntimeState } from "../../resolve/runtime/ResolveRuntimeContext";
@@ -8,7 +8,7 @@ import { ComparePairProjectionStatus } from "../../compare/projection/ComparePai
 import { resolveCandidateIntelligenceCollection } from "../../resolve/intelligence/ResolveCandidateIntelligenceResolver";
 import type { LayersExperimentalPairProjection } from "../projection";
 import { CanonicalLayerRegistry } from "../../manifold/layers/systemCanonLayers";
-import { ArmedLayerClassification, LayersExperimentStatus, useLayersExperimentRuntime, useLayersExperimentState } from "../runtime";
+import { ArmedLayerClassification, LayersExperimentStatus, isLayersExperimentScopeCurrent, useLayersExperimentRuntime, useLayersExperimentState, type LayersExperimentAuthority } from "../runtime";
 import { projectLayersExperimentalPair } from "../projection";
 import LayersWireManifoldChamber from "./LayersWireManifoldChamber";
 import "./LayersLaboratoryWorkspace.css";
@@ -34,6 +34,7 @@ export default function LayersLaboratoryWorkspace() {
     if (!investigation) return { error: "No active investigation. Start or restore an investigation before opening the laboratory." } as const;
     if (!workspace?.focused_event_id) return { error: "No focused canonical EVENT. Focus an EVENT before selecting a COMPARE candidate." } as const;
     if (!completed) return { error: "No completed Resolve execution. Run Resolve before entering the laboratory." } as const;
+    if (completed.provenance.investigationId !== investigation.id || resolveState.currentExecution?.executionId !== completed.executionId) return { error: "The completed Resolve execution does not belong to the active investigation." } as const;
     if (selection?.kind !== WorkspaceSelectionKind.CANDIDATE) return { error: "No selected COMPARE candidate. Select a candidate in COMPARE, then return to LAYERS." } as const;
     try {
       const pairView = resolveComparePairProjection(workspace.focused_event_id, knowledge, selection, intelligence);
@@ -43,23 +44,44 @@ export default function LayersLaboratoryWorkspace() {
       if (!pair || !evaluation) return { error: "Pair or evaluation inputs are unavailable in the completed Resolve execution." } as const;
       return { pairView, pair, evaluation } as const;
     } catch (error) { return { error: `Stale or malformed selected candidate: ${error instanceof Error ? error.message : "unknown error"}` } as const; }
-  }, [completed, intelligence, investigation, knowledge, selection, workspace?.focused_event_id]);
+  }, [completed, intelligence, investigation, knowledge, resolveState.currentExecution?.executionId, selection, workspace?.focused_event_id]);
+
+  const activeAuthority = useMemo<LayersExperimentAuthority | undefined>(() => {
+    if ("error" in source || !investigation || !workspace || !workspace.focused_event_id || !completed) return undefined;
+    const pairView = source.pairView;
+    return {
+      investigationId: investigation.id,
+      workspaceId: workspace.id,
+      focusedEventId: workspace.focused_event_id,
+      comparisonEventId: pairView.comparisonEventId,
+      subjectIds: [pairView.leftKnowledgeObjectId, pairView.rightKnowledgeObjectId].sort(),
+      compareOrigin: {
+        pairId: `canonical-pair:${pairView.leftKnowledgeObjectId}:${pairView.rightKnowledgeObjectId}`,
+        candidateId: pairView.candidateId,
+        evaluationId: pairView.evaluationId,
+      },
+      resolveOrigin: { executionId: completed.executionId },
+    };
+  }, [completed, investigation, source, workspace]);
+  const scopeIsCurrent = isLayersExperimentScopeCurrent(state.scope, activeAuthority);
+  useEffect(() => {
+    if (state.scope && !scopeIsCurrent) runtime.reset();
+  }, [runtime, scopeIsCurrent, state.scope]);
 
   if ("error" in source) return <main className="layers-lab layers-lab--empty"><section role="status"><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Laboratory input required</h1><p>{source.error}</p><ol><li>Run Resolve.</li><li>Select a comparison in COMPARE.</li><li>Return to LAYERS.</li></ol><p>Published Research experiments remain available in the Research Inbox. Canonical knowledge remains untouched.</p></section></main>;
   const pairView = source.pairView!;
   const baselineIds = workspace?.active_layers ?? [];
-  const samePair = state.scope?.compareOrigin?.candidateId === pairView.candidateId;
-  const armedIds = samePair ? state.armedLayers.map(layer => layer.id) : baselineIds;
-  const projection = samePair ? state.currentExecution?.result?.experimentalManifoldSnapshot : undefined;
+  const armedIds = scopeIsCurrent ? state.armedLayers.map(layer => layer.id) : baselineIds;
+  const projection = scopeIsCurrent ? state.currentExecution?.result?.experimentalManifoldSnapshot : undefined;
 
   function establish(layerIds: readonly string[]) {
     if (!investigation || !workspace) return;
-    if (samePair) { runtime.setArmedLayers({ layerIds }); return; }
-    runtime.establish({ scope: { investigationId: investigation.id, workspaceId: workspace.id, focusedEventId: workspace.focused_event_id ?? undefined, comparisonEventId: pairView.comparisonEventId, subjectIds: [pairView.leftKnowledgeObjectId, pairView.rightKnowledgeObjectId], compareOrigin: { pairId: `canonical-pair:${pairView.leftKnowledgeObjectId}:${pairView.rightKnowledgeObjectId}`, candidateId: pairView.candidateId }, resolveOrigin: { executionId: completed?.executionId } }, baseline: { investigationId: investigation.id, workspaceId: workspace.id, subjectIds: [pairView.leftKnowledgeObjectId, pairView.rightKnowledgeObjectId], canonicalStartingLayerIds: baselineIds, startingResolveExecutionId: completed?.executionId, temporalContext: completed?.provenance.temporalContext, investigativeScale: completed?.provenance.investigativeScale }, armedLayers: { layerIds } });
+    if (scopeIsCurrent) { runtime.setArmedLayers({ layerIds }); return; }
+    runtime.establish({ scope: activeAuthority!, baseline: { investigationId: investigation.id, workspaceId: workspace.id, subjectIds: activeAuthority!.subjectIds, canonicalStartingLayerIds: baselineIds, startingResolveExecutionId: completed!.executionId, temporalContext: completed!.provenance.temporalContext, investigativeScale: completed!.provenance.investigativeScale }, armedLayers: { layerIds } });
   }
   function run() {
     if (!investigation) return;
-    if (!samePair) establish(armedIds);
+    if (!scopeIsCurrent) establish(armedIds);
     const executionId = runtime.beginExecution({ operatorAction: "RUN_RECOMPUTE" });
     try {
       const result = projectLayersExperimentalPair({ executionId, laboratoryInput: runtime.getState().currentExecution!.input, investigationId: investigation.id, sourceKnowledgeObjectId: pairView.leftKnowledgeObjectId, targetKnowledgeObjectId: pairView.rightKnowledgeObjectId, pair: source.pair!, evaluation: source.evaluation!, baselineLayers: CanonicalLayerRegistry.filter(layer => baselineIds.includes(layer.id)).map(layer => ({ id: layer.id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition: layer })), experimentalLayers: runtime.getState().armedLayers });
@@ -68,8 +90,8 @@ export default function LayersLaboratoryWorkspace() {
   }
 
   return <main className="layers-lab">
-    <header className="layers-lab__header"><div><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Experimental relationship chamber</h1><p>Canonical knowledge is untouched by laboratory computation.</p></div><div className="layers-lab__status"><strong>EXPERIMENTAL / NON-CANONICAL</strong><span>{state.status} · deterministic execution</span></div><dl><div><dt>Investigation</dt><dd>{investigation?.name} · {investigation?.id}</dd></div><div><dt>Case A</dt><dd>{pairView.focusedEventId} · {pairView.caseAKnowledgeObjectId}</dd></div><div><dt>Case B</dt><dd>{pairView.comparisonEventId} · {pairView.caseBKnowledgeObjectId}</dd></div></dl></header>
-    <section className="layers-lab__rack"><Heading number="01" title="Experiment control rack" status={state.status === LayersExperimentStatus.COMPLETE ? "EXECUTED" : "PREPARED — NOT RUN"}/><div className="layers-lab__controls">{CanonicalLayerRegistry.map(layer => { const armed = armedIds.includes(layer.id), baseline = baselineIds.includes(layer.id), mapped = hasOperationalCanonicalMapping({ id: layer.id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition: layer }); return <button type="button" key={layer.id} aria-pressed={armed} className="layers-lab__layer" onClick={() => { inspect({kind:"LAYER",layerId:layer.id}); establish(armed ? armedIds.filter(id => id !== layer.id) : [...armedIds, layer.id]); }}><span>{layer.id}</span><small>{baseline ? "BASELINE-ACTIVE" : "BASELINE-INACTIVE"} · {armed ? "ARMED" : "DISARMED"} · {mapped ? "MAPPED" : "UNAVAILABLE / UNMAPPED"}</small></button>; })}</div><div className="layers-lab__actions"><button type="button" onClick={run}>Run / Recompute experiment</button><button type="button" onClick={() => establish(baselineIds)}>Reset to baseline</button><span>Control changes prepare input; computation runs only on command.</span></div></section>
+    <header className="layers-lab__header"><div><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Experimental relationship chamber</h1><p>Canonical knowledge is untouched by laboratory computation.</p></div><div className="layers-lab__status"><strong>EXPERIMENTAL / NON-CANONICAL</strong><span>{scopeIsCurrent ? state.status : LayersExperimentStatus.READY} · deterministic execution</span></div><dl><div><dt>Investigation</dt><dd>{investigation?.name} · {investigation?.id}</dd></div><div><dt>Case A</dt><dd>{pairView.focusedEventId} · {pairView.caseAKnowledgeObjectId}</dd></div><div><dt>Case B</dt><dd>{pairView.comparisonEventId} · {pairView.caseBKnowledgeObjectId}</dd></div></dl></header>
+    <section className="layers-lab__rack"><Heading number="01" title="Experiment control rack" status={scopeIsCurrent && state.status === LayersExperimentStatus.COMPLETE ? "EXECUTED" : "PREPARED — NOT RUN"}/><div className="layers-lab__controls">{CanonicalLayerRegistry.map(layer => { const armed = armedIds.includes(layer.id), baseline = baselineIds.includes(layer.id), mapped = hasOperationalCanonicalMapping({ id: layer.id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition: layer }); return <button type="button" key={layer.id} aria-pressed={armed} className="layers-lab__layer" onClick={() => { inspect({kind:"LAYER",layerId:layer.id}); establish(armed ? armedIds.filter(id => id !== layer.id) : [...armedIds, layer.id]); }}><span>{layer.id}</span><small>{baseline ? "BASELINE-ACTIVE" : "BASELINE-INACTIVE"} · {armed ? "ARMED" : "DISARMED"} · {mapped ? "MAPPED" : "UNAVAILABLE / UNMAPPED"}</small></button>; })}</div><div className="layers-lab__actions"><button type="button" onClick={run}>Run / Recompute experiment</button><button type="button" onClick={() => establish(baselineIds)}>Reset to baseline</button><span>Control changes prepare input; computation runs only on command.</span></div></section>
     {state.status === LayersExperimentStatus.ERROR && <section className="layers-lab__error" role="alert"><strong>Experiment runtime error</strong><p>{state.error?.message}</p></section>}
     {projection ? <>
       <LayersWireManifoldChamber projection={projection} caseA={pairView.focusedEventId} caseB={pairView.comparisonEventId}/>
