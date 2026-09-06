@@ -1,10 +1,12 @@
 import {
-  ArmedLayerClassification,
   LayersExperimentRuntime,
-  LayersExperimentStatus,
   createUnavailableLayersExperimentResult,
   isLayersExperimentScopeCurrent,
-} from "../../src/layers/runtime/index.ts";
+} from "../../src/layers/runtime/LayersExperimentRuntime.ts";
+import {
+  ArmedLayerClassification,
+  LayersExperimentStatus,
+} from "../../src/layers/runtime/LayersExperimentRuntimeTypes.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FAIL: ${message}`);

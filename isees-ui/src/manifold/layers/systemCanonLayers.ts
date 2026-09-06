@@ -11,8 +11,9 @@
 //
 // ============================================================
 
-import { LayerGroup } from "./layerTypes";
-import type { LayerDefinition } from "./layerTypes";
+import { LayerGroup } from "./layerTypes.ts";
+import type { LayerDefinition } from "./layerTypes.ts";
+import { CanonicalLayerCatalog, CanonicalLayerProfileId } from "../../layers/catalog/index.ts";
 
 /**
  * Canonical system-defined layers.
@@ -22,54 +23,18 @@ import type { LayerDefinition } from "./layerTypes";
  * Additional domains will be introduced as their deterministic
  * computational semantics are formalized.
  */
-export const SystemCanonLayers = {
+const compatibilityIds = ["OBSERVABILITY", "NARRATIVE", "TEMPORAL", "GEOGRAPHY", "INFRASTRUCTURE"] as const;
+const compatibilityGroup = {
+    OBSERVABILITY: LayerGroup.OBSERVATION, NARRATIVE: LayerGroup.CONTEXT, TEMPORAL: LayerGroup.CONTEXT,
+    GEOGRAPHY: LayerGroup.PHYSICAL, INFRASTRUCTURE: LayerGroup.PHYSICAL,
+} as const;
+const compatibilityEntries = compatibilityIds.map((id) => {
+    const canonical = CanonicalLayerCatalog.find((entry) => entry.id === id);
+    if (!canonical) throw new Error(`Canonical compatibility layer ${id} is missing.`);
+    return [id, Object.freeze({ id, name: canonical.label, description: canonical.description, group: compatibilityGroup[id], enabledByDefault: canonical.defaultProfileMembership.includes(CanonicalLayerProfileId.CANONICAL_BASELINE) })] as const;
+});
 
-    OBSERVABILITY: {
-        id: "OBSERVABILITY",
-        name: "Observability",
-        description:
-            "Sensor observations, witnesses, instrumentation, and evidence.",
-        group: LayerGroup.OBSERVATION,
-        enabledByDefault: true,
-    },
-
-    NARRATIVE: {
-        id: "NARRATIVE",
-        name: "Narrative",
-        description:
-            "Claims, reports, testimony, and descriptive accounts.",
-        group: LayerGroup.CONTEXT,
-        enabledByDefault: true,
-    },
-
-    TEMPORAL: {
-        id: "TEMPORAL",
-        name: "Temporal",
-        description:
-            "Time relationships, chronology, sequencing, and recurrence.",
-        group: LayerGroup.CONTEXT,
-        enabledByDefault: true,
-    },
-
-    GEOGRAPHY: {
-        id: "GEOGRAPHY",
-        name: "Geography",
-        description:
-            "Spatial relationships, location, terrain, and proximity.",
-        group: LayerGroup.PHYSICAL,
-        enabledByDefault: false,
-    },
-
-    INFRASTRUCTURE: {
-        id: "INFRASTRUCTURE",
-        name: "Infrastructure",
-        description:
-            "Facilities, platforms, organizations, and supporting systems.",
-        group: LayerGroup.PHYSICAL,
-        enabledByDefault: false,
-    },
-
-} as const satisfies Record<string, LayerDefinition>;
+export const SystemCanonLayers = Object.freeze(Object.fromEntries(compatibilityEntries)) as Readonly<Record<typeof compatibilityIds[number], LayerDefinition>>;
 
 /**
  * Flat collection of all canonical layers.

@@ -1,8 +1,9 @@
-import { CanonicalLayerRegistry } from "../../manifold/layers/systemCanonLayers";
+import { CanonicalLayerRegistry } from "../../manifold/layers/systemCanonLayers.ts";
+import { CanonicalLayerOperationalStatus, getCanonicalLayerDefinition } from "../catalog/index.ts";
 import {
   ArmedLayerClassification,
   LayersExperimentStatus,
-} from "./LayersExperimentRuntimeTypes";
+} from "./LayersExperimentRuntimeTypes.ts";
 import type {
   ArmedLayer,
   ArmedLayerSelection,
@@ -118,11 +119,12 @@ function semanticId(input: unknown): string {
 function normalizeLayers(selection: ArmedLayerSelection): readonly ArmedLayer[] {
   const legacy = new Set(identifiers(selection.legacyLayerIds, "Legacy layer identifier"));
   const all = identifiers([...selection.layerIds, ...legacy], "Layer identifier");
-  const registry = new Map(CanonicalLayerRegistry.map((layer) => [layer.id, layer]));
+  const compatibility = new Map(CanonicalLayerRegistry.map((layer) => [layer.id, layer]));
   return immutable(all.map((id): ArmedLayer => {
-    const canonicalDefinition = registry.get(id);
-    if (canonicalDefinition) {
-      return { id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition };
+    const catalogDefinition = getCanonicalLayerDefinition(id);
+    const canonicalDefinition = compatibility.get(id);
+    if (catalogDefinition) {
+      return { id, classification: ArmedLayerClassification.CANONICAL, operational: catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL, canonicalDefinition };
     }
     return {
       id,

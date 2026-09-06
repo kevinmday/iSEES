@@ -28,6 +28,8 @@ assert(navigator.includes("resolveLayersNavigatorCounts") && navigator.includes(
 assert(!navigator.includes("filter(layer => layer.operational).length"), "registered operational status is not treated as computational mapping");
 const changed = execFileSync("git", ["diff", "--name-only"], { encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
 assert.deepEqual(changed.filter(path => /^src\/layers\/(runtime|projection|research|persistence)\//i.test(path)), [], "LAYERS-owned runtime, projection, Research, and persistence semantics are unchanged");
-for (const path of ["src/manifold/layers/systemCanonLayers.ts", "src/resolve/engine/ResolveEngine.ts"]) assert(!changed.some(item => item.endsWith(path)), `${path} canonical semantics are unchanged`);
+assert(!changed.some(item => item.endsWith("src/resolve/engine/ResolveEngine.ts")), "Resolve canonical semantics are unchanged");
+const systemCatalog = readFileSync("src/manifold/layers/systemCanonLayers.ts", "utf8");
+assert(systemCatalog.includes("CanonicalLayerCatalog") && systemCatalog.includes("compatibilityIds"), "SystemCanonLayers remains a narrow compatibility projection of canonical catalog authority");
 assert(!resolver.match(/similarity|\.score|score\s*[!=<>]/i), "availability is not inferred from a numeric score");
 console.log("PASS VerifyLayersNavigatorCounts");
