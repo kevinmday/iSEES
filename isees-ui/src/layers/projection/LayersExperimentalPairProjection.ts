@@ -1,25 +1,11 @@
 import { ArmedLayerClassification } from "../runtime/LayersExperimentRuntimeTypes";
 import type { ArmedLayer, LayersExperimentResult, LayersExperimentUnavailableInput } from "../runtime/LayersExperimentRuntimeTypes";
-import { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes";
-import { DEFAULT_CANONICAL_SIMILARITY_WEIGHTS } from "../../resolve/similarity/CanonicalKnowledgeSimilarityTypes";
-import type { CanonicalDimensionSimilarity } from "../../resolve/similarity/CanonicalKnowledgeSimilarityTypes";
+import { getCanonicalLayerEvaluator } from "../evaluators/CanonicalLayerEvaluatorRegistry";
 import { LayersOperationalMappingStatus, LayersPairAvailability, LayersPairDeltaState } from "./LayersExperimentalPairProjectionTypes";
 import type { LayersExperimentalPairProjection, LayersExperimentalPairProjectionInput, LayersLayerContribution, LayersPairRelationshipProjection } from "./LayersExperimentalPairProjectionTypes";
 
-const mapping: Readonly<Record<string, CanonicalFeatureDimension | undefined>> = {
-  NARRATIVE: CanonicalFeatureDimension.NARRATIVE,
-  OBSERVABILITY: CanonicalFeatureDimension.OBSERVABILITY,
-  INFRASTRUCTURE: CanonicalFeatureDimension.INFRASTRUCTURE,
-  GEOGRAPHY: CanonicalFeatureDimension.GEOGRAPHY,
-  TEMPORAL: undefined,
-};
-const weights: Readonly<Record<CanonicalFeatureDimension, number>> = {
-  NARRATIVE: DEFAULT_CANONICAL_SIMILARITY_WEIGHTS.narrative,
-  OBSERVABILITY: DEFAULT_CANONICAL_SIMILARITY_WEIGHTS.observability,
-  INFRASTRUCTURE: DEFAULT_CANONICAL_SIMILARITY_WEIGHTS.infrastructure,
-  TOPOLOGY: DEFAULT_CANONICAL_SIMILARITY_WEIGHTS.topology,
-  GEOGRAPHY: DEFAULT_CANONICAL_SIMILARITY_WEIGHTS.geography,
-};
+// Canonical evaluator registrations own DEFAULT_CANONICAL_SIMILARITY_WEIGHTS;
+// this projection preserves weightedContribution, weightedSum / participatingWeight, and scoreDelta mathematics.
 
 function id(value: unknown, label: string): string {
   if (typeof value !== "string" || !value.trim() || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value.trim())) throw new Error(`${label} is missing or malformed.`);
@@ -39,11 +25,6 @@ function immutable<T>(value: T): T {
   if (value && typeof value === "object" && !Object.isFrozen(value)) { for (const child of Object.values(value as object)) immutable(child); Object.freeze(value); }
   return value;
 }
-function dimensionEvidence(input: LayersExperimentalPairProjectionInput, dimension: CanonicalFeatureDimension): CanonicalDimensionSimilarity {
-  const found = input.evaluation.explanation.dimensions.find(item => item.dimension === dimension);
-  if (!found || found.source.dimension !== dimension) throw new Error(`Canonical ${dimension} dimension evidence is missing or malformed.`);
-  return found.source;
-}
 function normalizeLayers(layers: readonly ArmedLayer[]): ArmedLayer[] {
   const seen = new Set<string>();
   return [...layers].map(layer => ({ ...layer })).sort((a, b) => a.id.localeCompare(b.id)).filter(layer => !seen.has(layer.id) && !!seen.add(layer.id));
@@ -51,13 +32,12 @@ function normalizeLayers(layers: readonly ArmedLayer[]): ArmedLayer[] {
 function compute(input: LayersExperimentalPairProjectionInput, layers: readonly ArmedLayer[]): LayersPairRelationshipProjection {
   const evaluationId = input.evaluation.identity.evaluationId;
   const preliminary = normalizeLayers(layers).map((layer): LayersLayerContribution => {
-    const dimension = mapping[layer.id];
     if (layer.classification !== ArmedLayerClassification.CANONICAL || !layer.operational) return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.UNAVAILABLE, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: `${layer.classification} layer is not a registered operational canonical mapping.`, sourceEvaluationId: evaluationId };
-    if (!dimension) return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.UNAVAILABLE, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: layer.id === "TEMPORAL" ? "Temporal layer mathematics is not implemented in the canonical similarity contract." : "No canonical similarity dimension mapping is implemented for this layer.", sourceEvaluationId: evaluationId };
-    const evidence = dimensionEvidence(input, dimension);
-    if (evidence.availability === "UNAVAILABLE") return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.MAPPED, canonicalDimension: dimension, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: evidence.reason, sourceEvaluationId: evaluationId };
-    const canonicalWeight = weights[dimension];
-    return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.MAPPED, canonicalDimension: dimension, availability: LayersPairAvailability.AVAILABLE, similarity: evidence.similarity, canonicalWeight, participatingWeight: canonicalWeight, weightedContribution: canonicalWeight * evidence.similarity, sourceEvaluationId: evaluationId };
+    const evaluator = getCanonicalLayerEvaluator(layer.id);
+    if (!evaluator) return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.UNAVAILABLE, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: layer.id === "TEMPORAL" ? "Temporal layer mathematics is not implemented in the canonical similarity contract." : "No canonical similarity dimension mapping is implemented for this layer.", sourceEvaluationId: evaluationId };
+    const result = evaluator.evaluate({ evaluation: input.evaluation });
+    if (result.availability === "UNAVAILABLE") return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.MAPPED, canonicalDimension: result.canonicalDimension, evaluatorKey: result.evaluatorKey, evaluatorVersion: result.evaluatorVersion, evaluationLineage: result.lineage, missingCanonicalInput: result.missingCanonicalInput, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: result.reason, sourceEvaluationId: evaluationId };
+    return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.MAPPED, canonicalDimension: result.canonicalDimension, evaluatorKey: result.evaluatorKey, evaluatorVersion: result.evaluatorVersion, evaluationLineage: result.lineage, availability: LayersPairAvailability.AVAILABLE, similarity: result.similarity, canonicalWeight: result.canonicalWeight, participatingWeight: result.canonicalWeight, weightedContribution: result.canonicalWeight * result.similarity, sourceEvaluationId: evaluationId };
   });
   const participatingWeight = preliminary.reduce((sum, item) => sum + item.participatingWeight, 0);
   const weightedSum = preliminary.reduce((sum, item) => sum + item.weightedContribution, 0);
@@ -96,7 +76,8 @@ export function projectLayersExperimentalPair(input: LayersExperimentalPairProje
   const allContributions = [...baseline.contributions.map(item => ({ ...item, layerId: `BASELINE:${item.layerId}` })), ...experimental.contributions.map(item => ({ ...item, layerId: `EXPERIMENTAL:${item.layerId}` }))];
   const unavailableInputs: LayersExperimentUnavailableInput[] = allContributions.filter(item => item.availability === "UNAVAILABLE").map(item => ({ code: "LAYER_INPUT_UNAVAILABLE", description: `${item.layerId}: ${item.unavailableReason}` }));
   const pairId = `canonical-pair:${pair.leftKnowledgeObjectId}:${pair.rightKnowledgeObjectId}`;
-  const semantic = { governingEquation: "M = g(L,T,S)", executionId, investigationId, pairId, candidateId: candidate.id, evaluationId: evaluationIdentity.evaluationId, subjects: endpoints, baseline, experimental, delta };
+  const withoutEvaluatorProvenance = (relationship: LayersPairRelationshipProjection): LayersPairRelationshipProjection => ({ ...relationship, contributions: relationship.contributions.map(({ evaluatorKey: _key, evaluatorVersion: _version, evaluationLineage: _lineage, missingCanonicalInput: _missing, ...item }) => item) });
+  const semantic = { governingEquation: "M = g(L,T,S)", executionId, investigationId, pairId, candidateId: candidate.id, evaluationId: evaluationIdentity.evaluationId, subjects: endpoints, baseline: withoutEvaluatorProvenance(baseline), experimental: withoutEvaluatorProvenance(experimental), delta };
   const canonicalRepresentation = canonical(semantic);
   const projectionId = `layers-pair-projection:${hash(canonicalRepresentation)}`;
   const projection: LayersExperimentalPairProjection = { kind: "LAYERS_EXPERIMENTAL_PAIR_PROJECTION", projectionId, investigationId, executionId, pairId, candidateId: candidate.id, evaluationId: evaluationIdentity.evaluationId, subjects: endpoints.map(knowledgeObjectId => ({ kind: "SUBJECT_NODE" as const, knowledgeObjectId })) as unknown as LayersExperimentalPairProjection["subjects"], baseline, experimental, layerContributions: allContributions, unavailableInputs, delta, provenance: { governingEquation: "M = g(L,T,S)", executionId, investigationId, pairId, candidateId: candidate.id, evaluationId: evaluationIdentity.evaluationId, baselineLayerIds: normalizeLayers(input.baselineLayers).map(x => x.id), experimentalLayerIds: normalizeLayers(input.experimentalLayers).map(x => x.id), participatingLayerIds: allContributions.filter(x => x.availability === "AVAILABLE").map(x => x.layerId), unavailableLayerIds: allContributions.filter(x => x.availability === "UNAVAILABLE").map(x => x.layerId), canonicalRepresentation }, createsCanonicalKnowledgeRelationship: false };

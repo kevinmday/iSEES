@@ -37,6 +37,15 @@ export interface LayersLayerContribution {
   classification: ArmedLayer["classification"];
   operationalMappingStatus: LayersOperationalMappingStatus;
   canonicalDimension?: CanonicalFeatureDimension;
+  evaluatorKey?: string;
+  evaluatorVersion?: string;
+  evaluationLineage?: {
+    readonly evaluationId: string;
+    readonly candidateId: string;
+    readonly sourceKnowledgeObjectIds: readonly [string, string];
+    readonly canonicalDimension: CanonicalFeatureDimension;
+  };
+  missingCanonicalInput?: CanonicalFeatureDimension;
   availability: LayersPairAvailability;
   similarity?: number;
   canonicalWeight?: number;
