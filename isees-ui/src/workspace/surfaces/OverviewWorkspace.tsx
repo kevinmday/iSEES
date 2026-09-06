@@ -17,6 +17,10 @@ import {
 } from "../runtime/WorkspaceRuntimeContext";
 import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
 import { resolveCoherentInvestigationSelection } from "../../intelligence/selection/InvestigationSelectionCoherence";
+import { useOperatorIdentity } from "../../identity/runtime/OperatorIdentityRuntimeContext";
+import { useInvestigationLibraryRuntime } from "../../investigation/library/InvestigationLibraryRuntimeContext";
+import { resolveOverviewFrontDoorRuntimeProjection } from "../../investigation/frontDoor/OverviewFrontDoorRuntimeProjection";
+import { guestWorkspaceSessionLifecycle } from "../persistence/GuestWorkspaceSessionLifecycle";
 
 import GuestWelcomeOverview
   from "./GuestWelcomeOverview";
@@ -57,6 +61,12 @@ export default function OverviewWorkspace() {
   const runtime =
     useWorkspaceRuntime();
 
+  const identity =
+    useOperatorIdentity();
+
+  const investigationLibrary =
+    useInvestigationLibraryRuntime();
+
   const knowledgeObjects =
     useKnowledgeObjects();
 
@@ -65,6 +75,16 @@ export default function OverviewWorkspace() {
 
   const investigation =
     runtime.getActiveInvestigation();
+
+  const frontDoorProjection =
+    resolveOverviewFrontDoorRuntimeProjection({
+      identity,
+      guestWorkspaceRestored: guestWorkspaceSessionLifecycle.getState().restored,
+      activeInvestigationId: investigation?.id ?? null,
+      library: investigationLibrary.state,
+    });
+
+  void frontDoorProjection;
 
   if (!investigation) {
     return (

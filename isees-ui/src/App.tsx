@@ -74,6 +74,10 @@ import {
 } from "./identity/components/OperatorEntryGate";
 
 import {
+  InvestigationLibraryRuntimeProvider,
+} from "./investigation/library/InvestigationLibraryRuntimeContext";
+
+import {
   EventProvider,
 } from "./context/EventContext";
 
@@ -284,7 +288,7 @@ function OperatorUI() {
                               }
 
                               center={
-                                <PrimarySurface />
+                                <ModeAwarePrimarySurface />
                               }
 
                               right={
@@ -407,6 +411,17 @@ export default function App() {
 
   );
 
+}
+
+function ModeAwarePrimarySurface() {
+  const mode = useWorkspaceMode();
+  return mode === WorkspaceMode.OVERVIEW
+    ? (
+      <InvestigationLibraryRuntimeProvider>
+        <PrimarySurface />
+      </InvestigationLibraryRuntimeProvider>
+    )
+    : <PrimarySurface />;
 }
 
 function ModeAwareLeftPanel() {
