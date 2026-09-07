@@ -1,0 +1,221 @@
+P57-UI-A20-I1 — AUTHENTICATION FOUNDATION RESULT
+
+1. Executive result
+
+COMPLETE. A narrow backend authentication foundation now provides durable researcher
+accounts, normalized unique login identities, password verification, expiring and
+revocable server sessions, cookie restoration, CSRF-protected logout, and one typed
+server-principal dependency. The new trust boundary never accepts a researcher ID
+from a request header, query, or body. Authentication creates no Investigation or
+research state. No frontend production file was changed.
+
+2. Authentication strategy implemented or deferred
+
+Implemented the A20-I0-recommended local email/password strategy. Passwords use
+Python's established hashlib.scrypt implementation with a fresh 128-bit random salt,
+N=16384, r=8, p=1, and a 256-bit derived key. Encodings are one-way and versioned by
+their algorithm/parameter envelope. Login performs the same scrypt work against a
+dummy hash when an account is absent, and returns the same INVALID_CREDENTIALS
+response for an absent account and a wrong password.
+
+Account recovery, email verification, and privacy/terms presentation are intentionally
+deferred because A20-I1 is the backend session foundation and no production Front
+Door UI is in scope.
+
+3. Files created
+
+  isees_uap/authentication/__init__.py
+  isees_uap/authentication/config.py
+  isees_uap/authentication/errors.py
+  isees_uap/authentication/models.py
+  isees_uap/authentication/passwords.py
+  isees_uap/authentication/principal.py
+  isees_uap/authentication/service.py
+  isees_uap/authentication/sqlite_repository.py
+  isees_uap/authentication/migrations/001_accounts_and_sessions.sql
+  isees_uap/api/v1/authentication.py
+  isees_uap/testing/authentication/__init__.py
+  isees_uap/testing/authentication/test_authentication_foundation.py
+  P57-UI-A20-I1-authentication-foundation-result.txt
+
+4. Files modified
+
+  isees_uap/api/__init__.py
+
+The API application mounts the authentication router and stable error handler. Its
+credentialed CORS policy was narrowed from wildcard origins/methods/headers to an
+explicit ISEES_CORS_ORIGINS allowlist, defaulting to the two local Vite origins, and
+GET/POST/OPTIONS plus Content-Type, X-ISEES-CSRF, and X-Request-Id.
+
+5. Account contract
+
+ResearcherAccount has an opaque server-generated acct_<UUIDv4 hex> identity, display
+email, normalized case-folded email, scrypt password hash, ACTIVE/DISABLED lifecycle,
+and UTC created/updated timestamps. normalized_email has a database UNIQUE constraint.
+Client responses expose only researcherId, email, and sessionExpiresAt. Passwords,
+hashes, normalized identity, lifecycle internals, and database records are not
+returned.
+
+6. Session contract
+
+The server issues a random opaque bearer secret paired with a server-generated
+ses_<UUIDv4 hex> lookup identity. SQLite stores only SHA-256(secret), never the raw
+256-bit bearer secret. Each row binds exactly one account and records created,
+expires, revoked, and last-used timestamps plus a digest of the CSRF secret. Session
+resolution atomically verifies identifier+digest, revocation, expiry, account state,
+and updates last-used. Logout revokes the resolved active session.
+
+7. Server-principal boundary
+
+require_authenticated_principal in isees_uap/authentication/principal.py is the one
+authoritative dependency. It resolves only the HttpOnly session cookie, verifies the
+stored digest and session state, and returns typed AuthenticatedPrincipal with the
+account identity, safe email, session identity, expiry, and internal CSRF digest.
+Missing, malformed, unknown, expired, and revoked sessions all produce the stable
+AUTHENTICATION_REQUIRED response. GET /api/v1/auth/session uses this boundary.
+require_csrf_protected_principal composes it for state-changing authenticated routes.
+There is no development principal or request-header fallback.
+
+Existing investigation/candidate/research/STUDIO endpoints were not migrated in this
+increment, as directed. Their pre-existing caller-authored principal behavior remains
+outside the new account trust boundary and is scheduled for parent-authority
+convergence.
+
+8. Database and migration behavior
+
+Authentication uses its own configured SQLite database (ISEES_AUTH_DB_PATH; default
+runtime/authentication.sqlite3). Migration 001 creates researcher_account and
+authenticated_session, foreign-key linkage, lifecycle/check/unique constraints, and
+an account/expiry index. Migration history is applied under BEGIN IMMEDIATE with WAL,
+FULL synchronous writes, busy timeout, foreign keys enabled, deterministic version
+ordering, rollback on failure, and rejection of a database newer than the code.
+Existing Investigation storage is not read or mutated by account creation or login.
+
+9. Endpoint inventory
+
+  POST /api/v1/auth/accounts — create an account and issue its initial session
+  POST /api/v1/auth/sessions — authenticate credentials and issue a session
+  GET  /api/v1/auth/session — restore the current safe researcher projection
+  POST /api/v1/auth/logout — CSRF-check, revoke the active session, clear cookies
+
+Stable domain errors use {error: {code, message, requestId}}. Validation errors retain
+FastAPI's existing 422 convention and contain no stored account or credential data.
+
+10. Cookie and CSRF behavior
+
+The isees_session cookie is HttpOnly, SameSite=Strict, Path=/, and carries matching
+Max-Age and authoritative UTC Expires values. The isees_csrf double-submit cookie has
+the same scope/expiry but is deliberately readable by the client. Authenticated
+mutations require X-ISEES-CSRF to equal that cookie and its server-stored digest.
+Production is the default ISEES_AUTH_ENV and always sets Secure. Explicit development
+or test environments disable Secure only for local HTTP. Unknown environment names
+fail configuration rather than weaken production defaults. Logout deletes both
+cookies using the same attributes after revocation.
+
+11. Security properties
+
+  - Account and session identifiers are opaque and server issued.
+  - No caller-supplied researcher identity participates in authentication.
+  - Passwords are never stored plaintext or reversibly encrypted.
+  - Absent-account and wrong-password login responses are indistinguishable.
+  - Raw bearer and CSRF secrets are absent from database rows.
+  - Sessions are expiring, revocable, account-bound, and checked server-side.
+  - Restore returns only the safe identity projection.
+  - Invalid CSRF cannot revoke a session.
+  - Cookie policy separates secure production from explicit local development.
+  - Credentialed CORS is allowlisted rather than wildcarded.
+  - Database constraints and immediate transactions protect identity/session integrity.
+  - Authentication neither creates nor activates/imports/canonicalizes an Investigation.
+  - A fresh account has zero default, fixture, canonical, Inbox, comparison,
+    experiment, or author state.
+  - No authentication code logs credentials, cookies, bearer secrets, or hashes.
+
+12. Verification commands
+
+  python -m pytest -q isees_uap/testing/authentication/test_authentication_foundation.py
+  python -m pytest -q isees_uap/testing/authentication/test_authentication_foundation.py isees_uap/testing/investigations/test_investigation_library.py
+  python -m pytest -q isees_uap/testing
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  python -m compileall -q isees_uap/authentication isees_uap/api/v1/authentication.py
+  git diff --check
+  git diff --stat
+  git status --short
+  git diff --cached --stat
+  filtered rg credential-material audit of runtime and isees_uap
+
+13. Verification results
+
+PASS: 8/8 focused authentication tests. They prove account creation, normalized
+duplicate rejection, scrypt storage, valid/non-disclosing invalid login, active
+restore, missing/expired/revoked rejection, logout revocation, account binding,
+header-spoof resistance, digest-only session storage, CSRF rejection, explicit cookie
+policy, empty fresh-account research state, and endpoint mounting.
+
+PASS: combined authentication + pre-existing Investigation Library verification,
+21/21 tests.
+
+PASS: scoped authentication, Investigation, Candidate Evidence, and STUDIO run reached
+119 passing tests before one unrelated STUDIO environmental-output failure.
+
+PASS: compileall for all new authentication modules and API router.
+PASS: git diff --check (line-ending notices only; no whitespace errors).
+PASS: credential audit found no runtime credential value or fixture/log secret. The
+only literal test password is an intentionally synthetic constant inside the focused
+test module; it is neither a fixture nor production credential and is never logged.
+Frontend production build was not required because no frontend file was changed.
+
+14. Pre-existing failures
+
+The full isees_uap/testing collection fails before assertions for two unrelated
+missing modules:
+  - isees_uap.kod.engines.aviation_engine
+  - isees_uap_v0_baseline
+These are harness/collection failures and were not repaired.
+
+The scoped 120-test backend run has one unrelated STUDIO failure after 119 passes:
+test_projection_validation_and_materialization_are_separate encounters an existing
+canonical PDF identity whose bytes conflict in the shared output location, raising
+MaterializationFailure. This is persistent generated-output/test isolation behavior,
+not an authentication assertion or code path, and was not modified.
+
+15. Known limitations
+
+This increment does not add rate limiting, email delivery/verification, account
+recovery, password reset, MFA, session-list management, global account-session
+revocation, or key-peppered session digests. SHA-256 is appropriate for digesting the
+high-entropy random bearer secret; passwords use memory-hard scrypt. The fixed cookie
+names are intentionally shared by the router and principal boundary. Deployment must
+set ISEES_CORS_ORIGINS to its exact production frontend origins.
+
+16. Deferred work
+
+All exclusions remain deferred: production account UI, owned Investigation Library
+UI/create/activation, Guest claim/migration, parent ownership convergence, MUFON,
+uploads/URL/paste/capture, Research Inbox lanes, STUDIO, REX, A21 Guide, broad
+ownership migration, canonical activation redesign, account recovery/verification,
+and every excluded product area.
+
+17. Working-tree preservation statement
+
+The initial git status was recorded before edits. Pre-existing modified frontend files
+and all pre-existing untracked discoveries, patches, proposals, tools, and backup
+paths were preserved. No existing researcher change was overwritten, cleaned,
+restored, staged, renamed, or deleted. The clean backend seam avoided overlap with
+the dirty frontend files. Searches explicitly excluded generated/dependency/build/
+cache/coverage/development-backup paths and every case-insensitive excluded product
+path/subject.
+
+18. Staging, commit, and push confirmation
+
+Nothing was staged. Nothing was committed. Nothing was pushed. git diff --cached
+reported no staged changes. No reset, checkout, clean, or destructive recursive
+operation was run.
+
+19. Recommended next increment
+
+Proceed with A20-I2 parent-authority convergence: replace the caller-controlled
+principal on Investigation ownership authorization with AuthenticatedPrincipal,
+make the SQLite Investigation parent the mandatory authorization authority for child
+routes, preserve non-disclosing foreign/absent behavior, and prove two-account IDOR
+isolation using two real server sessions. Do not add owned creation or activation
+until that authority boundary is coherent.

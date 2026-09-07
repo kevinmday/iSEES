@@ -7,6 +7,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from typing import Dict, List, Optional
 
@@ -22,12 +23,19 @@ from isees_uap.api.v1.investigations import (
     router as investigations_router,
 )
 from isees_uap.investigations.errors import InvestigationLibraryError
+from isees_uap.api.v1.authentication import (
+    authentication_error_handler,
+    router as authentication_router,
+)
+from isees_uap.authentication.errors import AuthenticationError
 
 # ------------------------------------------------------------
 # APP INIT
 # ------------------------------------------------------------
 
 app = FastAPI()
+app.include_router(authentication_router)
+app.add_exception_handler(AuthenticationError, authentication_error_handler)
 app.include_router(candidate_evidence_router)
 app.include_router(research_sources_router)
 app.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
@@ -40,16 +48,20 @@ app.add_exception_handler(InvestigationLibraryError, investigation_error_handler
 # CORS
 # ------------------------------------------------------------
 
+cors_origins = [
+    origin.strip()
+    for origin in os.environ.get(
+        "ISEES_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-
-    allow_origins=["*"],
-
+    allow_origins=cors_origins,
     allow_credentials=True,
-
-    allow_methods=["*"],
-
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-ISEES-CSRF", "X-Request-Id"],
 )
 
 # ------------------------------------------------------------
