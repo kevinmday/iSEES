@@ -20,9 +20,22 @@ function freeze<T>(value: T): T {
 }
 
 function dimensionEvidence(input: CanonicalLayerEvaluatorInput, dimension: CanonicalFeatureDimension): CanonicalDimensionSimilarity {
+  const identity=input.evaluation.identity;
+  const projection=input.inputProjection;
+  const endpointIds=projection.endpoints.map(value=>value.knowledgeObjectId).sort();
+  if(projection.candidateId!==identity.candidateId||projection.evaluationId!==identity.evaluationId||endpointIds[0]!==identity.leftKnowledgeObjectId||endpointIds[1]!==identity.rightKnowledgeObjectId) throw new Error("Frozen evaluator input ownership does not match the canonical evaluation.");
   const found = input.evaluation.explanation.dimensions.find(item => item.dimension === dimension);
   if (!found || found.source.dimension !== dimension) throw new Error(`Canonical ${dimension} dimension evidence is missing or malformed.`);
   return found.source;
+}
+
+function projectedComponents(input: CanonicalLayerEvaluatorInput, dimension: CanonicalFeatureDimension) {
+  const select=(knowledgeObjectId:string)=>{
+    const endpoint=input.inputProjection.endpoints.find(value=>value.knowledgeObjectId===knowledgeObjectId);
+    if(!endpoint) throw new Error(`Frozen evaluator input is missing endpoint ${knowledgeObjectId}.`);
+    return endpoint.components.filter(item => item.componentIdentity.startsWith(`${dimension}.`));
+  };
+  return [select(input.evaluation.identity.leftKnowledgeObjectId),select(input.evaluation.identity.rightKnowledgeObjectId)] as const;
 }
 
 function registration(layerId: string, requiredCanonicalDimension: CanonicalFeatureDimension): CanonicalLayerEvaluatorRegistration {
@@ -30,6 +43,7 @@ function registration(layerId: string, requiredCanonicalDimension: CanonicalFeat
   const evaluatorVersion = "canonical-similarity/v1";
   const evaluate = (input: CanonicalLayerEvaluatorInput): CanonicalLayerEvaluation => {
     const evidence = dimensionEvidence(input, requiredCanonicalDimension);
+    const [leftComponents, rightComponents] = projectedComponents(input, requiredCanonicalDimension);
     const identity = input.evaluation.identity;
     const lineage = freeze({
       evaluationId: identity.evaluationId,
@@ -42,10 +56,10 @@ function registration(layerId: string, requiredCanonicalDimension: CanonicalFeat
       : [identity.rightKnowledgeObjectId, identity.leftKnowledgeObjectId]
     ).map(sourceIdentity => freeze({ inputIdentity: requiredCanonicalDimension, sourceIdentity }));
     return evidence.availability === "UNAVAILABLE"
-      ? freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "UNAVAILABLE", reason: evidence.reason, missingCanonicalInput: requiredCanonicalDimension, missingInputs: [{ inputIdentity: requiredCanonicalDimension }], availableInputLineage: [], lineage })
-      : freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "AVAILABLE", similarity: evidence.similarity, normalizedResult: evidence.similarity, normalization: { normalizationKey: "CANONICAL_DIMENSION_SIMILARITY", normalizationVersion: evaluatorVersion }, canonicalWeight: weights[requiredCanonicalDimension], availableInputLineage, lineage });
+      ? freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "UNAVAILABLE", reason: evidence.reason, missingCanonicalInput: requiredCanonicalDimension, missingInputs: [...leftComponents,...rightComponents].filter(item=>item.availability==="UNAVAILABLE").map(item=>({inputIdentity:item.componentIdentity,subjectKnowledgeObjectId:item.subjectKnowledgeObjectId})), availableInputLineage: [], lineage })
+      : freeze({ layerId, evaluatorKey, evaluatorVersion, canonicalDimension: requiredCanonicalDimension, availability: "AVAILABLE", similarity: evidence.similarity, rawLeftSubjectComponents: Object.fromEntries(leftComponents.filter(item=>item.availability==="AVAILABLE").map(item=>[item.componentIdentity,item.rawValue])), rawRightSubjectComponents: Object.fromEntries(rightComponents.filter(item=>item.availability==="AVAILABLE").map(item=>[item.componentIdentity,item.rawValue])), normalizedResult: evidence.similarity, normalization: { normalizationKey: "CANONICAL_DIMENSION_SIMILARITY", normalizationVersion: evaluatorVersion }, canonicalWeight: weights[requiredCanonicalDimension], availableInputLineage, lineage });
   };
-  return freeze({ layerId, evaluatorKey, evaluatorVersion, requiredCanonicalDimension, acceptedInputContract: "CANONICAL_SIMILARITY_CANDIDATE_EVALUATION", outputContract: "CANONICAL_LAYER_EVALUATION", evaluate });
+  return freeze({ layerId, evaluatorKey, evaluatorVersion, requiredCanonicalDimension, acceptedInputContract: "FROZEN_CANONICAL_LAYER_EVALUATOR_INPUT_PROJECTION", outputContract: "CANONICAL_LAYER_EVALUATION", evaluate });
 }
 
 export const CanonicalLayerEvaluatorRegistrations = freeze([

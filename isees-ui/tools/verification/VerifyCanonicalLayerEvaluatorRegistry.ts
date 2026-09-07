@@ -8,6 +8,7 @@ import {
 import type { CanonicalLayerEvaluatorRegistration } from "../../src/layers/evaluators/index.ts";
 import { CanonicalCandidateEvaluationDimensionStatus } from "../../src/resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes.ts";
 import { CanonicalFeatureDimension } from "../../src/resolve/features/CanonicalKnowledgeFeatureTypes.ts";
+import { projectCanonicalLayerEvaluatorInput } from "../../src/layers/evaluators/CanonicalLayerEvaluatorInputProjection.ts";
 
 let count=0; const pass=(text:string)=>console.log(`PASS ${++count} — ${text}`);
 const throws=(fn:()=>unknown, text:string)=>assert.throws(fn, new RegExp(text));
@@ -40,11 +41,14 @@ const sources=[
  {availability:"UNAVAILABLE" as const,dimension:CanonicalFeatureDimension.INFRASTRUCTURE,reason:"Infrastructure unavailable."},
 ];
 const evaluation={identity:{evaluationId:"evaluation:candidate",candidateId:"candidate",leftKnowledgeObjectId:"knowledge:a",rightKnowledgeObjectId:"knowledge:b"},explanation:{dimensions:sources.map(source=>({dimension:source.dimension,status:source.availability===`AVAILABLE`?CanonicalCandidateEvaluationDimensionStatus.AVAILABLE:CanonicalCandidateEvaluationDimensionStatus.UNAVAILABLE,source}))}} as never;
-const before=JSON.stringify(evaluation); const zero=getCanonicalLayerEvaluator("OBSERVABILITY")!.evaluate({evaluation}); assert.equal(JSON.stringify(evaluation),before); pass("evaluator input is not mutated");
+const knowledge=(id:string)=>({identity:{id,createdAt:"fixed"},metadata:{title:id,version:"v1"},lifecycle:{status:"KNOWLEDGE",revision:1},type:"EVENT",status:"KNOWLEDGE",confidence:{value:0},provenance:{sourceId:id,sourceType:"TEST",sourceRevision:1,observedAt:"fixed",createdAt:"fixed",updatedAt:"fixed"},revision:{revision:1,timestamp:"fixed"},graph:[],relationships:[],tags:[],capabilities:{projectable:true,publishable:true,editable:false},payload:{}}) as never;
+const inputProjection=projectCanonicalLayerEvaluatorInput({investigationId:"investigation",pairId:"pair",candidateId:"candidate",evaluationId:"evaluation:candidate",executionId:"execution",caseA:{subjectIdentity:"a",knowledgeObjectId:"knowledge:a"},caseB:{subjectIdentity:"b",knowledgeObjectId:"knowledge:b"},knowledgeObjects:[knowledge("knowledge:b"),knowledge("knowledge:a")]});
+const before=JSON.stringify(evaluation); const zero=getCanonicalLayerEvaluator("OBSERVABILITY")!.evaluate({evaluation,inputProjection}); assert.equal(JSON.stringify(evaluation),before); pass("evaluator input is not mutated");
 assert(Object.isFrozen(zero)&&Object.isFrozen(zero.lineage)&&Object.isFrozen(zero.lineage.sourceKnowledgeObjectIds)); pass("evaluator result is immutable");
 assert(zero.availability==="AVAILABLE"&&zero.similarity===0); pass("AVAILABLE zero remains available and participating input");
-const missing=getCanonicalLayerEvaluator("INFRASTRUCTURE")!.evaluate({evaluation}); assert(missing.availability==="UNAVAILABLE"&&!("similarity" in missing)); pass("UNAVAILABLE remains distinct from zero");
-assert(CanonicalLayerEvaluatorRegistry.every(x=>x.acceptedInputContract==="CANONICAL_SIMILARITY_CANDIDATE_EVALUATION"&&x.outputContract==="CANONICAL_LAYER_EVALUATION")); pass("input and output contracts are explicit");
+const missing=getCanonicalLayerEvaluator("INFRASTRUCTURE")!.evaluate({evaluation,inputProjection}); assert(missing.availability==="UNAVAILABLE"&&!("similarity" in missing)); pass("UNAVAILABLE remains distinct from zero");
+throws(()=>getCanonicalLayerEvaluator("OBSERVABILITY")!.evaluate({evaluation,inputProjection:{...inputProjection,evaluationId:"evaluation:forged"}}),"ownership"); pass("frozen input and evaluation ownership mismatch rejects");
+assert(CanonicalLayerEvaluatorRegistry.every(x=>x.acceptedInputContract==="FROZEN_CANONICAL_LAYER_EVALUATOR_INPUT_PROJECTION"&&x.outputContract==="CANONICAL_LAYER_EVALUATION")); pass("input and output contracts are explicit");
 assert(CanonicalLayerEvaluatorRegistry.every(x=>x.requiredCanonicalDimension===x.layerId)); pass("exact proven canonical dimension mappings are preserved");
 assert(CanonicalLayerCatalog.length===48&&new Set(CanonicalLayerCatalog.map(x=>x.familyId)).size===16&&CanonicalLayerCatalog.filter(x=>x.operationalStatus==="OPERATIONAL").length===4&&CanonicalLayerCatalog.filter(x=>x.operationalStatus==="UNAVAILABLE").length===44); pass("catalog matrix remains 48/16/4/44");
 const projection=readFileSync("src/layers/projection/LayersExperimentalPairProjection.ts","utf8"); assert(projection.includes("getCanonicalLayerEvaluator")&&!projection.includes("const mapping:")); pass("projection dispatches through registry without a duplicate mapping");

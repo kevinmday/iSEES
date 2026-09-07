@@ -4,6 +4,8 @@ import type { CanonicalFeatureDimension } from "../../resolve/features/Canonical
 import type { CanonicalKnowledgeSimilarityPair } from "../../resolve/similarity/CanonicalKnowledgeSimilarityMatrixTypes";
 import type { CanonicalLayerInputLineageIdentity, CanonicalLayerMissingInputIdentity, CanonicalLayerNormalizationIdentity } from "../evaluators/CanonicalLayerEvaluatorTypes";
 import type { CANONICAL_LAYER_CATALOG_VERSION, LAYERS_EXPERIMENT_SCHEMA_VERSION } from "../catalog/CanonicalLayerCatalogTypes";
+import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
+import type { CanonicalLayerEvaluatorInputProjection } from "../evaluators/CanonicalLayerEvaluatorInputProjection";
 
 export const LayersPairAvailability = { AVAILABLE: "AVAILABLE", UNAVAILABLE: "UNAVAILABLE" } as const;
 export type LayersPairAvailability = (typeof LayersPairAvailability)[keyof typeof LayersPairAvailability];
@@ -23,6 +25,9 @@ export interface LayersExperimentalPairProjectionInput {
   investigationId: string;
   sourceKnowledgeObjectId: string;
   targetKnowledgeObjectId: string;
+  caseAKnowledgeObjectId: string;
+  caseBKnowledgeObjectId: string;
+  knowledgeObjects: readonly KnowledgeObject[];
   pair: CanonicalKnowledgeSimilarityPair;
   evaluation: CanonicalSimilarityCandidateEvaluation;
   baselineLayers: readonly ArmedLayer[];
@@ -111,6 +116,7 @@ export interface LayersExperimentalPairProjection {
   pairId: string;
   candidateId: string;
   evaluationId: string;
+  evaluatorInput: CanonicalLayerEvaluatorInputProjection;
   subjects: readonly [LayersSubjectNodeProjection, LayersSubjectNodeProjection];
   baseline: LayersPairRelationshipProjection;
   experimental: LayersPairRelationshipProjection;

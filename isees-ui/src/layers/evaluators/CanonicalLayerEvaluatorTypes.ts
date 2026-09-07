@@ -1,10 +1,12 @@
 import type { CanonicalSimilarityCandidateEvaluation } from "../../resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes.ts";
 import type { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes.ts";
+import type { CanonicalLayerEvaluatorInputProjection } from "./CanonicalLayerEvaluatorInputProjection.ts";
 
 export const CanonicalLayerEvaluationAvailability = { AVAILABLE: "AVAILABLE", UNAVAILABLE: "UNAVAILABLE" } as const;
 
 export interface CanonicalLayerEvaluatorInput {
   readonly evaluation: CanonicalSimilarityCandidateEvaluation;
+  readonly inputProjection: CanonicalLayerEvaluatorInputProjection;
 }
 
 export interface CanonicalLayerEvaluationLineage {
@@ -64,7 +66,7 @@ export interface CanonicalLayerEvaluatorRegistration {
   readonly evaluatorKey: string;
   readonly evaluatorVersion: string;
   readonly requiredCanonicalDimension: CanonicalFeatureDimension;
-  readonly acceptedInputContract: "CANONICAL_SIMILARITY_CANDIDATE_EVALUATION";
+  readonly acceptedInputContract: "FROZEN_CANONICAL_LAYER_EVALUATOR_INPUT_PROJECTION";
   readonly outputContract: "CANONICAL_LAYER_EVALUATION";
   readonly evaluate: (input: CanonicalLayerEvaluatorInput) => CanonicalLayerEvaluation;
 }

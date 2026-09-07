@@ -32,6 +32,8 @@ export function createLayersExperimentResearchAnchor(
     throw new Error("Research publication Investigation identity does not match the completed experiment.");
   }
   if (input.projection.provenance.experimentSchemaVersion !== LAYERS_EXPERIMENT_SCHEMA_VERSION) throw new Error("Research publication requires the current LAYERS experiment schema.");
+  const evaluatorInput=input.projection.evaluatorInput;
+  if(evaluatorInput.experimentSchemaVersion!==LAYERS_EXPERIMENT_SCHEMA_VERSION||evaluatorInput.investigationId!==input.investigationId||evaluatorInput.pairId!==input.projection.pairId||evaluatorInput.candidateId!==input.projection.candidateId||evaluatorInput.evaluationId!==input.projection.evaluationId||evaluatorInput.executionId!==input.projection.executionId) throw new Error("Research publication evaluator-input ownership does not match the completed experiment.");
   const projection = immutableSnapshot(input.projection);
   return migrateResearchAnchor(Object.freeze({
     anchorId: ["research", input.investigationId, "EXPERIMENT", input.projection.projectionId].join(":"),
