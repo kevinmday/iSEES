@@ -32,7 +32,7 @@
 import {
   CanonicalFeatureAvailability,
   CanonicalFeatureDimension,
-} from "../features/CanonicalKnowledgeFeatureTypes";
+} from "../features/CanonicalKnowledgeFeatureTypes.ts";
 
 import type {
   CanonicalFeatureValue,
@@ -40,12 +40,12 @@ import type {
   CanonicalInfrastructureEntityFeature,
   CanonicalKnowledgeFeatureSet,
   CanonicalTopologyState,
-} from "../features/CanonicalKnowledgeFeatureTypes";
+} from "../features/CanonicalKnowledgeFeatureTypes.ts";
 
 import {
   CanonicalSimilarityAvailability,
   DEFAULT_CANONICAL_SIMILARITY_WEIGHTS,
-} from "./CanonicalKnowledgeSimilarityTypes";
+} from "./CanonicalKnowledgeSimilarityTypes.ts";
 
 import type {
   AvailableCanonicalDimensionSimilarity,
@@ -55,15 +55,15 @@ import type {
   CanonicalKnowledgeSimilarityResolution,
   CanonicalSimilarityDimensions,
   CanonicalSimilarityWeights,
-} from "./CanonicalKnowledgeSimilarityTypes";
+} from "./CanonicalKnowledgeSimilarityTypes.ts";
 
 import {
   resolveCanonicalFeatureComparability,
-} from "./CanonicalKnowledgeComparability";
+} from "./CanonicalKnowledgeComparability.ts";
 
 import {
   CanonicalFeatureComparability,
-} from "./CanonicalKnowledgeComparabilityTypes";
+} from "./CanonicalKnowledgeComparabilityTypes.ts";
 
 // ============================================================
 // CONSTANTS
@@ -507,47 +507,23 @@ function compareTopology(
 
   }
 
-  const sourceVector = [
-
-    source.value
-      .contradictionDensity,
-
-    source.value
-      .residualInstability,
-
-    source.value
-      .entanglementScore,
-
-    source.value
-      .clusterFragmentation,
-
-  ];
-
-  const targetVector = [
-
-    target.value
-      .contradictionDensity,
-
-    target.value
-      .residualInstability,
-
-    target.value
-      .entanglementScore,
-
-    target.value
-      .clusterFragmentation,
-
-  ];
-
   return availableDimension(
     CanonicalFeatureDimension.TOPOLOGY,
-    vectorSimilarity(
-      sourceVector,
-      targetVector,
-    ),
+    compareCanonicalTopologyStateVectors(source.value, target.value),
     weight,
   );
 
+}
+
+/** Reuses the canonical Resolve TOPOLOGY vector ordering and normalization. */
+export function compareCanonicalTopologyStateVectors(
+  source: CanonicalTopologyState,
+  target: CanonicalTopologyState,
+): number {
+  return vectorSimilarity(
+    [source.contradictionDensity, source.residualInstability, source.entanglementScore, source.clusterFragmentation],
+    [target.contradictionDensity, target.residualInstability, target.entanglementScore, target.clusterFragmentation],
+  );
 }
 
 // ============================================================

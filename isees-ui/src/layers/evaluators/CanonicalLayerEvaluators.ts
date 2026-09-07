@@ -1,6 +1,8 @@
 import { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes.ts";
 import { DEFAULT_CANONICAL_SIMILARITY_WEIGHTS } from "../../resolve/similarity/CanonicalKnowledgeSimilarityTypes.ts";
 import type { CanonicalDimensionSimilarity } from "../../resolve/similarity/CanonicalKnowledgeSimilarityTypes.ts";
+import { compareCanonicalTopologyStateVectors } from "../../resolve/similarity/CanonicalKnowledgeSimilarity.ts";
+import type { CanonicalTopologyState } from "../../resolve/features/CanonicalKnowledgeFeatureTypes.ts";
 import type { CanonicalLayerEvaluation, CanonicalLayerEvaluatorInput, CanonicalLayerEvaluatorRegistration } from "./CanonicalLayerEvaluatorTypes.ts";
 
 const weights: Readonly<Record<CanonicalFeatureDimension, number>> = Object.freeze({
@@ -38,12 +40,37 @@ function projectedComponents(input: CanonicalLayerEvaluatorInput, dimension: Can
   return [select(input.evaluation.identity.leftKnowledgeObjectId),select(input.evaluation.identity.rightKnowledgeObjectId)] as const;
 }
 
+const topologyComponentNames = ["contradictionDensity", "residualInstability", "entanglementScore", "clusterFragmentation"] as const;
+
+function topologyState(components: ReturnType<typeof projectedComponents>[number], endpointId: string): CanonicalTopologyState {
+  const values = Object.fromEntries(components.map(component => [component.componentIdentity, component]));
+  return Object.fromEntries(topologyComponentNames.map(name => {
+    const identity = `${CanonicalFeatureDimension.TOPOLOGY}.${name}`;
+    const component = values[identity];
+    if (!component || component.availability !== "AVAILABLE" || typeof component.rawValue !== "number" || !Number.isFinite(component.rawValue)) {
+      throw new Error(`Frozen evaluator input has an incomplete or non-finite TOPOLOGY vector for endpoint ${endpointId}: ${identity}.`);
+    }
+    return [name, component.rawValue];
+  })) as unknown as CanonicalTopologyState;
+}
+
+function assertTopologyConsistency(input: CanonicalLayerEvaluatorInput, evidence: CanonicalDimensionSimilarity, leftComponents: ReturnType<typeof projectedComponents>[number], rightComponents: ReturnType<typeof projectedComponents>[number]): void {
+  if (evidence.availability !== "AVAILABLE") return;
+  const identity = input.evaluation.identity;
+  const recomputed = compareCanonicalTopologyStateVectors(
+    topologyState(leftComponents, identity.leftKnowledgeObjectId),
+    topologyState(rightComponents, identity.rightKnowledgeObjectId),
+  );
+  if (recomputed !== evidence.similarity) throw new Error("Frozen TOPOLOGY input and canonical Resolve TOPOLOGY evaluation disagree.");
+}
+
 function registration(layerId: string, requiredCanonicalDimension: CanonicalFeatureDimension): CanonicalLayerEvaluatorRegistration {
   const evaluatorKey = layerId;
   const evaluatorVersion = "canonical-similarity/v1";
   const evaluate = (input: CanonicalLayerEvaluatorInput): CanonicalLayerEvaluation => {
     const evidence = dimensionEvidence(input, requiredCanonicalDimension);
     const [leftComponents, rightComponents] = projectedComponents(input, requiredCanonicalDimension);
+    if (requiredCanonicalDimension === CanonicalFeatureDimension.TOPOLOGY) assertTopologyConsistency(input, evidence, leftComponents, rightComponents);
     const identity = input.evaluation.identity;
     const lineage = freeze({
       evaluationId: identity.evaluationId,
@@ -67,4 +94,5 @@ export const CanonicalLayerEvaluatorRegistrations = freeze([
   registration("NARRATIVE", CanonicalFeatureDimension.NARRATIVE),
   registration("GEOGRAPHY", CanonicalFeatureDimension.GEOGRAPHY),
   registration("INFRASTRUCTURE", CanonicalFeatureDimension.INFRASTRUCTURE),
+  registration("TOPOLOGY", CanonicalFeatureDimension.TOPOLOGY),
 ] as const);

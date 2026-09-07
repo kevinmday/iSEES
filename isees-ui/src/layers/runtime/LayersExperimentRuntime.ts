@@ -124,8 +124,8 @@ function normalizeLayers(selection: ArmedLayerSelection): readonly ArmedLayer[] 
     const catalogDefinition = getCanonicalLayerDefinition(id);
     const canonicalDefinition = compatibility.get(id);
     if (catalogDefinition) {
-      return catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL && catalogDefinition.researcherSelectable && canonicalDefinition
-        ? [{ id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition }]
+      return catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL && catalogDefinition.researcherSelectable
+        ? [{ id, classification: ArmedLayerClassification.CANONICAL, operational: true, ...(canonicalDefinition ? { canonicalDefinition } : {}) }]
         : [];
     }
     return [];

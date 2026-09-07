@@ -22,12 +22,16 @@ export function experimentReferenceSummary(anchor: ResearchExperimentAnchor): st
     const lineage = contribution.availableInputLineage?.length ? `lineage=${contribution.availableInputLineage.map(item => item.sourceIdentity).join(",")}` : undefined;
     return [evaluator, result, lineage].filter((item): item is string => !!item).join(" · ");
   }).filter(Boolean);
+  const topologyDisclosure = version === "layers-experiment/v2" && projection.layerContributions.some(contribution => contribution.evaluatorKey === "TOPOLOGY")
+    ? "Resolve Topology State reuses the existing canonical Resolve TOPOLOGY four-vector dimension; it is not rendered or graph topology and creates no canonical relationship."
+    : undefined;
   return [
     `${eventDisplayName(experiment.caseAEventId)} ↔ ${eventDisplayName(experiment.caseBEventId)}`,
     `${projection.delta.state} · ${layers} · ${experimental.availability === "AVAILABLE" ? formatPercent(experimental.score) : "UNAVAILABLE"}`,
     `Baseline ${baseline.availability === "AVAILABLE" ? formatPercent(baseline.score) : "UNAVAILABLE"}`,
     `${version} · ${projection.provenance.catalogVersion ?? "catalog version unavailable"}`,
     ...details,
+    ...(topologyDisclosure ? [topologyDisclosure] : []),
     "EXPERIMENTAL / NON-CANONICAL",
   ].join("\n");
 }

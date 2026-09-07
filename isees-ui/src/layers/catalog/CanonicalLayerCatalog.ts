@@ -61,7 +61,7 @@ const seeds = [
  ["POWER_GRIDS","Power grids",F.INFRASTRUCTURE,A.EXTERNAL_PROVIDER_REQUIRED,["power-grid topology and outage time series"],["similarity","state"]],
  ["TRANSPORT_NETWORKS","Transport networks",F.INFRASTRUCTURE,A.EXTERNAL_PROVIDER_REQUIRED,["typed transport network graph"],["similarity"]],
  ["COMMUNICATIONS_INFRASTRUCTURE","Communications infrastructure",F.TECHNOLOGY,A.EXTERNAL_PROVIDER_REQUIRED,["communications assets and outage windows"],["similarity"]],
- ["TOPOLOGY","Topology",F.COMPUTATIONAL,A.ADAPTER_REQUIRED,["complete topology_state and evaluator registration"],["similarity"]],
+ ["TOPOLOGY","Resolve Topology State",F.COMPUTATIONAL,A.OPERATIONAL,["canonical EVENT topology_state.contradiction_density","canonical EVENT topology_state.residual_instability","canonical EVENT topology_state.entanglement_score","canonical EVENT topology_state.cluster_fragmentation","mutually owned canonical TOPOLOGY evaluation"],["similarity","components"],"TOPOLOGY"],
  ["SOURCE_DIVERSITY","Source diversity",F.EVIDENCE,A.ADAPTER_REQUIRED,["KnowledgeProvenance and evidence sources"],["counts","similarity"]],
  ["EVIDENCE_DENSITY","Evidence density",F.EVIDENCE,A.ADAPTER_REQUIRED,["resolvable evidence derivation links and declared denominator"],["coverage"]],
  ["CONFIDENCE_PROFILE","Confidence profile",F.EVIDENCE,A.ADAPTER_REQUIRED,["typed confidence values with declared scales"],["similarity"]],
@@ -79,7 +79,9 @@ const legacyDescriptions: Readonly<Record<string,string>> = Object.freeze({
  OBSERVABILITY:"Sensor observations, witnesses, instrumentation, and evidence.", NARRATIVE:"Claims, reports, testimony, and descriptive accounts.",
  TEMPORAL:"Time relationships, chronology, sequencing, and recurrence.", GEOGRAPHY:"Spatial relationships, location, terrain, and proximity.",
  INFRASTRUCTURE:"Facilities, platforms, organizations, and supporting systems.",
+ TOPOLOGY:"Similarity of two canonical Resolve topology-state four-vectors—contradiction density, residual instability, entanglement score, and cluster fragmentation; not rendered or graph topology.",
 });
+const topologyProvenancePolicy = "Preserve both endpoint Knowledge IDs, source identity and available source version/revision, exact raw topology-state components, frozen input identity, extraction/evaluation lineage, and canonical normalization identity.";
 const unavailableReason = (id:string, availability:CanonicalLayerDefinition["availability"], inputs:readonly string[]) => id === "GLOBAL_ANXIETY_INDEX"
  ? "Unavailable: no governed, versioned composite methodology or qualified component datasets exist; missing " + inputs.join(", ") + "."
  : `Unavailable (${availability}): requires ${inputs.join(", ")}.`;
@@ -93,7 +95,7 @@ export const CanonicalLayerCatalog = freeze(seeds.map(([id,label,familyId,availa
   familyId,displayOrder:index+1,familyMemberOrder,catalogVersion:CANONICAL_LAYER_CATALOG_VERSION,lifecycleStatus:L.CURRENT,
   availability,operationalStatus:operational?O.OPERATIONAL:O.UNAVAILABLE,requiredCanonicalInputs:inputs,evaluatorKey,
   evaluatorVersion:operational?"canonical-similarity/v1":undefined,outputKinds:outputs,
-  provenancePolicy: operational?"Preserve canonical feature and source evaluation lineage.":"Require complete input, source, revision, method, and window lineage before evaluation.",
+  provenancePolicy: id === "TOPOLOGY" ? topologyProvenancePolicy : operational?"Preserve canonical feature and source evaluation lineage.":"Require complete input, source, revision, method, and window lineage before evaluation.",
   missingDataBehavior:"Return UNAVAILABLE; never substitute zero, infer evidence, or affect scores or weights.",
   defaultProfileMembership: [...(id === "OBSERVABILITY" || id === "NARRATIVE" || id === "TEMPORAL" ? [P.CANONICAL_BASELINE] : []), ...(operational ? [P.ALL_OPERATIONAL] : [])],
   researcherSelectable:operational, unavailableReason:operational?undefined:unavailableReason(id,availability,inputs),
