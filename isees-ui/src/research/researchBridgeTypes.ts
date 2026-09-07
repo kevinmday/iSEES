@@ -1,11 +1,12 @@
 import type { ResolveCandidateAggregateIntelligence, ResolveCandidateDimensionIntelligence } from "../resolve/intelligence/ResolveCandidateIntelligenceTypes";
 import type { LayersExperimentalPairProjection } from "../layers/projection";
+import type { MetricSignificanceBriefing } from "../metric-intelligence";
 
 export const RESEARCH_ANCHOR_SCHEMA_VERSION = "research-anchor/v2" as const;
 export const ResearchAnchorType = { NODE: "NODE", EDGE: "EDGE", CANDIDATE: "CANDIDATE", EXPERIMENT: "EXPERIMENT" } as const;
 export type ResearchAnchorType = typeof ResearchAnchorType[keyof typeof ResearchAnchorType];
 export const ResearchAnchorKind = {
-  GRAPH: "GRAPH", COMPARE_CANDIDATE: "COMPARE_CANDIDATE", LAYERS_EXPERIMENT: "LAYERS_EXPERIMENT",
+  GRAPH: "GRAPH", COMPARE_CANDIDATE: "COMPARE_CANDIDATE", LAYERS_EXPERIMENT: "LAYERS_EXPERIMENT", METRIC_FINDING: "METRIC_FINDING",
   EVIDENCE_RECORD: "EVIDENCE_RECORD", MEDIA: "MEDIA", NARRATIVE_PASSAGE: "NARRATIVE_PASSAGE",
   TIMELINE_MOMENT: "TIMELINE_MOMENT", TIMELINE_CORRESPONDENCE: "TIMELINE_CORRESPONDENCE",
   INTENTION_DERIVATION: "INTENTION_DERIVATION", INTENTION_HYPOTHESIS: "INTENTION_HYPOTHESIS",
@@ -32,6 +33,7 @@ export interface ResearchCandidateAnchor extends ResearchAnchorBase<"COMPARE_CAN
   readonly candidate: Readonly<{ type: "CANDIDATE"; candidateId: string; evaluationId: string; leftKnowledgeObjectId: string; rightKnowledgeObjectId: string; focusedEventId: string; focusedEventKnowledgeObjectId: string; comparisonEventId: string; comparisonEventKnowledgeObjectId: string; resolveExecutionId?: string; epistemicStatus: string; aggregate: ResolveCandidateAggregateIntelligence; dimensions: readonly ResolveCandidateDimensionIntelligence[]; source: "COMPARE_PAIR_INSPECTION" }>;
 }
 export interface ResearchExperimentAnchor extends ResearchAnchorBase<"LAYERS_EXPERIMENT"> { readonly experiment: Readonly<{ type: "EXPERIMENT"; schemaVersion?: "layers-experiment/v1" | "layers-experiment/v2"; caseAEventId: string; caseBEventId: string; projection: LayersExperimentalPairProjection; source: "LAYERS_EXPERIMENTAL_LABORATORY" }> }
+export interface ResearchMetricFindingAnchor extends ResearchAnchorBase<"METRIC_FINDING"> { readonly metricFinding: MetricSignificanceBriefing }
 export type TypedSourcePayload = Readonly<{ identity: string; representation: unknown }>;
 export interface ResearchEvidenceAnchor extends ResearchAnchorBase<"EVIDENCE_RECORD"> { readonly evidence: TypedSourcePayload }
 export interface ResearchMediaAnchor extends ResearchAnchorBase<"MEDIA"> { readonly media: TypedSourcePayload }
@@ -40,7 +42,7 @@ export interface ResearchTimelineMomentAnchor extends ResearchAnchorBase<"TIMELI
 export interface ResearchTimelineCorrespondenceAnchor extends ResearchAnchorBase<"TIMELINE_CORRESPONDENCE"> { readonly correspondence: TypedSourcePayload }
 export interface ResearchIntentionDerivationAnchor extends ResearchAnchorBase<"INTENTION_DERIVATION"> { readonly derivation: TypedSourcePayload }
 export interface ResearchIntentionHypothesisAnchor extends ResearchAnchorBase<"INTENTION_HYPOTHESIS"> { readonly hypothesis: TypedSourcePayload }
-export type ResearchAnchor = ResearchGraphAnchor | ResearchCandidateAnchor | ResearchExperimentAnchor | ResearchEvidenceAnchor | ResearchMediaAnchor | ResearchNarrativePassageAnchor | ResearchTimelineMomentAnchor | ResearchTimelineCorrespondenceAnchor | ResearchIntentionDerivationAnchor | ResearchIntentionHypothesisAnchor;
+export type ResearchAnchor = ResearchGraphAnchor | ResearchCandidateAnchor | ResearchExperimentAnchor | ResearchMetricFindingAnchor | ResearchEvidenceAnchor | ResearchMediaAnchor | ResearchNarrativePassageAnchor | ResearchTimelineMomentAnchor | ResearchTimelineCorrespondenceAnchor | ResearchIntentionDerivationAnchor | ResearchIntentionHypothesisAnchor;
 export interface ResearchDeskEntry { anchor: ResearchAnchor; order: number }
 export interface ResearchDesk { entries: ResearchDeskEntry[] }
 export interface ResearchBridgeRequest { graph: GraphReference; investigationId: string; graphRevision: number }

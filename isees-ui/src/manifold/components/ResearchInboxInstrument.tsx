@@ -459,6 +459,11 @@ export default function ResearchInboxInstrument({
                           </button>;
                         }
 
+                        if (entry.anchor.kind === "METRIC_FINDING") {
+                          const finding = entry.anchor.metricFinding;
+                          return <details key={entry.anchor.anchorId} className="research-inbox-experiment"><summary><span className="research-inbox-experiment__metric">TOPOLOGY · {finding.displayValue}</span><strong className="research-inbox-experiment__pair">{finding.pairDisplay}</strong><span className="research-inbox-experiment__metadata"><span>Experimental metric finding</span><em>NON-CANONICAL</em></span></summary><div className="research-inbox-experiment__detail"><p>{finding.whyItMatters}</p><strong>Research question</strong><p>{finding.researchQuestion}</p><strong>Provenance</strong><p>{finding.deterministicBasisSummary}</p></div></details>;
+                        }
+
                         if (entry.anchor.kind !== "COMPARE_CANDIDATE") {
                           const anchor = entry.anchor;
                           return <button key={anchor.anchorId} type="button" disabled={anchor.insertability.state !== "INSERTABLE"} onClick={() => handleInsert(entry)} title={anchor.insertability.reason} style={{ width: "100%", padding: "9px 0", display: "block", border: 0, borderBottom: "1px solid rgba(148,163,184,0.10)", background: "transparent", color: "inherit", cursor: anchor.insertability.state === "INSERTABLE" ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}><div style={{ color: "#7dd3fc", fontSize: 10, fontWeight: 700 }}>{anchor.sourceWorkspace} · {anchor.kind}</div><div style={{ color: "#e2e8f0", fontSize: 11 }}>{anchor.display.title}</div><div style={{ color: "#94a3b8", fontSize: 10 }}>{anchor.display.summary}</div><div style={{ color: anchor.insertability.state === "INSERTABLE" ? "#86efac" : "#fbbf24", fontSize: 10 }}>{anchor.insertability.state.replaceAll("_", " ")} · {anchor.insertability.reason}</div></button>;

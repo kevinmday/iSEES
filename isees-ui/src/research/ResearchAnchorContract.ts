@@ -7,7 +7,7 @@ export function researchAnchorId(investigationId: string, kind: ResearchAnchorKi
 }
 
 export interface TypedResearchSourceInput {
-  readonly investigationId: string; readonly kind: Exclude<ResearchAnchorKind, "GRAPH" | "COMPARE_CANDIDATE" | "LAYERS_EXPERIMENT">;
+  readonly investigationId: string; readonly kind: Exclude<ResearchAnchorKind, "GRAPH" | "COMPARE_CANDIDATE" | "LAYERS_EXPERIMENT" | "METRIC_FINDING">;
   readonly sourceWorkspace: ResearchSourceWorkspace; readonly sourceIdentity: string;
   readonly collectedAt?: Date; readonly classification: ResearchSourceClassification;
   readonly sourceRevisionId?: string; readonly sourceExecutionId?: string; readonly sourceProjectionId?: string;
@@ -60,7 +60,7 @@ export function migrateResearchAnchor(value: ResearchAnchor | Record<string, unk
     const candidate = value as Partial<ResearchAnchor>;
     const kinds = Object.values(ResearchAnchorKind) as readonly string[];
     if (!kinds.includes(value.kind) || !candidate.anchorId || !candidate.investigationId || !candidate.sourceIdentity || !candidate.sourceWorkspace || !candidate.display || !candidate.insertability || !candidate.capturedRepresentation || !candidate.createdAt) throw new Error("Malformed Research anchor v2.");
-    const payloadKey: Record<string, string> = { GRAPH: "graph", COMPARE_CANDIDATE: "candidate", LAYERS_EXPERIMENT: "experiment", EVIDENCE_RECORD: "evidence", MEDIA: "media", NARRATIVE_PASSAGE: "passage", TIMELINE_MOMENT: "moment", TIMELINE_CORRESPONDENCE: "correspondence", INTENTION_DERIVATION: "derivation", INTENTION_HYPOTHESIS: "hypothesis" };
+    const payloadKey: Record<string, string> = { GRAPH: "graph", COMPARE_CANDIDATE: "candidate", LAYERS_EXPERIMENT: "experiment", METRIC_FINDING: "metricFinding", EVIDENCE_RECORD: "evidence", MEDIA: "media", NARRATIVE_PASSAGE: "passage", TIMELINE_MOMENT: "moment", TIMELINE_CORRESPONDENCE: "correspondence", INTENTION_DERIVATION: "derivation", INTENTION_HYPOTHESIS: "hypothesis" };
     const raw = value as Record<string, unknown>;
     if (!raw[payloadKey[value.kind]!] || (candidate.insertability.state !== "INSERTABLE" && candidate.insertability.state !== "INSPECTION_ONLY") || (candidate.classification !== "CANONICAL" && candidate.classification !== "RESEARCHER_GENERATED" && candidate.classification !== "UNDETERMINED")) throw new Error("Malformed Research anchor discriminated variant.");
     const collectedAt = requireRuntimeTimestamp(candidate.collectedAt, "capture");

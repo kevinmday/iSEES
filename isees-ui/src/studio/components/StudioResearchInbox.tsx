@@ -13,7 +13,7 @@ const GROUPS: readonly { title: string; kinds: readonly ResearchAnchorKind[] }[]
   { title: "Narrative passages", kinds: ["NARRATIVE_PASSAGE"] },
   { title: "Timeline moments / correspondence", kinds: ["TIMELINE_MOMENT", "TIMELINE_CORRESPONDENCE"] },
   { title: "Compare candidates", kinds: ["COMPARE_CANDIDATE"] },
-  { title: "Layers experiments", kinds: ["LAYERS_EXPERIMENT"] },
+  { title: "Layers experiments", kinds: ["LAYERS_EXPERIMENT", "METRIC_FINDING"] },
   { title: "Intention derivations / hypotheses", kinds: ["INTENTION_DERIVATION", "INTENTION_HYPOTHESIS"] },
 ];
 
@@ -23,6 +23,7 @@ const KINDS = GROUPS.flatMap(group => group.kinds);
 function warningFor(anchor: ResearchAnchor): string | undefined {
   if (anchor.kind === "COMPARE_CANDIDATE") return "Candidate source — noncanonical and inspection only.";
   if (anchor.kind === "LAYERS_EXPERIMENT") return "Experimental source — no canonical relationship was created.";
+  if (anchor.kind === "METRIC_FINDING") return "Experimental metric finding — inspection only; no canonical relationship was created.";
   if (anchor.insertability.state === "INSPECTION_ONLY") return anchor.insertability.reason;
   const text = `${anchor.display.title} ${anchor.display.summary}`.toLocaleLowerCase();
   if (text.includes("unavailable")) return "Source includes unavailable material.";
