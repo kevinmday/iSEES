@@ -1,7 +1,7 @@
 import { ArmedLayerClassification } from "../runtime/LayersExperimentRuntimeTypes";
 import type { ArmedLayer, LayersExperimentResult, LayersExperimentUnavailableInput } from "../runtime/LayersExperimentRuntimeTypes";
 import { getCanonicalLayerEvaluator } from "../evaluators/CanonicalLayerEvaluatorRegistry";
-import { LayersOperationalMappingStatus, LayersPairAvailability, LayersPairDeltaState } from "./LayersExperimentalPairProjectionTypes";
+import { LayersContributionSet, LayersOperationalMappingStatus, LayersPairAvailability, LayersPairDeltaState, layersContributionId } from "./LayersExperimentalPairProjectionTypes";
 import type { LayersExperimentalPairProjection, LayersExperimentalPairProjectionInput, LayersLayerContribution, LayersPairRelationshipProjection } from "./LayersExperimentalPairProjectionTypes";
 import { CANONICAL_LAYER_CATALOG_VERSION, LAYERS_EXPERIMENT_SCHEMA_VERSION } from "../catalog/CanonicalLayerCatalogTypes";
 import { projectCanonicalLayerEvaluatorInput, type CanonicalLayerEvaluatorInputProjection } from "../evaluators/CanonicalLayerEvaluatorInputProjection";
@@ -81,7 +81,7 @@ export function projectLayersExperimentalPair(input: LayersExperimentalPairProje
   const b = baseline.relationship, e = experimental.relationship;
   const state = b.availability === "UNAVAILABLE" ? (e.availability === "AVAILABLE" ? LayersPairDeltaState.FORMED : LayersPairDeltaState.UNAVAILABLE) : e.availability === "UNAVAILABLE" ? LayersPairDeltaState.DISSOLVED : e.score > b.score ? LayersPairDeltaState.STRENGTHENED : e.score < b.score ? LayersPairDeltaState.WEAKENED : LayersPairDeltaState.UNCHANGED;
   const delta = { state, ...(b.availability === "AVAILABLE" ? { baselineScore: b.score } : {}), ...(e.availability === "AVAILABLE" ? { experimentalScore: e.score } : {}), ...(b.availability === "AVAILABLE" && e.availability === "AVAILABLE" ? { scoreDelta: e.score - b.score } : {}) };
-  const allContributions = [...baseline.contributions.map(item => ({ ...item, layerId: `BASELINE:${item.layerId}` })), ...experimental.contributions.map(item => ({ ...item, layerId: `EXPERIMENTAL:${item.layerId}` }))];
+  const allContributions = [...baseline.contributions.map(item => ({ ...item, layerId: layersContributionId(LayersContributionSet.BASELINE, item.layerId) })), ...experimental.contributions.map(item => ({ ...item, layerId: layersContributionId(LayersContributionSet.EXPERIMENTAL, item.layerId) }))];
   const unavailableInputs: LayersExperimentUnavailableInput[] = allContributions.filter(item => item.availability === "UNAVAILABLE").map(item => ({ code: "LAYER_INPUT_UNAVAILABLE", description: `${item.layerId}: ${item.unavailableReason}` }));
   const baselineLayerIds = normalizeLayers(input.baselineLayers).map(x => x.id);
   const experimentalLayerIds = normalizeLayers(input.experimentalLayers).map(x => x.id);

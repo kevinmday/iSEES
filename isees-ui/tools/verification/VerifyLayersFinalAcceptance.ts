@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime";
-import { ResearchAnchorType, type ResearchExperimentAnchor } from "../../src/research/researchBridgeTypes";
-import { experimentReferenceSummary } from "../../src/research/LayersExperimentReferencePresentation";
+import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime.ts";
+import { ResearchAnchorType, type ResearchExperimentAnchor } from "../../src/research/researchBridgeTypes.ts";
+import { experimentReferenceSummary } from "../../src/research/LayersExperimentReferencePresentation.ts";
 
 const read = (path: string) => readFileSync(path, "utf8");
 const surface = read("src/surfaces/WorkspaceSurface.tsx");
@@ -78,7 +78,9 @@ assert(persistence.includes('experiment.type === "EXPERIMENT"') && persistence.i
 assert(restoration.includes("runtime.restoreDesk"));
 assert(!persistence.includes("LayersExperimentRuntime") && !restoration.includes("LayersExperimentRuntime"), "refresh does not restore or autorun transient LAYERS computation");
 
-for (const step of ["Run Resolve.", "Select a comparison in COMPARE.", "Return to LAYERS.", "Published Research experiments remain available"]) assert(laboratory.includes(step));
+for (const step of ["Experimentation is not ready", "Run Resolve", "Choose Comparison", "inspect all 48 layers", "Canonical knowledge remains untouched"]) assert(laboratory.includes(step));
+assert(!laboratory.includes("Missing:") && !laboratory.includes("before entering the laboratory"), "browse-first prerequisite guidance is concise and non-duplicative");
+assert(laboratory.includes("resolveMissing && <button") && laboratory.includes("comparisonMissing && <button"), "prerequisite actions render only when context requires them");
 assert(laboratory.includes("aria-pressed") && laboratoryCss.includes(":focus-visible"));
 assert(inbox.includes('aria-live="polite"') && intelligence.includes("PUBLISHED TO RESEARCH"));
 assert(inboxCss.includes(":focus-visible") && inboxCss.includes("prefers-reduced-motion: reduce"));

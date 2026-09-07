@@ -1,5 +1,5 @@
-import { CANONICAL_REGISTRY } from "../canonical/canonicalRegistry";
-import type { ResearchExperimentAnchor } from "./researchBridgeTypes";
+import { CANONICAL_REGISTRY } from "../canonical/canonicalRegistry.ts";
+import type { ResearchExperimentAnchor } from "./researchBridgeTypes.ts";
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;

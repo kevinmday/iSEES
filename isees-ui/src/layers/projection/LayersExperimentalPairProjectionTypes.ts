@@ -13,6 +13,14 @@ export type LayersPairAvailability = (typeof LayersPairAvailability)[keyof typeo
 export const LayersOperationalMappingStatus = { MAPPED: "MAPPED", UNAVAILABLE: "UNAVAILABLE" } as const;
 export type LayersOperationalMappingStatus = (typeof LayersOperationalMappingStatus)[keyof typeof LayersOperationalMappingStatus];
 
+export const LayersContributionSet = { BASELINE: "BASELINE", EXPERIMENTAL: "EXPERIMENTAL" } as const;
+export type LayersContributionSet = (typeof LayersContributionSet)[keyof typeof LayersContributionSet];
+export const layersContributionId = (set: LayersContributionSet, canonicalLayerId: string): string => `${set}:${canonicalLayerId}`;
+export const canonicalLayerIdFromContribution = (set: LayersContributionSet, contributionId: string): string | undefined => {
+  const prefix = `${set}:`;
+  return contributionId.startsWith(prefix) ? contributionId.slice(prefix.length) : undefined;
+};
+
 export const LayersPairDeltaState = {
   FORMED: "FORMED", RETAINED: "RETAINED", STRENGTHENED: "STRENGTHENED",
   WEAKENED: "WEAKENED", DISSOLVED: "DISSOLVED", UNAVAILABLE: "UNAVAILABLE", UNCHANGED: "UNCHANGED",

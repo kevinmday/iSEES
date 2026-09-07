@@ -11,6 +11,8 @@ import { useLayersExperimentState, LayersExperimentStatus, isLayersExperimentExe
 import { publishLayersExperimentToResearch } from "../research/LayersExperimentResearchPublication";
 import { useLayersPresentationSelection } from "./LayersPresentationSelection";
 import "./LayersSideInstruments.css";
+import { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes";
+import { canonicalLayerIdFromContribution, layersContributionId, LayersContributionSet } from "../projection";
 
 const pct = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value * 100).toFixed(1)}%`;
 const unavailableReason = (reason?: string) => reason?.replaceAll("_", " ") ?? "Evidence unavailable for the active baseline layers";
@@ -59,8 +61,8 @@ export default function LayersExperimentalIntelligence() {
     </div>
     {!projection ? <section role="status"><h2>Preparation</h2><p>{guidance}</p></section> : <>
       <section><h2>{selection.kind.replaceAll("_", " ")}</h2>
-        {contribution ? <><Row label="Layer ID / class" value={`${contribution.layerId} · ${contribution.classification}`}/><Row label="Mapping" value={`${contribution.operationalMappingStatus} · ${contribution.canonicalDimension ?? "UNMAPPED"}`}/><Row label="Availability" value={contribution.availability}/><Row label="Similarity" value={pct(contribution.similarity)}/><Row label="Canonical weight" value={contribution.canonicalWeight ?? "UNAVAILABLE"}/><Row label="Participating weight" value={contribution.participatingWeight}/><Row label="Weighted contribution" value={contribution.availability === "AVAILABLE" ? contribution.weightedContribution : "UNAVAILABLE"}/><Row label="Reason" value={contribution.unavailableReason ?? "—"}/><Row label="Membership" value={`${projection.provenance.baselineLayerIds.includes(contribution.layerId) ? "BASELINE" : "NOT BASELINE"} · ${projection.provenance.experimentalLayerIds.includes(contribution.layerId) ? "EXPERIMENTAL" : "NOT EXPERIMENTAL"}`}/></>
-        : selection.kind === "CASE_A" || selection.kind === "CASE_B" ? <Row label={selection.kind === "CASE_A" ? "Case A" : "Case B"} value={selection.kind === "CASE_A" ? subjectLabels.a : subjectLabels.b}/>
+        {contribution ? <><Row label="Layer ID / class" value={`${contribution.layerId} · ${contribution.classification}`}/><Row label="Mapping" value={`${contribution.operationalMappingStatus} · ${contribution.canonicalDimension ?? "UNMAPPED"}`}/><Row label="Availability" value={contribution.availability}/><Row label="Similarity" value={pct(contribution.similarity)}/><Row label="Canonical weight" value={contribution.canonicalWeight ?? "UNAVAILABLE"}/><Row label="Participating weight" value={contribution.participatingWeight}/><Row label="Weighted contribution" value={contribution.availability === "AVAILABLE" ? contribution.weightedContribution : "UNAVAILABLE"}/><Row label="Reason" value={contribution.unavailableReason ?? "—"}/><Row label="Membership" value={contributionMembership(projection, contribution.layerId)}/></>
+        : selection.kind === "CASE_A" || selection.kind === "CASE_B" ? <FrozenEndpoint projection={projection} role={selection.kind}/>
         : <><Row label="Baseline" value={pct(projection.delta.baselineScore)}/>{projection.baseline.relationship.availability === "UNAVAILABLE" && <p>{projection.provenance.baselineLayerIds.length === 0 ? "No active baseline layers" : unavailableReason(projection.baseline.relationship.reason)}</p>}<Row label="Experimental" value={pct(projection.delta.experimentalScore)}/><Row label="Delta" value={`${projection.delta.state}${projection.delta.scoreDelta === undefined ? " · NOT MEANINGFUL" : ` · ${projection.delta.scoreDelta >= 0 ? "+" : ""}${(projection.delta.scoreDelta * 100).toFixed(1)} pp`}`}/><Row label="Participating" value={projection.provenance.participatingLayerIds.join(" · ") || "NONE"}/><Row label="Unavailable" value={projection.provenance.unavailableLayerIds.join(" · ") || "NONE"}/><Row label="Execution" value={projection.executionId}/><p><strong>Experimental result.</strong> No canonical relationship was created.</p></>}
       </section>
       <section><h2>Research publication</h2><button type="button" disabled={!canPublish || published} onClick={publish}>{published ? "PUBLISHED TO RESEARCH" : "Publish Experiment to Research"}</button>{published && <p>Experimental projection preserved.<br/>Canonical knowledge unchanged.</p>}</section>
@@ -68,3 +70,14 @@ export default function LayersExperimentalIntelligence() {
   </aside>;
 }
 function Row({ label, value }: { label: string; value: string | number }) { return <div className="layers-side__row"><span>{label}</span><strong>{String(value)}</strong></div>; }
+function contributionMembership(projection: import("../projection").LayersExperimentalPairProjection, contributionId: string): string {
+  const baselineId = canonicalLayerIdFromContribution(LayersContributionSet.BASELINE, contributionId);
+  const experimentalId = canonicalLayerIdFromContribution(LayersContributionSet.EXPERIMENTAL, contributionId);
+  return `${baselineId && projection.provenance.baselineLayerIds.includes(baselineId) ? "BASELINE" : "NOT BASELINE"} · ${experimentalId && projection.provenance.experimentalLayerIds.includes(experimentalId) ? "EXPERIMENTAL" : "NOT EXPERIMENTAL"}`;
+}
+function FrozenEndpoint({ projection, role }: { projection: import("../projection").LayersExperimentalPairProjection; role: "CASE_A" | "CASE_B" }) {
+  const endpoint = projection.evaluatorInput.endpoints.find(item => item.subjectRole === role)!;
+  const topology = projection.layerContributions.find(item => item.layerId === layersContributionId(LayersContributionSet.EXPERIMENTAL, CanonicalFeatureDimension.TOPOLOGY) && item.canonicalDimension === CanonicalFeatureDimension.TOPOLOGY);
+  const components = endpoint.components.filter(item => item.componentIdentity.startsWith(`${CanonicalFeatureDimension.TOPOLOGY}.`));
+  return <><Row label={role === "CASE_A" ? "Case A" : "Case B"} value={endpoint.subjectIdentity}/><Row label="Knowledge object" value={endpoint.knowledgeObjectId}/><Row label="Frozen input snapshot" value={endpoint.endpointSnapshotId}/><Row label="Evaluator" value={topology?.evaluatorKey && topology.evaluatorVersion ? `${topology.evaluatorKey}@${topology.evaluatorVersion}` : "NOT SELECTED"}/><Row label="Normalization" value={topology?.normalization ? `${topology.normalization.normalizationKey}@${topology.normalization.normalizationVersion}` : "NOT AVAILABLE"}/><Row label="Normalized result" value={pct(topology?.normalizedResult)}/><details><summary>Frozen topology-state vector</summary><pre>{JSON.stringify(components, null, 2)}</pre></details></>;
+}

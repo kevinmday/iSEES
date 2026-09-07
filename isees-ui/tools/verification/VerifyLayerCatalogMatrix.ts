@@ -19,6 +19,7 @@ verify("family membership and member order are authoritative", unfiltered.every(
 verify("display totals derive from catalog", layerCatalogTotals.total === CanonicalLayerCatalog.length && component.includes("layerCatalogTotals.total"));
 verify("operational count is five", layerCatalogTotals.operational === 5);
 verify("unavailable count is 43", layerCatalogTotals.unavailable === 43);
+verify("browse semantics distinguish five INPUT REQUIRED from 43 UNAVAILABLE", component.includes("INPUT REQUIRED") && component.includes("UNAVAILABLE") && component.includes('experimentReady ? "Available" : "Input required"'));
 verify("only operational researcher-selectable IDs normalize", normalizeOperationalSelection(CanonicalLayerCatalog.map(x => x.id)).length === 5);
 verify("five operational layers toggle independently", operationalSelectableLayerIds.every(id => normalizeOperationalSelection([id]).includes(id)));
 verify("select all includes exactly the five operational layers", JSON.stringify(operationalSelectableLayerIds) === JSON.stringify(["OBSERVABILITY","NARRATIVE","GEOGRAPHY","INFRASTRUCTURE","TOPOLOGY"]));
@@ -27,7 +28,7 @@ verify("restore baseline consumes the versioned profile", component.includes("re
 const geography = selectCatalogFamily(["NARRATIVE"], "GEOSPATIAL");
 verify("family selection affects only its operational members", geography.includes("NARRATIVE") && geography.includes("GEOGRAPHY") && geography.length === 2);
 verify("family clearing affects only its family", JSON.stringify(clearCatalogFamily(["OBSERVABILITY","NARRATIVE"], "NARRATIVE")) === JSON.stringify(["OBSERVABILITY"]));
-verify("families without operational members cannot arm unavailable layers", selectCatalogFamily([], "SENSOR").length === 0 && component.includes("disabled={group.operationalCount === 0}"));
+verify("families without operational members cannot arm unavailable layers", selectCatalogFamily([], "SENSOR").length === 0 && component.includes("group.operationalCount === 0"));
 const before = ["OBSERVABILITY"]; const beforeSnapshot = JSON.stringify(before); const radar = projectLayerCatalogFamilies("radar observation", before);
 verify("filtering does not mutate selection", JSON.stringify(before) === JSON.stringify(["OBSERVABILITY"]));
 const anxiety = projectLayerCatalogFamilies("anxiety", before);
@@ -52,6 +53,8 @@ verify("TEMPORAL baseline association is distinguished from activity", component
 const runtime = new LayersExperimentRuntime(); runtime.establish({scope:{investigationId:"i",workspaceId:"w",focusedEventId:"a",comparisonEventId:"b",subjectIds:["s1","s2"],compareOrigin:{pairId:"p",candidateId:"c",evaluationId:"e"},resolveOrigin:{executionId:"r"}},baseline:{investigationId:"i",workspaceId:"w",subjectIds:["s1","s2"],canonicalStartingLayerIds:["TEMPORAL"],startingResolveExecutionId:"r",temporalContext:{},investigativeScale:{}},armedLayers:{layerIds:["TEMPORAL","TOPOLOGY","GLOBAL_ANXIETY_INDEX","OBSERVABILITY"]}});
 verify("programmatic unavailable IDs fail closed while TOPOLOGY remains armed", JSON.stringify(runtime.getState().armedLayers.map(x=>x.id)) === JSON.stringify(["OBSERVABILITY","TOPOLOGY"]));
 verify("selection changes do not execute automatically", workspace.includes("onSelectionChange={establish}") && workspace.includes("onClick={run}") && !component.includes("beginExecution"));
+verify("prerequisite prose is concise and browse-first", !workspace.includes("Missing:") && !workspace.includes("before entering the laboratory") && workspace.includes("before running an experiment"));
+verify("prerequisite actions are contextual", workspace.includes("resolveMissing && <button") && workspace.includes("comparisonMissing && <button") && workspace.includes("resolveMissing || comparisonMissing"));
 verify("selection does not mutate Workspace active layers", !component.includes("workspaceRuntime") && !workspace.includes("active_layers ="));
 verify("selection does not mutate canonical knowledge or publish Research", !component.match(/KnowledgeObjectRuntime|publishLayers|ResearchBridge/) && workspace.includes("Canonical knowledge is untouched"));
 verify("Run / Recompute is the only execution control", (workspace.match(/Run \/ Recompute experiment/g) ?? []).length === 1);
