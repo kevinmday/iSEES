@@ -40,6 +40,10 @@ import {
   eventDisplayName,
 } from "../../research/LayersExperimentReferencePresentation";
 
+import {
+  researchInboxGraphEntryTitle,
+} from "./ResearchInboxPresentation";
+
 // ============================================================
 // PRESENTATION CONTRACT
 // ============================================================
@@ -439,7 +443,7 @@ export default function ResearchInboxInstrument({
                                 {entry.anchor.graph.type}
                               </div>
                               <div style={{ marginTop: 3, overflowWrap: "anywhere", color: "#e2e8f0", fontSize: 11 }}>
-                                {entry.anchor.graph.id}
+                                {researchInboxGraphEntryTitle(entry.anchor)}
                               </div>
                             </button>
                           );

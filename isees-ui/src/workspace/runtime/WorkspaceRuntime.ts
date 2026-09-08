@@ -54,6 +54,7 @@ import type {
 import type {
   Investigation,
 } from "../../investigation/investigationTypes";
+import type { MaterializedOwnedActivation } from "../../investigation/continuity/OwnedInvestigationContinuity";
 
 import {
   validateOperationalRevisionInvestigation,
@@ -1142,6 +1143,13 @@ export class WorkspaceRuntime {
   activateEmptyOwnedInvestigation(
     investigation: Investigation,
   ): void {
+    this.activateEmptyOwnedInvestigationState(investigation);
+    this.notify();
+  }
+
+  private activateEmptyOwnedInvestigationState(
+    investigation: Investigation,
+  ): void {
     const workspace = investigation.workspace;
     if (
       !investigation.id.trim() ||
@@ -1179,6 +1187,48 @@ export class WorkspaceRuntime {
       },
       revision: this.state.revision + 1,
     };
+  }
+
+  /** Atomically installs an already validated, owner-authorized adopted projection. */
+  activateAdoptedOwnedInvestigation(activation: MaterializedOwnedActivation): void {
+    this.activateAdoptedOwnedInvestigationState(activation);
+    this.notify();
+  }
+
+  private activateAdoptedOwnedInvestigationState(activation: MaterializedOwnedActivation): void {
+    validateOperationalRevisionInvestigation(activation.investigation);
+    const workspace = activation.investigation.workspace;
+    this.state = {
+      ...this.state,
+      status: "ACTIVE",
+      session: { workspace, investigation: activation.investigation, focusedEvent: workspace.focused_event_id ?? undefined, artifacts: [...workspace.artifacts] },
+      operator: { ...this.state.operator, activeMode: activation.activeMode, layoutMode: WorkspaceLayoutMode.NORMAL, selection: undefined },
+      computational: { activeLayers: [...workspace.active_layers], temporalContext: activation.temporalContext, investigativeScale: activation.investigativeScale },
+      revision: this.state.revision + 1,
+    };
+  }
+
+  /**
+   * Installs every runtime-owned projection of an account activation before
+   * publishing the new Workspace revision. The callback is the composition
+   * boundary for the singular live Research and Author owners.
+   */
+  activateOwnedInvestigation(
+    activation: MaterializedOwnedActivation,
+    installAccountState: () => void,
+  ): void {
+    const previousState = this.state;
+    try {
+      if (activation.investigation.revisions.length === 0) {
+        this.activateEmptyOwnedInvestigationState(activation.investigation);
+      } else {
+        this.activateAdoptedOwnedInvestigationState(activation);
+      }
+      installAccountState();
+    } catch (error) {
+      this.state = previousState;
+      throw error;
+    }
     this.notify();
   }
 

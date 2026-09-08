@@ -1,10 +1,10 @@
 import type { Investigation } from "../investigationTypes.ts";
 import type { AccountContinuityApi } from "./AccountContinuityApi.ts";
-import { ContinuityError, materializeEmptyOwnedInvestigation, type AccountSessionProjection, type ActivationReceipt, type ContinuityStateCode } from "./OwnedInvestigationContinuity.ts";
+import { ContinuityError, materializeOwnedActivation, type AccountSessionProjection, type ActivationReceipt, type ContinuityStateCode, type MaterializedOwnedActivation } from "./OwnedInvestigationContinuity.ts";
 import type { LastActiveStore } from "./LastActiveInvestigationStore.ts";
 
-export interface AccountSensitiveRuntimeTeardown { clearAccountState(): void; }
-export interface AccountWorkspaceRuntime { deactivate(): void; activateEmptyOwnedInvestigation(investigation: Investigation): void; }
+export interface AccountSensitiveRuntimeTeardown { clearAccountState(): void; activateOwnedInvestigation?(activation: MaterializedOwnedActivation): void; }
+export interface AccountWorkspaceRuntime { deactivate(): void; activateOwnedInvestigation(activation: MaterializedOwnedActivation, installAccountState: () => void): void; activateEmptyOwnedInvestigation?(investigation: Investigation): void; }
 export interface ContinuityState { readonly code: ContinuityStateCode; readonly principal: AccountSessionProjection | null; readonly activeInvestigationId: string | null; }
 
 export class AccountWorkspaceContinuityCoordinator {
@@ -50,9 +50,10 @@ export class AccountWorkspaceContinuityCoordinator {
     }
     if (epoch !== this.#epoch || request !== this.#request || this.#principal?.researcherId !== principal.researcherId) throw new ContinuityError("ACTIVATION_STALE", "Activation response is stale.");
     const known = this.#revisions.get(aggregate.investigationId); if (known !== undefined && aggregate.aggregateRevision < known) throw new ContinuityError("ACTIVATION_STALE", "Activation revision is stale.");
-    const investigation = materializeEmptyOwnedInvestigation(aggregate);
-    for (const runtime of this.#teardowns) runtime.clearAccountState();
-    this.#workspace.activateEmptyOwnedInvestigation(investigation);
+    const activation = materializeOwnedActivation(aggregate);
+    this.#workspace.activateOwnedInvestigation(activation, () => {
+      for (const runtime of this.#teardowns) runtime.activateOwnedInvestigation?.(activation);
+    });
     this.#revisions.set(aggregate.investigationId, aggregate.aggregateRevision);
     this.#lastActive.write(principal.researcherId, aggregate.investigationId);
     this.#publish("ACTIVATION_READY", aggregate.investigationId);

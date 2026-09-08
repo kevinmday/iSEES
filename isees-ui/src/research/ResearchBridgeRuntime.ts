@@ -246,6 +246,13 @@ export class ResearchBridgeRuntime {
     this.clearDesk();
   }
 
+  /** Replace, rather than merge, the desk for the selected owned Investigation. */
+  activateOwnedInvestigation(
+    activation: import("../investigation/continuity/OwnedInvestigationContinuity.ts").MaterializedOwnedActivation,
+  ): void {
+    this.restoreDesk(activation.researchDesk);
+  }
+
   // ==========================================================
   // DESK RESTORATION
   // ==========================================================

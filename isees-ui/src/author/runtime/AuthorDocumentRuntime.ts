@@ -297,6 +297,15 @@ export class AuthorDocumentRuntime {
     this.notify();
   }
 
+  /** Replace the active Author projection as part of owned activation. */
+  activateOwnedInvestigation(
+    activation: import("../../investigation/continuity/OwnedInvestigationContinuity.ts").MaterializedOwnedActivation,
+  ): void {
+    this.activateInvestigation(activation.investigation.id);
+    if (activation.authorDocument) this.restoreActiveDocument(activation.authorDocument);
+    else this.clearActiveDocument();
+  }
+
   // ==========================================================
   // DOCUMENT MUTATION
   // ==========================================================

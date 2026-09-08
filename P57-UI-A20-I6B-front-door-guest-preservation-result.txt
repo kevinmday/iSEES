@@ -1,0 +1,160 @@
+P57-UI-A20-I6B FRONT DOOR GUEST INVESTIGATION PRESERVATION RESULT
+Date: 2026-09-08
+Status: BROWSER ACCEPTED; ready for selective A20-I6 commit.
+
+STATE MACHINE
+GuestPreservationCoordinator owns IDLE, GUEST_CANDIDATE_CAPTURED, AUTHENTICATING,
+AWAITING_DECISION, PRESERVING, OWNED_ACTIVE, RECOVERABLE_ERROR, and DISCARDED.
+It freezes one candidate, suppresses duplicate preserve commands, retains the stable
+idempotency key across retry, and rejects completions from an older candidate epoch.
+
+GUEST CANDIDATE CAPTURE BOUNDARY
+Account entry checks the production WorkspaceRuntime for an active Investigation and
+then synchronously invokes the production Guest lifecycle captureNow checkpoint.
+Empty Guest and public-preview-only state have no active Investigation and produce no
+candidate or prompt. The validated snapshot remains in session persistence and in the
+runtimes while authentication is shown. Projection validation errors remain visible and
+leave the Guest identity/workspace in place.
+
+AUTHENTICATION SEQUENCING AND EXPLICIT DECISION
+The candidate is captured before Guest capture is stopped and before identity changes.
+Account continuity is not allowed to deactivate/restore a workspace while the decision
+is unresolved. Pre-auth Continue as guest cancels requests, reestablishes the captured
+Guest identity, restarts its lifecycle, and leaves the frozen snapshot untouched.
+Authentication success enters AWAITING_DECISION; it neither preserves nor discards.
+The labelled, focus-managed modal offers Preserve investigation and Continue without
+preserving. It is responsive through the existing Front Door card composition.
+
+API PROJECTION AND SECURITY
+The request uses guest-investigation-adoption/v1, POST /api/v1/investigations/adoptions,
+the shared API-origin resolver, credentials: include, and X-ISEES-CSRF. It omits account,
+owner, and researcher fields. It maps title/objective, source Guest/Workspace identity,
+snapshot timestamps, graph nodes/edges, canonical Event identities, Research Inbox
+identity/order/source, supported artifacts, active mode, focus, layers, and string-valued
+temporal/scale context. Runtime revision, selection/hover, credentials, and author dirty
+state are excluded. Unsupported non-string temporal/scale state yields a visible safe
+validation failure. A20-I6A was changed only at the proven integration defect in ViewState:
+its committed enum omitted production MANIFOLD (and other existing ordinary modes), which
+made the required MANIFOLD preservation request impossible.
+
+SUCCESS, FAILURE, RETRY, ABORT, AND STALE BEHAVIOR
+Preserve sends one command and disables both actions while pending. Failure terminates in
+RECOVERABLE_ERROR with the required plain-language notice, Try again, and explicit discard.
+Retry reuses the frozen command/idempotency key. Requests carry AbortSignal; candidate epoch
+and object identity reject stale completion. Successful response identity is checked against
+the returned activation before the server ID is applied. No raw server detail is rendered.
+
+GUEST CLEANUP, ACTIVATION, AND RELOAD
+Guest session storage clears only after the returned owned ID has been applied to the active
+workspace/investigation and subordinate Research state. Explicit discard clears only Guest
+material and resumes the normal account library/last-active path. Logout remains the existing
+credentialed account-continuity logout and never invokes Guest cleanup against owned storage.
+
+CONTINUITY BLOCKER REMOVED BY A20-I6C
+OwnedInvestigationContinuity now validates and materializes both EMPTY and ADOPTED server
+activation projections. Immediate adoption, hard reload, and sign-back-in all activate the
+returned owned investigation ID through AccountWorkspaceContinuityCoordinator and the
+existing Workspace, Research Bridge, and Author Document runtime owners. Malformed adopted
+state fails visibly with the account library retained. Live browser acceptance passed;
+no duplicate continuity path was added.
+
+VERIFICATION RESULTS
+- python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio: PASS, 138 passed in 15.99s on the confirming run. The first run had one transient concurrent SQLite cold-start lock failure and 137 passes; no backend repair file was changed for it.
+- VerifyOwnedInvestigationContinuity.ts: PASS.
+- VerifyAccountFrontDoor.ts: PASS.
+- VerifyGuestReloadContinuity.ts: PASS.
+- VerifyGuestWorkspaceRecovery.ts: PASS.
+- VerifyGuestInvestigationAdoption.ts: PASS, 30 named front-door invariants plus executable future-write topology/canonical-identity assertions.
+- npm run build: PASS (Vite chunk-size warnings only).
+- git diff --check: PASS (line-ending warnings only).
+- Historical pre-finalization index check: PASS, empty.
+- git status --short: completed and recorded; pre-existing unrelated work remains untouched.
+
+A20-I6B-OWNED CHANGED-FILE ALLOWLIST
+- isees-ui/src/account/AccountFrontDoor.tsx
+- isees-ui/src/account/AccountFrontDoor.css
+- isees-ui/src/account/GuestInvestigationAdoption.ts
+- isees-ui/tools/verification/VerifyGuestInvestigationAdoption.ts
+- isees_uap/api/v1/investigations.py (one ViewState.activeMode enum hunk only)
+- P57-UI-A20-I6B-front-door-guest-preservation-result.txt
+
+APP.TSX HUNK ALLOWLIST
+- None. A20-I6B did not modify App.tsx.
+- Existing unrelated App.tsx hunks remain: compact OperatorEntryGate import; add/wrap
+  OverviewCanonicalActivationProvider around OperatorLayout.
+
+BROWSER ACCEPTANCE SEQUENCE - COMPLETED
+1. Continue as Guest.
+2. Load Nimitz Tic Tac Encounter as an investigation.
+3. Enter MANIFOLD.
+4. Add at least one item to Research Inbox.
+5. Click Sign in.
+6. Cancel before authentication and confirm the exact Guest workspace returns.
+7. Click Sign in again and authenticate.
+8. Confirm the preservation decision appears before account workspace replacement.
+9. Choose Preserve investigation.
+10. Confirm the resulting active investigation has a new owned investigation ID.
+11. Confirm Nimitz, MANIFOLD, graph state, and Research Inbox survived.
+12. Ctrl+Shift+R and confirm owned state restores.
+13. Sign out, sign back in, and confirm the adopted investigation still exists.
+14. Separately verify Continue without preserving using a disposable Guest investigation.
+15. Inspect console/network for visible errors, duplicate adoption calls, and credential leakage.
+
+LIVE ADOPTION ACTIVATION DEFECT REPAIR
+The browser reached POST /api/v1/investigations/adoptions -> 201 Created and then GET
+/api/v1/investigations/inv_232d12918a204a029c51f781ca18c6dc/activation -> 200 OK. The
+adopted record appeared in the account library, but opening it showed the caught safe error
+while the previously active Rendlesham investigation remained active. Transport, ownership,
+and durable creation therefore succeeded.
+
+Future capture now maps imported canonical domain ID E-TICTAC-2004 deliberately to graph ID
+system:event:E-TICTAC-2004. It classifies the real graph node as CANONICAL_EVENT with
+canonicalEventId E-TICTAC-2004 and does not append a domain-ID alias. If an imported Event
+cannot be represented by either its exact domain ID or exact system:event namespace mapping,
+capture rejects it instead of manufacturing topology.
+
+The Research Inbox canonical source remains typed during capture. NODE:<graph-node-id> is
+decoded only at activation into graph type NODE and the underlying graph ID; the typed source
+identity itself remains preserved. The existing AN/APG-79 Inbox item is therefore retained.
+
+A20-I6B REPAIR SELECTIVE STAGING OWNERSHIP
+- isees-ui/src/account/GuestInvestigationAdoption.ts: canonical domain-to-graph namespace map;
+  reject unrepresented canonical Events; remove future synthetic-alias creation; explicit .ts import
+  permits the executable Node verification to exercise capture directly.
+- isees-ui/tools/verification/VerifyGuestInvestigationAdoption.ts: future-write source invariants
+  and executable 16-node/13-edge/three-canonical-Event capture assertions.
+- P57-UI-A20-I6B-front-door-guest-preservation-result.txt: live defect/result record.
+
+The authoritative browser retest completed successfully for guest adoption and the existing
+adopted record.
+
+A20-I6 ADOPTION ACTIVATION BROWSER ACCEPTED
+
+FINAL AUTHORITATIVE BROWSER ACCEPTANCE
+- Guest users entered the complete workspace, with the limitation stated precisely as lack
+  of persistence.
+- The Guest Nimitz investigation operated in MANIFOLD; Research Inbox accepted the
+  AN/APG-79 AESA Radar node; and Guest state survived Ctrl+Shift+R.
+- Authentication succeeded through same-origin cookie continuity without exposing an
+  authentication token to JavaScript storage. The explicit preservation decision appeared.
+- Adoption returned 201 Created and adopted activation returned 200 OK. The adopted
+  investigation appeared in the account library.
+- The legacy adopted Nimitz record was recovered without recreation or database editing.
+- Authenticated restoration returned directly to the last active owned investigation with
+  MANIFOLD mode, Nimitz Tic Tac Encounter focus, 16 nodes, 13 edges, three Events, and
+  Research Inbox count one.
+- The expanded Inbox displayed AN/APG-79 AESA Radar while internal graph identity remained
+  NODE / system:entity:an-apg-79-aesa-radar.
+- The Mode Bar and account controls remained visible, the authenticated shell fit within one
+  viewport, and no visible request error remained.
+
+FINAL SHELL REPAIR
+Account Bar and workspace share one bounded authenticated shell. Account Bar occupies its
+intrinsic height, the workspace occupies minmax(0, 1fr), and MainLayout fills its parent
+instead of adding a second 100vh. The Mode Bar remains within the visible viewport.
+
+FINAL INBOX-TITLE REPAIR
+The legacy raw technical title was resolved through exact graph identity to the human title
+AN/APG-79 AESA Radar. Internal NODE identity remains unchanged. Future Guest captures
+preserve the human-readable title. No fuzzy matching, database editing, or record recreation
+was used.

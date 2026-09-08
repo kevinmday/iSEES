@@ -1,0 +1,416 @@
+P57-UI-A20-I6C ADOPTED INVESTIGATION ACCOUNT CONTINUITY RESULT
+Date: 2026-09-08
+Status: BROWSER ACCEPTED; ready for selective A20-I6 commit.
+
+ORIGINAL PARSER LIMITATION
+OwnedInvestigationContinuity encoded aggregateState and operationalState as EMPTY only,
+required revision zero, and AccountWorkspaceContinuityCoordinator could invoke only
+activateEmptyOwnedInvestigation. A20-I6A correctly returned the durable ADOPTED payload, so
+normal reload/sign-back-in rejected it before any production runtime could restore it.
+
+EXACT PARSER AND ACTIVATION REPAIR
+OwnedInvestigationContinuity now uses an exact EMPTY/ADOPTED discriminated contract. ADOPTED
+validation covers the outer activation/version/revision/freshness contract, server ID and
+workspace ID, stored adoption schema/source/timestamps/title/objective, graph identities and
+endpoints, canonical Event references and focus, Inbox identity/contiguous ordering/source
+references, artifact identity/source references/document JSON, production WorkspaceMode,
+layers, and temporal/scale strings. Exact-key validation prevents unsupported fields from
+silently gaining meaning. The materializer constructs the production Investigation,
+Workspace, immutable operational revision/graph, ResearchDesk graph anchors, supported
+Workspace note artifacts, and optional ComputationalAuthorDocument.
+
+AccountWorkspaceContinuityCoordinator remains the sole account restoration authority. It
+materializes before mutation, rejects stale account/request/revision responses as before,
+then routes ADOPTED state to WorkspaceRuntime.activateAdoptedOwnedInvestigation and routes
+the ResearchDesk/document to ResearchBridgeRuntime and AuthorDocumentRuntime. The Workspace
+entry point installs Investigation, Workspace, focus, active mode, layers, temporal context,
+and investigative scale atomically. Immediate guest adoption now calls
+coordinator.openOwnedInvestigation(returnedServerId); it no longer rebuilds owned authority
+from the guest snapshot. Guest persistence clears only after that activation succeeds.
+
+EMPTY BEHAVIOR PRESERVED
+EMPTY retains its exact five-field operational projection, workspace identity check, null
+focus, empty nodes/edges, revision zero, empty Workspace/artifacts/layers/revisions, and
+OVERVIEW activation. No canonical defaults, Nimitz state, adopted state, or focused Event is
+added.
+
+ADOPTED FIELDS RESTORED
+- server-generated Investigation and workspace identities
+- supported nodes/edges and their preserved identities
+- canonical Event identities and focused Event
+- Research Inbox anchor identities and ordering
+- NOTE artifacts and optional DOCUMENT author state
+- active production mode, active layers, temporal context, and investigative scale
+
+REJECTION AND USER-VISIBLE FAILURE
+Malformed schemas/states/revisions/freshness, cross-investigation workspace identity,
+duplicate/missing graph identities, dangling endpoints, malformed canonical references,
+invalid focus, Inbox gaps/duplicates/dangling sources, duplicate or dangling artifacts,
+invalid documents, unsupported modes, and unknown fields raise ACTIVATION_INVALID before
+activation. Last-active restoration deactivates the invalid workspace, retains the owned
+library, and AccountFrontDoor displays a safe restoration error rather than a blank screen.
+Abort, principal epoch, request generation, and revision guards prevent stale restoration
+from replacing newer identity/workspace state.
+
+SECURITY AND OWNERSHIP
+The existing same-origin resolver, credentialed GET, session cookie, CSRF-protected adoption
+POST, and logout remain unchanged. No token or client owner authority is accepted or stored;
+Guest identity is never used as account authority. System Canon and CORS are unchanged.
+
+PRECISE CHANGED-FILE AND HUNK ALLOWLIST
+- isees-ui/src/investigation/continuity/OwnedInvestigationContinuity.ts: replace EMPTY-only
+  activation types/parser/materializer with exact EMPTY/ADOPTED validation and production
+  domain materialization.
+- isees-ui/src/investigation/continuity/AccountWorkspaceContinuityCoordinator.ts: extend the
+  existing runtime-owner interfaces and dispatch validated ADOPTED materialization through
+  those owners; preserve existing stale/account/revision authority.
+- isees-ui/src/workspace/runtime/WorkspaceRuntime.ts: import the continuity materialization
+  type and add one atomic activateAdoptedOwnedInvestigation method.
+- isees-ui/src/account/AccountFrontDoor.tsx: one I6C visibility line after last-active restore;
+  in the existing I6B preservation hunk, replace guest-snapshot manual activation with the
+  coordinator call using the returned server ID.
+- isees-ui/tools/verification/VerifyOwnedInvestigationContinuity.ts: add valid ADOPTED fixture,
+  malformed endpoint/mode/unknown-field cases, domain restoration assertions, Research owner
+  assertion, and returned-server-ID assertion.
+- isees-ui/tools/verification/VerifyGuestInvestigationAdoption.ts: strengthen immediate
+  activation assertion to require coordinator-owned restoration before guest cleanup.
+- P57-UI-A20-I6B-front-door-guest-preservation-result.txt: change blocker disposition to READY
+  and record I6C removal of the continuity blocker.
+- P57-UI-A20-I6C-adopted-investigation-continuity-result.txt: this result report.
+- No App.tsx hunk. No backend response repair was required; A20-I6A already returns all fields
+  required for its supported adoption projection. The existing unstaged backend activeMode
+  enum hunk remains I6B-owned.
+
+EXACT VERIFICATION RESULTS
+- Backend pytest selection: PASS, 138 passed in 15.99s on the confirming run. The first
+  run produced one transient concurrent SQLite cold-start `database is locked` failure and
+  137 passes; the untouched backend repository code was not changed for that unrelated race.
+- VerifyOwnedInvestigationContinuity.ts: PASS (EMPTY and ADOPTED behavioral activation plus
+  safe malformed-ADOPTED rejection).
+- VerifyAccountFrontDoor.ts: PASS.
+- VerifyGuestReloadContinuity.ts: PASS.
+- VerifyGuestWorkspaceRecovery.ts: PASS.
+- VerifyGuestInvestigationAdoption.ts: PASS, 30 invariants.
+- npm run build: PASS; Vite emitted only existing chunk-size warnings.
+- git diff --check: PASS with line-ending warnings only.
+- Historical pre-finalization index check: empty.
+- git status --short: inspected; I6B and unrelated user work remains unstaged and preserved.
+
+HISTORICAL BROWSER ACCEPTANCE CHECKLIST - COMPLETED
+1. Adopt a Guest investigation containing graph nodes/edges, canonical focus, Inbox entries,
+   artifacts, MANIFOLD mode, layers, and temporal/scale context.
+2. Confirm the new server Investigation ID is active and Guest storage clears afterward.
+3. Hard reload and confirm the same ID and all supported adopted state restore.
+4. Sign out/sign back in and confirm the same restoration through last-active continuity.
+5. Exercise malformed/server-failure handling in a controlled environment and confirm the
+   visible library-safe error, no blank screen, and no stale replacement.
+6. Inspect console/network for duplicate calls, credential leakage, and unexpected errors.
+
+LIVE RESPONSE REPRODUCTION AND EXACT FIRST FAILURE
+The authoritative browser sequence was POST adoption -> 201 Created followed by GET
+/api/v1/investigations/inv_232d12918a204a029c51f781ca18c6dc/activation -> 200 OK. A fixture
+now reproduces its ADOPTED guest-investigation-adoption/v1 representation: MANIFOLD mode,
+E-TICTAC-2004 focus, 16 original nodes, 13 edges, three canonical Events, the incorrectly
+NOTE-classified system:event:E-TICTAC-2004 node, its disconnected E-TICTAC-2004 canonical
+alias, and the NODE:system:entity:an-apg-79-aesa-radar Inbox source.
+
+The disconnected alias caused the canonical-focus invariant to pass. The exact first failing
+invariant was the subsequent Research Inbox source-reference check: it compared the complete
+typed NODE: value with raw node and edge ID sets. This was the first thrown
+ACTIVATION_INVALID, caught by the Front Door and rendered as the safe retry message.
+
+NARROW V1 COMPATIBILITY AND MATERIALIZATION REPAIR
+Before the unchanged strict aggregate validation, only guest-investigation-adoption/v1 is
+examined for the deterministic A20-I6B legacy signature: a disconnected canonical alias whose
+id equals its canonicalEventId and whose exact corresponding system:event:<canonicalEventId>
+node is NOTE with null canonicalEventId. That real node is promoted to CANONICAL_EVENT and the
+alias is removed. Connected, duplicate, conflicting, or otherwise ambiguous patterns reject;
+edge-, Inbox-, or artifact-referenced aliases are connected for this purpose. There is no
+suffix matching and no canonical replacement. This makes the already-durable
+inv_232d12918a204a029c51f781ca18c6dc record loadable without recreation, deletion, database
+editing, Inbox loss, or silent canonical substitution.
+
+Research sources now decode exact NODE:<id> and EDGE:<id> forms against the corresponding ID
+set. Materialization preserves sourceIdentity as the typed value while setting graph.type and
+graph.id to NODE and system:entity:an-apg-79-aesa-radar. The live-shaped test proves exactly
+16 materialized nodes, 13 edges, three canonical Events, canonical identity on the real Tic
+Tac node, E-TICTAC-2004 focus, MANIFOLD mode, and exactly one AN/APG-79 Inbox entry.
+
+Activation remains transactional: parse and materialization complete before runtime mutation,
+and stale generation/principal guards remain in force. The test confirms malformed activation
+cannot replace the current active investigation.
+
+A20-I6C REPAIR SELECTIVE STAGING OWNERSHIP
+- isees-ui/src/investigation/continuity/OwnedInvestigationContinuity.ts: narrowly versioned
+  legacy alias normalization, strict typed graph-source decoding, and decoded materialization.
+- isees-ui/tools/verification/VerifyOwnedInvestigationContinuity.ts: authoritative 16/13/3
+  live fixture, compatibility/materialization assertions, and edge-/Inbox-connected
+  ambiguous-alias rejection.
+- P57-UI-A20-I6C-adopted-investigation-continuity-result.txt: live failure and repair record.
+
+This historical retest requirement is superseded by the final authoritative browser
+acceptance recorded below.
+
+LIVE BROWSER TOPOLOGY SUCCESS AND RESEARCH INBOX FAILURE
+The post-compatibility browser run successfully activated the previously adopted Nimitz
+investigation in MANIFOLD. It focused Nimitz Tic Tac Encounter and rendered the canonical
+16-node, 13-edge, three-Event topology. The account library marked Nimitz as Continue
+investigation, and Ctrl+Shift+R restored the same adopted MANIFOLD. The browser console was
+clean throughout. Despite that successful topology restoration, the collapsed Research Inbox
+dock was completely absent after both account activation and hard reload. The authoritative
+activation response contains exactly one entry titled AN/APG-79 AESA Radar.
+
+EXACT LIVE-OWNER ROOT CAUSE
+Parsing and materialization did not lose the entry: materialization produced one ResearchDesk
+entry with graph anchor type NODE and id system:entity:an-apg-79-aesa-radar. The first broken
+boundary was AccountWorkspaceContinuityCoordinator's commit sequence. It treated the live
+ResearchBridgeRuntime as an account teardown sidecar: it cleared subordinate owners, committed
+and published WorkspaceRuntime's MANIFOLD activation, and only afterward restored ResearchDesk
+in a separate loop. Workspace activation therefore was not the coherent transaction claimed
+by the continuity boundary; the production dock could observe the newly committed Workspace
+against the cleared/not-yet-installed Research owner. The provider itself is singular:
+App mounts one ResearchBridgeProvider, that provider publishes the researchBridgeRuntime
+singleton, and ResearchInboxInstrument consumes it with useResearchBridge/useResearchDesk.
+There was no second provider to repair or add.
+
+LIVE-OWNER TRANSACTION REPAIR
+AccountWorkspaceContinuityCoordinator now materializes and passes the complete activation to
+WorkspaceRuntime.activateOwnedInvestigation. WorkspaceRuntime prepares EMPTY or ADOPTED
+Workspace state, invokes the account-state installation callback for the same singleton
+ResearchBridgeRuntime and AuthorDocumentRuntime, and publishes the Workspace revision only
+after those live owners have installed their selected-investigation state. ResearchBridgeRuntime
+replaces its desk directly from activation.researchDesk; it does not merge or manufacture an
+entry. AuthorDocumentRuntime likewise selects the activated investigation and replaces or
+clears its active document. EMPTY activations install the authoritative empty ResearchDesk via
+the same path. The pre-commit epoch/request/principal/revision checks are unchanged, and no
+subordinate clear occurs before a successful owned replacement, so stale, aborted, malformed,
+and failed fetches cannot clear or overwrite the current Inbox. Account-boundary teardown
+behavior is unchanged. No backend record is mutated during read activation.
+
+PRODUCTION-BOUNDARY BEHAVIORAL VERIFICATION
+- Authoritative Nimitz-shaped activation installs exactly one entry into a real
+  ResearchBridgeRuntime and its dock projection observes count 1.
+- The displayed title is AN/APG-79 AESA Radar; decoded graph anchor is exactly
+  NODE / system:entity:an-apg-79-aesa-radar.
+- Fresh Workspace/Research owners plus restoreLastActiveInvestigation reproduce the same
+  hard-reload transaction and one-entry projection.
+- Nimitz -> empty owned investigation -> Nimitz deterministically produces counts 1 -> 0 -> 1.
+- A failed activation and a stale late response both leave the current Nimitz Inbox intact.
+- Source-boundary assertions prove one ResearchBridgeProvider, singleton runtime publication,
+  dock consumption of that owner, and Workspace publication after owner installation.
+- Existing Guest adoption verification remains green; no Guest Research Inbox path changed.
+- The 16-node, 13-edge, three-Event compatibility assertions remain green.
+
+FINAL VERIFICATION RESULTS
+- Backend requested pytest selection: PASS, 138 passed in 17.03s.
+- VerifyGuestInvestigationAdoption.ts: PASS, 30 invariants.
+- VerifyOwnedInvestigationContinuity.ts: PASS.
+- VerifyAccountFrontDoor.ts: PASS.
+- npm run build: PASS; only the existing Vite large-chunk advisory was emitted.
+- git diff --check: PASS; line-ending warnings only.
+- Focused diff review: PASS for every repair file; unrelated dirty hunks were preserved.
+- Historical pre-finalization index check: empty.
+- git status --short: reviewed; all pre-existing A20-I6B/I6C and unrelated user work remains
+  unstaged and preserved.
+
+BROWSER RETEST COMPLETED
+The previously required live retest is complete and is superseded by the final authoritative
+browser acceptance recorded below.
+
+PRECISE SELECTIVE STAGING OWNERSHIP
+- isees-ui/src/investigation/continuity/AccountWorkspaceContinuityCoordinator.ts: replace the
+  clear/workspace/restore sidecar sequence with the owned activation transaction callback.
+- isees-ui/src/workspace/runtime/WorkspaceRuntime.ts: prepare EMPTY/ADOPTED state and publish
+  only after live account owners install.
+- isees-ui/src/research/ResearchBridgeRuntime.ts: replace the live desk from owned activation.
+- isees-ui/src/author/runtime/AuthorDocumentRuntime.ts: replace selected owned Author state in
+  the same transaction.
+- isees-ui/tools/verification/VerifyOwnedInvestigationContinuity.ts: production-composition,
+  dock projection, reload, switching, stale/failure, provider identity, and Nimitz assertions.
+- P57-UI-A20-I6C-adopted-investigation-continuity-result.txt: browser evidence, diagnosis,
+  repair, verification, completed retest, and this allowlist.
+
+A20-I6C RESEARCH INBOX CONTINUITY BROWSER ACCEPTED
+
+FINAL RESEARCH INBOX TITLE PRESENTATION REPAIR
+
+AUTHORITATIVE HARD-RELOAD RESULT
+The adopted Nimitz investigation now restores successfully after Ctrl+Shift+R: MANIFOLD
+mode and Nimitz focus restore, the topology remains exactly 16 nodes, 13 edges, and three
+Events, and the collapsed Research Inbox restores with count 1. Expanding the Inbox reveals
+the single preserved entry; no duplicate is created. Browser acceptance then exposed the
+remaining presentation defect: the entry's primary visible label was the raw internal ID
+system:entity:an-apg-79-aesa-radar instead of AN/APG-79 AESA Radar.
+
+EXACT PRESENTATION ROOT CAUSE
+ResearchInboxInstrument has a dedicated graph-entry JSX branch for both NODE and EDGE
+anchors. Unlike its other typed-entry branch, that graph branch never read
+anchor.display.title. Its primary label div rendered entry.anchor.graph.id directly, even
+though the restored ResearchBridge projection already contained display.title =
+"AN/APG-79 AESA Radar" and graph = NODE / system:entity:an-apg-79-aesa-radar. The defect was
+therefore solely at the final instrument presentation boundary, not in adoption, activation,
+materialization, Research ownership, or persistence.
+
+EXACT REPAIR
+ResearchInboxPresentation now resolves the primary graph-entry label from the trimmed,
+non-empty anchor.display.title. ResearchInboxInstrument uses that projection for the visible
+NODE/EDGE label while retaining graph.type and graph.id unchanged for deterministic identity,
+selection, insertion, publication, and Studio consumption. Only a malformed or legacy graph
+entry with no usable display title falls back deterministically to "<TYPE> <graph ID>". The
+fallback cannot override a valid title. This is a read-only presentation operation: it does
+not mutate the anchor, backend record, Research desk, or graph, and adds no provider or shadow
+state. No investigation-, Nimitz-, or AN/APG-79-specific behavior was introduced.
+
+RENDERED-INSTRUMENT BOUNDARY VERIFICATION
+- The production Nimitz-shaped restored NODE resolves to AN/APG-79 AESA Radar, not its raw ID.
+- Its graph identity remains exactly NODE / system:entity:an-apg-79-aesa-radar.
+- An EDGE anchor resolves to its human-readable display title and retains EDGE identity.
+- A whitespace-only legacy title alone activates the deterministic NODE-plus-ID fallback.
+- A guest-created graph anchor with a valid title resolves to that title.
+- Source-boundary checks prove the graph-entry JSX calls the verified presentation projection
+  and no longer places entry.anchor.graph.id directly in the primary visible label div.
+- Existing continuity checks still prove hard-reload restoration, count exactly 1, and no
+  duplicate entry through owned switching, stale responses, or failed activation.
+
+FINAL VERIFICATION RESULTS FOR THIS REPAIR
+- Backend requested pytest selection: PASS, 138 passed in 16.75s.
+- VerifyGuestInvestigationAdoption.ts: PASS, 30 invariants.
+- VerifyOwnedInvestigationContinuity.ts: PASS, including rendered-instrument title behavior.
+- VerifyAccountFrontDoor.ts: PASS.
+- npm run build: PASS; only the existing Vite large-chunk advisory was emitted.
+- git diff --check: PASS.
+- Focused review: PASS for every file changed by this final presentation repair.
+- Historical pre-finalization index check: empty.
+- git status --short: reviewed; pre-existing A20-I6B/I6C and unrelated user work remains
+  unstaged and preserved.
+
+BROWSER RETEST COMPLETED
+The post-presentation-repair browser retest completed successfully; its final evidence is
+recorded below.
+
+PRECISE SELECTIVE STAGING OWNERSHIP
+- isees-ui/src/manifold/components/ResearchInboxInstrument.tsx: use the display-title
+  presentation projection in the existing graph-entry label div.
+- isees-ui/src/manifold/components/ResearchInboxPresentation.ts: deterministic display-title
+  resolver with graph-identity fallback only when a usable title is absent.
+- isees-ui/tools/verification/VerifyOwnedInvestigationContinuity.ts: rendered-instrument NODE,
+  raw-ID exclusion, graph identity, EDGE, fallback, Guest title, reload, count, and duplicate
+  assertions.
+- P57-UI-A20-I6C-adopted-investigation-continuity-result.txt: this final browser defect,
+  diagnosis, repair, verification, completed retest, and allowlist.
+
+A20-I6 SAFE FORWARD REPAIR
+
+FORENSIC FINDINGS
+The read-only forensic review confirmed that no TypeScript source was truncated or
+syntactically incomplete, and that the validated A20-I6 adoption, activation, topology,
+live-owner transaction, and Research Inbox continuity work remains intact. Reversion was
+therefore neither required nor appropriate. Two independent forward repairs were applied.
+
+AUTHENTICATED SHELL-HEIGHT ROOT CAUSE AND REPAIR
+AccountFrontDoor previously rendered the authenticated AccountBar immediately above its
+children while MainLayout independently claimed height: 100vh. Because body and #root retain
+overflow:hidden, the combined Account Bar plus viewport-height MainLayout exceeded the one
+available viewport. The bottom of MainLayout, including its mounted Mode Bar and footer,
+therefore fell below the visible viewport and produced zoom-dependent clipping.
+
+The authenticated branch now owns one account-authenticated-shell with height:100vh,
+overflow:hidden, and two grid rows: auto for the intrinsic Account Bar and minmax(0,1fr) for
+the workspace. Its workspace cell has min-width/min-height zero and bounded overflow.
+MainLayout now fills that cell with height:100% instead of claiming a second viewport. Its
+existing bounded flex body, center host, left/right internal scrolling, single Mode Bar, and
+footer remain in place. No page-level scrolling, fixed positioning, hiding, relocation, or
+duplicate Mode Bar workaround was introduced. Anonymous Front Door and Guest composition
+remain separate and unchanged.
+
+LEGACY INBOX-TITLE ROOT CAUSE AND REPAIR
+The adopted record persisted its raw graph ID as display.title. Backend serialization
+correctly preserved that value, and prior materialization copied it unchanged even though the
+validated normalized graph contained the exact NODE with title AN/APG-79 AESA Radar.
+
+materializeOwnedActivation now decodes the canonical source through the strict graph-source
+contract, resolves only its exact NODE or EDGE identity in the validated workspace graph,
+and treats only a blank title, the decoded raw ID, or the full typed canonical source as a
+legacy technical placeholder. A NODE placeholder receives the exact matched node title. An
+EDGE placeholder receives the deterministic presentation of its exact matched edge and exact
+endpoint titles. A valid persisted human title remains byte-for-byte unchanged. graph.type,
+graph.id, sourceIdentity, topology, count, and backend data remain unchanged; no entry is
+created or duplicated. Missing typed references and ambiguous untyped node/edge references
+reject under the existing strict continuity contract rather than being guessed.
+
+Future Guest adoption capture applies the equivalent exact typed-identity rule before writing
+its command, so a technical NODE or EDGE placeholder is replaced when the referenced graph
+presentation is available. It preserves valid human titles and does not use suffix, fuzzy,
+label, investigation-specific, or literal-ID matching. The existing final
+ResearchInboxPresentation projection remains unchanged as a defensive presentation boundary.
+
+DETERMINISTIC VERIFICATION RESULTS
+- VerifyGuestInvestigationAdoption.ts: PASS. The future-write fixture retains 16 nodes and
+  13 edges and now proves the raw NODE ID is captured as AN/APG-79 AESA Radar without identity
+  or topology changes.
+- VerifyOwnedInvestigationContinuity.ts: PASS. The actual raw-ID legacy shape resolves to
+  AN/APG-79 AESA Radar while retaining NODE /
+  system:entity:an-apg-79-aesa-radar, typed-source placeholders do not render as titles,
+  human titles remain unchanged, EDGE identity resolves exactly, missing and ambiguous
+  references reject, Inbox count stays one, switching creates no duplicate, stale/failed
+  activation protection remains intact, and fresh-owner reload restoration is deterministic.
+- Shell source assertions: PASS. They prove one 100vh authenticated owner, intrinsic Account
+  Bar row, minmax(0,1fr) workspace row, shrinkable bounded workspace, parent-filling
+  MainLayout with no 100vh, retained internal overflow, one mounted Mode Bar, and preserved
+  anonymous/Guest branches. These percentage-independent constraints cover 90%, 100%, and
+  ordinary responsive browser dimensions deterministically; visual browser acceptance has
+  now passed.
+- VerifyAccountFrontDoor.ts: PASS.
+- npm run build: PASS; Vite emitted only its existing large-chunk advisory.
+- Requested backend pytest selection: PASS, 138 tests passed in 27.86s.
+- git diff --check: PASS with line-ending conversion warnings only.
+- Focused diff review against the strict allowlist: PASS; all unrelated dirty-worktree files
+  and hunks remain preserved.
+- git status --short: reviewed; pre-existing tracked and untracked work remains unstaged.
+- Historical pre-finalization index check: empty.
+
+BROWSER RETEST COMPLETED
+The authenticated shell and adopted Nimitz continuity retest passed. Final acceptance details
+are recorded below.
+
+PRECISE SELECTIVE STAGING OWNERSHIP
+- isees-ui/src/account/AccountFrontDoor.tsx: authenticated return-composition wrapper only.
+- isees-ui/src/account/AccountFrontDoor.css: authenticated two-row shell sizing only.
+- isees-ui/src/layout/MainLayout.tsx: root height ownership only (100vh to 100%).
+- isees-ui/src/investigation/continuity/OwnedInvestigationContinuity.ts: exact placeholder
+  title materialization and ambiguous untyped source rejection only.
+- isees-ui/src/account/GuestInvestigationAdoption.ts: future-write exact graph-title correction.
+- isees-ui/tools/verification/VerifyOwnedInvestigationContinuity.ts: title and deterministic
+  shell behavioral/source assertions.
+- isees-ui/tools/verification/VerifyGuestInvestigationAdoption.ts: future-write title fixture.
+- P57-UI-A20-I6C-adopted-investigation-continuity-result.txt: this forensic repair record.
+
+A20-I6 SAFE FORWARD REPAIR BROWSER ACCEPTED
+
+FINAL AUTHORITATIVE BROWSER ACCEPTANCE
+- Guest users entered the complete workspace, and the Guest limitation was clearly identified
+  as lack of persistence.
+- The Guest Nimitz investigation operated in MANIFOLD. Research Inbox accepted the
+  AN/APG-79 AESA Radar node, and Guest state survived Ctrl+Shift+R.
+- Authentication succeeded through same-origin cookie continuity. The explicit preservation
+  decision appeared; no authentication token was exposed to JavaScript storage.
+- Backend adoption returned 201 Created and adopted activation returned 200 OK. The adopted
+  investigation appeared in the account library.
+- The legacy adopted Nimitz record was recovered without record recreation or database
+  editing. Authenticated restoration returned directly to the last active owned investigation.
+- Restored state was MANIFOLD with focused event Nimitz Tic Tac Encounter, 16 nodes, 13 edges,
+  three Events, Research Inbox count one, and expanded title AN/APG-79 AESA Radar.
+- Internal graph identity remained NODE / system:entity:an-apg-79-aesa-radar.
+- Mode Bar and account controls remained visible, the authenticated shell fit within one
+  viewport, and no visible request error remained.
+
+FINAL SHELL REPAIR
+Account Bar and workspace share one bounded authenticated shell. Account Bar occupies
+intrinsic height, workspace occupies minmax(0, 1fr), and MainLayout fills its parent instead
+of adding a second 100vh. Mode Bar remains within the visible viewport.
+
+FINAL INBOX-TITLE REPAIR
+The legacy raw technical title was resolved through exact graph identity. Its human title is
+AN/APG-79 AESA Radar, while internal NODE identity remains unchanged. Future Guest captures
+preserve the human-readable title. No fuzzy matching, database editing, or record recreation
+was used.

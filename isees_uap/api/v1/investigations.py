@@ -171,7 +171,7 @@ class ArtifactState(BaseModel):
 
 class ViewState(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    activeMode: Literal["OVERVIEW", "RESEARCH", "STUDIO", "LAYERS"]
+    activeMode: Literal["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "INTENTION", "RESEARCH", "STUDIO", "LAYERS"]
     focusedEventId: str | None = Field(default=None, max_length=200)
     activeLayers: list[str] = Field(max_length=100)
     temporalContext: str | None = Field(default=None, max_length=200)

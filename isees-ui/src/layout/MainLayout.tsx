@@ -73,7 +73,7 @@ export default function MainLayout({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
+        height: "100%",
         width: "100vw",
         background: "#060b14",
         color: "#f8fafc",

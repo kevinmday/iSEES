@@ -13,10 +13,13 @@
 .account-door__guest { display:grid; gap:.45rem; margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid #21495b }
 .account-door__guest button { padding:.75rem; border:1px solid #75dcff; border-radius:4px; background:#071722; color:#d9f5ff; cursor:pointer }
 .account-door__guest p { margin:0; color:#a9c5d1; font-size:.9rem; line-height:1.45 }
+.account-door__decision { display:grid; gap:.75rem; margin-top:1.5rem }.account-door__decision button { padding:.75rem; border:1px solid #39758d; border-radius:4px; background:#071722; color:#d9f5ff; cursor:pointer }
 .guest-session-bar { position:relative; z-index:100; display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.55rem 1rem; border-bottom:1px solid #79651f; background:#171405; color:#f4e7aa; font:13px/1.35 system-ui,sans-serif }
 .guest-session-bar p { margin:0 }.guest-session-bar div { display:flex; gap:.5rem; flex-shrink:0 }.guest-session-bar button { padding:.45rem .7rem; border:1px solid #aa9131; border-radius:4px; background:#282207; color:#fff5c7; cursor:pointer }
 .guest-session-bar .guest-session-bar__message { display:grid; gap:.2rem; flex-shrink:1 }.guest-session-bar__recovery { color:#fff; font-weight:600 }
 .account-library { position:relative; z-index:100; padding:.65rem 1rem; border-bottom:1px solid #28647d; background:#03101a; color:#d9f5ff; font-family:system-ui,sans-serif }
+.account-authenticated-shell { width:100%; height:100vh; display:grid; grid-template-rows:auto minmax(0,1fr); overflow:hidden }
+.account-authenticated-shell__workspace { min-width:0; min-height:0; overflow:hidden }
 .account-library header { display:flex; align-items:center; justify-content:space-between; gap:1rem }.account-library header div { display:grid }.account-library header span,.account-library label { color:#7fcde9; font-size:.75rem; letter-spacing:.08em }.account-library details { margin-top:.5rem }.account-library summary { cursor:pointer; font-weight:700 }
 .account-library__create { margin:.75rem 0; display:grid; gap:.35rem }.account-library__create div { display:flex; gap:.5rem }.account-library__create input { flex:1 }.account-library ul { display:flex; gap:.5rem; padding:0; list-style:none; flex-wrap:wrap }.account-library li { display:flex; align-items:center; gap:.5rem; padding:.4rem; border:1px solid #21495b; border-radius:4px }
 .account-door button:disabled,.account-library button:disabled { cursor:not-allowed!important; opacity:.55 }
