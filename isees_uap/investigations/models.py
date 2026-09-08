@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class InvestigationLifecycle(str, Enum):
@@ -38,6 +39,20 @@ class InvestigationAggregate:
     schema_version: str
     state: str
     revision: int
+    payload: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class AdoptionReceipt:
+    investigation_id: str
+    owner_principal_id: str
+    source_guest_investigation_id: str
+    source_schema_version: str
+    source_snapshot_timestamp: datetime
+    payload_digest: str
+    adopted_at: datetime
+    resulting_revision: int
+    payload: dict[str, Any]
 
 
 def summarize(investigation: Investigation) -> InvestigationSummary:

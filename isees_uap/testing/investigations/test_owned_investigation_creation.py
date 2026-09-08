@@ -113,13 +113,10 @@ def test_create_is_server_owned_empty_and_does_not_seed_or_activate(environment)
         aggregates = connection.execute("SELECT * FROM investigation_aggregate").fetchall()
         assert len(parents) == len(aggregates) == 1
         assert parents[0]["owner_principal_id"] == owner
-        assert set(aggregates[0].keys()) == {"investigation_id", "schema_version", "state", "revision"}
-        names = {row[0].lower() for row in connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )}
-        assert not any(any(term in name for term in (
-            "node", "edge", "candidate", "source", "inbox", "experiment", "studio"
-        )) for name in names)
+        assert set(aggregates[0].keys()) == {"investigation_id", "schema_version", "state", "revision", "payload_json"}
+        assert aggregates[0]["payload_json"] is None
+        assert connection.execute("SELECT count(*) FROM investigation_research_inbox").fetchone()[0] == 0
+        assert connection.execute("SELECT count(*) FROM investigation_adopted_artifact").fetchone()[0] == 0
     assert not any(term in response.text.lower() for term in ("nimitz", "tic tac", "canonical", "workspace"))
 
 

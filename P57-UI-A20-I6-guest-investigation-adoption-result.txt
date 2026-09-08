@@ -1,0 +1,101 @@
+P57-UI-A20-I6 — GUEST INVESTIGATION ADOPTION RESULT
+Date: 2026-09-08
+
+Outcome
+-------
+A20-I6 production implementation was not started because discovery found no
+safe durable adoption boundary. The current server can create and activate only
+an EMPTY owned investigation. It cannot atomically persist or later reactivate
+the rich Guest workspace snapshot.
+
+Discovered authority chain
+--------------------------
+OperatorIdentityRuntime and its session persistence own Guest identity.
+GuestWorkspaceSessionLifecycle owns capture of WorkspaceRuntime,
+ResearchBridgeRuntime, and AuthorDocumentRuntime into validated sessionStorage.
+Authentication is authoritative at /api/v1/auth and returns a server session via
+HttpOnly cookie. AuthenticatedPrincipal.account_id is the only server ownership
+source. InvestigationLibraryService/SQLiteInvestigationRepository own creation
+of a server-generated investigation parent and EMPTY aggregate.
+AccountWorkspaceContinuityCoordinator owns authenticated epochs, stale request
+protection, last-active lookup, and owner-authorized activation.
+
+State machine
+-------------
+No adoption state machine was implemented. The required terminal-state machine
+would be unsafe until a server command can durably commit and reload the Guest
+payload. The current destructive Guest entry behavior remains unchanged so this
+increment does not pretend preservation exists.
+
+Exact preservation boundary and durable confirmation
+-----------------------------------------------------
+Missing. Required: one authenticated, CSRF-protected, principal-owned,
+idempotent transaction that generates a new investigation ID, persists the
+supported non-empty aggregate and subordinate state, and returns an activation
+projection for the committed revision. Neither POST /investigations nor
+StudioSaveOrchestrator supplies this boundary.
+
+Guest recovery behavior
+-----------------------
+No new behavior was introduced. A future flow must freeze/retain the validated
+Guest snapshot through authentication, retain it on rejection/failure/stale
+completion, and delete it only after durable server confirmation and successful
+owned activation.
+
+Security properties observed
+----------------------------
+The backend derives owners from AuthenticatedPrincipal; the client create
+payload omits owner. Session secrets are HttpOnly cookies. CSRF-protected
+mutations compare cookie/header and the stored digest. Requests use credentialed
+fetch through canonical API-origin resolution. This increment changes none of
+those properties and adds no auth-token storage or CORS changes.
+
+Supported and unsupported preservation
+----------------------------------------
+Guest sessionStorage supports Investigation/Workspace domain state, Research
+Desk entries, active author document, active mode/layout, and computational
+layers/time/scale. It excludes transient selection, hover/runtime revisions,
+and author dirty state. The durable investigation backend currently supports
+only metadata plus an EMPTY aggregate; separate APIs support narrower candidate,
+research-source, and Studio records but not atomic whole-workspace adoption.
+
+Verification results
+--------------------
+PASS — python -m pytest -q isees_uap/testing/authentication
+       isees_uap/testing/investigations isees_uap/testing/candidate_evidence
+       isees_uap/testing/studio: 135 passed in 15.73s.
+PASS — VerifyOwnedInvestigationContinuity.ts.
+PASS — VerifyAccountFrontDoor.ts.
+PASS — VerifyGuestReloadContinuity.ts.
+PASS — VerifyGuestWorkspaceRecovery.ts.
+PASS — npm run build (717 modules transformed; existing large-chunk advisory only).
+PASS — git diff --check (no whitespace errors; line-ending warnings on the four
+       pre-existing tracked user changes only).
+PASS — git diff --cached --name-only (empty; nothing staged).
+PASS — git status --short (only the two A20-I6 reports are new for this
+       increment; all pre-existing tracked/untracked user work remains present).
+
+Production code was not changed, so no A20-I6 behavior verifier was fabricated
+for a nonexistent durable contract.
+
+Selective-staging allowlist
+---------------------------
+NOTHING MAY BE STAGED by this increment. If manually reviewed later, the only
+A20-I6-created files are:
+
+- P57-UI-A20-I6-I0-guest-investigation-adoption-discovery.txt
+- P57-UI-A20-I6-guest-investigation-adoption-result.txt
+
+Existing tracked and untracked user work is excluded.
+
+Required browser acceptance sequence
+------------------------------------
+After the backend adoption increment exists: exercise empty Guest and preview
+bypass; active Guest authentication without loss; explicit Preserve / Continue
+without it / available cancel choices; duplicate-click idempotency; server ID
+generation and principal ownership; failure/stale recovery; durable activation;
+reload; sign-out/sign-in continuity; cookie/CSRF/storage checks; and visible,
+non-blank failure rendering. The discovery report contains the full numbered
+sequence.
+
+A20-I6 BLOCKED AT DURABLE ADOPTION BOUNDARY ? NOTHING STAGED

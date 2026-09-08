@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,9 +13,9 @@ from .errors import (
     InvalidStoredInvestigation,
     RepositoryUnavailable,
 )
-from .models import Investigation, InvestigationAggregate, InvestigationLifecycle
+from .models import AdoptionReceipt, Investigation, InvestigationAggregate, InvestigationLifecycle
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def _sql_statements(script: str):
@@ -197,7 +198,7 @@ class SQLiteInvestigationRepository:
                         ),
                     )
                     connection.execute(
-                        "INSERT INTO investigation_aggregate VALUES (?,?,?,?)",
+                        "INSERT INTO investigation_aggregate (investigation_id,schema_version,state,revision) VALUES (?,?,?,?)",
                         (investigation_id, "investigation-aggregate/v1", "EMPTY", 0),
                     )
                     row = connection.execute(
@@ -226,12 +227,15 @@ class SQLiteInvestigationRepository:
     def _aggregate_from_row(row: sqlite3.Row) -> InvestigationAggregate:
         try:
             if (not row["investigation_id"] or row["schema_version"] != "investigation-aggregate/v1"
-                    or row["state"] != "EMPTY" or row["revision"] != 0):
-                raise ValueError("Invalid empty aggregate")
+                    or row["state"] not in ("EMPTY", "ADOPTED")
+                    or (row["state"] == "EMPTY" and row["revision"] != 0)
+                    or (row["state"] == "ADOPTED" and row["revision"] < 1)):
+                raise ValueError("Invalid aggregate")
+            payload = json.loads(row["payload_json"]) if "payload_json" in row.keys() and row["payload_json"] else None
             return InvestigationAggregate(
                 investigation_id=row["investigation_id"],
                 schema_version=row["schema_version"], state=row["state"],
-                revision=row["revision"],
+                revision=row["revision"], payload=payload,
             )
         except (KeyError, TypeError, ValueError) as error:
             raise InvalidStoredInvestigation(
@@ -279,7 +283,7 @@ class SQLiteInvestigationRepository:
                          InvestigationLifecycle.ACTIVE.value, occurred_at, occurred_at, 0),
                     )
                     connection.execute(
-                        "INSERT INTO investigation_aggregate VALUES (?,?,?,?)",
+                        "INSERT INTO investigation_aggregate (investigation_id,schema_version,state,revision) VALUES (?,?,?,?)",
                         (investigation_id, "investigation-aggregate/v1", "EMPTY", 0),
                     )
                     connection.execute(
@@ -317,5 +321,84 @@ class SQLiteInvestigationRepository:
                     (investigation_id, owner_principal_id),
                 ).fetchone()
                 return self._aggregate_from_row(row) if row is not None else None
+        except sqlite3.Error as error:
+            raise RepositoryUnavailable("Investigation repository is unavailable") from error
+
+    def adopt_guest_owned(self, *, investigation_id: str, owner_principal_id: str,
+                          title: str, objective: str | None, idempotency_key: str,
+                          command_hash: str, payload: dict):
+        occurred_at = _utc_text(self.clock())
+        canonical_json = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    replay = connection.execute(
+                        "SELECT command_hash,investigation_id FROM investigation_adoption_idempotency WHERE owner_principal_id=? AND idempotency_key=?",
+                        (owner_principal_id, idempotency_key)).fetchone()
+                    if replay:
+                        if replay["command_hash"] != command_hash:
+                            raise IdempotencyKeyReuse("Idempotency key was reused with different command content")
+                        return_value = self._read_adoption(connection, replay["investigation_id"], owner_principal_id, True)
+                        connection.commit()
+                        return return_value
+                    connection.execute("INSERT INTO investigation VALUES (?,?,?,?,?,?,?,?)", (
+                        investigation_id, owner_principal_id, title, objective,
+                        InvestigationLifecycle.ACTIVE.value, occurred_at, occurred_at, 1))
+                    connection.execute("INSERT INTO investigation_aggregate (investigation_id,schema_version,state,revision,payload_json) VALUES (?,?,?,?,?)",
+                                       (investigation_id, "investigation-aggregate/v1", "ADOPTED", 1, canonical_json))
+                    source = payload["source"]
+                    connection.execute("INSERT INTO investigation_adoption_receipt VALUES (?,?,?,?,?,?,?,?,?,?)", (
+                        investigation_id, owner_principal_id, "GUEST_SESSION", source["guestInvestigationId"],
+                        payload["schemaVersion"], source["snapshotUpdatedAt"], command_hash, occurred_at, 1, canonical_json))
+                    for entry in payload["researchInbox"]:
+                        connection.execute("INSERT INTO investigation_research_inbox VALUES (?,?,?,?,?)", (
+                            investigation_id, entry["anchorId"], entry["order"], entry["title"], entry["canonicalSourceId"]))
+                    for artifact in payload["artifacts"]:
+                        connection.execute("INSERT INTO investigation_adopted_artifact VALUES (?,?,?,?,?,?)", (
+                            investigation_id, artifact["artifactId"], artifact["kind"], artifact["title"],
+                            artifact["content"], json.dumps(artifact["canonicalSourceIds"], ensure_ascii=False, separators=(",", ":"))))
+                    connection.execute("INSERT INTO investigation_adoption_idempotency VALUES (?,?,?,?,?)", (
+                        owner_principal_id, idempotency_key, command_hash, investigation_id, occurred_at))
+                    connection.execute("INSERT INTO account_active_investigation VALUES (?,?,?) ON CONFLICT(owner_principal_id) DO UPDATE SET investigation_id=excluded.investigation_id,activated_at=excluded.activated_at",
+                                       (owner_principal_id, investigation_id, occurred_at))
+                    result = self._read_adoption(connection, investigation_id, owner_principal_id, False)
+                    connection.commit()
+                    return result
+                except Exception:
+                    connection.rollback()
+                    raise
+        except sqlite3.IntegrityError as error:
+            if "investigation.investigation_id" in str(error):
+                raise DuplicateInvestigationId("Investigation ID already exists") from error
+            raise RepositoryUnavailable("Investigation repository rejected the adoption") from error
+        except sqlite3.Error as error:
+            raise RepositoryUnavailable("Investigation repository is unavailable") from error
+
+    def _read_adoption(self, connection, investigation_id: str, owner_principal_id: str, replayed: bool):
+        parent = connection.execute("SELECT * FROM investigation WHERE investigation_id=? AND owner_principal_id=?", (investigation_id, owner_principal_id)).fetchone()
+        aggregate = connection.execute("SELECT * FROM investigation_aggregate WHERE investigation_id=?", (investigation_id,)).fetchone()
+        receipt = connection.execute("SELECT * FROM investigation_adoption_receipt WHERE investigation_id=? AND owner_principal_id=?", (investigation_id, owner_principal_id)).fetchone()
+        active = connection.execute("SELECT investigation_id FROM account_active_investigation WHERE owner_principal_id=?", (owner_principal_id,)).fetchone()
+        if not parent or not aggregate or not receipt or not active or active[0] != investigation_id:
+            raise InvalidStoredInvestigation("Stored adoption result is invalid")
+        adopted_at = datetime.fromisoformat(receipt["adopted_at"].replace("Z", "+00:00"))
+        snapshot_at = datetime.fromisoformat(receipt["source_snapshot_timestamp"].replace("Z", "+00:00"))
+        model = AdoptionReceipt(investigation_id, owner_principal_id, receipt["source_guest_investigation_id"],
+            receipt["source_schema_version"], snapshot_at, receipt["payload_digest"], adopted_at,
+            receipt["resulting_revision"], json.loads(receipt["payload_json"]))
+        return self._from_row(parent), self._aggregate_from_row(aggregate), model, replayed
+
+    def get_active_owned(self, *, owner_principal_id: str):
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute("SELECT investigation_id FROM account_active_investigation WHERE owner_principal_id=?", (owner_principal_id,)).fetchone()
+                if row is None:
+                    return None
+                parent = connection.execute("SELECT * FROM investigation WHERE investigation_id=? AND owner_principal_id=?", (row[0], owner_principal_id)).fetchone()
+                aggregate = connection.execute("SELECT * FROM investigation_aggregate WHERE investigation_id=?", (row[0],)).fetchone()
+                if parent is None or aggregate is None:
+                    raise InvalidStoredInvestigation("Stored active investigation is invalid")
+                return self._from_row(parent), self._aggregate_from_row(aggregate)
         except sqlite3.Error as error:
             raise RepositoryUnavailable("Investigation repository is unavailable") from error

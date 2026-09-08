@@ -1,0 +1,216 @@
+P57-UI-A20-I6-I0 — GUEST INVESTIGATION ADOPTION DISCOVERY
+Date: 2026-09-08
+Disposition: BLOCKED AT THE DURABLE ADOPTION BOUNDARY
+
+Scope
+-----
+This discovery covers A20-I6 only. No Guide, Studio feature work, MUFON
+integration, source capture, REX work, or later increment was begun.
+
+Production authority chain
+--------------------------
+
+1. Guest identity creation and persistence
+
+OperatorIdentityRuntime is the live client authority for operator identity.
+OperatorIdentitySessionPersistence stores a generated Guest identity in browser
+sessionStorage. The Guest identity is distinct from investigation identity. The
+GuestWorkspaceSessionLifecycleBridge in App.tsx starts/stops Guest snapshot
+capture according to the authoritative OperatorIdentityRuntime state.
+
+2. Guest workspace snapshot persistence and restoration
+
+GuestWorkspaceSessionLifecycle composes singleton WorkspaceRuntime,
+ResearchBridgeRuntime, and AuthorDocumentRuntime state through
+GuestWorkspaceSessionSessionSnapshotFactory and writes it through
+GuestWorkspaceSessionPersistence to sessionStorage. Restoration validates the
+snapshot and Guest identity, then uses public runtime mutation APIs in
+GuestWorkspaceSessionRestorer. It restores the investigation/workspace,
+Research Desk, author document, active mode/layout, and computational
+configuration. It deliberately does not restore transient runtime revisions,
+hover, or selection.
+
+3. AccountFrontDoor commands and transition behavior
+
+AccountFrontDoorApi sends account creation to POST /api/v1/auth/accounts and
+sign-in to POST /api/v1/auth/sessions with credentials included in the request.
+The backend sets the bearer session in an HttpOnly cookie and the double-submit
+CSRF secret in a separate readable cookie. AccountFrontDoor then calls the
+backend session endpoint through AccountWorkspaceContinuityCoordinator and
+establishes the returned researcher identity in OperatorIdentityRuntime.
+
+The current Guest-to-account entry handler is explicitly destructive: it stops
+Guest capture, calls clearGuestWorkspaceSession(), clears client identity and
+account runtime state, and only then shows authentication. This is the exact
+A20-I6 integration point, but changing it without a durable server adoption
+command would only postpone data loss.
+
+4. Authenticated continuity and activation
+
+AccountWorkspaceContinuityCoordinator owns principal epochs, request
+generations, aborts, stale-response rejection, account-sensitive teardown,
+last-active lookup, and activation. LastActiveInvestigationStore keeps only a
+per-researcher investigation reference in localStorage; it contains no auth
+token and is not durable investigation storage. Activation always refetches an
+owner-authorized server aggregate before materializing runtime state.
+
+5. Owned-investigation creation and server ownership
+
+POST /api/v1/investigations is CSRF protected and derives
+owner_principal_id exclusively from AuthenticatedPrincipal.account_id. The
+client sends title, objective, and idempotencyKey; it does not send an owner.
+InvestigationLibraryService generates inv_<uuid> identities server-side and
+SQLiteInvestigationRepository atomically records the parent, EMPTY aggregate,
+and idempotency result. Replays are scoped to the authenticated principal and
+validated by a canonical command hash.
+
+6. Exact Guest state currently serializable
+
+GuestWorkspaceSessionSnapshot schema v1 serializes:
+
+- Guest ownership provenance: operatorId and establishedAt.
+- Snapshot createdAt and updatedAt.
+- Optional Workspace and optional Investigation, including the Investigation's
+  current domain graph/revisions and its Workspace fields (imported event
+  references, focused_event_id, investigations, artifacts, and active_layers).
+- Operator activeMode and layoutMode.
+- Computational activeLayers, temporalContext, and investigativeScale.
+- The complete ResearchDesk entries, including existing anchor identities,
+  ordering, source identity, revisions, classification, representation, and
+  provenance carried by each anchor.
+- The optional active ComputationalAuthorDocument.
+
+The snapshot does not serialize operator selection, hover state, runtime status,
+runtime revision counters, or author dirty state. Therefore the requested
+selection preservation is already unsupported by the Guest persistence contract.
+
+7. Exact authenticated server state currently persistable
+
+The investigation parent persists only server-generated investigationId,
+principal-derived owner, title, optional objective, ACTIVE lifecycle,
+timestamps, and version. investigation-aggregate/v1 is constrained to state
+EMPTY with revision 0. Its activation projection always returns a new
+workspace:<investigationId>, focusedEventId null, and empty nodes and edges.
+There is no endpoint or repository command that accepts a Guest workspace
+snapshot or a non-empty operational aggregate.
+
+Separate owner-scoped APIs exist for candidate evidence, canonical research
+source publication, and Studio artifacts. They require an already-owned parent,
+derive authority from the authenticated principal, and use their own persistence
+and idempotency scopes. They do not store the Workspace/Investigation aggregate,
+Research Inbox/Desk ordering, active mode, focus, layers/configuration, imported
+canonical event references, operational revisions, or arbitrary Guest authoring
+state as one transaction.
+
+8. Existing save/import/migration boundary assessment
+
+No existing atomic boundary can be reused for A20-I6.
+
+- StudioSaveOrchestrator is a multi-step client orchestrator for publishing
+  referenced sources, saving one Studio artifact version, then reconciling it.
+  It is not atomic across those calls and cannot save a workspace aggregate.
+- importInvestigation constructs/activates a client Investigation from a
+  canonical event; it is not authenticated durable persistence.
+- Candidate-evidence and research-source endpoints persist narrower aggregates
+  only after parent ownership authorization.
+- GuestToAccountOwnershipTransitionTypes describes an older client snapshot
+  transformation that preserves the Guest investigation ID. It provides no
+  server write, conflicts with A20-I6's required new server-generated durable
+  identity, and cannot serve as ownership authority.
+
+9. Gaps preventing complete preservation
+
+The blocking gap is a single authenticated, CSRF-protected, idempotent backend
+adoption command that validates a supported Guest payload and atomically:
+
+- creates a new server-generated owned investigation for the current principal;
+- stores the supported non-empty operational workspace state under that new ID;
+- rewrites only investigation-scoped references according to an explicit,
+  validated identity map while retaining canonical source identities/provenance;
+- stores supported Research Inbox/Desk and presentation/configuration state, or
+  explicitly rejects unsupported fields;
+- returns a durable activation projection/receipt for the committed aggregate;
+- makes duplicate retries return the same owned investigation; and
+- rolls back all subordinate writes on failure.
+
+The current activation parser and WorkspaceRuntime account activation path also
+accept only EMPTY aggregates. Normal sign-in continuity therefore cannot reload
+adopted non-empty work even if subordinate Studio/source rows were written.
+
+10. Smallest safe implementation slice
+
+Do not add the adoption dialog or alter Guest cleanup yet. The smallest safe next
+increment is backend-first: define a versioned adoptable snapshot schema limited
+to state the server can validate; add an atomic repository/service transaction
+and POST adoption route protected by session principal plus CSRF; generate the
+owned investigation ID on the server; provide principal-scoped idempotency and
+command-hash conflict detection; persist/reload a non-empty aggregate; and extend
+the activation contract/parser/runtime materializer for that same schema.
+
+Only after that contract is verified should A20-I6 own the Front Door state
+machine: retain a frozen validated Guest snapshot through authentication, offer
+an explicit decision, submit adoption once, activate only the confirmed owned
+aggregate, and clear Guest storage only after activation succeeds. Failure or
+stale completion must keep/recover the snapshot.
+
+A20-I6 file/hunk ownership
+--------------------------
+
+Discovery-only files owned in this blocked increment:
+
+- P57-UI-A20-I6-I0-guest-investigation-adoption-discovery.txt (this file)
+- P57-UI-A20-I6-guest-investigation-adoption-result.txt
+
+No production hunk is safe to own while blocked. In particular, the existing
+unrelated App.tsx edits are preserved untouched. A future unblocked A20-I6 would
+own only the AccountFrontDoor composition hunk in App.tsx if a new provider were
+required, plus focused AccountFrontDoor/API/coordinator adoption modules, styles,
+backend adoption schema/service/repository/route/migration, and focused tests.
+It must not absorb the unrelated StudioToolbar, importInvestigation, or
+OverviewInspector changes.
+
+Browser acceptance steps (required after the backend boundary exists)
+---------------------------------------------------------------------
+
+1. Start as Guest with no investigation; sign in/create an account and verify no
+   adoption prompt appears.
+2. Browse/preview a public canonical record without opening it; verify no prompt.
+3. Open a real Guest investigation, change supported mode/layers/focus, add
+   Research Inbox entries and supported artifacts, then choose Sign in/Create.
+4. Verify the Guest workspace remains recoverable throughout authentication.
+5. Complete backend authentication and verify the explicit Preserve / Continue
+   without it decision; verify neither choice runs automatically.
+6. Cancel where still possible and verify the exact Guest work returns.
+7. Preserve, double-click/retry, and verify one server-generated owned ID, no
+   client owner field, durable server confirmation, activation of that ID, and
+   only then Guest snapshot removal.
+8. Force network/server failure and verify a visible error and recovered Guest
+   work with no blank screen.
+9. Complete a deliberately stale/aborted request after changing identity or
+   workspace and verify it cannot overwrite newer state.
+10. Reload and verify normal account continuity restores the adopted state.
+11. Sign out and verify the owned record remains; sign back in and restore it.
+12. Inspect cookies/storage/network: session secret stays HttpOnly; no auth token
+    enters web storage; mutation carries the configured CSRF header/cookie and
+    credential policy; no wildcard credentialed CORS is introduced.
+
+Explicit non-goals
+------------------
+
+- A20-I7 and iSEES Guide work.
+- New Studio drafting/save behavior or Studio migration work.
+- MUFON integration, source capture, REX, or new repository connectors.
+- System Canon mutation or canonical record identity changes.
+- Client-selected ownership, Guest-ID reuse as the durable owned ID, token
+  storage changes, CORS/cookie weakening, or special accounts.
+- Fabricating persistence for selection or any state absent from the supported
+  Guest and backend contracts.
+
+Conclusion
+----------
+
+The product promise cannot safely be made true with the current production
+contracts. Creating an EMPTY owned investigation and retaining the rich state
+only in memory/sessionStorage would not be durable adoption and would be lost on
+normal account reload. A20-I6 must remain blocked until the backend owns an
+atomic non-empty adoption and activation contract.

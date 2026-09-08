@@ -68,3 +68,20 @@ class InvestigationLibraryService:
             except DuplicateInvestigationId:
                 continue
         raise RepositoryUnavailable("Investigation identity generation is unavailable")
+
+    def adopt_guest_owned(self, *, principal_id: str, title: str, objective: str | None,
+                          idempotency_key: str, payload: dict):
+        canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        command_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        for _ in range(self.collision_limit):
+            try:
+                return self.repository.adopt_guest_owned(
+                    investigation_id=self.id_generator(), owner_principal_id=principal_id,
+                    title=title, objective=objective, idempotency_key=idempotency_key,
+                    command_hash=command_hash, payload=payload)
+            except DuplicateInvestigationId:
+                continue
+        raise RepositoryUnavailable("Investigation identity generation is unavailable")
+
+    def get_active_owned(self, principal_id: str):
+        return self.repository.get_active_owned(owner_principal_id=principal_id)

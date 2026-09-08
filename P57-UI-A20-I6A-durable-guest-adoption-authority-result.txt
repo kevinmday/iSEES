@@ -1,0 +1,187 @@
+P57-UI-A20-I6A — DURABLE GUEST INVESTIGATION ADOPTION AUTHORITY RESULT
+Date: 2026-09-08
+
+Outcome
+-------
+Implemented the backend prerequisite only. No Front Door dialog, A20-I7, Guide,
+STUDIO drafting, MUFON, source capture, REX, or System Canon mutation was begun.
+
+Endpoint and schema
+-------------------
+POST /api/v1/investigations/adoptions
+Request schema: guest-investigation-adoption/v1
+Receipt schema: guest-investigation-adoption-receipt/v1
+The mutation requires the existing authenticated HttpOnly-cookie session and
+double-submit CSRF cookie/X-ISEES-CSRF header policy.
+
+GET /api/v1/investigations/active/activation returns the server-recorded active
+investigation for normal account continuity. Existing owner-authorized
+GET /api/v1/investigations/{id}/activation now returns EMPTY or ADOPTED state.
+
+Authoritative owner derivation
+------------------------------
+The route passes only AuthenticatedPrincipal.account_id to the service and
+repository. Strict extra-field rejection prevents client ownerId, accountId,
+researcherId, principalId, authentication tokens, or investigationId fields.
+The Guest identity is provenance only and is never ownership authority.
+
+Supported adoption payload
+--------------------------
+- schemaVersion and principal-scoped idempotencyKey.
+- GUEST_SESSION source kind, Guest investigation ID, and timezone-aware snapshot
+  creation/update timestamps.
+- title and optional objective.
+- source workspace ID; validated NOTE, QUESTION, and CANONICAL_EVENT nodes;
+  validated RELATED, SUPPORTS, and CONTRADICTS edges.
+- Canonical event IDs retained byte-for-byte as references. Edges must refer to
+  included nodes, and focusedEventId must refer to an included canonical event.
+- Research Inbox entries with anchor ID, unique order, title, and canonical
+  research-source reference.
+- DOCUMENT and NOTE author artifacts with title/content and canonical source
+  references.
+- active OVERVIEW, RESEARCH, STUDIO, or LAYERS mode; focused event; active layer
+  IDs; temporal context; and investigative scale.
+
+Explicitly unsupported state
+----------------------------
+Strict schemas reject selection, hover, layout/runtime revision counters,
+author dirty state, arbitrary client documents, fabricated edge relationships,
+unknown modes/node/edge/artifact kinds, embedded canonical records, and every
+unknown or ambiguous field. This increment does not publish candidate evidence,
+research sources, or Studio versions; supported Inbox/artifact snapshots are
+durable adopted subordinate records, not mutations of those other aggregates.
+
+Transaction boundary
+--------------------
+SQLiteInvestigationRepository uses one connection and BEGIN IMMEDIATE for the
+parent, ADOPTED aggregate revision 1, Research Inbox rows, adopted artifact rows,
+immutable provenance receipt, adoption idempotency record, and account active
+pointer. Every exception rolls back the connection. Foreign keys prevent
+orphans. The active pointer is written only after all subordinate writes and is
+validated before commit. Final review places an injected failure at the final
+active-pointer INSERT. Parent, aggregate, receipt, Research Inbox,
+artifact, and idempotency writes therefore execute before the failure, and the
+test proves that rollback removes every record category, including the active
+pointer.
+
+Idempotency behavior
+--------------------
+Adoption uses a dedicated (owner_principal_id, idempotency_key) authority. A
+retry with the same canonical normalized payload returns the original committed
+investigation and receipt with REPLAYED. A changed payload returns deterministic
+IDEMPOTENCY_KEY_REUSE (409). Identical keys belonging to distinct accounts are
+independent. BEGIN IMMEDIATE serializes concurrent writers, preventing duplicate
+adoptions under retry.
+
+Receipt and deterministic digest
+--------------------------------
+The immutable receipt stores only GUEST_SESSION, source Guest investigation ID,
+source schema version, source snapshot update timestamp, SHA-256 of canonical
+normalized JSON, adoption timestamp, resulting server investigation ID/revision,
+and the canonical replay payload. SQLite triggers reject UPDATE and DELETE of a
+receipt. No password, cookie, session token, or browser secret is accepted or
+stored. The response is assembled from rows reread within the transaction and
+returned only after commit.
+
+Activation behavior
+-------------------
+The server generates inv_<UUID> and canonical workspace:<new investigation ID>.
+Source workspace identity remains provenance and is not promoted to durable
+authority. Adoption sets parent and aggregate revision/version 1, records the
+account active pointer, and returns the full committed activation projection and
+freshness token 1:1. Both ID-addressed activation and active-account activation
+reload the durable non-empty state. Sign-out revokes access but does not delete
+the investigation.
+
+Migration behavior
+------------------
+Deterministic migration 003 expands the aggregate table for EMPTY/ADOPTED state,
+preserving existing EMPTY rows, and adds receipt, active pointer, Research Inbox,
+adopted artifact, and adoption-idempotency tables plus constraints/indexes and
+immutability triggers. Existing creation-idempotency rows are not rewritten.
+Existing owned empty investigations remain valid and activate unchanged.
+
+Security properties
+-------------------
+Ownership is session-derived; CSRF and credential/cookie/CORS policies are
+unchanged; strict input rejects authority fields and transient/unsupported data;
+lookups are owner-scoped and foreign/absent records remain non-disclosing; the
+response exposes only the authenticated researcher ID, not credentials or
+session material; canonical records are references and are never rewritten.
+
+Exact verification results
+--------------------------
+PASS — python -m pytest -q isees_uap/testing/investigations/test_guest_investigation_adoption.py
+       3 passed in 2.32s.
+PASS — python -m pytest -q isees_uap/testing/authentication
+       isees_uap/testing/investigations isees_uap/testing/candidate_evidence
+       isees_uap/testing/studio
+       138 passed in 16.53s.
+PASS — VerifyOwnedInvestigationContinuity.ts.
+PASS — VerifyAccountFrontDoor.ts.
+PASS — VerifyGuestReloadContinuity.ts.
+PASS — VerifyGuestWorkspaceRecovery.ts.
+PASS — npm run build: 717 modules transformed; advisory-only large chunks.
+PASS — git diff --check: no whitespace errors; line-ending warnings only.
+PASS — pre-staging git diff --cached --name-only: empty.
+PASS — pre-staging git status --short: expected owned files plus preserved
+       pre-existing work.
+
+Final review findings
+---------------------
+PASS — POST /adoptions is authenticated and uses the existing CSRF-protected
+       principal dependency; ownership has no input path other than
+       AuthenticatedPrincipal.account_id.
+PASS — every request model forbids extra fields, including client owner/account,
+       durable investigation ID, credential, cookie, password, and token fields.
+PASS — the service generates inv_<UUID> identities; Guest identity and source
+       workspace identity are provenance only.
+PASS — canonical event and research-source references retain their supplied
+       identities, while investigation/workspace authority uses the new server ID.
+PASS — Pydantic-normalized JSON is serialized with sorted keys and compact
+       separators before SHA-256 hashing; no authentication material is part of
+       the accepted or persisted schema.
+PASS — idempotency is keyed by authenticated owner plus key; identical commands
+       replay the committed investigation, changed commands conflict, and another
+       account cannot acquire or collide with the first account's result.
+PASS — one BEGIN IMMEDIATE transaction owns parent, aggregate, subordinate rows,
+       immutable receipt, idempotency record, and active pointer; authoritative
+       rows are reread before commit and form the response after commit.
+PASS — migration 003 deterministically preserves existing EMPTY aggregates and
+       existing creation-idempotency data while adding constrained ADOPTED state.
+PASS — pre-existing empty owned investigations still create and activate; both
+       ID-addressed and account-active lookup reload adopted state.
+PASS — no parallel investigation authority, frontend production change,
+       credential, real password, database, generated build output, backup, or
+       unrelated artifact belongs to the allowlist.
+
+Exact changed-file allowlist
+----------------------------
+- P57-UI-A20-I6-I0-guest-investigation-adoption-discovery.txt
+- P57-UI-A20-I6-guest-investigation-adoption-result.txt
+- P57-UI-A20-I6A-durable-guest-adoption-authority-result.txt
+- isees_uap/api/v1/investigations.py
+- isees_uap/investigations/migrations/003_investigations.sql
+- isees_uap/investigations/models.py
+- isees_uap/investigations/repository.py
+- isees_uap/investigations/service.py
+- isees_uap/investigations/sqlite_repository.py
+- isees_uap/testing/investigations/test_guest_investigation_adoption.py
+- isees_uap/testing/investigations/test_investigation_library.py
+- isees_uap/testing/investigations/test_owned_investigation_creation.py
+
+The known unrelated tracked frontend files and all unrelated untracked discovery,
+patch, backup, Studio runtime, and Overview activation work were preserved.
+
+Remaining frontend integration
+------------------------------
+A20-I6 must freeze the validated Guest snapshot through authentication, present
+the explicit Preserve/Continue-without-it/cancel choices, map the supported v1
+subset, call this endpoint once, activate only the returned committed projection,
+retain/recover Guest storage on failure or stale completion, and clear Guest
+storage only after successful durable activation. Frontend active-continuity may
+then consume GET /api/v1/investigations/active/activation.
+
+Browser acceptance is deferred until A20-I6 resumes.
+
+A20-I6A ACCEPTED ? DURABLE ADOPTION AUTHORITY VERIFIED
