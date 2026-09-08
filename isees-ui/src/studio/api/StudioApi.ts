@@ -1,8 +1,7 @@
 import type { StudioDraftProposal, StudioDraftingRequest } from "../drafting/StudioDraftingTypes";
+import { resolveApiBaseUrl } from "../../api/ApiOrigin.ts";
 
-export const STUDIO_API_BASE_URL = (import.meta.env.VITE_STUDIO_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
-  ?? (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
-  ?? "http://127.0.0.1:8000";
+export const STUDIO_API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_STUDIO_API_BASE_URL as string | undefined);
 
 export type StudioLifecycle = "DRAFT" | "CANDIDATE_KNOWLEDGE_ARTIFACT" | "MANIFOLD_CANDIDATE_NODE" | "REVIEW_TEST" | "ACCEPTED_KNOWLEDGE" | "RETURNED" | "REJECTED";
 export type ProjectionFormat = "HTML" | "PDF" | "DOCX";
@@ -34,6 +33,7 @@ async function request<T>(scope: StudioScope, path: string, init?: RequestInit):
   try {
     response = await fetch(`${STUDIO_API_BASE_URL}/api/v1/investigations/${encodeURIComponent(scope.investigationId)}/studio-artifacts${path}`, {
       ...init,
+      credentials: "include",
       headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": scope.principalId, ...init?.headers },
     });
   } catch {
@@ -53,6 +53,7 @@ async function download(scope: StudioScope, path: string): Promise<{ blob: Blob;
   let response: Response;
   try {
     response = await fetch(`${STUDIO_API_BASE_URL}/api/v1/investigations/${encodeURIComponent(scope.investigationId)}/studio-artifacts${path}`, {
+      credentials: "include",
       headers: { "X-ISEES-Principal-Id": scope.principalId },
     });
   } catch { throw new StudioApiError("UNAVAILABLE_BACKEND", "The STUDIO PDF download is unavailable."); }

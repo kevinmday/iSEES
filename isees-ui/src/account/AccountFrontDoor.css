@@ -1,0 +1,23 @@
+.account-door { min-height:100vh; display:grid; place-items:center; padding:1rem; background:#02070d url('/images/isees-earth-stars-landing.png') center/cover; color:#e9f9ff; font-family:system-ui,sans-serif }
+.account-door--center { color:#9ddfff }
+.account-door__card { width:min(32rem,100%); padding:2rem; border:1px solid #39758d; border-radius:8px; background:rgba(2,12,21,.9); box-shadow:0 1.5rem 4rem #0008 }
+.account-door__brand { color:#77d9ff; letter-spacing:.22em; font-weight:700 }
+.account-door__card h1 { font-size:2.2rem; margin:.5rem 0 }
+.account-door__tabs { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:1.5rem 0 }
+.account-door button,.account-door input,.account-library button,.account-library input { font:inherit }
+.account-door__tabs button,.account-library button { padding:.65rem; border:1px solid #39758d; border-radius:4px; background:#071722; color:#d9f5ff; cursor:pointer }
+.account-door__tabs button[aria-pressed=true],.account-door__primary { border:1px solid #75dcff!important; background:#087faf!important; color:white!important }
+.account-door form,.account-door label { display:grid; gap:.45rem }.account-door form { gap:1rem }.account-door input,.account-library input { padding:.7rem; border:1px solid #54788a; border-radius:4px; background:#03101a; color:white }
+.account-door__primary { padding:.75rem; border-radius:4px; cursor:pointer }.account-door button:focus-visible,.account-door input:focus-visible,.account-library button:focus-visible,.account-library input:focus-visible { outline:3px solid white; outline-offset:2px }
+.account-door__error { min-height:1.4em; color:#ffb7ae }
+.account-door__guest { display:grid; gap:.45rem; margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid #21495b }
+.account-door__guest button { padding:.75rem; border:1px solid #75dcff; border-radius:4px; background:#071722; color:#d9f5ff; cursor:pointer }
+.account-door__guest p { margin:0; color:#a9c5d1; font-size:.9rem; line-height:1.45 }
+.guest-session-bar { position:relative; z-index:100; display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.55rem 1rem; border-bottom:1px solid #79651f; background:#171405; color:#f4e7aa; font:13px/1.35 system-ui,sans-serif }
+.guest-session-bar p { margin:0 }.guest-session-bar div { display:flex; gap:.5rem; flex-shrink:0 }.guest-session-bar button { padding:.45rem .7rem; border:1px solid #aa9131; border-radius:4px; background:#282207; color:#fff5c7; cursor:pointer }
+.guest-session-bar .guest-session-bar__message { display:grid; gap:.2rem; flex-shrink:1 }.guest-session-bar__recovery { color:#fff; font-weight:600 }
+.account-library { position:relative; z-index:100; padding:.65rem 1rem; border-bottom:1px solid #28647d; background:#03101a; color:#d9f5ff; font-family:system-ui,sans-serif }
+.account-library header { display:flex; align-items:center; justify-content:space-between; gap:1rem }.account-library header div { display:grid }.account-library header span,.account-library label { color:#7fcde9; font-size:.75rem; letter-spacing:.08em }.account-library details { margin-top:.5rem }.account-library summary { cursor:pointer; font-weight:700 }
+.account-library__create { margin:.75rem 0; display:grid; gap:.35rem }.account-library__create div { display:flex; gap:.5rem }.account-library__create input { flex:1 }.account-library ul { display:flex; gap:.5rem; padding:0; list-style:none; flex-wrap:wrap }.account-library li { display:flex; align-items:center; gap:.5rem; padding:.4rem; border:1px solid #21495b; border-radius:4px }
+.account-door button:disabled,.account-library button:disabled { cursor:not-allowed!important; opacity:.55 }
+@media(max-width:600px){.account-library__create div,.account-library header,.guest-session-bar{align-items:stretch;flex-direction:column}.account-library ul{display:grid}.account-library li{justify-content:space-between}}

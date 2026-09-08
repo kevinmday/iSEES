@@ -19,6 +19,7 @@ export class AccountWorkspaceContinuityCoordinator {
   }
   getState(): ContinuityState { return this.#state; }
   #publish(code: ContinuityStateCode, active: string | null = null): void { this.#state = Object.freeze({ code, principal: this.#principal, activeInvestigationId: active }); }
+  cancelPendingRequests(): void { this.#epoch++; this.#request++; this.#controller?.abort(); }
   #boundary(code: "ACCOUNT_BOUNDARY_RESET" | "AUTHENTICATION_REQUIRED" | "SESSION_EXPIRED"): void {
     this.#epoch++; this.#request++; this.#controller?.abort(); this.#workspace.deactivate();
     for (const runtime of this.#teardowns) runtime.clearAccountState();

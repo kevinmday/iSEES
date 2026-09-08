@@ -35,6 +35,8 @@
 import {
   useEffect,
 } from "react";
+import { AccountFrontDoor } from "./account/AccountFrontDoor";
+import { GuestWorkspaceRestorationBoundary } from "./workspace/persistence/GuestWorkspaceRestorationBoundary";
 
 import {
   Routes,
@@ -351,13 +353,13 @@ function OperatorApplication() {
   return (
 
     <OperatorIdentityRuntimeProvider>
-
-      <OperatorEntryGate>
-
-        <OperatorUI />
-
-      </OperatorEntryGate>
-
+      <AccountFrontDoor>
+        <OperatorEntryGate>
+          <GuestWorkspaceRestorationBoundary>
+            <OperatorUI />
+          </GuestWorkspaceRestorationBoundary>
+        </OperatorEntryGate>
+      </AccountFrontDoor>
     </OperatorIdentityRuntimeProvider>
 
   );

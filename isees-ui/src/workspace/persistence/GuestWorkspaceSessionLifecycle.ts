@@ -67,8 +67,11 @@ import {
 
 import {
   restoreGuestWorkspaceSession,
+  clearGuestWorkspaceSession,
   saveGuestWorkspaceSession,
 } from "./GuestWorkspaceSessionPersistence";
+import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes";
+import { decideGuestWorkspaceRestoration } from "./GuestWorkspaceRestorationPolicy";
 
 import type {
   GuestWorkspaceSessionSnapshot,
@@ -93,6 +96,10 @@ export interface GuestWorkspaceSessionLifecycleState {
 
   restored:
     boolean;
+
+  recoveryNotice: string | null;
+
+  diagnostic: "OWNERSHIP_MISMATCH" | "INVALID_SNAPSHOT" | "RESTORE_FAILURE" | null;
 
   revision:
     number;
@@ -123,6 +130,10 @@ export class GuestWorkspaceSessionLifecycle {
       restored:
         false,
 
+      recoveryNotice: null,
+
+      diagnostic: null,
+
       revision:
         0,
 
@@ -152,6 +163,12 @@ export class GuestWorkspaceSessionLifecycle {
 
   private captureSuppressed =
     false;
+
+  private pendingInvalidSnapshotRecovery = false;
+
+  noteRejectedSnapshotBeforeGuestStart(): void {
+    this.pendingInvalidSnapshotRecovery = true;
+  }
 
 
   // ==========================================================
@@ -259,6 +276,10 @@ export class GuestWorkspaceSessionLifecycle {
       status:
         "STARTING",
 
+      recoveryNotice: null,
+
+      diagnostic: null,
+
     });
 
 
@@ -272,21 +293,20 @@ export class GuestWorkspaceSessionLifecycle {
 
 
 
-    if (
-      restoreResult.status === "RESTORED"
-    ) {
-
-      this.restoreSnapshot(
-        restoreResult.snapshot,
-      );
-
-
-
-
-      restored =
-        true;
-
+    const decision = decideGuestWorkspaceRestoration(restoreResult, operatorIdentityRuntime.getState());
+    if (decision.kind === "RESTORE") {
+        try {
+          this.restoreSnapshot(decision.snapshot);
+          restored = true;
+        } catch {
+          this.recoverCleanWorkspace("RESTORE_FAILURE");
+        }
+    } else if (decision.kind === "RECOVER_CLEAN") {
+      this.recoverCleanWorkspace(decision.diagnostic);
+    } else if (this.pendingInvalidSnapshotRecovery) {
+      this.recoverCleanWorkspace("INVALID_SNAPSHOT");
     }
+    this.pendingInvalidSnapshotRecovery = false;
 
 
     this.attachRuntimeSubscriptions();
@@ -303,6 +323,28 @@ export class GuestWorkspaceSessionLifecycle {
 
     });
 
+  }
+
+  private recoverCleanWorkspace(
+    diagnostic: "OWNERSHIP_MISMATCH" | "INVALID_SNAPSHOT" | "RESTORE_FAILURE",
+  ): void {
+    this.captureSuppressed = true;
+    try {
+      clearGuestWorkspaceSession();
+      workspaceRuntime.deactivate();
+      workspaceRuntime.setActiveMode(WorkspaceMode.OVERVIEW);
+      researchBridgeRuntime.clearDesk();
+      authorDocumentRuntime.clearAccountState();
+    } finally {
+      this.captureSuppressed = false;
+    }
+    console.warn(`[iSEES guest restoration] ${diagnostic}`);
+    this.publish({
+      ...this.state,
+      recoveryNotice: "Your prior temporary guest work could not be restored. A clean guest workspace is ready.",
+      diagnostic,
+    });
+    this.captureNow();
   }
 
 

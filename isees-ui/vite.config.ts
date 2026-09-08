@@ -13,6 +13,12 @@ export default defineConfig({
   server: {
     proxy: {
 
+      // Authentication and account-owned APIs remain same-origin in the browser.
+      '/api/v1': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+
       // --------------------------------------------------------
       // 🔥 API REPORT ENDPOINT
       // (frontend /report route now safe)

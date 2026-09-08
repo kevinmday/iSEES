@@ -267,7 +267,12 @@ export function createInvestigationLibraryAuthorityController(
 export function InvestigationLibraryRuntimeProvider({ children }: { readonly children: ReactNode }) {
   const identityState = useOperatorIdentity();
   const desiredAuthority = useMemo(
-    () => resolveInvestigationLibraryAuthority(identityState),
+    () => {
+      const authority = resolveInvestigationLibraryAuthority(identityState);
+      // This provider projects the server-backed, account-owned library only.
+      // Guest investigations remain in the established session workspace runtime.
+      return authority?.kind === "ACCOUNT" ? authority : null;
+    },
     [identityState],
   );
   const [state, setState] = useState<InvestigationLibraryState>(

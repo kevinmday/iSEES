@@ -1,4 +1,5 @@
 import { ContinuityError, parseOwnedActivationAggregate, type AccountSessionProjection, type OwnedActivationAggregate } from "./OwnedInvestigationContinuity.ts";
+import { resolveApiBaseUrl } from "../../api/ApiOrigin.ts";
 
 export interface AccountContinuityApi {
   restoreSession(signal?: AbortSignal): Promise<AccountSessionProjection>;
@@ -7,8 +8,7 @@ export interface AccountContinuityApi {
 }
 
 export function createAccountContinuityApi(options: { baseUrl?: string; transport?: typeof fetch } = {}): AccountContinuityApi {
-  const environment = (import.meta as ImportMeta & { readonly env?: Readonly<Record<string, string | undefined>> }).env;
-  const base = (options.baseUrl ?? environment?.VITE_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+  const base = resolveApiBaseUrl(options.baseUrl);
   const transport = options.transport ?? fetch;
   async function request(path: string, init: RequestInit): Promise<Response> {
     try { return await transport(`${base}${path}`, { ...init, credentials: "include" }); }

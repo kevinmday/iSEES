@@ -5,6 +5,7 @@ import {
   type InvestigationListResult,
   type InvestigationSummary,
 } from "./InvestigationLibraryTypes.ts";
+import { resolveApiBaseUrl } from "../../api/ApiOrigin.ts";
 
 export const INVESTIGATION_LIBRARY_PRINCIPAL_HEADER = "X-ISEES-Principal-Id";
 
@@ -28,10 +29,8 @@ const environment = (import.meta as ImportMeta & {
 }).env;
 
 export const INVESTIGATION_LIBRARY_API_BASE_URL = (
-  environment?.VITE_INVESTIGATION_LIBRARY_API_BASE_URL
-  ?? environment?.VITE_API_BASE_URL
-  ?? "http://127.0.0.1:8000"
-).replace(/\/$/, "");
+  resolveApiBaseUrl(environment?.VITE_INVESTIGATION_LIBRARY_API_BASE_URL)
+);
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
@@ -296,6 +295,7 @@ export function createInvestigationLibraryApi(
       response = await transport(`${baseUrl}${path}`, {
         method: "GET",
         headers: { [INVESTIGATION_LIBRARY_PRINCIPAL_HEADER]: principal },
+        credentials: "include",
         signal,
       });
     } catch (error: unknown) {

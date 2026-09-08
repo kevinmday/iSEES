@@ -33,7 +33,7 @@ import type {
 
   OperatorIdentity,
 
-} from "../runtime/OperatorIdentityRuntimeTypes";
+} from "../runtime/OperatorIdentityRuntimeTypes.ts";
 
 
 // ============================================================

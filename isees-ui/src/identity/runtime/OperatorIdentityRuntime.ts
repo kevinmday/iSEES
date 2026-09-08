@@ -51,14 +51,14 @@ import {
 
   INITIAL_OPERATOR_IDENTITY_STATE,
 
-} from "./OperatorIdentityRuntimeTypes";
+} from "./OperatorIdentityRuntimeTypes.ts";
 
 import type {
 
   OperatorIdentity,
   OperatorIdentityState,
 
-} from "./OperatorIdentityRuntimeTypes";
+} from "./OperatorIdentityRuntimeTypes.ts";
 
 import {
 
@@ -66,7 +66,7 @@ import {
   restoreGuestIdentityFromSession,
   saveGuestIdentityToSession,
 
-} from "../persistence/OperatorIdentitySessionPersistence";
+} from "../persistence/OperatorIdentitySessionPersistence.ts";
 
 
 // ============================================================
@@ -240,7 +240,7 @@ export class OperatorIdentityRuntime {
   //
   // ==========================================================
 
-  continueAsGuest(): void {
+  continueAsGuest(recoveryIdentity?: OperatorIdentity): void {
 
     if (
 
@@ -284,8 +284,15 @@ export class OperatorIdentityRuntime {
     }
 
 
-    const identity:
-      OperatorIdentity = {
+    if (recoveryIdentity !== undefined && (
+      recoveryIdentity.kind !== "GUEST" ||
+      !recoveryIdentity.operatorId.startsWith("guest:") ||
+      recoveryIdentity.establishedAt.length === 0
+    )) {
+      throw new Error("Recovered Guest identity is invalid.");
+    }
+
+    const identity: OperatorIdentity = recoveryIdentity ?? {
 
       operatorId:
         this.createGuestOperatorId(),
@@ -321,6 +328,22 @@ export class OperatorIdentityRuntime {
 
     });
 
+  }
+
+  // Authenticated account state is projected here only after the server-backed
+  // account owner has established it. This runtime never authenticates or
+  // restores an account independently.
+  establishAuthenticatedAccount(operatorId: string): void {
+    const normalized = operatorId.trim();
+    if (!normalized) throw new Error("Authenticated account identity must not be blank.");
+    clearGuestIdentitySession();
+    if (this.state.identity?.kind === "ACCOUNT" && this.state.identity.operatorId === normalized) return;
+    this.publish({
+      ...this.state,
+      status: "READY",
+      identity: { operatorId: normalized, kind: "ACCOUNT", establishedAt: new Date().toISOString() },
+      persistence: "PERSISTENT",
+    });
   }
 
 

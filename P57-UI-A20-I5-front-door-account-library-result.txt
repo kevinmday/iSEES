@@ -1,0 +1,477 @@
+P57-UI-A20-I5 — FRONT DOOR ACCOUNT LIBRARY RESULT
+
+FINAL OUTCOME
+
+A20-I5 guest access is repaired without beginning another increment. The Front Door
+offers Sign in, Create account, and Continue as guest. Guest and account identities
+enter the same real iSEES OperatorUI/provider tree. Nothing was staged or committed.
+
+DISCOVERED REGRESSION AND RETIRED INTERPRETATION
+
+The A20-I5 AccountFrontDoor had been placed outside OperatorIdentityRuntimeProvider
+and replaced the established anonymous entry path. It exposed only account actions,
+making OperatorIdentityRuntime.continueAsGuest unreachable and rendering children
+only for authenticated principals. The OVERVIEW library provider also accepted a
+GUEST identity as server-library authority.
+
+The public-only, browse-only, read-only, demo, preview, or otherwise reduced guest
+interpretation is retired. The authoritative contract is CAPABILITY PARITY,
+PERSISTENCE BOUNDARY. Guests can use every currently operational workspace mode,
+tool, computation, Research Inbox path, metric, and temporary investigation/authoring
+workflow. Guests differ only in durable identity, ownership, server persistence, and
+restoration after the established guest-session boundary.
+
+EXACT GUEST INTEGRATION
+
+- OperatorIdentityRuntimeProvider remains the single identity owner and wraps the
+  combined AccountFrontDoor.
+- Continue as guest directly calls the established singleton
+  operatorIdentityRuntime.continueAsGuest(). No second guest authority was added.
+- The established OperatorEntryGate surrounds OperatorUI. GUEST and ACCOUNT mount
+  the identical complete application and operational providers.
+- The Front Door says: “Explore the complete iSEES workspace. Your work will not be
+  saved after this guest session.” It never implies reduced analytical capability.
+- The shell shows: “Guest session — your work is not being saved. Create an account
+  to preserve this investigation,” with explicit Sign in/Create account actions.
+- GuestWorkspaceSessionLifecycle remains the sole guest workspace persistence and
+  restoration integration; its established sessionStorage contract is unchanged.
+- InvestigationLibraryRuntimeProvider now commits server-backed library authority
+  only for ACCOUNT. Guest OVERVIEW gets no account-owned library and continues to use
+  the existing temporary workspace runtime.
+- Shared WorkspaceModeBar navigation remains available for OVERVIEW, MANIFOLD,
+  COMPARE, NARRATIVE, EVIDENCE, TIMELINE, LAYERS, INTENTION, and STUDIO (the existing
+  WorkspaceMode.RESEARCH presentation), subject only to existing functional state.
+
+TRANSITIONS AND ISOLATION
+
+Anonymous -> guest aborts prior front-door work, advances the account principal
+epoch, invokes continueAsGuest, and enters the real shell. It loads neither an owned
+library nor an account last-active hint. Fresh entry does not activate Canon content;
+reload follows established same-session guest identity/workspace restoration.
+
+Anonymous -> account preserves accepted account creation/sign-in, authoritative
+server identity, same-origin HttpOnly-cookie continuity, owned library, and
+account-keyed last-active restoration.
+
+Guest -> account is explicit and warned. Selecting either account path stops guest
+capture, deletes the temporary guest workspace snapshot, clears guest identity,
+advances the account epoch, deactivates Workspace, and clears Research/Author state
+before showing the selected form. A notice says guest work was not transferred.
+No silent migration was invented.
+
+Account -> sign out retains server logout/coordinator teardown, clears account-bound
+state, and returns to the anonymous Front Door without entering guest mode.
+
+Every new front-door action aborts the prior controller and advances its generation.
+Coordinator epochs abort/reject stale restore and activation work. Account switching
+clears incompatible Workspace, Research, Author, revision, and principal state.
+Stale account responses cannot activate after guest entry; stale guest state cannot
+replace an authenticated account.
+
+SECURITY AND PERSISTENCE
+
+Authenticated ownership remains server-derived. No fake guest account headers,
+browser-stored auth tokens, or server-backed guest ownership were added. Account
+mutations do not submit owner identity. Same-origin /api/v1 behavior, Vite proxy,
+credentials inclusion, HttpOnly cookies, CSRF protection, and durable account Save
+boundaries remain intact. Ordinary guest analytical work stays runtime-capable and
+session-temporary.
+
+EXACT VERIFICATION RESULTS
+
+Repository root:
+
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  PASS — 135 passed in 18.98s.
+
+isees-ui:
+
+  node --experimental-strip-types .\tools\verification\VerifyOwnedInvestigationContinuity.ts
+  PASS — PASS VerifyOwnedInvestigationContinuity.
+
+  node --experimental-strip-types .\tools\verification\VerifyAccountFrontDoor.ts
+  PASS — strengthened checks prove visible guest choice/copy, established
+  continueAsGuest use, one guest authority, shared real shell/gate, every mode
+  declaration, account-only owned-library authority, guest-to-account discard,
+  generation/epoch isolation, and all existing account/same-origin invariants.
+
+  npm run build
+  PASS — TypeScript and Vite 8.0.13; 715 modules transformed in 917ms. Existing
+  chunk-size advisory only.
+
+Existing guest-entry/isolation verifiers:
+
+  VerifyLandingPresentationBoundary.ts
+  PASS — all 10 invariants.
+
+  VerifyOverviewFrontDoorProjection.ts
+  PASS — all 27 invariants, including capability parity and no canonical/default
+  activation.
+
+  VerifyCanonicalFreshGuestEntry.ts, VerifyCanonicalEmptyGuestWorkspace.ts,
+  VerifyGuestWorkspaceSessionRestoration.ts, VerifyGuestWorkspaceSessionPersistence.ts,
+  VerifyGuestWorkspaceSessionLifecycle.ts, VerifyGuestWorkspaceRuntimeSnapshot.ts,
+  and VerifyFreshInvestigationIsolation.ts
+  NOT RUNNABLE — each pre-existing script exits 1 under the required Node 24
+  --experimental-strip-types invocation because an extensionless TypeScript import
+  cannot be resolved (for example WorkspaceRuntime, OperatorIdentityRuntime,
+  GuestWorkspaceSessionPersistenceTypes, or defaultWorkspace). This existing harness
+  limitation was documented rather than expanded into another increment.
+
+  git diff --check
+  PASS — no whitespace errors; line-ending conversion warnings only.
+
+  focused review of all A20-I5 changes
+  PASS — guest/shared-shell integration, session restoration, account-only library,
+  no default activation, transition teardown, stale isolation, account create/sign-in/
+  create/open/reload/logout, same-origin policy, ownership, and unrelated App.tsx
+  canonical-activation hunks were reviewed.
+
+  git diff --cached --name-only
+  PASS — empty; nothing staged.
+
+BROWSER RETEST REQUIRED
+
+Retest all three choices at http://localhost:5173. Confirm fresh guest entry opens
+the real shell with all modes/status and without an owned library or automatic Canon
+activation; temporary work survives same-session reload and is discarded on explicit
+guest-to-account transition; neither guest nor account state crosses ownership.
+Reconfirm account create/sign-in, create/open, reload continuity, and sign out back
+to the anonymous Front Door.
+
+PRE-EXISTING WORK PRESERVED
+
+StudioToolbar.tsx, importInvestigation.ts, and OverviewInspector.tsx were not altered.
+Unrelated OverviewCanonicalActivationProvider hunks in App.tsx were preserved. All
+other tracked/untracked work was left untouched. No reset, checkout, restore, clean,
+stash, destructive bulk operation, staging, commit, or push was performed.
+
+PRECISE SELECTIVE STAGING ALLOWLIST
+
+  P57-UI-A20-I5-front-door-account-library-result.txt
+  isees-ui/src/account/AccountFrontDoor.tsx
+  isees-ui/src/account/AccountFrontDoor.css
+  isees-ui/src/investigation/library/InvestigationLibraryRuntimeContext.tsx —
+    account-only authority hunk only
+  isees-ui/tools/verification/VerifyAccountFrontDoor.ts
+  isees-ui/src/App.tsx — AccountFrontDoor composition and OperatorEntryGate import
+    only; exclude unrelated Overview canonical activation hunks
+  isees-ui/src/api/ApiOrigin.ts
+  isees-ui/src/account/AccountFrontDoorApi.ts
+  isees-ui/src/investigation/continuity/AccountContinuityApi.ts
+  isees-ui/src/investigation/library/InvestigationLibraryApi.ts — shared-origin and
+    credentials hunks only
+  isees-ui/src/studio/api/StudioApi.ts — shared-origin/credentials hunks only
+  isees-ui/src/research/ResearchSourceApi.ts — shared-origin/credentials hunks only
+  isees-ui/vite.config.ts — /api/v1 proxy hunk only
+  isees-ui/src/identity/runtime/OperatorIdentityRuntime.ts — authenticated-account
+    projection hunk only
+
+GUEST RELOAD DEFECT REPAIR
+
+AUTHORITATIVE LIVE-BROWSER RESULT RECEIVED
+
+Before reload, Continue as guest entered the real iSEES workspace, Nimitz was
+explicitly loaded, MANIFOLD displayed the full graph and controls, and the guest
+non-persistence warning remained visible. Ctrl+Shift+R then incorrectly returned
+to the anonymous Front Door. Continuing as guest again produced a blank shell and
+did not restore the Nimitz MANIFOLD workspace.
+
+VERIFIED ROOT CAUSES
+
+- AccountFrontDoor treated its useEffect cleanup as an ownership transition and
+  called operatorIdentityRuntime.clearIdentity(). React StrictMode effect replay,
+  hot replacement, component unmount, and reload teardown could therefore delete
+  a valid session-scoped guest identity without an explicit termination command.
+- Continue as guest used coordinator.beginNewPrincipalEpoch(). That account
+  boundary operation is intentionally destructive: it deactivates Workspace and
+  clears Research/Author state. A fresh guest command could therefore erase the
+  runtime immediately before the real shell mounted, producing the blank shell.
+- Account session restoration began before identity hydration was resolved. The
+  Front Door now waits for READY identity state and gives an already-hydrated guest
+  precedence, so it cannot decide anonymous state while guest hydration is pending.
+
+LIFECYCLE, HYDRATION, AND EXPLICIT TEARDOWN OWNERSHIP
+
+- AccountFrontDoor cleanup now only aborts its request generation and invokes the
+  coordinator's cancellation-only path. It never clears identity or operational
+  workspace state.
+- AccountWorkspaceContinuityCoordinator.cancelPendingRequests() advances both
+  stale-response guards and aborts its controller without deactivating Workspace,
+  clearing Research/Author, or changing principal ownership.
+- Continue as guest uses that cancellation-only path before the established
+  operatorIdentityRuntime.continueAsGuest() authority. It no longer invokes an
+  account boundary reset capable of blanking the guest workspace.
+- The restoration effect is gated on identity status READY. A restored GUEST goes
+  directly to ready real-shell projection; anonymous/account restoration runs only
+  after identity hydration resolves.
+- Explicit Sign in/Create account from Guest still stops guest capture, clears the
+  guest workspace snapshot and guest identity, performs the account boundary reset,
+  and presents the existing non-transfer warning. Account sign-out still returns to
+  anonymous state and never manufactures Guest identity.
+- GuestWorkspaceSessionLifecycle remains the only guest workspace restoration and
+  capture owner. Guest state remains sessionStorage-only and is never transferred
+  to server-backed account ownership.
+
+BEHAVIORAL VERIFICATION (NOT STATIC TEXT INSPECTION)
+
+New VerifyGuestReloadContinuity.ts executes production identity persistence,
+production guest workspace persistence, and the account continuity coordinator.
+It establishes Guest through continueAsGuest, saves a mutated Nimitz/MANIFOLD
+workspace, simulates effect teardown without termination, creates a fresh identity
+runtime to model reload hydration, restores the same guest operator, investigation,
+workspace, and mode, and proves persistence remains present. It also resolves a
+cancelled stale account request and proves that it cannot deactivate or clear the
+restored guest state. Finally it proves explicit guest-to-account transition clears
+guest persistence and account logout remains anonymous.
+
+EXACT REPAIR VERIFICATION RESULTS
+
+Repository root mandatory Python suite:
+
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  FIRST RUN — 134 passed, 1 failed: transient Windows SQLite `database is locked`
+  in test_concurrent_cold_start_and_reinitialization_are_safe.
+  IMMEDIATE EXACT RERUN PASS — 135 passed in 13.37s.
+
+isees-ui mandatory and behavioral verification:
+
+  VerifyOwnedInvestigationContinuity.ts — PASS.
+  VerifyAccountFrontDoor.ts — PASS.
+  VerifyGuestReloadContinuity.ts — PASS.
+  npm run build — PASS; TypeScript and Vite, 715 modules transformed in 1.96s;
+  existing large-chunk advisory only.
+
+Runnable guest identity/persistence/isolation verification:
+
+  VerifyLandingPresentationBoundary.ts — PASS, 10/10.
+  VerifyOverviewFrontDoorProjection.ts — PASS, 27/27.
+
+The following established scripts remain non-runnable under the required bare Node
+24 --experimental-strip-types command because their own extensionless TypeScript
+imports are unresolved: VerifyCanonicalFreshGuestEntry,
+VerifyCanonicalEmptyGuestWorkspace, VerifyGuestWorkspaceSessionRestoration,
+VerifyGuestWorkspaceSessionPersistence, VerifyGuestWorkspaceSessionLifecycle,
+VerifyGuestWorkspaceRuntimeSnapshot, and VerifyFreshInvestigationIsolation. Each
+was invoked and exited 1 at module resolution, before assertions. The new behavioral
+reload verifier is independently runnable under the exact required Node invocation.
+
+  git diff --check — PASS; line-ending notices only, no whitespace errors.
+  git diff --cached --name-only — PASS; empty, nothing staged.
+
+BROWSER RETEST REQUIRED
+
+Repeat the authoritative browser sequence in the same tab: Continue as guest, load
+Nimitz, enter MANIFOLD, focus an event and mutate Research Inbox state, then use
+Ctrl+Shift+R. Confirm the same guest identity, investigation, focused event, mode,
+workspace, Research Inbox, full controls, and warning restore without Front Door or
+blank-shell interruption. Then explicitly choose Sign in/Create account and confirm
+guest state is discarded with the warning. Reconfirm account create/sign-in,
+owned-investigation create/open/reload continuity, and sign-out to anonymous.
+
+PRECISE SELECTIVE STAGING ALLOWLIST FOR THIS REPAIR
+
+  P57-UI-A20-I5-front-door-account-library-result.txt
+  isees-ui/src/account/AccountFrontDoor.tsx
+  isees-ui/src/investigation/continuity/AccountWorkspaceContinuityCoordinator.ts —
+    cancelPendingRequests method only
+  isees-ui/tools/verification/VerifyAccountFrontDoor.ts
+  isees-ui/tools/verification/VerifyGuestReloadContinuity.ts
+  isees-ui/src/identity/persistence/OperatorIdentitySessionPersistence.ts — .ts
+    verifier-compatible import suffix only
+  isees-ui/src/identity/runtime/OperatorIdentityRuntime.ts — authenticated-account
+    projection from the prior A20-I5 pass plus .ts verifier-compatible import suffixes
+  isees-ui/src/workspace/persistence/GuestWorkspaceSessionPersistence.ts — .ts
+    verifier-compatible import suffixes only
+
+The broader prior A20-I5 allowlist above remains applicable to its existing changes.
+Known unrelated StudioToolbar.tsx, importInvestigation.ts, OverviewInspector.tsx, and
+unrelated App.tsx hunks were not altered. Nothing was staged, committed, or pushed.
+
+A20-I5 READY FOR GUEST RELOAD BROWSER RETEST ? NOTHING STAGED
+
+OWNERSHIP-MISMATCH CRASH REPAIR
+
+EXACT LIVE-BROWSER EXCEPTION
+
+The application rendered completely blank after Guest continuation because this
+exception escaped through React composition:
+
+  Uncaught Error: Guest workspace ownership mismatch.
+  Snapshot=guest:<old-id>
+  Runtime=guest:<new-id>
+
+The stack was requireMatchingGuestIdentity ->
+restoreGuestWorkspaceSessionIntoRuntimes ->
+GuestWorkspaceSessionLifecycle.restoreSnapshot ->
+GuestWorkspaceSessionLifecycle.start -> GuestWorkspaceSessionLifecycleBridge ->
+App.tsx.
+
+OWNERSHIP ROOT CAUSE AND ATOMIC POLICY
+
+Identity and workspace persistence were individually validated but not jointly
+resolved before hydration. When the earlier lifecycle defect removed the same-tab
+Guest identity, Continue as guest minted and persisted a new identity while the old
+valid workspace snapshot remained. Lifecycle start then passed both owners to the
+restorer, whose correct mismatch assertion threw from a React effect.
+
+Restoration now makes one production policy decision before calling any runtime
+hydrator. A valid snapshot and matching READY/GUEST/SESSION identity restore normally.
+If identity is missing, Continue as guest reestablishes the exact identity from the
+fully structurally validated same-tab ownership envelope, persists it first, and only
+then allows lifecycle hydration. An already-valid but different current Guest wins:
+the stale snapshot is rejected and cleared; it is never exposed to hydration.
+
+STALE, MALFORMED, AND UNSUPPORTED RECOVERY
+
+Mismatch, invalid JSON, malformed structure, and unsupported schema all converge on
+a clean usable Guest workspace. Workspace is deactivated into OVERVIEW, computational
+and focused state are cleared, and Research/Author state is cleared while lifecycle
+capture is suppressed. A new coherent empty snapshot is then captured under the
+current valid Guest, allowing the recovered session to persist and reload normally.
+The Guest warning remains visible and adds: “Your prior temporary guest work could
+not be restored. A clean guest workspace is ready.” Diagnostics are fixed non-secret
+codes (OWNERSHIP_MISMATCH, INVALID_SNAPSHOT, RESTORE_FAILURE); no Guest IDs are logged
+by the recovery path.
+
+ERROR CONTAINMENT
+
+GuestWorkspaceRestorationBoundary now surrounds OperatorUI inside the existing
+identity gate. It is defense in depth after deterministic lifecycle handling. An
+unexpected restoration/composition exception projects an iSEES-branded explanation
+and a Return to Front Door action; it contains no stack or internal identifier. That
+action explicitly clears temporary Guest restoration state and returns to the normal
+Front Door, where Continue as guest and account access remain available.
+
+BEHAVIORAL VERIFICATION AND EXACT RESULTS
+
+VerifyGuestWorkspaceRecovery.ts executes the same production restoration policy,
+snapshot constructor, and OperatorIdentityRuntime used by the application. It proves
+validated missing-identity recovery, matching restore authorization, mismatch
+rejection without a hydratable snapshot, preservation of the current Guest,
+invalid/unsupported rejection, and empty-session behavior. VerifyGuestReloadContinuity
+continues to prove ordinary identity/investigation/workspace/MANIFOLD reload,
+StrictMode-style cleanup preservation, stale account isolation, explicit
+guest-to-account clearing, and anonymous account logout. VerifyAccountFrontDoor was
+updated for the validated recovery-identity argument and retains account continuity
+and security checks.
+
+Repository root:
+
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  PASS — 135 passed in 17.44s.
+
+isees-ui mandatory commands:
+
+  VerifyOwnedInvestigationContinuity.ts — PASS.
+  VerifyAccountFrontDoor.ts — PASS.
+  VerifyGuestReloadContinuity.ts — PASS.
+  VerifyGuestWorkspaceRecovery.ts — PASS.
+  npm run build — PASS; TypeScript and Vite 8.0.13, 717 modules transformed in
+  924ms; existing chunk-size advisory only.
+
+All Verify*Guest*.ts scripts were invoked. VerifyGuestReloadContinuity and
+VerifyGuestWorkspaceRecovery pass. The six older scripts
+VerifyCanonicalEmptyGuestWorkspace, VerifyCanonicalFreshGuestEntry,
+VerifyGuestWorkspaceRuntimeSnapshot, VerifyGuestWorkspaceSessionLifecycle,
+VerifyGuestWorkspaceSessionPersistence, and
+VerifyGuestWorkspaceSessionRestoration remain non-runnable under bare Node 24
+--experimental-strip-types because their pre-existing extensionless TypeScript
+imports fail module resolution before assertions.
+
+  git diff --check — PASS; line-ending notices only, no whitespace errors.
+  git diff --cached --name-only — PASS; empty, nothing staged.
+
+CLEAN-BROWSER RETEST PROCEDURE
+
+1. In one clean tab, open http://localhost:5173 and Continue as guest.
+2. Load Nimitz, enter MANIFOLD, focus an event, and mutate Research Inbox/other
+   temporary supported state. Confirm the iSEES Guest warning remains visible.
+3. Ctrl+Shift+R. Confirm the same investigation, workspace, focused event, mode,
+   Research Inbox, and supported temporary state restore with full Guest capability.
+4. DevTools test mismatch: retain a valid current Guest identity but replace only
+   the workspace storage value with a separately captured valid Guest snapshot.
+   Reload and confirm no blank page, no stale hydration, clean OVERVIEW usability,
+   visible nontechnical recovery notice, and no IDs in the diagnostic.
+5. Repeat with invalid JSON, malformed JSON shape, and a changed schemaVersion.
+   Confirm clean usable recovery and then reload once more to prove the newly
+   captured matching clean snapshot restores normally.
+6. Remove only the Guest identity key while retaining a valid workspace snapshot,
+   return through the Front Door, and Continue as guest. Confirm exact ownership is
+   reestablished before Nimitz/MANIFOLD hydration.
+7. Explicitly choose Sign in/Create account and confirm Guest state is cleared, not
+   transferred. Reconfirm authenticated create/open/reload continuity and logout.
+
+PRECISE SELECTIVE STAGING ALLOWLIST FOR OWNERSHIP REPAIR
+
+  P57-UI-A20-I5-front-door-account-library-result.txt — this appended repair report.
+  isees-ui/src/workspace/persistence/GuestWorkspaceRestorationPolicy.ts
+  isees-ui/src/workspace/persistence/GuestWorkspaceRestorationBoundary.tsx
+  isees-ui/src/workspace/persistence/GuestWorkspaceSessionLifecycle.ts
+  isees-ui/src/workspace/persistence/GuestWorkspaceSessionPersistence.ts — Guest
+    operatorId structural-validation hunk plus prior .ts import suffixes only.
+  isees-ui/src/identity/runtime/OperatorIdentityRuntime.ts — validated optional
+    recovery-identity hunks plus prior A20-I5 hunks only.
+  isees-ui/src/account/AccountFrontDoor.tsx — atomic recovery and recovery-notice
+    hunks plus prior A20-I5 hunks only.
+  isees-ui/src/account/AccountFrontDoor.css — recovery-notice styling hunk plus prior
+    A20-I5 hunks only.
+  isees-ui/src/App.tsx — GuestWorkspaceRestorationBoundary import/composition only;
+    exclude unrelated OverviewCanonicalActivationProvider hunks.
+  isees-ui/tools/verification/VerifyGuestWorkspaceRecovery.ts
+  isees-ui/tools/verification/VerifyAccountFrontDoor.ts — recovery invocation
+    expectation hunks plus prior A20-I5 verifier content only.
+
+Known unrelated StudioToolbar.tsx, importInvestigation.ts, OverviewInspector.tsx,
+and unrelated App.tsx hunks remain untouched. No stage, commit, push, reset,
+checkout, restore, clean, stash, or destructive bulk operation was performed.
+
+FINAL AUTHORITATIVE BROWSER ACCEPTANCE
+
+Authenticated-account path passed:
+
+- Account creation completed.
+- Sign-in completed.
+- The owned investigation library rendered.
+- The owned investigation "Rendlesham Research Test" was created.
+- The empty owned investigation activated honestly.
+- Ctrl+Shift+R restored the account and active investigation.
+- Sign-out returned to the Front Door.
+
+Guest path passed:
+
+- The Front Door clearly offered "Continue as guest."
+- The UI stated that guests receive the complete iSEES workspace.
+- The UI clearly stated that guest work is not durably saved.
+- Guest OVERVIEW rendered.
+- Nimitz Tic Tac Encounter loaded as an investigation.
+- MANIFOLD rendered with the complete graph and controls.
+- Ctrl+Shift+R restored the guest session.
+- Restored state retained MANIFOLD mode.
+- Restored state retained Nimitz Tic Tac Encounter.
+- The restored graph contained 16 nodes, 13 edges, and 3 events.
+- Research Inbox remained available.
+- No blank screen occurred.
+- No ownership-mismatch exception occurred.
+
+The governing guest contract was confirmed: CAPABILITY PARITY, PERSISTENCE BOUNDARY.
+Guests receive the complete available iSEES workspace. Account ownership adds
+durable, private persistence; it does not unlock the ordinary research tools.
+
+DEFECT-TO-ACCEPTANCE CLOSURE
+
+The original authenticated-account failure was a same-origin cookie defect: browser
+requests bypassed the Vite origin while relying on HttpOnly session cookies. The
+repair centralized relative /api/v1 routing, included cookie credentials, and added
+the Vite /api/v1 proxy. The final account reload restored both the authenticated
+account and "Rendlesham Research Test," and sign-out returned to the Front Door.
+
+The Guest failure was an ownership-mismatch defect: a newly minted Guest identity
+could meet a valid snapshot owned by the prior same-tab Guest and throw before the
+workspace rendered. The repair made identity/workspace restoration atomic, restored
+only matching validated ownership, recovered stale or malformed state into a clean
+Guest workspace, and contained unexpected restoration errors. The final Guest reload
+retained Nimitz Tic Tac Encounter in MANIFOLD with 16 nodes, 13 edges, 3 events, and
+Research Inbox available, with no blank screen or ownership-mismatch exception.
+
+A20-I5 ACCEPTED ? ACCOUNT AND GUEST CONTINUITY VERIFIED

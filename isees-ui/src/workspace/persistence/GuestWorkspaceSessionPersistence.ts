@@ -51,12 +51,12 @@
 import {
   GUEST_WORKSPACE_SESSION_SCHEMA_VERSION,
   isGuestWorkspaceSessionSchemaVersion,
-} from "./GuestWorkspaceSessionPersistenceTypes";
+} from "./GuestWorkspaceSessionPersistenceTypes.ts";
 
 import type {
   GuestWorkspaceSessionRestoreResult,
   GuestWorkspaceSessionSnapshot,
-} from "./GuestWorkspaceSessionPersistenceTypes";
+} from "./GuestWorkspaceSessionPersistenceTypes.ts";
 import { migrateResearchAnchor } from "../../research/ResearchAnchorContract.ts";
 
 
@@ -147,7 +147,7 @@ function isGuestOwnership(
     isString(
       value.operatorId,
     ) &&
-    value.operatorId.length > 0 &&
+    value.operatorId.startsWith("guest:") &&
     isString(
       value.establishedAt,
     ) &&

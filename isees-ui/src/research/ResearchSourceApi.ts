@@ -1,9 +1,9 @@
 import type { ResearchAnchor } from "./researchBridgeTypes";
 import { sha256Canonical } from "../studio/drafting/StudioDraftingContext";
 import { StudioApiError } from "../studio/api/StudioApi";
+import { resolveApiBaseUrl } from "../api/ApiOrigin.ts";
 
-const API_BASE = (import.meta.env.VITE_STUDIO_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
-  ?? (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "http://127.0.0.1:8000";
+const API_BASE = resolveApiBaseUrl(import.meta.env.VITE_STUDIO_API_BASE_URL as string | undefined);
 
 export async function canonicalGraphPublication(anchor: ResearchAnchor) {
   if (anchor.kind !== "GRAPH") throw new Error("Only MANIFOLD graph anchors have a canonical publication route.");
@@ -23,7 +23,7 @@ export async function publishCanonicalGraphSource(anchor: ResearchAnchor, princi
   let response: Response;
   try {
     response = await fetch(`${API_BASE}/api/v1/investigations/${encodeURIComponent(anchor.investigationId)}/research-sources`, {
-      method: "POST", headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": principalId }, body: JSON.stringify(publication),
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": principalId }, body: JSON.stringify(publication),
     });
   } catch {
     throw new StudioApiError("UNAVAILABLE_BACKEND", "Canonical Research source authority is temporarily unavailable.", "RESEARCH_SOURCE_AUTHORITY_UNAVAILABLE");
