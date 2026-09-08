@@ -1134,6 +1134,54 @@ export class WorkspaceRuntime {
 
   }
 
+  /**
+   * Atomically activates a server-authorized, deliberately empty owned
+   * Investigation. Empty ownership is not an operational graph revision and must
+   * never be routed through canonical materialization or given a focused Event.
+   */
+  activateEmptyOwnedInvestigation(
+    investigation: Investigation,
+  ): void {
+    const workspace = investigation.workspace;
+    if (
+      !investigation.id.trim() ||
+      !workspace.id.trim() ||
+      workspace.focused_event_id !== null ||
+      workspace.imported_events.length !== 0 ||
+      workspace.investigations.length !== 0 ||
+      workspace.artifacts.length !== 0 ||
+      workspace.active_layers.length !== 0 ||
+      investigation.revisions.length !== 0 ||
+      investigation.currentRevisionId !== undefined
+    ) {
+      throw new Error("Owned empty Investigation activation payload is not empty.");
+    }
+
+    this.state = {
+      ...this.state,
+      status: "ACTIVE",
+      session: {
+        workspace,
+        investigation,
+        focusedEvent: undefined,
+        artifacts: [],
+      },
+      operator: {
+        ...this.state.operator,
+        activeMode: WorkspaceMode.OVERVIEW,
+        layoutMode: WorkspaceLayoutMode.NORMAL,
+        selection: undefined,
+      },
+      computational: {
+        activeLayers: [],
+        temporalContext: undefined,
+        investigativeScale: undefined,
+      },
+      revision: this.state.revision + 1,
+    };
+    this.notify();
+  }
+
   deactivate():
     void {
 

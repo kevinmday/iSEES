@@ -185,4 +185,8 @@ export class InvestigationLibraryRuntime {
     this.#controller?.abort();
     this.#subscribers.clear();
   }
+
+  clearAccountState(): void {
+    this.setPrincipal(null);
+  }
 }

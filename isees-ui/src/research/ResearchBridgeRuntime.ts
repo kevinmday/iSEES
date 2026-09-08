@@ -242,6 +242,10 @@ export class ResearchBridgeRuntime {
 
   }
 
+  clearAccountState(): void {
+    this.clearDesk();
+  }
+
   // ==========================================================
   // DESK RESTORATION
   // ==========================================================

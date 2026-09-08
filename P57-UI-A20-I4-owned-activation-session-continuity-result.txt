@@ -1,0 +1,217 @@
+P57-UI-A20-I4 — OWNED ACTIVATION AND SESSION CONTINUITY RESULT
+
+1. Executive result
+
+COMPLETE. A server-authenticated researcher can fetch a non-disclosing, versioned
+owned activation projection; the frontend strictly validates it before an explicit
+atomic WorkspaceRuntime transition. Empty owned Investigations remain honestly
+empty. Account-scoped last-active references are reauthorized on reload. Logout,
+account replacement, session expiry, request supersession, and principal epochs
+invalidate late work and clear account-sensitive owners through one coordinator.
+No visible Front Door/account UI was composed.
+
+2. Activation behavior before A20-I4
+
+A20-I3 detail exposed parent metadata and an EMPTY aggregate marker but no runtime
+projection. WorkspaceRuntime's production activation contract correctly required a
+complete canonical operational revision and exactly one focused Event, so it could
+not represent a legitimate empty owned workspace. Account reload, last-active
+references, and coordinated account-boundary teardown did not exist.
+
+3. Activation behavior after A20-I4
+
+GET /api/v1/investigations/{id}/activation authorizes through the cookie principal
+and parent owner predicate, then returns a v1 activation projection. The independent
+coordinator fetches, validates, rejects stale work, clears subordinate owners, calls
+the dedicated empty-owned atomic activation boundary, records the reference only
+after success, and emits an immutable ACTIVATION_READY receipt.
+
+4. Files created
+
+  isees-ui/src/investigation/continuity/OwnedInvestigationContinuity.ts
+  isees-ui/src/investigation/continuity/AccountContinuityApi.ts
+  isees-ui/src/investigation/continuity/LastActiveInvestigationStore.ts
+  isees-ui/src/investigation/continuity/AccountWorkspaceContinuityCoordinator.ts
+  isees-ui/tools/verification/VerifyOwnedInvestigationContinuity.ts
+  isees_uap/testing/investigations/test_owned_investigation_activation.py
+  P57-UI-A20-I4-owned-activation-session-continuity-result.txt
+
+5. Files modified
+
+  isees_uap/api/v1/investigations.py
+  isees-ui/src/workspace/runtime/WorkspaceRuntime.ts
+  isees-ui/src/research/ResearchBridgeRuntime.ts
+  isees-ui/src/author/runtime/AuthorDocumentRuntime.ts
+  isees-ui/src/investigation/library/InvestigationLibraryRuntime.ts
+
+6. Backend activation projection
+
+The distinct activation subresource reuses the A20-I3 service and exact persisted
+parent ownership query; it does not introduce competing authorization. It was kept
+distinct because ordinary detail is a library metadata contract while activation
+must explicitly expose runtime semantics. The projection contains activation and
+aggregate schema versions, parent and aggregate revisions, lifecycle, safe display
+identity, RESEARCHER_OWNED access kind (without owner data), deterministic freshness
+token, explicit empty graph collections, null focus, and stable workspace identity.
+The GET performs no mutation and requires no CSRF.
+
+7. Frontend validation boundary
+
+The strict parser requires exact keys, supported schemas, requested identity,
+ACTIVE lifecycle, timezone timestamps, non-negative safe versions/revisions,
+owner-access kind, freshness-token consistency, and exact EMPTY semantics. Unknown,
+missing, malformed, foreign-identity, focused, or non-empty data fails before any
+runtime mutation. Transport, authentication, not-found, invalid, stale, and network
+failures remain distinct.
+
+8. Atomic WorkspaceRuntime activation
+
+activateEmptyOwnedInvestigation publishes status, Workspace, Investigation, cleared
+selection, empty computational layers, null focused Event, and one revision/notify
+transition. The canonical operational-revision activation remains unchanged and
+strict. The coordinator validates and materializes completely before entering its
+non-throwing coordinated publication sequence. Failed fetch or validation preserves
+the prior valid workspace unless authentication security requires teardown.
+
+9. Empty Investigation behavior
+
+The resulting workspace has no imported Event, focused Event, graph node, graph
+edge, artifact, active layer, revision, comparison, selection, Inbox entry, Candidate
+Evidence, Research Source, experiment, or author document. No default Investigation,
+Nimitz/Tic Tac fixture, or canonical materialization is consulted or injected.
+
+10. Last-active persistence and account scoping
+
+Only the non-sensitive Investigation ID is stored under
+isees.account.lastActiveInvestigation.v1:{encodedAccountId}. It is written only after
+successful activation. The value is a request reference, never identity or access
+authority. No session, CSRF, password, owner record, selection, or draft is stored.
+
+11. Reload restoration sequence
+
+restoreSession obtains the server cookie-session projection with credentials,
+establishes a new principal epoch, reads only that account's reference, refetches the
+activation projection, reauthorizes server-side, validates it, and activates. Missing
+or foreign references leave WorkspaceRuntime inactive with no fallback.
+
+12. Logout teardown inventory
+
+The coordinator cancels/invalidate requests, deactivates WorkspaceRuntime (workspace,
+Investigation, focused Event, artifacts, selection, layers, temporal and scale
+configuration), and invokes registered account-sensitive teardown owners. Production
+owners now expose clearing seams for ResearchBridge/Research Inbox, all cached and
+active Author documents, and Investigation Library cache. The registry contract is
+also the seam for React-owned comparison, OVERVIEW selection/modal, Resolve, LAYERS,
+Candidate Evidence, Research Sources, STUDIO drafting, and other provider-local
+owners when composed by the later application boundary. Coordinator identity,
+revision cache, active reference, and in-memory principal are cleared.
+
+13. Account-switch sequence
+
+beginNewPrincipalEpoch or a changed restored researcher first increments the epoch,
+aborts pending I/O, deactivates the prior workspace, clears registered subordinate
+owners and revision memory, then publishes the new clean principal. Only the new
+account's keyed reference may subsequently be restored.
+
+14. Late-response and stale-response protection
+
+Every activation captures principal, epoch, and monotonically increasing request
+generation. Logout, account replacement, a newer activation, or new session restore
+aborts and invalidates it. Responses must still match all three values. Per-
+Investigation aggregate revision memory rejects a lower revision, and the freshness
+token must equal parentVersion:aggregateRevision. Remembered-reference work uses the
+same generation checks.
+
+15. Session expiration behavior
+
+A 401 during session restore publishes AUTHENTICATION_REQUIRED/SESSION_EXPIRED after
+full boundary teardown. A 401 during an owned activation immediately performs the
+same privileged-state teardown. There is no principal-header or Guest fallback.
+
+16. API credential and CSRF behavior
+
+The new API sends credentials: include for every request and sends no researcher or
+principal authority header. Safe session/activation GETs omit CSRF. Logout POST sends
+only X-ISEES-CSRF and cookie credentials. Raw sensitive values are not persisted.
+
+17. A21 future state seams
+
+The framework-independent coordinator publishes stable codes: SESSION_INITIALIZING,
+AUTHENTICATION_REQUIRED, SESSION_EXPIRED, OWNED_LIBRARY_EMPTY,
+NO_ACTIVE_INVESTIGATION, RESTORING_LAST_ACTIVE, ACTIVATION_READY, ACTIVATION_STALE,
+ACTIVATION_INVALID, INVESTIGATION_NOT_FOUND, LOGOUT_IN_PROGRESS, and
+ACCOUNT_BOUNDARY_RESET. No Guide behavior or UI was implemented.
+
+18. Verification commands
+
+  python -m pytest -q isees_uap/testing/investigations/test_owned_investigation_activation.py isees_uap/testing/investigations/test_owned_investigation_creation.py
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  python -m compileall -q isees_uap/investigations isees_uap/api/v1/investigations.py isees_uap/testing/investigations
+  node --experimental-strip-types tools/verification/VerifyOwnedInvestigationContinuity.ts
+  npm run build
+  git diff --check
+  git diff --stat
+  git status --short
+  git diff --cached --name-only
+
+19. Backend verification totals
+
+PASS: 9/9 focused activation + creation tests. PASS: 135/135 complete relevant
+authentication, Investigation, Candidate Evidence, Research Sources (within the
+parent-authority suite), and STUDIO tests. PASS: Python compile verification.
+
+20. Frontend verification totals
+
+PASS: VerifyOwnedInvestigationContinuity. It deterministically verifies strict
+schema/identity/empty validation, atomic empty activation, preservation on ordinary
+failure, account-keyed references, missing restore behavior, account switch,
+prior-account late response rejection, logout teardown, and no transient/default
+state restoration. TypeScript production compilation also passed.
+
+21. Production build result
+
+PASS: Vite 8.0.13 transformed 707 modules and completed the production build. It
+reported only the existing advisory that some output chunks exceed 500 kB.
+
+22. Remaining failures
+
+None in focused or complete relevant verification. The previously documented full-
+collection missing modules outside A20 remain unrelated and were not repaired.
+
+23. Known limitations
+
+The persisted aggregate schema currently supports only truthful EMPTY owned
+Investigations; saved operational graph persistence is not yet present. Provider-
+local React owners must register their clearAccountState callbacks when the future
+account shell composes this coordinator. The pre-existing InvestigationLibraryApi
+is an older uncomposed library client; the new authenticated continuity client does
+not use its retired principal header.
+
+24. Deferred work
+
+Visible account/login/Front Door/library/create UI, saved graph persistence, Guest
+claiming, native intake, adapters, uploads/paste/capture, Inbox lanes, Source
+Inspector/Capsules, STUDIO expansion, REX, A21 Guide UI, sharing, deletion, and
+automatic canonicalization remain deferred.
+
+25. Working-tree preservation statement
+
+Initial and final status were recorded. Pre-existing modified App.tsx,
+StudioToolbar.tsx, importInvestigation.ts, and OverviewInspector.tsx were not edited
+by A20-I4. Pre-existing untracked canonical-activation proposals, discoveries,
+patches, Studio proposals, and development backups were not adopted, overwritten,
+deleted, staged, or cleaned. Searches excluded .git, dependencies, build/dist,
+coverage, caches, archives, backups, and every case-insensitive MarketMind subject.
+Excluded material was neither inspected nor modified.
+
+26. Confirmation that nothing was staged, committed, or pushed
+
+Confirmed. git diff --cached --name-only is empty. Nothing was staged, committed, or
+pushed; no reset, checkout, clean, or destructive recursive deletion was used.
+
+27. Recommended next increment
+
+Proceed to A20-I5 vertical-slice composition and browser acceptance: mount the
+coordinator above account-sensitive providers, register every provider-local teardown
+callback, and prove the two-account frame boundary in the real application without
+introducing a default Investigation or composing work deferred to A21.

@@ -52,6 +52,29 @@ class InvestigationDetailResponse(InvestigationResponse):
     aggregateRevision: int
 
 
+class EmptyOperationalState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str = "EMPTY"
+    workspaceId: str
+    focusedEventId: None = None
+    nodes: list[object] = Field(default_factory=list)
+    edges: list[object] = Field(default_factory=list)
+
+
+class InvestigationAccessProjection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str = "RESEARCHER_OWNED"
+
+
+class InvestigationActivationResponse(InvestigationDetailResponse):
+    activationSchemaVersion: str
+    access: InvestigationAccessProjection
+    operationalState: EmptyOperationalState
+    freshnessToken: str
+
+
 class CreateInvestigationCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -168,6 +191,26 @@ def get_investigation(
 ) -> InvestigationDetailResponse:
     item, aggregate = svc.get_owned_detail(investigation_id, principal.account_id)
     return _detail_response(item, aggregate)
+
+
+@router.get("/{investigation_id}/activation", response_model=InvestigationActivationResponse)
+def get_investigation_activation(
+    investigation_id: InvestigationPath,
+    principal: AuthenticatedPrincipal = Depends(require_authenticated_principal),
+    svc: InvestigationLibraryService = Depends(service),
+) -> InvestigationActivationResponse:
+    """Return an owner-authorized runtime projection without mutating server state."""
+    item, aggregate = svc.get_owned_detail(investigation_id, principal.account_id)
+    detail = _detail_response(item, aggregate).model_dump()
+    return InvestigationActivationResponse(
+        **detail,
+        activationSchemaVersion="owned-investigation-activation/v1",
+        access=InvestigationAccessProjection(),
+        operationalState=EmptyOperationalState(
+            workspaceId=f"workspace:{item.investigation_id}",
+        ),
+        freshnessToken=f"{item.version}:{aggregate.revision}",
+    )
 
 
 def investigation_error_handler(

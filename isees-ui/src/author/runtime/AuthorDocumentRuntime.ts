@@ -288,6 +288,15 @@ export class AuthorDocumentRuntime {
 
   }
 
+  clearAccountState(): void {
+    this.activeInvestigationId = undefined;
+    this.documentsByInvestigation.clear();
+    this.dirtyByInvestigation.clear();
+    this.lastInsertedNodeId = undefined;
+    this.state = { activeDocument: undefined, dirty: false, revision: this.state.revision + 1 };
+    this.notify();
+  }
+
   // ==========================================================
   // DOCUMENT MUTATION
   // ==========================================================
