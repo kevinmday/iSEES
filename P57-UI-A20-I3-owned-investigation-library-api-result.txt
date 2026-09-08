@@ -1,0 +1,205 @@
+P57-UI-A20-I3 — AUTHENTICATED OWNED INVESTIGATION CREATION AND LIBRARY API RESULT
+
+1. Executive result
+
+COMPLETE. Authenticated researchers can now receive an empty owned Investigation
+Library, deliberately create one private empty Investigation through a CSRF-protected
+command, list only their parents, and read a versioned empty detail projection.
+Creation does not activate WorkspaceRuntime or create research content. Foreign and
+absent detail identifiers remain externally indistinguishable.
+
+2. API contract before A20-I3
+
+GET /api/v1/investigations and GET /api/v1/investigations/{id} were authenticated,
+parent-owner-scoped summary reads. There was no HTTP creation command and the parent
+store had no explicit durable empty aggregate or account-scoped creation idempotency.
+
+3. API contract after A20-I3
+
+The two authenticated reads remain. POST /api/v1/investigations now accepts only a
+normalized title, optional objective, and idempotencyKey. Detail and creation return
+the safe parent fields plus aggregateSchemaVersion, aggregateState, and
+aggregateRevision. Creation additionally returns replayed. List retains the bounded
+existing complete-array contract and returns {"items": []} after a successful fresh
+account query.
+
+4. Files created
+
+  isees_uap/investigations/migrations/002_investigations.sql
+  isees_uap/testing/investigations/test_owned_investigation_creation.py
+  P57-UI-A20-I3-owned-investigation-library-api-result.txt
+
+5. Files modified
+
+  isees_uap/api/v1/investigations.py
+  isees_uap/investigations/__init__.py
+  isees_uap/investigations/errors.py
+  isees_uap/investigations/models.py
+  isees_uap/investigations/repository.py
+  isees_uap/investigations/service.py
+  isees_uap/investigations/sqlite_repository.py
+  isees_uap/testing/investigations/test_investigation_library.py
+
+No frontend production file was changed by A20-I3.
+
+6. Investigation creation command
+
+POST /api/v1/investigations requires a valid authenticated cookie session and the
+A20-I1 double-submit/server-digest CSRF proof. The strict request fields are title
+(1–200 characters), optional objective (up to 2,000 characters), and idempotencyKey
+(1–200 characters). Unicode is NFKC-normalized, outer whitespace is removed, blank
+values and control characters are rejected, and unknown fields are forbidden.
+
+7. Server-generated identity
+
+The service generates inv_<32 lowercase UUIDv4 hex characters> using Python UUIDv4,
+which uses the platform cryptographic random source. Caller-selected IDs are rejected.
+Generation does not derive from title, owner, email, time, canon, or browser state.
+Unique-key collisions are retried up to eight times and then fail closed as repository
+unavailability; deterministic collision verification proves no ownership transfer.
+
+8. Parent ownership behavior
+
+owner_principal_id is always principal.account_id from
+require_csrf_protected_principal. No header, body, query, frontend identity, child row,
+or WorkspaceRuntime value can select or alter ownership. Persisted parent lookup
+remains the authority for reads and all committed child routes.
+
+9. Empty aggregate behavior
+
+Every created parent has exactly one investigation-aggregate/v1 row with state EMPTY
+and revision 0. The parent lifecycle remains ACTIVE in the established parent schema;
+here ACTIVE means library-visible/not archived, not activated in WorkspaceRuntime.
+Parent version is 0 and created/modified timestamps are equal UTC instants. The
+aggregate has no graph, node, edge, workspace, selection, layer, Inbox, experiment,
+author, Candidate Evidence, Research Source, or STUDIO fields.
+
+10. Idempotency behavior
+
+The durable key scope is (owner_principal_id, CREATE, idempotency_key). Its command
+hash covers normalized title and objective. Same-account/key/payload replay returns
+the original parent and aggregate with replayed=true. Changed content returns
+IDEMPOTENCY_KEY_REUSE. Different accounts may reuse the client key independently.
+The receipt is written in the same transaction and failed commands leave no receipt,
+so a safe retry is not poisoned.
+
+11. Owned list projection
+
+GET /api/v1/investigations returns only current-account parents with safe identity,
+title, objective, lifecycle, timestamps, and version. It exposes no owner, account,
+session, credential, or security data. Ordering remains modifiedAt descending and
+investigationId ascending as a stable tie-breaker. Fresh accounts return successful
+EMPTY semantics as an empty items array.
+
+12. Owned detail projection
+
+GET /api/v1/investigations/{id} first resolves the parent by exact authenticated
+owner and then resolves its empty aggregate through an owner-joined query. The safe
+versioned response contains parent version plus aggregate schema/state/revision.
+Foreign and absent IDs both return the same INVESTIGATION_NOT_FOUND envelope and do
+not reveal another account identity.
+
+13. System-owned canonical separation
+
+No system-owned Investigation policy or discriminator was invented. Canonical
+frontend/repository inspection remains separate. Creation cannot accept lifecycle,
+system status, canonical state, seeded events, nodes, or edges. No Nimitz, Tic Tac,
+default, Guest, fixture, copied-system, or canonical content is inserted or returned.
+
+14. Transaction and rollback behavior
+
+SQLite BEGIN IMMEDIATE wraps parent, aggregate, and idempotency insertion. Any error
+rolls back all three. Foreign keys are enabled per connection. An injected aggregate
+failure test proves zero parent, aggregate, and idempotency rows remain, followed by
+a successful retry. Migration 002 is applied atomically and backfills migration-001
+metadata-only parents with the only truthful EMPTY aggregate; it neither guesses nor
+changes ownership and creates no content. Newer schema versions remain rejected.
+
+15. Endpoint inventory
+
+  GET  /api/v1/investigations — authenticated owned safe summaries
+  POST /api/v1/investigations — authenticated + CSRF empty owned creation
+  GET  /api/v1/investigations/{investigation_id} — authenticated owned safe detail
+
+Existing nested Candidate Evidence, Research Sources, and STUDIO routes remain
+mounted and retain parent-first authority.
+
+16. Error inventory
+
+  AUTHENTICATION_REQUIRED — missing, malformed, unknown, expired, or revoked session
+  CSRF_REJECTED — missing or invalid creation CSRF proof
+  INVALID_INVESTIGATION_INPUT — invalid/blank/oversized/unknown creation input
+  IDEMPOTENCY_KEY_REUSE — same account and key with changed normalized payload
+  INVESTIGATION_NOT_FOUND — absent or foreign parent detail
+  INVESTIGATION_REPOSITORY_UNAVAILABLE — storage, atomic-write, or exhausted-ID failure
+  INVALID_STORED_INVESTIGATION — corrupt parent, aggregate, or idempotency target
+
+17. Verification commands
+
+  python -m compileall -q isees_uap/investigations isees_uap/api/v1/investigations.py isees_uap/testing/investigations
+  python -m pytest -q isees_uap/testing/investigations/test_investigation_library.py isees_uap/testing/investigations/test_owned_investigation_creation.py
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  git diff --check
+  git diff --stat
+  git status --short
+  git diff --cached --name-only
+
+Research Sources route coverage is located in the Investigation parent-authority
+suite; the repository has no separate isees_uap/testing/research_sources directory.
+
+18. Verification totals
+
+PASS: compileall.
+PASS: 20/20 focused and pre-existing Investigation tests.
+PASS: 133/133 relevant backend tests in 14.58 seconds. This includes authentication,
+Investigation creation/library/parent authority, Candidate Evidence, Research Sources
+publication/replay/isolation, and STUDIO service/API/persistence/materialization.
+PASS: git diff --check (line-ending notices only; no whitespace errors).
+
+19. Remaining failures
+
+None in the requested relevant backend suite. An initial command naming a nonexistent
+isees_uap/testing/research_sources directory collected no tests; the corrected suite
+ran its Research Sources coverage through the Investigation parent-authority module.
+The previously documented unrelated full-collection missing-module failures were not
+within scope and were not modified.
+
+20. Known limitations
+
+This increment supports only the established unpaginated owned-library projection;
+it does not invent pagination for the currently small contract. ACTIVE is the legacy
+library lifecycle label and is explicitly distinct from runtime activation. The empty
+aggregate is intentionally metadata-only and cannot hydrate an operational workspace.
+Collision exhaustion returns the existing safe repository-unavailable code.
+
+21. Deferred work
+
+Activation, reload restoration, last-active state, logout runtime teardown, visible
+Front Door/account/library/create UI, Guest claiming, native case intake, initial
+events, Research Inbox lanes, uploads/URL/paste capture, Source Inspector/Capsules,
+MUFON, extension work, STUDIO features, REX, A21 Guide, sharing, recovery,
+verification, MFA, deletion, and canonical acceptance remain deferred.
+
+22. Working-tree preservation statement
+
+Initial status was recorded before editing. The pre-existing modified frontend files
+(isees-ui/src/App.tsx, StudioToolbar.tsx, importInvestigation.ts, and
+OverviewInspector.tsx) and all untracked researcher artifacts were preserved without
+overlap. No researcher file was restored, deleted, renamed, cleaned, or overwritten.
+All inspected/search commands excluded .git, dependency/build/dist/coverage/cache,
+generated archive, development-backup, and every case-insensitive excluded-product
+path and subject. Excluded material was neither inspected nor modified.
+
+23. Confirmation that nothing was staged, committed, or pushed
+
+Nothing was staged. Nothing was committed. Nothing was pushed. No reset, checkout,
+clean, or destructive recursive deletion command was used. The final cached diff is
+empty.
+
+24. Recommended next increment
+
+Proceed with A20-I4 owned activation and reload. Consume the versioned EMPTY aggregate
+without fabricating a focused event, define the transition from an empty research
+container to an operational revision, activate only after authenticated owner checks,
+and add account-switch/logout teardown while preserving all A21 deterministic state
+and blocker seams.

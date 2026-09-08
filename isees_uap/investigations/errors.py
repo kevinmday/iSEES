@@ -31,3 +31,13 @@ class RepositoryUnavailable(InvestigationLibraryError):
 class InvalidStoredInvestigation(InvestigationLibraryError):
     code = "INVALID_STORED_INVESTIGATION"
     status_code = 503
+
+
+class InvalidInvestigationInput(InvestigationLibraryError):
+    code = "INVALID_INVESTIGATION_INPUT"
+    status_code = 422
+
+
+class IdempotencyKeyReuse(InvestigationLibraryError):
+    code = "IDEMPOTENCY_KEY_REUSE"
+    status_code = 409

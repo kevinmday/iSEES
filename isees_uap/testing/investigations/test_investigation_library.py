@@ -72,8 +72,9 @@ def test_create_round_trip_restart_and_owner_isolation(tmp_path):
 
 def test_list_order_is_deterministic_and_lifecycle_aware(tmp_path):
     times = iter([
+        datetime(2025, 12, 30, tzinfo=timezone.utc),
+        datetime(2025, 12, 30, tzinfo=timezone.utc),
         datetime(2025, 12, 31, tzinfo=timezone.utc),
-        datetime(2026, 1, 1, tzinfo=timezone.utc),
         datetime(2026, 1, 2, tzinfo=timezone.utc),
         datetime(2026, 1, 2, tzinfo=timezone.utc),
     ])
@@ -103,7 +104,7 @@ def test_concurrent_cold_start_and_reinitialization_are_safe(tmp_path):
     with sqlite3.connect(path) as connection:
         assert connection.execute(
             "SELECT version FROM investigation_schema_migrations"
-        ).fetchall() == [(1,)]
+        ).fetchall() == [(1,), (2,)]
 
 
 def test_concurrent_create_has_one_winner_and_no_corruption(tmp_path):
@@ -231,6 +232,7 @@ def test_existing_nested_routes_remain_mounted():
     routes = {(route.path, method) for route in app.routes
               for method in getattr(route, "methods", set())}
     assert ("/api/v1/investigations", "GET") in routes
+    assert ("/api/v1/investigations", "POST") in routes
     assert ("/api/v1/investigations/{investigation_id}", "GET") in routes
     assert ("/api/v1/investigations/{investigation_id}/studio-artifacts", "GET") in routes
     assert ("/api/v1/investigations/{investigation_id}/research-sources", "POST") in routes

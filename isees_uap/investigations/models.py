@@ -32,6 +32,14 @@ class InvestigationSummary:
     version: int
 
 
+@dataclass(frozen=True)
+class InvestigationAggregate:
+    investigation_id: str
+    schema_version: str
+    state: str
+    revision: int
+
+
 def summarize(investigation: Investigation) -> InvestigationSummary:
     return InvestigationSummary(
         investigation_id=investigation.investigation_id,

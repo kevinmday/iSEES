@@ -8,12 +8,13 @@ from typing import Callable
 
 from .errors import (
     DuplicateInvestigationId,
+    IdempotencyKeyReuse,
     InvalidStoredInvestigation,
     RepositoryUnavailable,
 )
-from .models import Investigation, InvestigationLifecycle
+from .models import Investigation, InvestigationAggregate, InvestigationLifecycle
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _sql_statements(script: str):
@@ -64,6 +65,7 @@ class SQLiteInvestigationRepository:
         connection = sqlite3.connect(self.path, timeout=5, isolation_level=None)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA busy_timeout=5000")
+        connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA synchronous=FULL")
         connection.execute("PRAGMA journal_mode=WAL")
         return connection
@@ -194,6 +196,10 @@ class SQLiteInvestigationRepository:
                             0,
                         ),
                     )
+                    connection.execute(
+                        "INSERT INTO investigation_aggregate VALUES (?,?,?,?)",
+                        (investigation_id, "investigation-aggregate/v1", "EMPTY", 0),
+                    )
                     row = connection.execute(
                         "SELECT * FROM investigation WHERE investigation_id=?",
                         (investigation_id,),
@@ -215,3 +221,101 @@ class SQLiteInvestigationRepository:
             raise RepositoryUnavailable(
                 "Investigation repository is unavailable"
             ) from error
+
+    @staticmethod
+    def _aggregate_from_row(row: sqlite3.Row) -> InvestigationAggregate:
+        try:
+            if (not row["investigation_id"] or row["schema_version"] != "investigation-aggregate/v1"
+                    or row["state"] != "EMPTY" or row["revision"] != 0):
+                raise ValueError("Invalid empty aggregate")
+            return InvestigationAggregate(
+                investigation_id=row["investigation_id"],
+                schema_version=row["schema_version"], state=row["state"],
+                revision=row["revision"],
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise InvalidStoredInvestigation(
+                "Stored Investigation aggregate is invalid"
+            ) from error
+
+    def create_empty_owned(
+        self, *, investigation_id: str, owner_principal_id: str, title: str,
+        objective: str | None, idempotency_key: str, command_hash: str,
+    ) -> tuple[Investigation, InvestigationAggregate, bool]:
+        occurred_at = _utc_text(self.clock())
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    replay = connection.execute(
+                        "SELECT command_hash,investigation_id FROM investigation_idempotency "
+                        "WHERE owner_principal_id=? AND operation='CREATE' AND idempotency_key=?",
+                        (owner_principal_id, idempotency_key),
+                    ).fetchone()
+                    if replay is not None:
+                        if replay["command_hash"] != command_hash:
+                            raise IdempotencyKeyReuse(
+                                "Idempotency key was reused with different command content"
+                            )
+                        parent = connection.execute(
+                            "SELECT * FROM investigation WHERE investigation_id=? AND owner_principal_id=?",
+                            (replay["investigation_id"], owner_principal_id),
+                        ).fetchone()
+                        aggregate = connection.execute(
+                            "SELECT * FROM investigation_aggregate WHERE investigation_id=?",
+                            (replay["investigation_id"],),
+                        ).fetchone()
+                        if parent is None or aggregate is None:
+                            raise InvalidStoredInvestigation(
+                                "Stored Investigation idempotency result is invalid"
+                            )
+                        connection.commit()
+                        return self._from_row(parent), self._aggregate_from_row(aggregate), True
+                    connection.execute(
+                        "INSERT INTO investigation "
+                        "(investigation_id,owner_principal_id,title,objective,lifecycle,created_at,modified_at,version) "
+                        "VALUES (?,?,?,?,?,?,?,?)",
+                        (investigation_id, owner_principal_id, title, objective,
+                         InvestigationLifecycle.ACTIVE.value, occurred_at, occurred_at, 0),
+                    )
+                    connection.execute(
+                        "INSERT INTO investigation_aggregate VALUES (?,?,?,?)",
+                        (investigation_id, "investigation-aggregate/v1", "EMPTY", 0),
+                    )
+                    connection.execute(
+                        "INSERT INTO investigation_idempotency VALUES (?,?,?,?,?,?)",
+                        (owner_principal_id, "CREATE", idempotency_key, command_hash,
+                         investigation_id, occurred_at),
+                    )
+                    parent = connection.execute(
+                        "SELECT * FROM investigation WHERE investigation_id=?", (investigation_id,)
+                    ).fetchone()
+                    aggregate = connection.execute(
+                        "SELECT * FROM investigation_aggregate WHERE investigation_id=?", (investigation_id,)
+                    ).fetchone()
+                    connection.commit()
+                    return self._from_row(parent), self._aggregate_from_row(aggregate), False
+                except Exception:
+                    connection.rollback()
+                    raise
+        except sqlite3.IntegrityError as error:
+            if "investigation.investigation_id" in str(error):
+                raise DuplicateInvestigationId("Investigation ID already exists") from error
+            raise RepositoryUnavailable("Investigation repository rejected the write") from error
+        except sqlite3.Error as error:
+            raise RepositoryUnavailable("Investigation repository is unavailable") from error
+
+    def get_empty_aggregate(
+        self, *, investigation_id: str, owner_principal_id: str
+    ) -> InvestigationAggregate | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT aggregate.* FROM investigation_aggregate aggregate "
+                    "JOIN investigation parent ON parent.investigation_id=aggregate.investigation_id "
+                    "WHERE aggregate.investigation_id=? AND parent.owner_principal_id=?",
+                    (investigation_id, owner_principal_id),
+                ).fetchone()
+                return self._aggregate_from_row(row) if row is not None else None
+        except sqlite3.Error as error:
+            raise RepositoryUnavailable("Investigation repository is unavailable") from error

@@ -1,15 +1,28 @@
 from __future__ import annotations
 
-from .errors import InvestigationNotFound
-from .models import Investigation, InvestigationSummary, summarize
+import hashlib
+import json
+import uuid
+from collections.abc import Callable
+
+from .errors import (
+    DuplicateInvestigationId, InvestigationNotFound, RepositoryUnavailable,
+)
+from .models import Investigation, InvestigationAggregate, InvestigationSummary, summarize
 from .repository import InvestigationRepository
 
 
 class InvestigationLibraryService:
-    """Read-only application service for caller-owned parent Investigations."""
+    """Application service for authenticated, owner-scoped Investigations."""
 
-    def __init__(self, repository: InvestigationRepository):
+    def __init__(
+        self, repository: InvestigationRepository,
+        *, id_generator: Callable[[], str] | None = None,
+        collision_limit: int = 8,
+    ):
         self.repository = repository
+        self.id_generator = id_generator or (lambda: f"inv_{uuid.uuid4().hex}")
+        self.collision_limit = collision_limit
 
     def list_owned(self, principal_id: str) -> list[InvestigationSummary]:
         return [summarize(item) for item in self.repository.list_owned(
@@ -24,3 +37,34 @@ class InvestigationLibraryService:
             # Deliberately non-disclosing: absence and another owner's record agree.
             raise InvestigationNotFound("Investigation was not found")
         return investigation
+
+    def get_owned_detail(
+        self, investigation_id: str, principal_id: str
+    ) -> tuple[Investigation, InvestigationAggregate]:
+        investigation = self.get_owned(investigation_id, principal_id)
+        aggregate = self.repository.get_empty_aggregate(
+            investigation_id=investigation_id, owner_principal_id=principal_id
+        )
+        if aggregate is None:
+            raise RepositoryUnavailable("Investigation aggregate is unavailable")
+        return investigation, aggregate
+
+    def create_empty_owned(
+        self, *, principal_id: str, title: str, objective: str | None,
+        idempotency_key: str,
+    ) -> tuple[Investigation, InvestigationAggregate, bool]:
+        canonical = json.dumps(
+            {"objective": objective, "title": title},
+            ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        )
+        command_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        for _ in range(self.collision_limit):
+            try:
+                return self.repository.create_empty_owned(
+                    investigation_id=self.id_generator(),
+                    owner_principal_id=principal_id, title=title, objective=objective,
+                    idempotency_key=idempotency_key, command_hash=command_hash,
+                )
+            except DuplicateInvestigationId:
+                continue
+        raise RepositoryUnavailable("Investigation identity generation is unavailable")
