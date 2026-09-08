@@ -5,15 +5,13 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Path, Request
+from fastapi import APIRouter, Depends, Path, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
 from isees_uap.investigations.config import investigation_database_path
-from isees_uap.investigations.errors import (
-    InvalidPrincipal,
-    InvestigationLibraryError,
-)
+from isees_uap.authentication.principal import AuthenticatedPrincipal, require_authenticated_principal
+from isees_uap.investigations.errors import InvestigationLibraryError
 from isees_uap.investigations.models import Investigation, InvestigationLifecycle
 from isees_uap.investigations.service import InvestigationLibraryService
 from isees_uap.investigations.sqlite_repository import SQLiteInvestigationRepository
@@ -51,14 +49,6 @@ def service(
     return InvestigationLibraryService(repo)
 
 
-def principal(x_isees_principal_id: str = Header(min_length=1)) -> str:
-    """Local/development ownership claim; it is not authenticated identity."""
-    owner = x_isees_principal_id.strip()
-    if not owner:
-        raise InvalidPrincipal("X-ISEES-Principal-Id must not be blank")
-    return owner
-
-
 def _response(item: Investigation) -> InvestigationResponse:
     return InvestigationResponse(
         investigationId=item.investigation_id,
@@ -73,7 +63,7 @@ def _response(item: Investigation) -> InvestigationResponse:
 
 @router.get("", response_model=InvestigationListResponse)
 def list_investigations(
-    owner: str = Depends(principal),
+    principal: AuthenticatedPrincipal = Depends(require_authenticated_principal),
     svc: InvestigationLibraryService = Depends(service),
 ) -> InvestigationListResponse:
     return InvestigationListResponse(items=[
@@ -86,17 +76,17 @@ def list_investigations(
             modifiedAt=item.modified_at,
             version=item.version,
         )
-        for item in svc.list_owned(owner)
+        for item in svc.list_owned(principal.account_id)
     ])
 
 
 @router.get("/{investigation_id}", response_model=InvestigationResponse)
 def get_investigation(
     investigation_id: InvestigationPath,
-    owner: str = Depends(principal),
+    principal: AuthenticatedPrincipal = Depends(require_authenticated_principal),
     svc: InvestigationLibraryService = Depends(service),
 ) -> InvestigationResponse:
-    return _response(svc.get_owned(investigation_id, owner))
+    return _response(svc.get_owned(investigation_id, principal.account_id))
 
 
 def investigation_error_handler(

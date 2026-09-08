@@ -9,6 +9,10 @@ from fastapi.testclient import TestClient
 
 from isees_uap.api import app
 from isees_uap.api.v1.investigations import repository, service
+from isees_uap.api.v1.authentication import settings
+from isees_uap.authentication.config import AuthenticationSettings
+from isees_uap.authentication.principal import authentication_repository
+from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
 from isees_uap.candidate_evidence.sqlite_repository import (
     SQLiteCandidateEvidenceRepository,
 )
@@ -24,6 +28,19 @@ from isees_uap.investigations.sqlite_repository import SQLiteInvestigationReposi
 def _repo(tmp_path, name="investigations.db", clock=None):
     kwargs = {"clock": clock} if clock else {}
     return SQLiteInvestigationRepository(tmp_path / name, **kwargs)
+
+
+def _authenticated_client(tmp_path, email: str):
+    auth = SQLiteAuthenticationRepository(tmp_path / f"{email}.auth.db")
+    config = AuthenticationSettings(database_path=auth.path, secure_cookies=False)
+    app.dependency_overrides[authentication_repository] = lambda: auth
+    app.dependency_overrides[settings] = lambda: config
+    client = TestClient(app)
+    created = client.post("/api/v1/auth/accounts", json={
+        "email": f"{email}@example.com", "password": "correct horse battery staple",
+    })
+    assert created.status_code == 201
+    return client, created.json()["researcherId"]
 
 
 def test_empty_library_has_no_default_or_tic_tac(tmp_path):
@@ -158,29 +175,28 @@ def test_service_returns_summaries_and_non_disclosing_not_found(tmp_path):
 
 def test_collection_and_detail_api_are_owner_scoped(tmp_path):
     repo = _repo(tmp_path)
-    repo.create(investigation_id="INV-one", owner_principal_id="one", title="One")
-    repo.create(investigation_id="INV-two", owner_principal_id="two", title="Two")
     app.dependency_overrides[repository] = lambda: repo
-    client = TestClient(app)
+    client, owner = _authenticated_client(tmp_path, "owner")
     try:
-        empty = client.get("/api/v1/investigations",
-                           headers={"X-ISEES-Principal-Id": "empty"})
+        empty = client.get("/api/v1/investigations")
         assert empty.status_code == 200 and empty.json() == {"items": []}
-        owned = client.get("/api/v1/investigations",
-                           headers={"X-ISEES-Principal-Id": " one "})
+        repo.create(investigation_id="INV-one", owner_principal_id=owner, title="One")
+        repo.create(investigation_id="INV-two", owner_principal_id="legacy-two", title="Two")
+        owned = client.get("/api/v1/investigations")
         assert owned.status_code == 200
         assert [item["investigationId"] for item in owned.json()["items"]] == ["INV-one"]
         assert "ownerPrincipalId" not in owned.text
-        detail = client.get("/api/v1/investigations/INV-one",
-                            headers={"X-ISEES-Principal-Id": "one"})
+        detail = client.get("/api/v1/investigations/INV-one")
         assert detail.status_code == 200 and detail.json()["version"] == 0
-        hidden = client.get("/api/v1/investigations/INV-one",
-                            headers={"X-ISEES-Principal-Id": "two"})
-        absent = client.get("/api/v1/investigations/unknown",
-                            headers={"X-ISEES-Principal-Id": "two"})
+        other, _ = _authenticated_client(tmp_path, "other")
+        hidden = other.get("/api/v1/investigations/INV-one", headers={"X-Request-Id": "same"})
+        absent = other.get("/api/v1/investigations/unknown", headers={"X-Request-Id": "same"})
         assert hidden.status_code == absent.status_code == 404
         assert hidden.json()["error"]["code"] == "INVESTIGATION_NOT_FOUND"
+        assert hidden.json() == absent.json()
+        other.close()
     finally:
+        client.close()
         app.dependency_overrides.clear()
 
 
@@ -188,24 +204,26 @@ def test_invalid_principal_and_repository_failure_are_controlled(tmp_path):
     client = TestClient(app)
     blank = client.get("/api/v1/investigations",
                        headers={"X-ISEES-Principal-Id": "   ", "X-Request-Id": "r1"})
-    assert blank.status_code == 422
+    assert blank.status_code == 401
     assert blank.json() == {"error": {
-        "code": "INVALID_PRINCIPAL",
-        "message": "X-ISEES-Principal-Id must not be blank", "requestId": "r1",
+        "code": "AUTHENTICATION_REQUIRED",
+        "message": "Authentication is required", "requestId": "r1",
     }}
+    client.close()
 
     class Down:
         def list_owned(self, _):
             raise RepositoryUnavailable("Investigation repository is unavailable")
 
     app.dependency_overrides[service] = lambda: Down()
+    client, _ = _authenticated_client(tmp_path, "failure")
     try:
-        failed = client.get("/api/v1/investigations",
-                            headers={"X-ISEES-Principal-Id": "one"})
+        failed = client.get("/api/v1/investigations")
         assert failed.status_code == 503
         assert failed.json()["error"]["code"] == "INVESTIGATION_REPOSITORY_UNAVAILABLE"
         assert "sqlite" not in failed.text.lower() and ".db" not in failed.text
     finally:
+        client.close()
         app.dependency_overrides.clear()
 
 

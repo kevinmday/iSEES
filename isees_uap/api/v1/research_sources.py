@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Annotated, Any, Literal
-from fastapi import APIRouter, Depends, Header, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from isees_uap.research_sources import SQLiteResearchSourceRepository, research_source_database_path
 from isees_uap.research_sources.sqlite_repository import ResearchSourceConflict
-from isees_uap.candidate_evidence.config import candidate_database_path
-from isees_uap.studio.config import studio_database_path
-from isees_uap.studio.investigation_authority import CandidateEvidenceInvestigationAuthority
-from isees_uap.studio.sqlite_repository import SQLiteStudioRepository
+from isees_uap.authentication.principal import AuthenticatedPrincipal, require_csrf_protected_principal
+from isees_uap.investigations.authority import PersistedInvestigationAuthority
+from isees_uap.api.v1.investigations import repository as investigation_repository
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/research-sources", tags=["research"])
 Identity = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -32,24 +31,16 @@ class GraphPublication(BaseModel):
 def repository() -> SQLiteResearchSourceRepository:
     return SQLiteResearchSourceRepository(research_source_database_path())
 
-def principal(x_isees_principal_id: str = Header(min_length=1)) -> str:
-    return x_isees_principal_id.strip()
-
 @router.post("")
 def publish(investigation_id: IdentityPath, command: GraphPublication,
-            owner: str = Depends(principal), repo: SQLiteResearchSourceRepository = Depends(repository)):
+            principal: AuthenticatedPrincipal = Depends(require_csrf_protected_principal),
+            repo: SQLiteResearchSourceRepository = Depends(repository),
+            parent_repo=Depends(investigation_repository)):
+    owner = principal.account_id
+    PersistedInvestigationAuthority(parent_repo).require_owned(
+        account_id=owner, investigation_id=investigation_id)
     if command.investigationId != investigation_id:
         raise HTTPException(status_code=412, detail="Investigation identity mismatch")
-    studio_owned = SQLiteStudioRepository(studio_database_path()).list(
-        investigation_id=investigation_id, principal_id=owner)
-    if not studio_owned:
-        try:
-            allowed = CandidateEvidenceInvestigationAuthority(candidate_database_path()).resolve_access(
-                principal_id=owner, investigation_id=investigation_id).allowed
-        except Exception as exc:
-            raise HTTPException(status_code=503, detail="Investigation authority unavailable") from exc
-        if not allowed:
-            raise HTTPException(status_code=404, detail="Investigation was not found")
     try:
         value, replayed = repo.publish(command.model_dump(mode="json"), owner)
     except ResearchSourceConflict as exc:

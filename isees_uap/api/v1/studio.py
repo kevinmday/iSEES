@@ -5,15 +5,19 @@ import uuid
 from functools import lru_cache
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-from isees_uap.candidate_evidence.config import candidate_database_path
 from isees_uap.studio.config import studio_database_path, studio_output_root
 from isees_uap.studio.drafting import ProviderUnavailableError
 from isees_uap.studio.errors import ArtifactNotFound, OwnershipAccessFailure, StudioError
 from isees_uap.studio.hashing import canonical_json
-from isees_uap.studio.investigation_authority import CandidateEvidenceInvestigationAuthority
+from isees_uap.investigations.authority import PersistedInvestigationAuthority
+from isees_uap.api.v1.investigations import repository as investigation_repository
+from isees_uap.authentication.principal import (
+    AuthenticatedPrincipal, require_authenticated_principal,
+    require_csrf_protected_principal,
+)
 from isees_uap.studio.schemas import (
     AcceptStudioArtifact, CreateCandidateKnowledgeArtifact, CreateStudioDraft,
     PublishStudioCandidateNode, RecordMaterializedProjection, RejectStudioArtifact,
@@ -59,8 +63,9 @@ def repository() -> SQLiteStudioRepository:
     return SQLiteStudioRepository(studio_database_path())
 
 
-def service(repo: SQLiteStudioRepository = Depends(repository)) -> StudioService:
-    authority = CandidateEvidenceInvestigationAuthority(candidate_database_path())
+def service(repo: SQLiteStudioRepository = Depends(repository),
+            parent_repo=Depends(investigation_repository)) -> StudioService:
+    authority = PersistedInvestigationAuthority(parent_repo)
     sources = RoutedStudioSourceResolution(ManifoldResearchSourceResolution(
         SQLiteResearchSourceRepository(research_source_database_path())), CandidateEvidenceSourceResolution())
     return StudioService(repo, authority, sources,
@@ -74,18 +79,32 @@ class _DraftingOnlyRepository:
         raise RuntimeError(f"Drafting proposal attempted durable repository operation: {name}")
 
 
-def drafting_service() -> StudioService:
-    authority = CandidateEvidenceInvestigationAuthority(candidate_database_path())
+def drafting_service(parent_repo=Depends(investigation_repository)) -> StudioService:
+    authority = PersistedInvestigationAuthority(parent_repo)
     return StudioService(_DraftingOnlyRepository(), authority, _UnavailableSourceResolution(),
                          _UnavailablePublication(), _UnavailableAcceptance(), _UnavailableDrafting())
 
 
-def principal(x_isees_principal_id: str = Header(min_length=1)) -> str:
-    """Local ownership claim only; this header is not completed authentication."""
-    if not x_isees_principal_id.strip():
-        raise HTTPException(status_code=422, detail={
-            "code": "INVALID_PRINCIPAL", "message": "X-ISEES-Principal-Id must not be blank"})
-    return x_isees_principal_id.strip()
+def _read_owner(investigation_id: str, principal: AuthenticatedPrincipal, parent_repo) -> str:
+    PersistedInvestigationAuthority(parent_repo).require_owned(
+        account_id=principal.account_id, investigation_id=investigation_id)
+    return principal.account_id
+
+
+def owned_read_principal(
+    investigation_id: IdentityPath,
+    principal: AuthenticatedPrincipal = Depends(require_authenticated_principal),
+    parent_repo=Depends(investigation_repository),
+) -> str:
+    return _read_owner(investigation_id, principal, parent_repo)
+
+
+def owned_mutation_principal(
+    investigation_id: IdentityPath,
+    principal: AuthenticatedPrincipal = Depends(require_csrf_protected_principal),
+    parent_repo=Depends(investigation_repository),
+) -> str:
+    return _read_owner(investigation_id, principal, parent_repo)
 
 
 def _ownership(command: Any, owner: str) -> None:
@@ -123,7 +142,7 @@ def _projection(record: Any, lifecycle_events: list[dict[str, Any]]) -> dict[str
 
 @router.post("")
 def create_draft(investigation_id: IdentityPath, command: CreateStudioDraft,
-                 owner: str = Depends(principal), svc: StudioService = Depends(service)):
+                 owner: str = Depends(owned_mutation_principal), svc: StudioService = Depends(service)):
     _ownership(command, owner)
     result = svc.create_draft(investigation_id, command)
     return JSONResponse(status_code=200 if result.replayed else 201,
@@ -132,14 +151,14 @@ def create_draft(investigation_id: IdentityPath, command: CreateStudioDraft,
 
 @router.post("/drafting-proposals", response_model=DraftProposal)
 def generate_drafting_proposal(investigation_id: IdentityPath, command: GenerateDraftProposal,
-                               owner: str = Depends(principal),
+                               owner: str = Depends(owned_mutation_principal),
                                svc: StudioService = Depends(drafting_service)):
     _ownership(command, owner)
     return svc.generate_draft_proposal(investigation_id, command)
 
 
 @router.get("")
-def list_artifacts(investigation_id: IdentityPath, owner: str = Depends(principal),
+def list_artifacts(investigation_id: IdentityPath, owner: str = Depends(owned_read_principal),
                    repo: SQLiteStudioRepository = Depends(repository),
                    svc: StudioService = Depends(service)):
     svc.authorize_read(owner, investigation_id)
@@ -150,7 +169,7 @@ def list_artifacts(investigation_id: IdentityPath, owner: str = Depends(principa
 
 @router.get("/{artifact_id}")
 def load_artifact(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                  owner: str = Depends(principal), repo: SQLiteStudioRepository = Depends(repository),
+                  owner: str = Depends(owned_read_principal), repo: SQLiteStudioRepository = Depends(repository),
                   svc: StudioService = Depends(service)):
     svc.authorize_read(owner, investigation_id)
     record = repo.get_scoped(investigation_id=investigation_id, artifact_id=artifact_id, principal_id=owner)
@@ -166,7 +185,7 @@ def _mutate(method: str, investigation_id: str, command: Any, owner: str, svc: S
 
 @router.post("/{artifact_id}/versions")
 def save_version(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                 command: SaveStudioArtifactVersion, owner: str = Depends(principal),
+                 command: SaveStudioArtifactVersion, owner: str = Depends(owned_mutation_principal),
                  svc: StudioService = Depends(service)):
     if artifact_id != command.artifactId: raise ArtifactNotFound("Studio artifact was not found")
     return _mutate("save_version", investigation_id, command, owner, svc)
@@ -174,7 +193,7 @@ def save_version(investigation_id: IdentityPath, artifact_id: IdentityPath,
 
 @router.post("/{artifact_id}/candidate")
 def create_candidate(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                     command: CreateCandidateKnowledgeArtifact, owner: str = Depends(principal),
+                     command: CreateCandidateKnowledgeArtifact, owner: str = Depends(owned_mutation_principal),
                      svc: StudioService = Depends(service)):
     if artifact_id != command.artifactId: raise ArtifactNotFound("Studio artifact was not found")
     return _mutate("create_candidate", investigation_id, command, owner, svc)
@@ -182,7 +201,7 @@ def create_candidate(investigation_id: IdentityPath, artifact_id: IdentityPath,
 
 @router.post("/{artifact_id}/candidate/publication")
 def publish_candidate(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                      command: PublishStudioCandidateNode, owner: str = Depends(principal),
+                      command: PublishStudioCandidateNode, owner: str = Depends(owned_mutation_principal),
                       svc: StudioService = Depends(service)):
     if artifact_id != command.artifactId: raise ArtifactNotFound("Studio artifact was not found")
     return _mutate("publish_candidate", investigation_id, command, owner, svc)
@@ -190,7 +209,7 @@ def publish_candidate(investigation_id: IdentityPath, artifact_id: IdentityPath,
 
 @router.post("/{artifact_id}/review-submissions")
 def submit_review(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                  command: SubmitStudioForReview, owner: str = Depends(principal),
+                  command: SubmitStudioForReview, owner: str = Depends(owned_mutation_principal),
                   svc: StudioService = Depends(service)):
     if artifact_id != command.artifactId: raise ArtifactNotFound("Studio artifact was not found")
     return _mutate("submit_for_review", investigation_id, command, owner, svc)
@@ -204,39 +223,39 @@ def _review(method: str, investigation_id: str, artifact_id: str, command: Any,
 
 @router.post("/{artifact_id}/acceptance")
 def accept(investigation_id: IdentityPath, artifact_id: IdentityPath, command: AcceptStudioArtifact,
-           owner: str = Depends(principal), svc: StudioService = Depends(service)):
+           owner: str = Depends(owned_mutation_principal), svc: StudioService = Depends(service)):
     return _review("accept", investigation_id, artifact_id, command, owner, svc)
 
 
 @router.post("/{artifact_id}/returns")
 def return_artifact(investigation_id: IdentityPath, artifact_id: IdentityPath, command: ReturnStudioArtifact,
-                    owner: str = Depends(principal), svc: StudioService = Depends(service)):
+                    owner: str = Depends(owned_mutation_principal), svc: StudioService = Depends(service)):
     return _review("return_artifact", investigation_id, artifact_id, command, owner, svc)
 
 
 @router.post("/{artifact_id}/rejections")
 def reject(investigation_id: IdentityPath, artifact_id: IdentityPath, command: RejectStudioArtifact,
-           owner: str = Depends(principal), svc: StudioService = Depends(service)):
+           owner: str = Depends(owned_mutation_principal), svc: StudioService = Depends(service)):
     return _review("reject", investigation_id, artifact_id, command, owner, svc)
 
 
 @router.post("/{artifact_id}/projections/validations")
 def validate_projection(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                        command: ValidateStudioProjection, owner: str = Depends(principal),
+                        command: ValidateStudioProjection, owner: str = Depends(owned_mutation_principal),
                         svc: StudioService = Depends(service)):
     return _review("validate_projection", investigation_id, artifact_id, command, owner, svc)
 
 
 @router.post("/{artifact_id}/projections/materializations")
 def materialize_projection(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                           command: RecordMaterializedProjection, owner: str = Depends(principal),
+                           command: RecordMaterializedProjection, owner: str = Depends(owned_mutation_principal),
                            svc: StudioService = Depends(service)):
     return _review("record_materialized_projection", investigation_id, artifact_id, command, owner, svc)
 
 
 @router.get("/{artifact_id}/projections/{projection_id}/download")
 def download_projection(investigation_id: IdentityPath, artifact_id: IdentityPath,
-                        projection_id: IdentityPath, owner: str = Depends(principal),
+                        projection_id: IdentityPath, owner: str = Depends(owned_read_principal),
                         repo: SQLiteStudioRepository = Depends(repository),
                         svc: StudioService = Depends(service)):
     svc.authorize_read(owner, investigation_id)

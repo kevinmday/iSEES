@@ -1,0 +1,173 @@
+P57-UI-A20-I2 — INVESTIGATION PARENT-AUTHORITY CONVERGENCE RESULT
+
+1. Executive result
+
+IMPLEMENTED. Persisted Investigation ownership is now the mandatory backend
+authority for the Investigation Library, Candidate Evidence, Research Sources, and
+STUDIO routes. Identity comes only from the A20-I1 authenticated cookie session;
+mutations additionally require its CSRF proof. Child rows cannot establish access.
+
+2. Authority model before A20-I2
+
+OBSERVED: the four route modules accepted X-ISEES-Principal-Id. Candidate Evidence
+scoped rows by that claim. Research Sources and STUDIO could infer Investigation
+access from Candidate Evidence or existing STUDIO child rows. A caller could forge
+the claimed principal, and an orphan child could act as an authority record.
+
+3. Authority model after A20-I2
+
+The session resolves an AuthenticatedPrincipal. PersistedInvestigationAuthority then
+performs an exact investigation_id + owner_principal_id lookup in the Investigation
+parent database before a child repository is accessed. Missing, foreign, ambiguous,
+and orphan scopes all fail closed with the same Investigation-not-found result.
+
+4. Files created
+
+  isees_uap/investigations/authority.py
+  isees_uap/testing/investigations/test_parent_authority_convergence.py
+  P57-UI-A20-I2-parent-authority-convergence-result.txt
+
+5. Files modified
+
+  isees_uap/api/v1/investigations.py
+  isees_uap/api/v1/candidate_evidence.py
+  isees_uap/api/v1/research_sources.py
+  isees_uap/api/v1/studio.py
+  isees_uap/testing/investigations/test_investigation_library.py
+
+The obsolete isees_uap/studio/investigation_authority.py child-derived authority
+implementation was removed.
+
+6. Database or migration changes
+
+No schema migration was required. Migration 001 already provides the durable,
+non-null Investigation.owner_principal_id. Existing migration ordering, newer-code
+version rejection, transactions, and database initialization are unchanged. No row
+is seeded, canonicalized, reassigned, or claimed. Legacy owner strings remain stored
+unchanged and are inaccessible unless they exactly match a server-issued account.
+
+7. Server-principal integration
+
+All safe owner-scoped reads use require_authenticated_principal. All converged POST
+routes use require_csrf_protected_principal. Only principal.account_id is passed to
+parent and child services. X-ISEES-Principal-Id is neither parsed nor authorized.
+
+Authentication and Investigation SQLite files remain separately configured. Since
+SQLite cannot enforce a foreign key across those files, the application invariant is:
+first resolve the account transactionally from the authentication store, then require
+an exact durable owner binding from the Investigation store, then touch children.
+
+8. Endpoint-by-endpoint convergence inventory
+
+  GET /api/v1/investigations — authenticated account-owned list.
+  GET /api/v1/investigations/{id} — authenticated owned parent detail.
+  GET /api/v1/investigations/{id}/candidate-evidence[/{candidate}] — parent first.
+  POST candidate submissions/discovery/curated/lifecycle routes — CSRF + parent first.
+  POST /api/v1/investigations/{id}/research-sources — CSRF + parent first.
+  GET STUDIO list/load/download routes — authenticated parent first.
+  POST all STUDIO draft/version/candidate/review/projection routes — CSRF + parent first.
+
+9. Read versus mutation authority
+
+Reads require an active authenticated session and owner-bound parent. Mutations
+require the same plus CSRF. A descriptive principalId retained in existing STUDIO
+command schemas must match the server account but never grants authority.
+
+10. System-owned canonical handling
+
+OBSERVED: persisted Investigation rows have no system-owned discriminator. Current
+canonical inspection is a separate frontend/repository-fixture path and was not
+changed. It remains inspection-only. No authenticated account gains canonical
+mutation authority, and absent canonical parent IDs are denied by these routes.
+
+11. Non-disclosing foreign and absent behavior
+
+Exact owner-scoped parent lookup returns INVESTIGATION_NOT_FOUND for both foreign and
+absent IDs. The focused suite compares status and complete error envelope using the
+same request ID. Children are never queried first, so their existence/count cannot
+be disclosed.
+
+12. CSRF behavior
+
+All cookie-authenticated POST routes in the converged aggregate use A20-I1 double-
+submit plus server-digest validation. Missing or invalid CSRF returns CSRF_REJECTED.
+GET routes deliberately do not require CSRF.
+
+13. Retired caller-controlled authority
+
+Header principal dependencies were removed from all four route modules. Candidate-
+row and STUDIO-row Investigation access inference was removed. The obsolete
+CandidateEvidenceInvestigationAuthority implementation was deleted. No bypass,
+test principal, or development backdoor was added.
+
+14. Test migrations
+
+Investigation Library API tests now create real accounts and use cookie sessions.
+The new focused suite creates two real accounts in the authentication API, uses two
+independent cookie jars and CSRF tokens, and covers anonymous reads/mutations,
+revoked/expired sessions, spoofed headers/query identity, two-account isolation,
+foreign/absent equivalence, orphan children, hostile child metadata, deleted
+parents, empty fresh libraries, and unchanged ambiguous legacy ownership.
+
+15. Verification commands
+
+  python -m compileall -q isees_uap/investigations isees_uap/api/v1/investigations.py isees_uap/api/v1/candidate_evidence.py isees_uap/api/v1/research_sources.py isees_uap/api/v1/studio.py
+  python -m pytest -q isees_uap/testing/investigations/test_parent_authority_convergence.py
+  python -m pytest -q isees_uap/testing/authentication/test_authentication_foundation.py isees_uap/testing/investigations/test_investigation_library.py isees_uap/testing/investigations/test_parent_authority_convergence.py
+  python -m pytest -q isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  git diff --check
+  git diff --stat
+  git status --short
+  git diff --cached --name-only
+
+16. Verification results
+
+PASS: compileall.
+PASS: 5/5 new parent-authority tests.
+PASS: 26/26 combined authentication, Investigation Library, and convergence tests.
+
+The broader Candidate Evidence + STUDIO run produced 73 passes and 26 failures.
+The failures are legacy API tests that still send only X-ISEES-Principal-Id and no
+real session/CSRF, so their now-401 result is intentional retired compatibility, not
+a product-authority regression. Their underlying repository/service tests pass.
+
+17. Pre-existing or unrelated failures
+
+One broader STUDIO service test also reproduced the previously documented shared
+PDF-output identity collision (MATERIALIZATION_FAILURE). An initial combined run
+intermittently hit the pre-existing Windows SQLite concurrent cold-start WAL lock;
+the subsequent focused 26-test run passed it.
+
+18. Known limitations
+
+Legacy Candidate Evidence and STUDIO route-contract tests have not all been rewritten
+to establish real accounts; they accurately fail at the new authentication boundary.
+The frontend InvestigationLibraryApi still emits the retired header and has no A20
+account-session UI. Same-origin cookies will be required by the later Front Door
+integration. No persisted system-owned discriminator exists, so no new canonical
+inspection endpoint was inferred or introduced.
+
+19. Deferred work
+
+Owned creation/activation/reload, account UI, guest claiming, intake lanes, uploads,
+URL/paste provenance, Source Inspector/Capsules, adapters, extension, STUDIO feature
+expansion, REX, A21 Guide, recovery, verification, MFA, and sharing remain deferred.
+
+20. Working-tree preservation statement
+
+Pre-existing modified frontend files and all pre-existing untracked researcher
+artifacts were preserved. A20-I2 used a backend seam and did not edit them. Excluded
+dependency/build/cache/archive/backup paths and every MarketMind path/subject were
+not inspected or modified.
+
+21. Staging, commit, and push confirmation
+
+Nothing was staged. Nothing was committed. Nothing was pushed. No reset, checkout,
+clean, or destructive recursive deletion was run.
+
+22. Recommended next increment
+
+Before A20-I3, migrate the remaining legacy Candidate Evidence/STUDIO API fixtures
+to real cookie sessions so the broad route suite exercises domain behavior beneath
+the corrected boundary. Then proceed to authenticated owned Investigation creation
+with server-generated identifiers and no default/canonical seeding.
