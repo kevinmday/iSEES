@@ -20,6 +20,7 @@ from isees_uap.studio.ports import AccessResult, SourceResolutionResult
 from isees_uap.studio.schemas import GenerateDraftProposal
 from pydantic import ValidationError
 from isees_uap.studio.service import StudioService
+from isees_uap.testing.authenticated_route_support import authenticated_route_session
 
 NOW = datetime(2026, 1, 2, tzinfo=timezone.utc)
 
@@ -173,7 +174,7 @@ def test_unavailable_provider_does_not_require_persisted_investigation_membershi
     assert repo.calls == 0
 
 
-def test_real_browser_context_preserves_wire_hash_and_reaches_unavailable_provider():
+def test_real_browser_context_preserves_wire_hash_and_reaches_unavailable_provider(tmp_path):
     wire = browser_request()
     request = GenerateDraftProposal.model_validate(wire)
     assert request.context.sources[0].collectedAt == "2026-09-04T19:02:55.079Z"
@@ -186,13 +187,15 @@ def test_real_browser_context_preserves_wire_hash_and_reaches_unavailable_provid
     svc, repo = make_service()
     app.dependency_overrides[drafting_service] = lambda: svc
     try:
-        client = TestClient(app)
-        for _ in range(2):
-            response = client.post(
-                f"/api/v1/investigations/{wire['investigationId']}/studio-artifacts/drafting-proposals",
-                json=wire, headers={"X-ISEES-Principal-Id": wire["principalId"]})
-            assert response.status_code == 503
-            assert response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
+        with authenticated_route_session(
+            tmp_path / "route", investigation_ids=(wire["investigationId"],)
+        ) as route:
+            for _ in range(2):
+                response = route.post(
+                    f"/api/v1/investigations/{wire['investigationId']}/studio-artifacts/drafting-proposals",
+                    json=wire)
+                assert response.status_code == 503
+                assert response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
         assert repo.calls == 0
     finally:
         app.dependency_overrides.clear()
@@ -257,27 +260,29 @@ def test_frontend_artifact_design_wire_parity_is_strict_and_reaches_provider_bou
         })
 
 
-def test_api_route_path_body_owner_and_safe_errors():
+def test_api_route_path_body_owner_and_safe_errors(tmp_path):
     svc, _ = make_service(Provider())
     app.dependency_overrides[drafting_service] = lambda: svc
     body = command().model_dump(mode="json")
-    client = TestClient(app); url = "/api/v1/investigations/i1/studio-artifacts/drafting-proposals"
+    url = "/api/v1/investigations/i1/studio-artifacts/drafting-proposals"
     try:
-        assert client.post(url, json=body, headers={"X-ISEES-Principal-Id": "p1"}).status_code == 200
-        mismatch = client.post(url.replace("/i1/", "/i2/"), json=body, headers={"X-ISEES-Principal-Id": "p1"})
-        assert mismatch.status_code == 412
-        denied = client.post(url, json={**body, "principalId": "other"}, headers={"X-ISEES-Principal-Id": "p1"})
-        assert denied.status_code == 404
+        with authenticated_route_session(tmp_path / "route", investigation_ids=("i1", "i2")) as route:
+            assert route.post(url, json=body).status_code == 200
+            mismatch = route.post(url.replace("/i1/", "/i2/"), json=body)
+            assert mismatch.status_code == 412
+            denied = route.client.post(url, json={**body, "principalId": "other"}, headers=route.csrf_headers)
+            assert denied.status_code == 404
     finally: app.dependency_overrides.clear()
 
 
-def test_api_unavailable_error_leaks_no_credentials_or_source_payload():
+def test_api_unavailable_error_leaks_no_credentials_or_source_payload(tmp_path):
     svc, _ = make_service()
     app.dependency_overrides[drafting_service] = lambda: svc
     body = command().model_dump(mode="json")
     try:
-        response = TestClient(app).post("/api/v1/investigations/i1/studio-artifacts/drafting-proposals",
-            json=body, headers={"X-ISEES-Principal-Id": "p1", "X-Request-Id": "draft-1"})
+        with authenticated_route_session(tmp_path / "route") as route:
+            response = route.post("/api/v1/investigations/i1/studio-artifacts/drafting-proposals",
+                json=body, headers={"X-Request-Id": "draft-1"})
         assert response.status_code == 503 and response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
         assert "evidence:1" not in response.text and "credential" not in response.text.lower()
     finally: app.dependency_overrides.clear()
@@ -293,15 +298,12 @@ def test_production_unavailable_proposal_does_not_open_or_mutate_durable_stores(
     repository.cache_clear()
     body = command().model_dump(mode="json")
     try:
-        client = TestClient(app)
-        for _ in range(2):
-            response = client.post(
-                "/api/v1/investigations/i1/studio-artifacts/drafting-proposals",
-                json=body,
-                headers={"X-ISEES-Principal-Id": "p1"},
-            )
-            assert response.status_code == 503
-            assert response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
+        with authenticated_route_session(tmp_path / "route") as route:
+            for _ in range(2):
+                response = route.post(
+                    "/api/v1/investigations/i1/studio-artifacts/drafting-proposals", json=body)
+                assert response.status_code == 503
+                assert response.json()["error"]["code"] == "DRAFTING_PROVIDER_UNAVAILABLE"
         assert not authority_path.exists()
         assert not studio_path.exists()
     finally:

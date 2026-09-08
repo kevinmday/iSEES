@@ -14,6 +14,7 @@ from isees_uap.studio.schemas import CreateStudioDraft, RecordMaterializedProjec
 from isees_uap.studio.service import StudioService
 from isees_uap.studio.sqlite_repository import SQLiteStudioRepository
 from isees_uap.testing.studio.test_service_contract import Access, Acceptor, Publisher, Sources
+from isees_uap.testing.authenticated_route_support import authenticated_route_session
 
 
 def command(key: str, revision: int, **extra):
@@ -21,7 +22,7 @@ def command(key: str, revision: int, **extra):
                 idempotencyKey=key, artifactId="a1", expectedRevision=revision, **extra)
 
 
-def setup_service(tmp_path, *, document=None, claims=None, mappings=None):
+def setup_service(tmp_path, *, document=None, claims=None, mappings=None, principal="p1"):
     repo = SQLiteStudioRepository(tmp_path / "studio.db")
     output = PdfOutputStore(tmp_path / "outputs")
     svc = StudioService(repo, Access(), Sources(), Publisher(), Acceptor(), pdf_output_store=output)
@@ -35,12 +36,12 @@ def setup_service(tmp_path, *, document=None, claims=None, mappings=None):
                   {"id": "r", "type": "REFERENCE", "title": "Primary source", "targetId": "node:7", "source": "Archive", "corpusId": "item:7"}],
     }
     svc.create_draft("i1", CreateStudioDraft(
-        investigationId="i1", principalId="p1", idempotencyKey="create", artifactId="a1",
+        investigationId="i1", principalId=principal, idempotencyKey="create", artifactId="a1",
         versionId="v1", authorSchemaVersion="computational-author-document/v1", document=document,
         claims=claims or [], claimSourceMappings=mappings or []))
-    svc.validate_projection("i1", ValidateStudioProjection(**command(
+    svc.validate_projection("i1", ValidateStudioProjection(**{**command(
         "validate", 0, projectionId="pdf:1", artifactVersionId="v1",
-        projectionFormat="PDF", validatorVersion="validator/v1")))
+        projectionFormat="PDF", validatorVersion="validator/v1"), "principalId": principal}))
     return svc, repo, output
 
 
@@ -87,20 +88,20 @@ def test_storage_failure_never_records_materialized_or_exposes_partial(tmp_path,
 
 def test_authorized_download_exact_bytes_and_fail_closed(tmp_path, monkeypatch):
     monkeypatch.setenv("ISEES_STUDIO_OUTPUT_ROOT", str(tmp_path / "outputs"))
-    svc, repo, output = setup_service(tmp_path)
-    app.dependency_overrides[repository] = lambda: repo
-    app.dependency_overrides[service] = lambda: svc
-    client = TestClient(app); url = "/api/v1/investigations/i1/studio-artifacts/a1/projections/pdf:1/download"
-    try:
+    with authenticated_route_session(tmp_path / "route") as route:
+        svc, repo, output = setup_service(tmp_path, principal=route.account_id)
+        app.dependency_overrides[repository] = lambda: repo
+        app.dependency_overrides[service] = lambda: svc
+        client = route; url = "/api/v1/investigations/i1/studio-artifacts/a1/projections/pdf:1/download"
         materialization = command("materialize-api", 1, projectionId="pdf:1", artifactVersionId="v1")
         created = client.post("/api/v1/investigations/i1/studio-artifacts/a1/projections/materializations",
-                              json=materialization, headers={"X-ISEES-Principal-Id": "p1"})
+                              json=materialization)
         assert created.status_code == 200 and created.json()["materializationState"] == "MATERIALIZED"
         replay = client.post("/api/v1/investigations/i1/studio-artifacts/a1/projections/materializations",
-                             json=materialization, headers={"X-ISEES-Principal-Id": "p1"})
+                             json=materialization)
         assert replay.status_code == 200 and replay.json()["replayed"] is True
         canonical = client.get("/api/v1/investigations/i1/studio-artifacts/a1",
-                               headers={"X-ISEES-Principal-Id": "p1"}).json()
+                               headers={"X-ISEES-Principal-Id": "spoofed"}).json()
         assert canonical["projections"][0]["materializationState"] == "MATERIALIZED"
         response = client.get(url, headers={"X-ISEES-Principal-Id": "p1"})
         projection = repo.get(artifact_id="a1").projections[0]
@@ -108,7 +109,8 @@ def test_authorized_download_exact_bytes_and_fail_closed(tmp_path, monkeypatch):
         assert response.content == output.path_for_location(projection.output_location).read_bytes()
         assert "sha256:" + hashlib.sha256(response.content).hexdigest() == canonical["projections"][0]["outputHash"]
         assert "outputLocation" not in client.get("/api/v1/investigations/i1/studio-artifacts/a1", headers={"X-ISEES-Principal-Id": "p1"}).text
-        assert client.get(url, headers={"X-ISEES-Principal-Id": "other"}).status_code == 404
+        assert client.get(url, headers={"X-ISEES-Principal-Id": "other"}).status_code == 200
         output.path_for_location(projection.output_location).unlink()
         assert client.get(url, headers={"X-ISEES-Principal-Id": "p1"}).status_code == 404
-    finally: app.dependency_overrides.clear()
+        app.dependency_overrides.pop(repository, None)
+        app.dependency_overrides.pop(service, None)

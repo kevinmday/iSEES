@@ -77,9 +77,14 @@ class Acceptor:
 
 
 @pytest.fixture
-def env():
+def env(tmp_path):
     repo, access, sources, publisher, acceptor = Repo(), Access(), Sources(), Publisher(), Acceptor()
-    service = StudioService(repo, access, sources, publisher, acceptor, clock=lambda: NOW)
+    service = StudioService(
+        repo, access, sources, publisher, acceptor, clock=lambda: NOW,
+        pdf_output_store=__import__(
+            "isees_uap.studio.pdf_materializer", fromlist=["PdfOutputStore"]
+        ).PdfOutputStore(tmp_path / "outputs"),
+    )
     return service, repo, access, sources, publisher, acceptor
 
 

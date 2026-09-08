@@ -1,0 +1,154 @@
+P57-UI-A20-I2A — AUTHENTICATED ROUTE-FIXTURE MIGRATION RESULT
+
+1. Executive result
+
+COMPLETE. Remaining A20-I2 Candidate Evidence and STUDIO route fixtures now use
+real accounts, production-issued cookie sessions, real CSRF tokens, and persisted
+account-owned Investigation parents. Research Sources has explicit authenticated
+publication, replay, persistence, and foreign-parent coverage. The relevant backend
+suite passes 126/126. No production file was changed.
+
+2. Retired fixture-authority patterns found
+
+Legacy API tests supplied X-ISEES-Principal-Id as authority, omitted sessions and
+CSRF, used fixed body principalId values, inferred STUDIO access from child storage,
+or exercised children without a persisted Investigation. Lower-level repository and
+service tests still pass explicit principals as internal domain inputs; those are not
+HTTP authority fixtures. Remaining identity headers in route tests are deliberate
+spoof-resistance assertions and do not authorize.
+
+3. Test files created
+
+  isees_uap/testing/authenticated_route_support.py
+  P57-UI-A20-I2A-authenticated-route-fixture-migration-result.txt
+
+4. Test files modified
+
+  isees_uap/testing/candidate_evidence/test_candidate_evidence.py
+  isees_uap/testing/investigations/test_parent_authority_convergence.py
+  isees_uap/testing/studio/test_drafting_contract.py
+  isees_uap/testing/studio/test_pdf_materialization.py
+  isees_uap/testing/studio/test_service_contract.py
+  isees_uap/testing/studio/test_studio_api.py
+
+5. Production files created or modified
+
+None.
+
+6. Reusable authenticated fixture design
+
+authenticated_route_session configures temporary production SQLite authentication
+and Investigation repositories through normal dependency injection. It creates a
+unique researcher through POST /api/v1/auth/accounts, retains the issued cookies,
+persists requested parent Investigations for the returned account ID, exposes the
+real CSRF cookie as X-ISEES-CSRF, and rewrites descriptive STUDIO principalId fields
+to the authenticated account for ordinary fixture requests. Explicit mismatch tests
+use the raw client so body identity remains non-authoritative. Overrides are restored
+key-by-key, preserving unrelated suite overrides and preventing global leakage.
+
+7. Temporary-storage and output isolation
+
+Authentication, Investigation, Candidate Evidence, Research Sources, and STUDIO
+databases use per-test tmp_path roots. STUDIO API materialization uses a unique output
+root. The service-contract fixture now injects a per-test PdfOutputStore, eliminating
+the reported shared canonical-output collision without changing immutable collision
+rules. Clients and cookie jars are per context and are closed after use.
+
+8. Candidate Evidence migration
+
+Submission, discovery, curated reference, list/load, cursor, mismatch, lifecycle,
+revision, review, replay, idempotency, and strict-validation route assertions now run
+beneath a real authenticated parent. A missing CSRF proof is rejected, and a spoofed
+principal header is shown to be ineffective.
+
+9. Research Sources migration
+
+A focused route test publishes a canonically hashed graph source with a real session
+and CSRF proof, verifies deterministic replay and persisted owner identity, and proves
+that a second authenticated account cannot publish beneath the foreign parent.
+
+10. Investigation migration
+
+Existing real-session Investigation Library and A20-I2 convergence fixtures remain
+passing. Every migrated child route has a persisted owned parent; absent, foreign,
+deleted, legacy, and orphan parents remain inaccessible and non-disclosing.
+
+11. STUDIO artifact migration
+
+Create, save, list, load, lifecycle, candidate, publication, review, acceptance,
+return, rejection, projection validation, materialization, and download route tests
+use authenticated sessions and CSRF. Fixed caller principal values no longer grant
+route authority.
+
+12. STUDIO drafting migration
+
+Browser-context parity, successful provider routing, unavailable-provider handling,
+safe errors, path/body mismatch, and durable-store non-mutation tests now use real
+authenticated sessions and persisted parents.
+
+13. Immutable materialization behavior
+
+Per-test output roots remove cross-test collisions. Deterministic replay, exact byte
+download, hash verification, missing-output failure, partial-write prevention, and
+the production PdfOutputStore immutable identity collision protection remain intact.
+
+14. Two-account and spoof-resistance coverage
+
+The convergence suite uses independent accounts and cookie jars for foreign-parent,
+orphan-child, hostile-child-metadata, and spoofed header/query checks. Candidate and
+STUDIO suites additionally prove spoofed headers do not replace the cookie principal.
+Invalid CSRF remains rejected.
+
+15. Verification commands
+
+  python -m compileall -q isees_uap/testing/authenticated_route_support.py isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  python -m pytest -q isees_uap/testing/authentication isees_uap/testing/investigations isees_uap/testing/candidate_evidence isees_uap/testing/studio
+  python -m pytest -q isees_uap/testing
+  git diff --check
+  git diff --stat
+  git status --short
+  git diff --cached --name-only
+
+16. Verification totals
+
+PASS: 126/126 relevant backend tests in 13.88 seconds. PASS: compileall. This covers
+account creation/login/restoration/logout/CSRF, parent convergence, Candidate
+Evidence, Research Sources, STUDIO artifacts/drafting, two-account isolation,
+spoof resistance, non-disclosure, fresh-account emptiness, no canonicalization,
+isolated output, and immutable materialization behavior.
+
+17. Remaining failures
+
+The full backend collection stops during collection on two unrelated missing modules:
+isees_uap.kod.engines.aviation_engine and isees_uap_v0_baseline. No A20-I2A test is
+collected as failing, and these unrelated subsystems were not repaired.
+
+18. Known limitations
+
+The helper intentionally supports only backend route tests and production auth code.
+STUDIO schemas retain descriptive principalId fields, which must match but cannot
+authorize. Research Sources currently exposes publication but no independent HTTP
+read route; persistence is verified through its production repository.
+
+19. Deferred work
+
+Frontend account/session integration, owned Investigation creation/activation,
+guest claiming, recovery/MFA, and unrelated legacy missing modules remain deferred.
+
+20. Working-tree preservation statement
+
+The pre-existing modified frontend files and untracked researcher artifacts were
+recorded and preserved. No existing user file was cleaned, restored, deleted,
+renamed, staged, or overwritten. Excluded MarketMind, dependency, build, coverage,
+cache, archive, and development-backup material was not inspected or modified.
+
+21. Staging, commit, and push confirmation
+
+Nothing was staged, committed, or pushed. No reset, checkout, clean, or destructive
+recursive deletion was run.
+
+22. Recommended next increment
+
+Proceed to authenticated owned Investigation creation and activation with
+server-generated identifiers, retaining the converged parent boundary and adding no
+default, fixture, or canonical Investigation to fresh accounts.

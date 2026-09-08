@@ -10,11 +10,13 @@ from isees_uap.api import app
 from isees_uap.api.v1.authentication import settings
 from isees_uap.api.v1.candidate_evidence import repository as candidate_repository
 from isees_uap.api.v1.investigations import repository as investigation_repository
+from isees_uap.api.v1.research_sources import repository as research_source_repository
 from isees_uap.authentication.config import AuthenticationSettings
 from isees_uap.authentication.principal import authentication_repository
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
 from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEvidenceRepository
 from isees_uap.investigations.sqlite_repository import SQLiteInvestigationRepository
+from isees_uap.research_sources.sqlite_repository import SQLiteResearchSourceRepository
 
 PASSWORD = "correct horse battery staple"
 
@@ -163,3 +165,37 @@ def test_migration_and_accounts_do_not_claim_or_canonicalize_legacy_rows(authori
         assert row == ("legacy-ambiguous",)
         assert connection.execute("SELECT count(*) FROM investigation").fetchone()[0] == 1
     assert owner_a != owner_b
+
+
+def test_research_source_domain_behavior_runs_beneath_parent_authority(
+        authority_environment, tmp_path):
+    account_a, account_b, owner_a, _, _, parents, _ = authority_environment
+    parents.create(investigation_id="INV-A", owner_principal_id=owner_a, title="A")
+    sources = SQLiteResearchSourceRepository(tmp_path / "research-sources.db")
+    app.dependency_overrides[research_source_repository] = lambda: sources
+    publication = {
+        "schemaVersion": "research-source-publication/v1",
+        "anchorId": "anchor:1", "investigationId": "INV-A",
+        "sourceWorkspace": "MANIFOLD", "sourceKind": "GRAPH",
+        "sourceIdentity": "NODE:event-1", "sourceRevisionId": "1",
+        "graphIdentity": "NODE:event-1", "graphType": "NODE", "graphId": "event-1",
+        "graphRevision": 1, "classification": "CANONICAL",
+        "insertionState": "INSERTABLE", "insertionReason": "Canonical graph source",
+        "displayTitle": "Event", "displaySummary": "Summary",
+        "representationSchemaVersion": "research-graph/v1", "mediaType": "application/json",
+        "capturedRepresentation": {"graph": {"type": "NODE", "id": "event-1"},
+                                   "graphRevision": 1},
+        "collectedAt": "2026-01-02T00:00:00Z", "createdAt": "2026-01-02T00:00:00Z",
+        "immutableSourceHash": "",
+    }
+    publication["immutableSourceHash"] = sources.canonical_hash(publication)
+    url = "/api/v1/investigations/INV-A/research-sources"
+    created = account_a.post(url, json=publication, headers=csrf(account_a))
+    assert created.status_code == 200 and created.json() == {
+        "anchorId": "anchor:1", "replayed": False}
+    replay = account_a.post(url, json=publication, headers=csrf(account_a))
+    assert replay.status_code == 200 and replay.json()["replayed"] is True
+    assert sources.resolve(
+        anchor_id="anchor:1", investigation_id="INV-A", principal_id=owner_a
+    )["displayTitle"] == "Event"
+    assert account_b.post(url, json=publication, headers=csrf(account_b)).status_code == 404

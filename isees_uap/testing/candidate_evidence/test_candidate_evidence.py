@@ -10,6 +10,7 @@ from isees_uap.api import app
 from isees_uap.api.v1.candidate_evidence import repository
 from isees_uap.candidate_evidence.errors import IdempotencyConflict, OriginConflict, ProhibitedTransition, RevisionConflict
 from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEvidenceRepository
+from isees_uap.testing.authenticated_route_support import authenticated_route_session
 
 
 def submission(investigation="investigation-a", key="create-1", identity="submission-1"):
@@ -54,15 +55,22 @@ def repo(tmp_path):
 
 
 @pytest.fixture
-def client(repo):
+def route_session(repo, tmp_path):
     app.dependency_overrides[repository] = lambda: repo
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+    try:
+        with authenticated_route_session(
+            tmp_path / "route", investigation_ids=("investigation-a", "investigation-b")
+        ) as session:
+            yield session
+    finally:
+        app.dependency_overrides.pop(repository, None)
 
 
-def headers(principal="principal-1"):
-    return {"X-ISEES-Principal-Id": principal}
+def headers(route_session, principal=None):
+    value = route_session.csrf_headers
+    if principal is not None:
+        value["X-ISEES-Principal-Id"] = principal
+    return value
 
 
 def test_persistence_restoration_unknown_and_idempotency(repo, tmp_path):
@@ -82,60 +90,59 @@ def test_persistence_restoration_unknown_and_idempotency(repo, tmp_path):
         restored.create(command={**submission(key="third"), "source": {"title": "changed"}}, principal_id="p", origin="SUBMISSION")
 
 
-def test_api_composition_creation_isolation_and_identity(client):
+def test_api_composition_creation_isolation_and_identity(route_session):
+    client = route_session.client
     assert client.get("/").status_code == 200
-    assert client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission()).status_code == 422
-    assert client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission(), headers=headers("   ")).status_code == 422
+    assert client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission()).status_code == 403
     blank_investigation = submission(investigation="   ")
-    assert client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=blank_investigation, headers=headers()).status_code == 422
-    created = client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission(), headers=headers())
+    assert client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=blank_investigation, headers=headers(route_session)).status_code == 422
+    created = client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission(), headers=headers(route_session))
     assert created.status_code == 201
     candidate = created.json()
     assert candidate["lifecycleState"] == "SUBMITTED"
-    discovered = client.post("/api/v1/investigations/investigation-a/candidate-evidence/discovery-results", json=discovery(), headers=headers())
+    discovered = client.post("/api/v1/investigations/investigation-a/candidate-evidence/discovery-results", json=discovery(), headers=headers(route_session))
     assert discovered.status_code == 201 and discovered.json()["origin"] == "DISCOVERY"
     assert discovered.json()["lifecycleState"] == "DISCOVERED"
     curated_response = client.post(
         "/api/v1/investigations/investigation-a/candidate-evidence/curated-repository-references",
-        json=curated(), headers=headers(),
+        json=curated(), headers=headers(route_session),
     )
     assert curated_response.status_code == 201
     curated_candidate = curated_response.json()
     assert curated_candidate["origin"] == "CURATED_REPOSITORY"
     assert curated_candidate["lifecycleState"] == "REFERENCED"
-    listed = client.get("/api/v1/investigations/investigation-a/candidate-evidence", headers=headers()).json()
+    listed = client.get("/api/v1/investigations/investigation-a/candidate-evidence").json()
     assert {item["candidateId"] for item in listed["items"]} == {
         candidate["candidateId"], discovered.json()["candidateId"], curated_candidate["candidateId"]
     }
-    assert client.get("/api/v1/investigations/investigation-b/candidate-evidence", headers=headers()).json()["items"] == []
+    assert client.get("/api/v1/investigations/investigation-b/candidate-evidence").json()["items"] == []
     invalid_cursor = client.get(
-        "/api/v1/investigations/investigation-a/candidate-evidence?cursor=invalid", headers=headers()
+        "/api/v1/investigations/investigation-a/candidate-evidence?cursor=invalid"
     )
     assert invalid_cursor.status_code == 400
     assert invalid_cursor.json()["error"]["code"] == "INVALID_CURSOR"
-    assert client.get(f"/api/v1/investigations/investigation-b/candidate-evidence/{candidate['candidateId']}", headers=headers()).status_code == 404
+    assert client.get(f"/api/v1/investigations/investigation-b/candidate-evidence/{candidate['candidateId']}").status_code == 404
     cross_transition = {
         "schemaVersion": "candidate-evidence-command/v1", "investigationId": "investigation-b",
         "expectedRevision": 0, "to": "REFERENCED", "idempotencyKey": "cross-investigation",
     }
     assert client.post(
         f"/api/v1/investigations/investigation-b/candidate-evidence/{candidate['candidateId']}/lifecycle-transitions",
-        json=cross_transition, headers=headers(),
+        json=cross_transition, headers=headers(route_session),
     ).status_code == 404
     unchanged = client.get(
-        f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate['candidateId']}", headers=headers()
+        f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate['candidateId']}"
     ).json()
     assert unchanged["revision"] == 0 and unchanged["lifecycleState"] == "SUBMITTED"
-    assert client.get(f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate['candidateId']}", headers=headers("another-owner")).status_code == 404
-    assert client.get(
-        "/api/v1/investigations/investigation-a/candidate-evidence", headers=headers("another-owner")
-    ).json()["items"] == []
-    mismatch = client.post("/api/v1/investigations/investigation-b/candidate-evidence/submissions", json=submission(), headers=headers())
+    assert client.get(f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate['candidateId']}", headers=headers(route_session, "another-owner")).status_code == 200
+    mismatch = client.post("/api/v1/investigations/investigation-b/candidate-evidence/submissions", json=submission(), headers=headers(route_session))
     assert mismatch.status_code == 412 and mismatch.json()["error"]["code"] == "INVESTIGATION_MISMATCH"
 
 
-def test_lifecycle_revision_review_and_replay(client):
-    candidate = client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission(), headers=headers()).json()
+def test_lifecycle_revision_review_and_replay(route_session):
+    client = route_session.client
+    h = headers(route_session)
+    candidate = client.post("/api/v1/investigations/investigation-a/candidate-evidence/submissions", json=submission(), headers=h).json()
     url = f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate['candidateId']}/lifecycle-transitions"
     def command(revision, target, key, decision=None):
         value = {"schemaVersion": "candidate-evidence-command/v1", "investigationId": "investigation-a",
@@ -143,18 +150,18 @@ def test_lifecycle_revision_review_and_replay(client):
         if decision:
             value["reviewDecision"] = decision
         return value
-    referenced = client.post(url, json=command(0, "REFERENCED", "t1"), headers=headers())
+    referenced = client.post(url, json=command(0, "REFERENCED", "t1"), headers=h)
     assert referenced.status_code == 200 and referenced.json()["revision"] == 1
-    assert client.post(url, json=command(0, "IN_REVIEW", "stale"), headers=headers()).status_code == 409
-    reviewed = client.post(url, json=command(1, "IN_REVIEW", "t2"), headers=headers())
+    assert client.post(url, json=command(0, "IN_REVIEW", "stale"), headers=h).status_code == 409
+    reviewed = client.post(url, json=command(1, "IN_REVIEW", "t2"), headers=h)
     assert reviewed.status_code == 200
     excluded_command = command(2, "EXCLUDED", "t3", {"decision": "EXCLUDED", "reason": "Human decision"})
-    excluded = client.post(url, json=excluded_command, headers=headers())
-    assert excluded.status_code == 200 and excluded.json()["reviewDecision"]["reviewerId"] == "principal-1"
-    replay = client.post(url, json=excluded_command, headers=headers())
+    excluded = client.post(url, json=excluded_command, headers=h)
+    assert excluded.status_code == 200 and excluded.json()["reviewDecision"]["reviewerId"] == route_session.account_id
+    replay = client.post(url, json=excluded_command, headers=h)
     assert replay.status_code == 200 and replay.json() == excluded.json()
     admitted = {**command(3, "EXCLUDED", "bad"), "to": "ADMITTED"}
-    assert client.post(url, json=admitted, headers=headers()).status_code == 422
+    assert client.post(url, json=admitted, headers=h).status_code == 422
 
 
 def test_database_constraints_and_wal(repo):
@@ -213,30 +220,32 @@ def test_curated_reference_identity_ownership_unknowns_and_conflicts(repo):
     ) is None
 
 
-def test_curated_api_strictness_association_and_isolation(client):
+def test_curated_api_strictness_association_and_isolation(route_session):
+    client = route_session.client
+    h = headers(route_session)
     url = "/api/v1/investigations/investigation-a/candidate-evidence/curated-repository-references"
     missing_required_unknown = curated()
     del missing_required_unknown["provenance"]
-    assert client.post(url, json=missing_required_unknown, headers=headers()).status_code == 422
+    assert client.post(url, json=missing_required_unknown, headers=h).status_code == 422
     invalid_association = curated(key="bad-association")
     invalid_association["association"] = {
         "kind": "NODE", "canonicalIdentity": "node-1", "basis": "INFERRED_SIMILARITY"
     }
-    assert client.post(url, json=invalid_association, headers=headers()).status_code == 422
+    assert client.post(url, json=invalid_association, headers=h).status_code == 422
 
     associated = curated(key="associated", artifact="associated-artifact")
     associated["association"] = {
         "kind": "INVESTIGATION", "canonicalIdentity": "investigation-a", "basis": "EXACT_CANONICAL_ID"
     }
-    response = client.post(url, json=associated, headers=headers())
+    response = client.post(url, json=associated, headers=h)
     assert response.status_code == 201 and response.json()["association"] == associated["association"]
     candidate_id = response.json()["candidateId"]
     assert client.get(
-        f"/api/v1/investigations/investigation-b/candidate-evidence/{candidate_id}", headers=headers()
+        f"/api/v1/investigations/investigation-b/candidate-evidence/{candidate_id}"
     ).status_code == 404
     assert client.get(
-        f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate_id}", headers=headers("other")
-    ).status_code == 404
+        f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate_id}", headers={"X-ISEES-Principal-Id": "other"}
+    ).status_code == 200
     transition_url = (
         f"/api/v1/investigations/investigation-a/candidate-evidence/{candidate_id}/lifecycle-transitions"
     )
@@ -244,7 +253,7 @@ def test_curated_api_strictness_association_and_isolation(client):
         "schemaVersion": "candidate-evidence-command/v1", "investigationId": "investigation-a",
         "expectedRevision": 0, "to": "ADMITTED", "idempotencyKey": "admit-curated",
     }
-    assert client.post(transition_url, json=direct_admission, headers=headers()).status_code == 422
+    assert client.post(transition_url, json=direct_admission, headers=h).status_code == 422
 
 
 def test_migrates_existing_version_one_database_without_data_loss(tmp_path):
