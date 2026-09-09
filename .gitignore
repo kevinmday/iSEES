@@ -158,3 +158,8 @@ isees-ui/.env
 *.hf_cache
 ui_tree.txt
 test_run.txt
+
+# iSEES Capture generated packages and private signing keys
+*.pem
+*.crx
+/isees-ui/isees-capture-extension/dist/

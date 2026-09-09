@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "iSEES Capture",
+  "description": "External Source Capture — creates a local iSEES Source Capsule for later inspection and import.",
+  "version": "1.0.0",
+  "action": {
+    "default_title": "Open iSEES Capture",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "downloads", "storage"],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'none'; img-src 'self' data:; style-src 'self'"
+  }
+}

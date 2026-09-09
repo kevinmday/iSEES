@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iSEES Capture</title>
+    <link rel="stylesheet" href="/src/popup.css" />
+  </head>
+  <body>
+    <main>
+      <header class="brand">
+        <span class="mark" aria-hidden="true">iS</span>
+        <div><h1>iSEES Capture</h1><p>External Source Capture</p></div>
+      </header>
+
+      <section id="consent-view" aria-labelledby="consent-title" hidden>
+        <h2 id="consent-title">Your informed agreement</h2>
+        <p>This extension creates a source package for later inspection and import into iSEES.</p>
+        <ul>
+          <li>iSEES Capture operates only when I explicitly activate it.</li>
+          <li>It captures only the passage and source information shown to me for confirmation.</li>
+          <li>It does not monitor my browsing history.</li>
+          <li>It does not export passwords, cookies, authentication tokens, browser storage, or request headers.</li>
+          <li>Captured material is saved locally as an iSEES Source Capsule JSON file.</li>
+          <li>A Source Capsule is not verified evidence, accepted knowledge, or System Canon.</li>
+          <li>I remain responsible for privacy, copyright, licensing, and publication restrictions.</li>
+        </ul>
+        <label class="check"><input id="agreement-check" type="checkbox" /> I understand and agree to these terms.</label>
+        <button id="agree-button" class="primary" type="button" disabled>Agree and enable iSEES Capture</button>
+      </section>
+
+      <section id="capture-view" aria-labelledby="capture-title" hidden>
+        <div class="row"><h2 id="capture-title">Capture a selected passage</h2><button id="withdraw-button" class="link" type="button">Withdraw agreement</button></div>
+        <p class="quiet">Nothing is read until you request inspection. Select text in the active page first.</p>
+        <button id="inspect-button" class="primary" type="button">Inspect current selection</button>
+
+        <form id="confirmation-form" hidden>
+          <div class="warning" role="note"><strong>Source only.</strong> This is not verified evidence, accepted knowledge, or System Canon, and has not been imported into iSEES.</div>
+          <section class="preview" aria-labelledby="preview-title">
+            <h3 id="preview-title">Confirm captured source</h3>
+            <dl id="metadata"></dl>
+            <label for="passage">Exact selected text</label>
+            <textarea id="passage" readonly rows="7"></textarea>
+          </section>
+          <div class="classifications">
+            <label for="rights">Rights classification</label>
+            <select id="rights" required>
+              <option value="UNKNOWN_RIGHTS">Unknown rights</option><option value="PUBLIC_REFERENCE">Public reference</option>
+              <option value="RESEARCHER_OWNED">Researcher owned</option><option value="PRIVATE_CORRESPONDENCE">Private correspondence</option>
+              <option value="PERSONAL_COMMUNICATION">Personal communication</option><option value="RESTRICTED_DISTRIBUTION">Restricted distribution</option>
+              <option value="LICENSED_REPOSITORY_CONTENT">Licensed repository content</option><option value="QUOTATION_PERMITTED">Quotation permitted</option>
+              <option value="REFERENCE_ONLY">Reference only</option>
+            </select>
+            <label for="privacy">Privacy classification</label>
+            <select id="privacy" required><option value="UNKNOWN">Unknown</option><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option><option value="RESTRICTED">Restricted</option></select>
+          </div>
+          <label for="researcher-note">Researcher note <span class="quiet">(optional and kept separate from source text)</span></label>
+          <textarea id="researcher-note" rows="3" maxlength="12000"></textarea>
+          <label class="check"><input id="capture-check" type="checkbox" /> I confirm this passage, metadata, rights, and privacy classification.</label>
+          <button id="create-button" class="primary" type="submit" disabled>Create iSEES Source Capsule</button>
+        </form>
+        <section id="receipt" class="receipt" aria-labelledby="receipt-title" tabindex="-1" hidden><h3 id="receipt-title">Saved locally</h3><dl id="receipt-details"></dl><p>This Source Capsule has not yet been imported into iSEES.</p></section>
+      </section>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="/src/popup.ts"></script>
+  </body>
+</html>
