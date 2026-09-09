@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://isees.example/schemas/source-capsule/v1",
+  "title": "iSEES Capture Source Capsule v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "capsuleId", "captureMethod", "capturedAt", "source", "rightsClassification", "privacyClassification", "passages", "researcherNotes", "integrity"],
+  "properties": {
+    "schema": { "type": "object", "additionalProperties": false, "required": ["identity", "version"], "properties": { "identity": { "const": "https://isees.example/schemas/source-capsule/v1" }, "version": { "const": 1 } } },
+    "capsuleId": { "$ref": "#/$defs/nonEmpty" },
+    "captureMethod": { "const": "ISEES_CAPTURE_EXPLICIT" },
+    "capturedAt": { "$ref": "#/$defs/timestamp" },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["identity", "finalUrl"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/nonEmpty" }, "requestedUrl": { "$ref": "#/$defs/httpUrl" }, "redirectChain": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/httpUrl" } }, "finalUrl": { "$ref": "#/$defs/httpUrl" }, "canonicalUrl": { "$ref": "#/$defs/httpUrl" },
+        "pageTitle": { "$ref": "#/$defs/nonEmpty" }, "publisher": { "$ref": "#/$defs/nonEmpty" }, "authorByline": { "$ref": "#/$defs/nonEmpty" }, "publishedAt": { "$ref": "#/$defs/timestamp" }, "modifiedAt": { "$ref": "#/$defs/timestamp" }, "language": { "$ref": "#/$defs/nonEmpty" }, "revisionIdentity": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "rightsClassification": { "enum": ["PUBLIC_REFERENCE", "RESEARCHER_OWNED", "PRIVATE_CORRESPONDENCE", "PERSONAL_COMMUNICATION", "RESTRICTED_DISTRIBUTION", "LICENSED_REPOSITORY_CONTENT", "QUOTATION_PERMITTED", "REFERENCE_ONLY", "UNKNOWN_RIGHTS"] },
+    "privacyClassification": { "enum": ["PUBLIC", "PRIVATE", "RESTRICTED", "UNKNOWN"] },
+    "passages": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "$ref": "#/$defs/passage" } },
+    "researcherNotes": { "type": "array", "items": { "$ref": "#/$defs/note" } },
+    "integrity": { "type": "object", "additionalProperties": false, "required": ["algorithm", "capsuleHash"], "properties": { "algorithm": { "const": "SHA-256" }, "capsuleHash": { "$ref": "#/$defs/hash" } } }
+  },
+  "$defs": {
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "httpUrl": { "type": "string", "pattern": "^https?://" },
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "position": { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "enum": ["TEXT_OFFSETS", "DOM_PATH", "PAGE", "UNKNOWN"] }, "startOffset": { "type": "integer", "minimum": 0 }, "endOffset": { "type": "integer", "minimum": 0 }, "domPath": { "$ref": "#/$defs/nonEmpty" }, "pageNumber": { "type": "integer", "minimum": 1 } } },
+    "selection": { "type": "object", "additionalProperties": false, "minProperties": 1, "properties": { "selectionId": { "$ref": "#/$defs/nonEmpty" }, "direction": { "enum": ["FORWARD", "BACKWARD", "NONE"] } } },
+    "passage": { "type": "object", "additionalProperties": false, "required": ["passageId", "exactText", "passageHash"], "properties": { "passageId": { "$ref": "#/$defs/nonEmpty" }, "exactText": { "$ref": "#/$defs/nonEmpty" }, "originalHtml": { "$ref": "#/$defs/nonEmpty" }, "htmlSanitization": { "const": "ISEES_CAPTURE_ALLOWLIST_V1" }, "governingHeading": { "$ref": "#/$defs/nonEmpty" }, "prefixContext": { "$ref": "#/$defs/nonEmpty" }, "suffixContext": { "$ref": "#/$defs/nonEmpty" }, "documentPosition": { "$ref": "#/$defs/position" }, "selection": { "$ref": "#/$defs/selection" }, "passageHash": { "$ref": "#/$defs/hash" } } },
+    "note": { "type": "object", "additionalProperties": false, "required": ["noteId", "researcherId", "createdAt", "text"], "properties": { "noteId": { "$ref": "#/$defs/nonEmpty" }, "researcherId": { "$ref": "#/$defs/nonEmpty" }, "createdAt": { "$ref": "#/$defs/timestamp" }, "text": { "$ref": "#/$defs/nonEmpty" }, "derivedFromPassageIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/nonEmpty" } } } }
+  }
+}
