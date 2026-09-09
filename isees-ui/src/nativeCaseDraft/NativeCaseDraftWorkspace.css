@@ -1,0 +1,15 @@
+.native-draft-workspace { box-sizing: border-box; height: 100%; min-height: 0; overflow: auto; padding: clamp(1rem, 3vw, 2.5rem); color: #edf4f7; background: #071116; }
+.native-draft-workspace > header { max-width: 52rem; margin-bottom: 1.5rem; }
+.native-draft-workspace h1, .native-draft-workspace h2, .native-draft-workspace p { margin-top: 0; }
+.native-draft-workspace__eyebrow { color: #71c7d5; letter-spacing: .12em; text-transform: uppercase; font-size: .75rem; }
+.native-draft-workspace button { min-height: 2.75rem; padding: .6rem 1rem; border: 1px solid #5d8490; border-radius: .35rem; color: inherit; background: #12242b; cursor: pointer; }
+.native-draft-workspace button:focus-visible { outline: 3px solid #8de5f1; outline-offset: 2px; }
+.native-draft-workspace button:disabled { cursor: wait; opacity: .55; }
+.native-draft-workspace__primary { margin-bottom: 1.5rem; background: #176274 !important; }
+.native-draft-workspace__list { display: grid; gap: .75rem; padding: 0; list-style: none; }
+.native-draft-workspace__list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid #29434c; border-radius: .5rem; background: #0d1b21; }
+.native-draft-workspace__list span { display: block; margin-top: .35rem; color: #a8bbc2; font-size: .875rem; }
+.native-draft-workspace__error { max-width: 46rem; padding: 1rem; border: 1px solid #b85b62; background: #32171b; }
+.native-draft-workspace__notice { padding: .75rem; border-left: 3px solid #65c4a0; background: #10251f; }
+.native-draft-workspace--editor > nav { margin-bottom: 1rem; }
+@media (max-width: 40rem) { .native-draft-workspace__list li { align-items: stretch; flex-direction: column; } }

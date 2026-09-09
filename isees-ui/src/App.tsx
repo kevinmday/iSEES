@@ -34,8 +34,10 @@
 
 import {
   useEffect,
+  useRef,
+  type ReactNode,
 } from "react";
-import { AccountFrontDoor } from "./account/AccountFrontDoor";
+import { AccountFrontDoor, type AccountNavigationGuard } from "./account/AccountFrontDoor";
 import { GuestWorkspaceRestorationBoundary } from "./workspace/persistence/GuestWorkspaceRestorationBoundary";
 
 import {
@@ -56,8 +58,7 @@ import {
   InvestigationControl,
 } from "./investigationControl";
 
-import PublicIntake
-  from "./pages/PublicIntake";
+import { NativeCaseDraftWorkspace } from "./nativeCaseDraft/NativeCaseDraftWorkspace";
 
 import SystemBriefing
   from "./pages/SystemBriefing";
@@ -251,7 +252,7 @@ function GuestWorkspaceSessionLifecycleBridge() {
 //
 // ============================================================
 
-function OperatorUI() {
+function OperatorUI({ routeSurface }: { routeSurface?: ReactNode }) {
 
   return (
 
@@ -286,7 +287,7 @@ function OperatorUI() {
                             <LayersPresentationSelectionProvider>
                             <TimelineInspectionProvider>
                             <IntentionWorkspaceProvider>
-                            <ModeAwareOperatorLayout />
+                            {routeSurface ?? <ModeAwareOperatorLayout />}
                             </IntentionWorkspaceProvider>
                             </TimelineInspectionProvider>
                             </LayersPresentationSelectionProvider>
@@ -348,15 +349,19 @@ function OperatorUI() {
 //
 // ============================================================
 
-function OperatorApplication() {
+function OperatorApplication({ nativeDraftRoute = false }: { nativeDraftRoute?: boolean }) {
+
+  const navigationGuard = useRef<AccountNavigationGuard | null>(null);
 
   return (
 
     <OperatorIdentityRuntimeProvider>
-      <AccountFrontDoor>
+      {/* <AccountFrontDoor> remains the single application composition authority;
+          the optional ref only exposes the active /report discard guard to it. */}
+      <AccountFrontDoor navigationGuard={nativeDraftRoute ? navigationGuard : undefined}>
         <OperatorEntryGate>
           <GuestWorkspaceRestorationBoundary>
-            <OperatorUI />
+            <OperatorUI routeSurface={nativeDraftRoute ? <NativeCaseDraftWorkspace navigationGuard={navigationGuard} /> : undefined} />
           </GuestWorkspaceRestorationBoundary>
         </OperatorEntryGate>
       </AccountFrontDoor>
@@ -380,7 +385,7 @@ export default function App() {
       <Route
         path="/report"
         element={
-          <PublicIntake />
+          <OperatorApplication nativeDraftRoute />
         }
       />
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type MutableRefObject, type ReactNode } from "react";
 import { createAccountContinuityApi } from "../investigation/continuity/AccountContinuityApi";
 import { AccountWorkspaceContinuityCoordinator } from "../investigation/continuity/AccountWorkspaceContinuityCoordinator";
 import { createLastActiveInvestigationStore } from "../investigation/continuity/LastActiveInvestigationStore";
@@ -24,7 +24,11 @@ function errorMessage(error: unknown): string {
   return error instanceof AccountFrontDoorError ? error.message : "The request could not be completed. Please try again.";
 }
 
-export function AccountFrontDoor({ children }: { children: ReactNode }) {
+export interface AccountNavigationGuard {
+  confirmDiscard(): boolean;
+}
+
+export function AccountFrontDoor({ children, navigationGuard }: { children: ReactNode; navigationGuard?: MutableRefObject<AccountNavigationGuard | null> }) {
   const identityState = useOperatorIdentity();
   const [anonymousMode, setAnonymousMode] = useState<"create" | "signin">("signin");
   const [phase, setPhase] = useState<Phase>("restoring");
@@ -222,6 +226,7 @@ export function AccountFrontDoor({ children }: { children: ReactNode }) {
 
   async function open(investigationId: string) {
     if (commandPending.current) return;
+    if (navigationGuard?.current && !navigationGuard.current.confirmDiscard()) return;
     commandPending.current = true;
     const { ticket } = beginRequest(); setPhase("working"); setError("");
     try {
@@ -233,6 +238,7 @@ export function AccountFrontDoor({ children }: { children: ReactNode }) {
 
   async function create(title: string) {
     if (commandPending.current) return;
+    if (navigationGuard?.current && !navigationGuard.current.confirmDiscard()) return;
     commandPending.current = true;
     const { ticket, signal } = beginRequest(); setPhase("working"); setError("");
     try {
@@ -248,6 +254,7 @@ export function AccountFrontDoor({ children }: { children: ReactNode }) {
 
   async function logout() {
     if (commandPending.current) return;
+    if (navigationGuard?.current && !navigationGuard.current.confirmDiscard()) return;
     commandPending.current = true;
     const { ticket } = beginRequest(); setPhase("working"); setError("");
     try {
