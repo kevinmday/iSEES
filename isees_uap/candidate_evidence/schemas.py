@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from datetime import date, time
 from typing import Annotated, Any, Literal
+import re
+import unicodedata
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -112,3 +116,188 @@ class LifecycleTransition(StrictModel):
         elif self.reviewDecision is not None:
             raise ValueError("reviewDecision is valid only for DEFERRED or EXCLUDED")
         return self
+
+
+FieldState = Literal["SUPPLIED", "UNKNOWN", "OMITTED"]
+
+
+def _normalize_text(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    value = unicodedata.normalize("NFKC", value).strip()
+    if any(unicodedata.category(char) == "Cc" and char not in "\n\t" for char in value):
+        raise ValueError("control characters are not allowed")
+    return value
+
+
+class DraftTextField(StrictModel):
+    state: FieldState
+    value: str | None = Field(default=None, max_length=20_000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize(cls, data):
+        if isinstance(data, dict) and "value" in data:
+            data = {**data, "value": _normalize_text(data["value"])}
+        return data
+
+    @model_validator(mode="after")
+    def require_state_value(self):
+        if self.state == "SUPPLIED" and not self.value:
+            raise ValueError("SUPPLIED requires a non-empty value")
+        if self.state != "SUPPLIED" and self.value is not None:
+            raise ValueError(f"{self.state} cannot carry a value")
+        return self
+
+
+class DraftDateField(StrictModel):
+    state: FieldState
+    value: str | None = None
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if self.state == "SUPPLIED":
+            if self.value is None:
+                raise ValueError("SUPPLIED requires a value")
+            try:
+                date.fromisoformat(self.value)
+            except ValueError as error:
+                raise ValueError("date must be YYYY-MM-DD") from error
+        elif self.value is not None:
+            raise ValueError(f"{self.state} cannot carry a value")
+        return self
+
+
+class DraftTimeField(StrictModel):
+    state: FieldState
+    value: str | None = None
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if self.state == "SUPPLIED":
+            if self.value is None or not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?", self.value):
+                raise ValueError("time must be HH:MM or HH:MM:SS")
+            time.fromisoformat(self.value)
+        elif self.value is not None:
+            raise ValueError(f"{self.state} cannot carry a value")
+        return self
+
+
+class DraftTimezoneField(StrictModel):
+    state: FieldState
+    value: str | None = Field(default=None, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if self.state == "SUPPLIED":
+            if self.value is None:
+                raise ValueError("SUPPLIED requires a timezone")
+            valid_offset = re.fullmatch(r"(?:Z|[+-](?:0\d|1[0-4]):[0-5]\d)", self.value)
+            if not valid_offset:
+                try:
+                    ZoneInfo(self.value)
+                except (ZoneInfoNotFoundError, ValueError) as error:
+                    raise ValueError("timezone must be an IANA zone or UTC offset") from error
+        elif self.value is not None:
+            raise ValueError(f"{self.state} cannot carry a value")
+        return self
+
+
+class DraftCountField(StrictModel):
+    state: FieldState
+    value: int | None = Field(default=None, ge=0, le=1_000_000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if (self.state == "SUPPLIED") != (self.value is not None):
+            raise ValueError("value presence must match SUPPLIED state")
+        return self
+
+
+class DraftDurationField(StrictModel):
+    state: FieldState
+    seconds: int | None = Field(default=None, ge=0, le=31_536_000, strict=True)
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if (self.state == "SUPPLIED") != (self.seconds is not None):
+            raise ValueError("seconds presence must match SUPPLIED state")
+        return self
+
+
+class DraftPrivacyField(StrictModel):
+    state: FieldState
+    value: Literal["PUBLIC", "RESTRICTED", "PRIVATE"] | None = None
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if (self.state == "SUPPLIED") != (self.value is not None):
+            raise ValueError("value presence must match SUPPLIED state")
+        return self
+
+
+class NativeCaseDraftContent(StrictModel):
+    schemaVersion: Literal["native-case-draft-content/v1"]
+    workingTitle: DraftTextField
+    observationLocation: DraftTextField
+    localObservationDate: DraftDateField
+    localObservationTime: DraftTimeField
+    timezone: DraftTimezoneField
+    observationNarrative: DraftTextField
+    objectShape: DraftTextField
+    movementBehavior: DraftTextField
+    soundCharacteristics: DraftTextField
+    lightingVisibility: DraftTextField
+    observerContext: DraftTextField
+    witnessCount: DraftCountField
+    environmentalConditions: DraftTextField
+    approximateDuration: DraftDurationField
+    researcherNotes: DraftTextField
+    sourceProvenanceStatement: DraftTextField
+    privacyClassification: DraftPrivacyField
+    rightsPublicationRestriction: DraftTextField
+
+
+class NativeCaseDraftCreate(StrictModel):
+    schemaVersion: Literal["native-case-draft-command/v1"]
+    investigationId: Identity | None = None
+    content: NativeCaseDraftContent
+    idempotencyKey: IdempotencyKey
+
+
+class NativeCaseDraftUpdate(StrictModel):
+    schemaVersion: Literal["native-case-draft-command/v1"]
+    investigationId: Identity | None = None
+    expectedRevision: int = Field(ge=0)
+    content: NativeCaseDraftContent
+    idempotencyKey: IdempotencyKey
+
+
+class NativeCaseOwnership(StrictModel):
+    kind: Literal["RESEARCHER_OWNED"]
+    researcherId: Identity
+
+
+class NativeCaseDraftProjection(StrictModel):
+    schemaVersion: Literal["native-case-draft-projection/v1"]
+    candidateId: Identity
+    ownership: NativeCaseOwnership
+    investigationId: Identity | None
+    knowledgeClassification: Literal["CANDIDATE_KNOWLEDGE"]
+    lifecycle: Literal["DRAFT"]
+    revision: int = Field(ge=0)
+    freshnessToken: Identity
+    content: NativeCaseDraftContent
+    createdAt: str
+    updatedAt: str
+    operationalMaterialization: Literal["NONE"]
+    systemCanonIdentity: None
+
+
+class NativeCaseDraftReceipt(NativeCaseDraftProjection):
+    idempotencyDisposition: Literal["CREATED", "UPDATED", "REPLAYED"]
+
+
+class NativeCaseDraftList(StrictModel):
+    schemaVersion: Literal["native-case-draft-list/v1"]
+    items: list[NativeCaseDraftProjection]

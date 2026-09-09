@@ -35,3 +35,11 @@ class ProhibitedTransition(Conflict):
 
 class InvalidCursor(CandidateEvidenceError):
     code = "INVALID_CURSOR"
+
+
+class NativeCaseDraftNotFound(NotFound):
+    code = "NATIVE_CASE_DRAFT_NOT_FOUND"
+
+
+class NativeCaseInvestigationNotFound(NotFound):
+    code = "NATIVE_CASE_INVESTIGATION_NOT_FOUND"

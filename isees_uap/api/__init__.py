@@ -13,7 +13,9 @@ from typing import Dict, List, Optional
 
 from isees_uap.analysis.cluster_engine import run_cluster_engine
 from isees_uap.api.submit_report import build_report
-from isees_uap.api.v1.candidate_evidence import candidate_error_handler, router as candidate_evidence_router
+from isees_uap.api.v1.candidate_evidence import (
+    candidate_error_handler, native_case_router, router as candidate_evidence_router,
+)
 from isees_uap.candidate_evidence.errors import CandidateEvidenceError
 from isees_uap.api.v1.studio import router as studio_router, studio_error_handler
 from isees_uap.studio.errors import StudioError
@@ -37,6 +39,7 @@ app = FastAPI()
 app.include_router(authentication_router)
 app.add_exception_handler(AuthenticationError, authentication_error_handler)
 app.include_router(candidate_evidence_router)
+app.include_router(native_case_router)
 app.include_router(research_sources_router)
 app.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
 app.include_router(studio_router)
@@ -60,7 +63,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["Content-Type", "X-ISEES-CSRF", "X-Request-Id"],
 )
 

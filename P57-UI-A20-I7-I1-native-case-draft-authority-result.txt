@@ -1,0 +1,77 @@
+P57-UI-A20-I7-I1 - RESEARCHER-OWNED NATIVE CASE CANDIDATE CONTRACT AND DURABLE DRAFT AUTHORITY
+
+OUTCOME
+Implemented the authenticated, researcher-owned native-case Candidate Knowledge draft contract and durable SQLite boundary. Native case drafts are a narrow sibling of Candidate Evidence because the evidence origin/lifecycle aggregate cannot represent incomplete researcher-authored drafts without implying submission, discovery, reference, or operational lifecycle state.
+
+CONTRACT AND SCHEMA VERSIONS
+- Command: native-case-draft-command/v1
+- Content: native-case-draft-content/v1
+- Projection: native-case-draft-projection/v1
+- List: native-case-draft-list/v1
+- SQLite migration/schema version: 3 (003_candidate_evidence.sql)
+
+ENDPOINTS
+- POST /api/v1/native-case-drafts - authenticated + CSRF create
+- GET /api/v1/native-case-drafts/{candidate_id} - authenticated owned retrieval
+- GET /api/v1/native-case-drafts - authenticated owned listing
+- PUT /api/v1/native-case-drafts/{candidate_id} - authenticated + CSRF full-draft update with expectedRevision
+
+OWNERSHIP AUTHORITY
+Owner identity is derived exclusively from the HttpOnly authenticated session principal account_id. Client ownership, lifecycle, operational, and System Canon authority fields are rejected as unknown fields. Draft reads, lists, and updates are scoped by the authenticated principal. Optional investigation association is authorized against PersistedInvestigationAuthority and the durable Investigation parent before mutation; missing and foreign investigations are denied without mutating the draft.
+
+PERSISTENCE AND MIGRATION
+Migration 003 adds native_case_draft and principal-scoped native_case_draft_idempotency tables to the Candidate Evidence SQLite database. Draft identity is a server-generated UUID. Payload content is canonical JSON preserving all required structured observation fields and explicit field states. SQLite uses the established WAL, FULL synchronous, foreign-key, busy-timeout, BEGIN IMMEDIATE, commit/rollback, and schema_migrations patterns. Restart-safe restoration is covered by tests.
+
+IDEMPOTENCY AND REVISION
+Create idempotency is scoped by (principal, CREATE_NATIVE_CASE_DRAFT, key). Update idempotency is scoped by (principal, candidate identity, UPDATE_NATIVE_CASE_DRAFT, key). Equal replay returns the original deterministic projection; unequal reuse returns IDEMPOTENCY_KEY_REUSE (409). Updates require expectedRevision and use a compare-and-swap UPDATE. Stale revisions return REVISION_CONFLICT (409). Revisions begin at 0 and freshnessToken is candidateId:revision.
+
+VALIDATION AND UNKNOWN-STATE SEMANTICS
+All command/content/field envelopes forbid extra fields. Text is NFKC-normalized and trimmed, bounded, and rejects inappropriate control characters. Dates require valid ISO calendar YYYY-MM-DD values. Times require HH:MM or HH:MM:SS. Timezones require an IANA zone, Z, or bounded UTC offset. Witness counts and durations are strict bounded non-negative integers; duration is represented in seconds. Privacy is PUBLIC, RESTRICTED, or PRIVATE when supplied. Every structured observation property uses an explicit SUPPLIED, UNKNOWN, or OMITTED state; value presence must agree with the state. Incomplete all-omitted/unknown drafts remain valid. Projection state is fixed to CANDIDATE_KNOWLEDGE / DRAFT / operationalMaterialization NONE / systemCanonIdentity null.
+
+EXPLICIT NON-GOALS
+No final submission, acceptance, activation, publication, System Canon identity selection, workspace materialization, AI analysis, KOD execution, investigation creation, frontend form integration, routing, or Account Front Door UI was implemented. PublicIntake.tsx was not modified.
+
+FILES CHANGED
+- isees_uap/api/__init__.py
+- isees_uap/api/v1/candidate_evidence.py
+- isees_uap/candidate_evidence/errors.py
+- isees_uap/candidate_evidence/schemas.py
+- isees_uap/candidate_evidence/sqlite_repository.py
+- isees_uap/candidate_evidence/migrations/003_candidate_evidence.sql
+- isees_uap/candidate_evidence/native_case_repository.py
+- isees_uap/candidate_evidence/native_case_service.py
+- isees_uap/candidate_evidence/sqlite_native_case_repository.py
+- isees_uap/testing/candidate_evidence/test_candidate_evidence.py
+- isees_uap/testing/candidate_evidence/test_native_case_drafts.py
+- P57-UI-A20-I7-I1-native-case-draft-authority-result.txt
+
+VERIFICATION RESULTS
+- python -m py_compile [all changed Python modules]: passed
+- python -m pytest isees_uap/testing/candidate_evidence/test_native_case_drafts.py -q: 6 passed in 7.42s
+- python -m pytest isees_uap/testing/candidate_evidence -q: 14 passed in 11.12s
+- python -m pytest isees_uap/testing/authentication isees_uap/testing/investigations -q: 39 passed in 19.54s
+- python -m pytest isees_uap/testing -q: collection stopped with 2 pre-existing missing-module errors: isees_uap.kod.engines.aviation_engine and isees_uap_v0_baseline
+- python -m pytest isees_uap/testing --ignore=isees_uap/testing/kod/test_aviation_engine.py --ignore=isees_uap/testing/test_cases.py -q: 144 passed in 32.30s
+- git diff --check: run after final report creation; result recorded in handoff output
+- git diff --cached --name-only: run after final report creation; expected empty and result recorded in handoff output
+- git status --short: run after final report creation and recorded in handoff output
+
+REMAINING I7-I2 BROWSER/UI WORK
+Adapt the remembered /report PublicIntake form to native-case-draft-content/v1 field-state envelopes, authenticated session + CSRF calls, create/retrieve/list/update receipts, revision conflicts, durable draft resume, optional owned-investigation selection, and Account Front Door/routing integration. That work must preserve the boundary that saving a draft does not submit, activate, publish, analyze, canonicalize, or materialize it.
+
+SELECTIVE-STAGING ALLOWLIST
+P57-UI-A20-I7-I1-native-case-draft-authority-result.txt
+isees_uap/api/__init__.py
+isees_uap/api/v1/candidate_evidence.py
+isees_uap/candidate_evidence/errors.py
+isees_uap/candidate_evidence/schemas.py
+isees_uap/candidate_evidence/sqlite_repository.py
+isees_uap/candidate_evidence/migrations/003_candidate_evidence.sql
+isees_uap/candidate_evidence/native_case_repository.py
+isees_uap/candidate_evidence/native_case_service.py
+isees_uap/candidate_evidence/sqlite_native_case_repository.py
+isees_uap/testing/candidate_evidence/test_candidate_evidence.py
+isees_uap/testing/candidate_evidence/test_native_case_drafts.py
+
+REPOSITORY SAFETY
+All unrelated tracked and untracked user work was preserved. No excluded frontend, federation, System Canon, workspace activation/materialization, Resolve/KOD, STUDIO, Mode Bar, MarketMind, or prior-report file was modified by this increment. Nothing was staged, committed, stashed, pushed, moved, deleted, reverted, restored, or cleaned.

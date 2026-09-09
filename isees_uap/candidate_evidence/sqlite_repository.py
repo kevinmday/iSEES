@@ -11,7 +11,7 @@ from typing import Any
 from .errors import IdempotencyConflict, InvalidCursor, OriginConflict, RevisionConflict
 from .lifecycle import require_transition
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def _canonical(value: Any) -> str:

@@ -167,7 +167,7 @@ def test_lifecycle_revision_review_and_replay(route_session):
 def test_database_constraints_and_wal(repo):
     with sqlite3.connect(repo.path) as connection:
         assert connection.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
-        assert [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")] == [1, 2]
+        assert [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")] == [1, 2, 3]
         tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         assert {"candidate_evidence", "candidate_query_specification", "candidate_provenance_event", "candidate_idempotency"} <= tables
 
@@ -274,7 +274,7 @@ def test_migrates_existing_version_one_database_without_data_loss(tmp_path):
         )
     version_one = SQLiteCandidateEvidenceRepository(path)
     with sqlite3.connect(path) as connection:
-        assert [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")] == [1, 2]
+        assert [row[0] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")] == [1, 2, 3]
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute(
             "SELECT origin,lifecycle_state FROM candidate_evidence WHERE candidate_id='legacy-candidate'"
