@@ -27,7 +27,7 @@ const FIELDS: readonly Definition[] = [
   { field: "localObservationDate", label: "Local observation date", kind: "date", section: "Observation" },
   { field: "localObservationTime", label: "Local observation time", kind: "time", section: "Observation" },
   { field: "timezone", label: "Timezone", kind: "timezone", section: "Observation", placeholder: "e.g. America/Los_Angeles or +08:00" },
-  { field: "observationNarrative", label: "Observation narrative", kind: "textarea", section: "Observation", placeholder: "Describe what was observed without interpretation." },
+  { field: "observationNarrative", label: "Observer narrative (in their own words)", kind: "textarea", section: "Observation", placeholder: "Record the observer's account exactly, including paragraph breaks." },
   { field: "objectShape", label: "Object shape", kind: "text", section: "Observed characteristics", options: choices(OPTIONS.objectShape) },
   { field: "movementBehavior", label: "Movement behavior", kind: "text", section: "Observed characteristics", options: choices(OPTIONS.movementBehavior) },
   { field: "soundCharacteristics", label: "Sound characteristics", kind: "text", section: "Observed characteristics", options: choices(OPTIONS.soundCharacteristics) },
@@ -66,16 +66,20 @@ export function StructuredObservationForm({ form, validation, busy, onFieldChang
 
 function TriStateField({ definition, entry, error, busy, onChange }: Readonly<{ definition: Definition; entry: NativeCaseDraftFormState[NativeCaseDraftFieldName]; error: string | null; busy: boolean; onChange: (entry: NativeCaseDraftFormState[NativeCaseDraftFieldName]) => void }>) {
   const id = idFor(definition.field), errorId = `${id}-error`, stateName = `${id}-state`;
-  const setState = (state: FieldState) => onChange(state === "SUPPLIED" ? { state, value: entry.state === "SUPPLIED" ? entry.value : "" } : { state });
-  const setValue = (raw: string) => onChange({ state: "SUPPLIED", value: definition.kind === "integer" || definition.kind === "duration" ? raw === "" ? "" : Number(raw) : raw });
+  const isObserverNarrative = definition.field === "observationNarrative";
+  const setState = (state: FieldState) => {
+    onChange(state === "SUPPLIED" ? { state, value: entry.state === "SUPPLIED" ? entry.value : "" } : { state });
+    if (state === "SUPPLIED") queueMicrotask(() => document.getElementById(id)?.focus());
+  };
+  const setValue = (raw: string) => onChange(isObserverNarrative && raw === "" ? { state: "OMITTED" } : { state: "SUPPLIED", value: definition.kind === "integer" || definition.kind === "duration" ? raw === "" ? "" : Number(raw) : raw });
   const describedBy = error ? errorId : undefined;
   return (
-    <fieldset className={`native-case-draft__field native-case-draft__field--${definition.kind}`} data-invalid={error ? "true" : undefined}>
+    <fieldset className={`native-case-draft__field native-case-draft__field--${definition.kind}${isObserverNarrative ? " native-case-draft__field--observer-narrative" : ""}`} data-invalid={error ? "true" : undefined}>
       <legend>{definition.label}</legend>
       <div className="native-case-draft__state-choices" aria-label={`${definition.label} answer state`}>
         {(["OMITTED", "UNKNOWN", "SUPPLIED"] as const).map(state => <label key={state}><input type="radio" name={stateName} value={state} checked={entry.state === state} disabled={busy} onChange={() => setState(state)} />{state === "OMITTED" ? "Not answered" : state === "UNKNOWN" ? "Unknown" : "Supply value"}</label>)}
       </div>
-      {entry.state === "SUPPLIED" && <ValueControl definition={definition} id={id} value={entry.value ?? ""} busy={busy} invalid={Boolean(error)} describedBy={describedBy} onChange={setValue} />}
+      {(entry.state === "SUPPLIED" || isObserverNarrative && entry.state === "OMITTED") && <ValueControl definition={definition} id={id} value={entry.state === "SUPPLIED" ? entry.value ?? "" : ""} busy={busy} invalid={Boolean(error)} describedBy={describedBy} onChange={setValue} />}
       {error && <p className="native-case-draft__field-error" id={errorId}>{error}</p>}
     </fieldset>
   );
@@ -85,7 +89,7 @@ function ValueControl({ definition, id, value, busy, invalid, describedBy, onCha
   const common = { id, disabled: busy, "aria-invalid": invalid, "aria-describedby": describedBy, value: String(value), onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => onChange(event.target.value) };
   if (definition.options) return <><label className="native-case-draft__value-label" htmlFor={id}>{definition.label} value</label><select {...common}><option value="">Choose a supplied value</option>{definition.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></>;
   if (definition.kind === "privacy") return <><label className="native-case-draft__value-label" htmlFor={id}>{definition.label} value</label><select {...common}><option value="">Choose a classification</option><option value="PUBLIC">Public</option><option value="RESTRICTED">Restricted</option><option value="PRIVATE">Private</option></select></>;
-  if (definition.kind === "textarea") return <><label className="native-case-draft__value-label" htmlFor={id}>{definition.label} value</label><textarea {...common} rows={4} placeholder={definition.placeholder} /></>;
+  if (definition.kind === "textarea") return <><label className="native-case-draft__value-label" htmlFor={id}>{definition.field === "observationNarrative" ? "Free-form narrative" : `${definition.label} value`}</label><textarea {...common} rows={definition.field === "observationNarrative" ? 10 : 4} placeholder={definition.placeholder} /></>;
   const type = definition.kind === "date" ? "date" : definition.kind === "time" ? "time" : definition.kind === "integer" || definition.kind === "duration" ? "number" : "text";
   return <><label className="native-case-draft__value-label" htmlFor={id}>{definition.label} value</label><input {...common} type={type} min={type === "number" ? 0 : undefined} max={definition.kind === "integer" ? 1_000_000 : definition.kind === "duration" ? 31_536_000 : undefined} step={type === "number" ? 1 : undefined} placeholder={definition.placeholder} /></>;
 }

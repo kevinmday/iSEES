@@ -22,7 +22,7 @@ export function NativeCaseDraftEditor({ api, initialProjection, investigationId,
   const coordinator = useMemo(() => new NativeCaseDraftCoordinator({ api, initialProjection, investigationId, generateIdempotencyKey }), [api, initialProjection, investigationId, generateIdempotencyKey]);
   const state = useSyncExternalStore(callback => coordinator.subscribe(callback), () => coordinator.state, () => coordinator.state);
 
-  useEffect(() => () => coordinator.dispose(), [coordinator]);
+  useEffect(() => () => coordinator.abort(), [coordinator]);
   useEffect(() => { onStateChange?.(state); }, [onStateChange, state]);
   useEffect(() => { if (state.lifecycle === "SAVED" && state.disposition) onSaved?.(state); }, [onSaved, state]);
   useEffect(() => {
