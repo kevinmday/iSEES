@@ -62,6 +62,7 @@ import { NativeCaseDraftWorkspace } from "./nativeCaseDraft/NativeCaseDraftWorks
 
 import SystemBriefing
   from "./pages/SystemBriefing";
+import IseesCaptureInfo from "./companion/capture/IseesCaptureInfo";
 
 import {
 
@@ -393,6 +394,13 @@ export default function App() {
         path="/briefing"
         element={
           <SystemBriefing />
+        }
+      />
+
+      <Route
+        path="/capture"
+        element={
+          <IseesCaptureInfo />
         }
       />
 

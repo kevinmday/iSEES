@@ -17,6 +17,7 @@
     "verify:studio-projection-consistency": "node --experimental-strip-types tools/verification/VerifyStudioProjectionConsistency.ts",
     "verify:studio-restored-reconciliation": "node --experimental-strip-types tools/verification/VerifyStudioRestoredAuthorReconciliation.ts",
     "verify:studio-pdf-materialization": "node --experimental-strip-types tools/verification/VerifyStudioPdfMaterialization.ts",
+    "verify:capture-awareness": "node --experimental-strip-types tools/verification/VerifyIseesCaptureAwareness.ts",
     "preview": "vite preview"
   },
   "dependencies": {

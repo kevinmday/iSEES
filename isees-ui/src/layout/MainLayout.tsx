@@ -28,6 +28,7 @@ import WorkspaceModeBar
 
 import ManifoldProjectionStatus
   from "../components/workspace/ManifoldProjectionStatus";
+import IseesCaptureGlobalLink from "../companion/capture/IseesCaptureGlobalLink";
 
 import "../components/SelectionIntelligence.css";
 
@@ -149,6 +150,8 @@ export default function MainLayout({
             textTransform: "uppercase",
           }}
         >
+          <IseesCaptureGlobalLink />
+
           <Link
             to="/briefing"
             style={{
