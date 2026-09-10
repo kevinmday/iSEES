@@ -1,0 +1,72 @@
+{
+  "vocabulary": {
+    "artifactProfiles": ["INVESTIGATION_REPORT", "EXECUTIVE_BRIEF", "SCIENTIFIC_PAPER", "INTENTION_HYPOTHESIS_ASSESSMENT"],
+    "citationStyles": ["APA", "CHICAGO", "IEEE"],
+    "semanticNodeTypes": ["HEADING", "SECTION", "PARAGRAPH", "CLAIM", "QUOTATION", "CITATION_REFERENCE", "FOOTNOTE", "EQUATION", "FIGURE", "TABLE", "APPENDIX", "RESEARCHER_NOTE"],
+    "projectionFormats": ["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST"],
+    "projectionStates": ["NOT_GENERATED", "QUEUED", "REBUILDING", "CURRENT", "STALE", "FAILED", "SUPERSEDED", "PUBLISHED", "RETRACTED"],
+    "assistanceModes": ["BUILD_OUTLINE", "DRAFT_SELECTED_SECTIONS", "DRAFT_COMPLETE_ARTIFACT", "REVIEW_SCHOLARLY_INTEGRITY"],
+    "governedConclusions": ["CONSISTENT_WITH", "INSUFFICIENT_EVIDENCE", "NOT_DISTINGUISHABLE", "H0_WEAKENED", "H0_REJECTED_UNDER_DECLARED_TEST", "H1_VIABLE", "FURTHER_INVESTIGATION_REQUIRED"]
+  },
+  "scientificRevision": {
+    "artifactId": "artifact-paper-1", "revisionId": "artifact-paper-1.r1", "revisionNumber": 1,
+    "semanticContent": {
+      "documentId": "document-paper-1", "schemaVersion": "studio-author-semantic/v1", "title": "Measured orbital relation",
+      "nodeOrder": ["heading-1", "claim-1", "equation-node-1", "figure-1", "table-1", "citation-ref-1"],
+      "nodes": [
+        {"id":"heading-1","type":"HEADING","level":1,"text":"Results"},
+        {"id":"claim-1","type":"CLAIM","text":"The recorded quantities satisfy the declared relation.","sourceSnapshotIds":["snapshot-inbox-1"],"supportState":"SUPPORTED"},
+        {"id":"equation-node-1","type":"EQUATION","notation":"DISPLAY","latexSource":"F = m a","equationId":"equation-force-1","equationNumber":"1","variables":[{"symbol":"F","meaning":"force","unit":"N"},{"symbol":"m","meaning":"mass","unit":"kg"},{"symbol":"a","meaning":"acceleration","unit":"m/s^2"}],"units":["N","kg","m/s^2"],"assumptions":["Inertial frame"],"derivationOrSourceNote":"Declared classical relation","crossReferenceTargets":["claim-1"]},
+        {"id":"figure-1","type":"FIGURE","caption":"Measured trajectory","altText":"Trajectory against elapsed time","assetId":"asset-trajectory-1","sourceAttribution":"Captured instrument output","lineage":[{"sourceSnapshotId":"snapshot-inbox-1","sourceRepresentationId":"representation-1","sourceHash":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}]},
+        {"id":"table-1","type":"TABLE","caption":"Recorded values","altText":"Mass and acceleration values","dataId":"data-values-1","columns":["mass","acceleration"],"rows":[["2","3"]],"sourceAttribution":"Captured instrument output","lineage":[{"sourceSnapshotId":"snapshot-inbox-1","sourceRepresentationId":"representation-1","sourceHash":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}]},
+        {"id":"citation-ref-1","type":"CITATION_REFERENCE","citationId":"citation-1"}
+      ],
+      "citations":[{"citationId":"citation-1","authors":["Ada Researcher"],"title":"Reference measurement protocol","container":"Journal of Reproducible Measures","publisher":"Example Institute","publicationDate":"2025","accessedDate":"2026-09-10","volume":"4","issue":"2","edition":"1","pagesOrLocator":"12-18","doi":"10.1000/example","url":"https://example.invalid/protocol","isbn":"9780000000000","reportOrAccessionId":"REP-1","sourceSnapshotId":"snapshot-inbox-1","completeness":"COMPLETE","missingRequiredFields":[]}],
+      "citationStyle":{"style":"APA","styleVersion":"7","locale":"en-US"}
+    },
+    "contentHash":"sha256:f2b642b23cabc869590c0132ccaffdcdbf88bcc675c3d0365009af1e1279a523",
+    "sourceSnapshots":[{"snapshotId":"snapshot-inbox-1","snapshotHash":"sha256:5c8da5718932eff88b1cc92b109b1733ccb531535c17cd79d4eaf5e2c430ec3c"}],
+    "profile":"SCIENTIFIC_PAPER","profileVersion":"1","createdAt":"2026-09-10T12:00:00.000Z","authorPrincipalId":"principal-1","immutableStatus":"IMMUTABLE_SAVED_REVISION"
+  },
+  "entireInboxSnapshot": {
+    "snapshotId":"snapshot-inbox-1","investigationId":"investigation-1","capturedAt":"2026-09-10T11:00:00.000Z","selectionScope":"ENTIRE_RESEARCH_INBOX","selectedAnchorIds":["anchor-public","anchor-restricted"],"inboxMembershipBasis":"COMPLETE_ELIGIBLE_INBOX_INDEPENDENT_OF_UI",
+    "sources":[
+      {"anchorId":"anchor-public","classification":"CANONICAL","availability":"AVAILABLE","provenance":"System Canon read-only projection","sensitivity":{"includeInAnalysis":true,"includeInArtifact":true,"citePublicly":true,"anonymize":false,"restrictedAppendix":false,"excludeFromAiProcessing":false},"representations":[{"representationId":"representation-1","mediaType":"application/json","schemaVersion":"research-anchor/v2","content":"{\"value\":6}","contentHash":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}]},
+      {"anchorId":"anchor-restricted","classification":"EXTERNAL","availability":"AVAILABLE","provenance":"Restricted interview transcript","sensitivity":{"includeInAnalysis":true,"includeInArtifact":false,"citePublicly":false,"anonymize":true,"restrictedAppendix":true,"excludeFromAiProcessing":true},"representations":[{"representationId":"representation-2","mediaType":"text/plain","schemaVersion":"captured-text/v1","content":"restricted source excerpt","contentHash":"sha256:3333333333333333333333333333333333333333333333333333333333333333"}]}
+    ],"snapshotHash":"sha256:5c8da5718932eff88b1cc92b109b1733ccb531535c17cd79d4eaf5e2c430ec3c","immutableStatus":"FROZEN"
+  },
+  "inferenceAssessment": {
+    "inferenceSessionId":"session-1","inferencePackageId":"inference-1","invocationOwner":"STUDIO","intentionCapabilities":{"mutation":"PROHIBITED","testConfiguration":"PROHIBITED","execution":"PROHIBITED","navigation":"PROHIBITED","directInvocation":"PROHIBITED"},
+    "intentionResults":[{"resultId":"result-1","executionId":"execution-1","projectionId":"intention-projection-1","resultHash":"sha256:4444444444444444444444444444444444444444444444444444444444444444","completionStatus":"COMPLETED","immutableStatus":"IMMUTABLE","access":"READ_ONLY"}],
+    "h0":{"id":"h0","text":"Observations do not require intentional agency.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"},
+    "alternatives":[{"id":"h1a","hypothesisId":"H1a","text":"Agency influenced timing.","authorship":"AI","epistemicClass":"ABDUCTIVE"},{"id":"h1b","hypothesisId":"H1b","text":"Agency influenced selection.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"}],
+    "observations":[{"id":"observation-1","text":"Measured coherence was 0.4 under metric M.","epistemicClass":"DETERMINISTIC_MEASUREMENT","resultId":"result-1"}],
+    "mathematicalWarrants":[{"id":"warrant-1","text":"Metric M is defined by the referenced completed result.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"}],
+    "assumptions":[{"id":"assumption-1","text":"The recorded sample is complete.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"}],
+    "supportingEvidence":[{"id":"support-1","text":"Timing aligns with the stated alternative.","authorship":"AI","epistemicClass":"ABDUCTIVE"}],
+    "counterevidence":[{"id":"counter-1","text":"A non-intentional process can produce the same measurement.","authorship":"AI","epistemicClass":"ABDUCTIVE"}],
+    "alternativeExplanations":[{"id":"alternative-1","text":"Sampling bias remains plausible.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"}],
+    "predictions":[{"id":"prediction-1","text":"A repeat sample would preserve timing structure.","authorship":"AI","epistemicClass":"ABDUCTIVE"}],
+    "falsifiers":[{"id":"falsifier-1","text":"Loss of timing structure under preregistered replication.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"}],
+    "unresolvedUncertainties":[{"id":"uncertainty-1","text":"Selection effects are unresolved.","authorship":"RESEARCHER","epistemicClass":"ABDUCTIVE"}],
+    "outputClassification":["ABDUCTIVE","CANDIDATE"],"proposalState":"UNAPPLIED","governedConclusion":{"conclusion":"NOT_DISTINGUISHABLE","evidenceScope":["result-1"],"assumptions":["assumption-1"],"unresolvedAlternatives":["alternative-1"]}
+  },
+  "proposal": {"proposalId":"proposal-1","artifactId":"artifact-paper-1","baseRevisionId":"artifact-paper-1.r1","baseContentHash":"sha256:0000000000000000000000000000000000000000000000000000000000000000","sourceSnapshots":[{"snapshotId":"snapshot-inbox-1","snapshotHash":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}],"assistanceMode":"DRAFT_COMPLETE_ARTIFACT","providerProvenance":{"providerId":"provider-example","modelId":"model-example","modelVersion":"1","configurationHash":"sha256:5555555555555555555555555555555555555555555555555555555555555555","promptContractVersion":"prompt/v1"},"units":[{"proposalUnitId":"proposal-unit-1","operation":{"operation":"INSERT_AFTER","targetNodeId":"heading-1","proposedNode":{"id":"paragraph-proposed-1","type":"PARAGRAPH","text":"Proposed text."}},"state":"UNAPPLIED","disposition":"PENDING"}],"authorityState":"UNAPPLIED_PROPOSAL","staleBase":{"rejected":false},"unsupportedClaimFindings":[],"incompleteCitationFindings":[]},
+  "projections": [
+    {"projectionId":"pdf-1","parentArtifactId":"artifact-paper-1","parentRevisionId":"artifact-paper-1.r1","parentContentHash":"sha256:f2b642b23cabc869590c0132ccaffdcdbf88bcc675c3d0365009af1e1279a523","format":"PDF","state":"CURRENT","templateProfileVersion":"paper/1","rendererVersion":"pdf/1","configurationHash":"sha256:6666666666666666666666666666666666666666666666666666666666666666","outputHash":"sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+    {"projectionId":"docx-1","parentArtifactId":"artifact-paper-1","parentRevisionId":"artifact-paper-1.r1","parentContentHash":"sha256:8888888888888888888888888888888888888888888888888888888888888888","format":"DOCX","state":"STALE","templateProfileVersion":"paper/1","rendererVersion":"docx/1","configurationHash":"sha256:6666666666666666666666666666666666666666666666666666666666666666","outputHash":"sha256:9999999999999999999999999999999999999999999999999999999999999999","priorSuccessfulProjectionId":"docx-0"},
+    {"projectionId":"latex-2","parentArtifactId":"artifact-paper-1","parentRevisionId":"artifact-paper-1.r1","parentContentHash":"sha256:f2b642b23cabc869590c0132ccaffdcdbf88bcc675c3d0365009af1e1279a523","format":"LATEX","state":"FAILED","templateProfileVersion":"paper/1","rendererVersion":"latex/1","configurationHash":"sha256:6666666666666666666666666666666666666666666666666666666666666666","priorSuccessfulProjectionId":"latex-1","failure":{"code":"RENDER_FAILED","safeMessage":"Projection generation failed."}}
+  ],
+  "invalidFixtures": [
+    {"id":"fabricated-incomplete-citation-presented-complete","base":"scientificRevision","mutation":"completeCitationWithMissingRequiredField"},
+    {"id":"duplicate-semantic-ids","base":"scientificRevision","mutation":"duplicateSemanticIdentity"},
+    {"id":"blank-identity","base":"scientificRevision","mutation":"blankArtifactIdentity"},
+    {"id":"unsupported-conclusion","base":"inferenceAssessment","mutation":"unsupportedConclusion"},
+    {"id":"h0-rejection-without-declared-test","base":"inferenceAssessment","mutation":"h0RejectionWithoutDeclaredTest"},
+    {"id":"inference-input-not-completed-immutable","base":"inferenceAssessment","mutation":"runningIntentionResult"},
+    {"id":"projection-mismatched-parent-hash","base":"projections.currentPdf","mutation":"differentExpectedParentHash"},
+    {"id":"proposal-stale-base","base":"proposal","mutation":"differentCurrentRevision"},
+    {"id":"unknown-field","base":"scientificRevision","mutation":"addUnknownField"},
+    {"id":"unsupported-probability-confidence-field","base":"inferenceAssessment","mutation":"addConfidence"}
+  ]
+}
