@@ -1,0 +1,711 @@
+P57-UI-A23-I0 — STUDIO V1 CONTRACT DISCOVERY
+Read-only architectural discovery at hf-deploy c54e64676a34c6f377dd92778914a27f09f430a5
+Date: 2026-09-10
+
+PURPOSE AND METHOD
+
+This report records facts observed in the existing tracked and untracked tree. No
+production file was changed. Status terms are:
+
+  IMPLEMENTED AND TRACKED  present in Git at the inspected HEAD/worktree.
+  IMPLEMENTED BUT UNTRACKED present only in the pre-existing untracked worktree.
+  PARTIAL OR PLACEHOLDER    a seam/UI/type exists but does not satisfy the canon.
+  ABSENT                    no implementation was found in the inspected paths.
+  CONTRADICTS CANON         existing behavior or vocabulary conflicts with A23 canon.
+  UNKNOWN / REQUIRES DECISION evidence is insufficient or product/operations policy is needed.
+
+EXECUTIVE FINDING
+
+The repository has a substantial, coherent A16/A17 STUDIO spine: investigation-
+qualified routing, a three-column shell, Research Inbox insertion, a structured
+ComputationalAuthorDocument runtime, strict drafting request/proposal contracts,
+SQLite artifact/version/snapshot persistence, optimistic revision and idempotency,
+lifecycle records, deterministic hashing, a real deterministic PDF materializer,
+and backend tests. It is not the A23 V1 product. The current profiles, source
+classifications, projection lifecycle, AI audit/apply model, scientific semantics,
+sensitivity rules, Inference Box, publication semantics, and authentication/browser
+contract do not yet meet the final canon.
+
+The safest path is extension and convergence, not wholesale replacement. Preserve
+the active untracked save orchestration work, freeze the A23 domain/wire contract,
+then adapt existing owners behind it in small verified increments.
+
+1. OWNERSHIP AND COMPOSITION
+
+IMPLEMENTED AND TRACKED
+
+- isees-ui/src/workspace/runtime/WorkspaceRuntimeTypes.ts defines
+  WorkspaceMode.RESEARCH. isees-ui/src/surfaces/WorkspaceSurface.tsx routes that
+  mode to author/components/StudioShell.tsx. MainLayout.tsx recognizes studioMode.
+- author/components/StudioShell.tsx is the live STUDIO composition owner. It renders
+  StudioResearchInbox, AuthorEditorSurface, StudioToolbar, StudioStatusBar, and a
+  right-side choice between StudioArtifactInspector and StudioDraftingPanel.
+- AuthorDocumentRuntime (author/runtime/AuthorDocumentRuntime.ts) owns the active
+  in-memory ComputationalAuthorDocument, dirty state, runtime revision, node
+  mutation, and per-Investigation document mapping. Its singleton is
+  authorDocumentRuntime. React ownership is exposed by
+  AuthorDocumentRuntimeContext.tsx.
+- ResearchBridgeRuntime and research-anchor/v2 contracts own the Research Inbox.
+  studio/components/StudioResearchInbox.tsx projects the active Investigation,
+  selects/removes/pins entries, and inserts through
+  sources/ResearchAnchorAuthorInsertion.ts. Insertion copies a frozen source-backed
+  ReferenceNode; it does not mutate the Inbox source.
+- Backend StudioService (isees_uap/studio/service.py) and
+  SQLiteStudioRepository (sqlite_repository.py) own durable artifact aggregates,
+  immutable versions, snapshots, claims, citations, mappings, lifecycle events,
+  candidates, review decisions, projection records, and idempotency.
+
+IMPLEMENTED BUT UNTRACKED
+
+- isees-ui/src/studio/api/StudioSaveOrchestrator.ts defines StudioSaveError,
+  StudioSaveStage, dependency injection, ordered source publication/version save/
+  reconciliation, and retry-safe failure staging.
+- isees-ui/src/studio/runtime/StudioSaveActionContext.ts and
+  StudioSaveActionProvider.tsx define a prospective shared save-action registry.
+  These files existed before A23 and were not changed. Current tracked StudioShell
+  does not compose the provider. The modified tracked StudioToolbar.tsx is also
+  pre-existing user work and may collide with this registry.
+
+2. .AUTHOR IDENTITY, CONTENT, REVISIONS, AND PERSISTENCE (ANSWERS 1–2)
+
+IMPLEMENTED AND TRACKED
+
+- In-memory identity/content: ComputationalAuthorDocument in
+  author/model/AuthorDocument.ts extends AuthorDocument from AuthorDocumentTypes.ts.
+  It has identity {id, createdAt}, semantic metadata, type/status, and an ordered
+  union of typed nodes from AuthorNodeTypes.ts.
+- Structured semantics exist for PARAGRAPH, HEADING, QUOTE, LIST, CODE, TABLE,
+  IMAGE, CITATION, REFERENCE, OBSERVATION, DIVIDER, and CUSTOM. ReferenceNode embeds
+  exact ResearchAnchor provenance. This is structured semantic content, not plain
+  text, although several node semantics are too shallow for A23.
+- Local .author transport: AuthorArtifactSerializer.ts emits versioned JSON;
+  AuthorArtifactTypes.ts and AuthorArtifactParser.ts validate/restore it;
+  AuthorKnowledgeCompiler.ts provides a separate explicit knowledge-ingestion path.
+- Durable identity/revisions: StudioArtifact and StudioArtifactVersion in
+  isees_uap/studio/models.py; create_draft/save_version in StudioService; tables
+  studio_artifact and studio_artifact_version in migrations/001_studio.sql.
+  StudioArtifact has stable artifact_id and current_version_id/number. Frozen
+  StudioArtifactVersion has parent_version_id, document, content_hash, creator, and
+  time. SQLiteRepository transactionally advances the head with expected revision.
+- StudioAuthorDocumentAdapter.composeStudioVersionCommand maps the active structured
+  document, eligible source-backed references, and OBSERVATION claims into backend
+  commands. StudioDocumentRestoration revives required Date fields after retrieval.
+
+PARTIAL OR PLACEHOLDER
+
+- There are two save concepts: StudioToolbar local .author download and Artifact
+  Inspector durable Save Draft. A23 requires distinct names/contracts, but the
+  current toolbar button is simply “Save” and marks local runtime clean after file
+  emission in the modified worktree. Local download is not backend authority.
+- document.metadata.version and document.status are browser fields; the backend
+  artifact revision/version is durable authority. They are not one reconciled
+  revision contract.
+- The backend stores document as unconstrained Any/JSON under a caller-supplied
+  authorSchemaVersion. It does not validate the full semantic .author schema.
+
+CONTRADICTS CANON
+
+- Current local .author files and durable backend versions are parallel persistence
+  representations without a single declared authority boundary. A23 requires one
+  authoritative structured .author lineage.
+- Saved-version creation does not automatically queue all enabled children.
+
+Answer: AuthorDocumentRuntime owns unsaved identity/content; serializer/parser own
+local .author transport; StudioService/SQLiteStudioRepository own durable artifact
+identity and immutable versions. The document is structured, but the complete A23
+semantic schema and unified authority contract are absent.
+
+3. ARTIFACT PROFILES (ANSWER 3)
+
+IMPLEMENTED AND TRACKED
+
+StudioArtifactDesigns.ts defines four drafting designs: investigation-report,
+evidence-assessment, comparative-event-analysis, and research-memorandum.
+AuthorDocumentTypes additionally names DOCUMENT, REPORT, PRESENTATION, NOTEBOOK,
+ARTICLE, and MANUAL; those are document types, not verified product profiles.
+
+CONTRADICTS CANON
+
+A23 V1 requires Investigation Report, Executive Brief, Scientific Paper, and
+Intention Hypothesis Assessment. Only Investigation Report matches. Evidence
+Assessment, Comparative Event Analysis, and Research Memorandum may remain future
+designs but must not substitute for the required profiles.
+
+4. OUTPUT PROJECTIONS (ANSWERS 4–5, 17–18)
+
+IMPLEMENTED AND TRACKED
+
+- Backend ProjectionFormat supports HTML, PDF, DOCX validation records.
+- service.py validate_projection calculates readiness/warnings for a saved version.
+- pdf_materializer.py uses reportlab Canvas(invariant=1), renders a bounded textual
+  representation, content-addresses bytes, and stores beneath a configured output
+  root. service.py materializes only PDF. api/v1/studio.py serves an authorized PDF
+  download without exposing output_location. test_pdf_materialization.py tests
+  deterministic bytes, storage, authorization, and failure behavior.
+- isees_uap/requirements.txt pins reportlab==4.4.3.
+- Frontend StudioArtifactInspector validates all formats, materializes/downloads PDF,
+  keeps historical PDF available when the draft is dirty, and labels previews as
+  browser-only and non-authoritative.
+- author/projection has Lexical, Markdown, PDF, DOCX, and HTML classes, but
+  AuthorProjectionFactory.ts constructs only LexicalProjection.
+
+PARTIAL OR PLACEHOLDER
+
+- Inspector Preview for PDF/DOCX/HTML is only a text message plus document title.
+- DOCX and HTML have validation metadata but no backend renderer, stored bytes, or
+  download path. Their frontend projection classes are lifecycle abstractions, not
+  production file generators. Markdown exists outside A23’s required child list.
+- PDF is real but supports only basic textual nodes/source lines; it lacks governed
+  bibliography, math, figure/table, accessibility, and full provenance rendering.
+- Projection states READY/READY_WITH_WARNINGS/NOT_READY plus NOT_MATERIALIZED/
+  MATERIALIZED/FAILED do not express A23 NOT_GENERATED, QUEUED, REBUILDING, CURRENT,
+  STALE, SUPERSEDED, PUBLISHED, or RETRACTED.
+- StudioToolbar Export and Publish controls are disabled placeholders.
+
+ABSENT
+
+- No production LaTeX, bibliography/citation-manifest, or provenance-package
+  projection was found.
+- No citation processor, CSL style engine, BibTeX/RIS adapter, KaTeX/MathJax,
+  production DOCX generator, or HTML sanitizer/renderer dependency was found.
+
+Dependency conclusion: existing Lexical and reportlab can be retained. A minimal V1
+can avoid new dependencies initially by defining semantic contracts, emitting safe
+deterministic HTML directly, keeping CSL-JSON as structured data, and deferring
+rich DOCX/LaTeX interoperability until verified adapters are selected. Full APA/
+Chicago/IEEE conformance will probably require a maintained CSL processor and style
+assets; production DOCX will require a DOCX library or a deliberately small OOXML
+writer. The exact packages and licensing require decision; they are not justified
+by current code.
+
+5. DRAFTING CONTRACT AND AI RUNTIME (ANSWERS 5, 11–12)
+
+IMPLEMENTED AND TRACKED
+
+- drafting/StudioDraftingTypes.ts defines versioned context/request/proposal types,
+  ALL/SUBSET selection, base identity, source hashes, researcher notes, exclusions,
+  proposal blocks/references, warnings, unsupported claims, contradictions, and
+  uncertainty disclosures.
+- StudioDraftingContext.ts canonically normalizes and hashes context.
+- StudioDraftingRuntime.ts owns transient preparation/generation/proposal states and
+  invalidates stale work. StudioDraftingPanel.tsx exposes source/note selection,
+  predefined design, instruction, context review, and generation.
+- Backend schemas.py mirrors strict extra=forbid drafting models and size limits.
+  drafting.py validates context identity/hash/source references and provider output.
+  ports.py defines StudioDraftingProvider. service.py returns proposals without
+  durable artifact repository access. api/v1/studio.py exposes POST
+  /drafting-proposals through _DraftingOnlyRepository.
+
+PARTIAL OR PLACEHOLDER
+
+- _UnavailableDrafting is the only production-composed provider; generation returns
+  provider unavailable. No external AI adapter is present or invoked.
+- The panel displays a proposal but has no granular accept/reject/apply transaction.
+  There is no persisted proposal audit, prompt/configuration record, disposition,
+  or proposal-to-saved-revision lineage.
+- Designs express generic “draft artifact” instructions, not separate outline,
+  selected-section, full-artifact, challenge, and audit commands.
+
+Must replace: not the context/runtime spine, but generic design vocabulary, shallow
+proposal blocks, absence of auditable proposal/disposition records, and any future
+direct mutation. Retain and extend canonical hashing, strict schema validation,
+base-revision checks, source reference validation, size limits, AbortSignal, and
+repository-isolated generation.
+
+6. RESEARCH INBOX AND SOURCE SNAPSHOTS (ANSWERS 7, 11)
+
+IMPLEMENTED AND TRACKED
+
+- ResearchBridgeRuntime is the source-selection owner. StudioResearchInbox supports
+  scoped browsing, filters, selection, pin/removal, and explicit insertion.
+- StudioDraftingPanel ALL uses the complete active-Investigation projection rather
+  than current presentation filters; SUBSET preserves anchor IDs. Researcher notes
+  are explicit non-REFERENCE document nodes and are labeled non-evidence.
+- ResearchAnchor carries stable anchor/source/investigation/workspace/kind identity,
+  timestamps, classification, insertion state/reason, revision/execution/projection
+  IDs, and captured representation.
+- StudioSourceSnapshotMapper.ts and StudioAuthorDocumentAdapter.ts map anchors into
+  immutable backend snapshots. models.py freezes captures and hashes immutable
+  fields; migration 002 adds anchor/graph/hash/insertion metadata.
+
+PARTIAL OR PLACEHOLDER
+
+- Current classifications are CANONICAL, RESEARCHER_GENERATED, and UNDETERMINED at
+  the Inbox, but backend SourceClassification admits only CANONICAL and
+  RESEARCHER_GENERATED. A23 canonical/candidate/experimental/external classifications
+  and sensitivity directives are absent.
+- No explicit Refresh Sources/difference review/new-snapshot workflow exists.
+- Saving publishes eligible graph sources through a research-source adapter before
+  version save; this multi-stage client orchestration is not one atomic authoritative
+  save boundary, although failures preserve the draft.
+
+7. BACKEND ENDPOINTS AND FRONTEND CALLERS (ANSWER 6)
+
+IMPLEMENTED AND TRACKED
+
+Mounted by isees_uap/api/__init__.py under:
+  /api/v1/investigations/{investigation_id}/studio-artifacts
+
+api/v1/studio.py endpoints and callers:
+
+  POST ""                         create draft; Inspector via studioApi.post
+  GET  ""                         list artifacts; Inspector via studioApi.list
+  GET  /{artifact_id}             load artifact; studioApi.get (available helper)
+  POST /drafting-proposals        proposal; StudioDraftingRuntime via studioApi
+  POST /{id}/versions             save version; Inspector/orchestrator via post
+  POST /{id}/candidate            create candidate; Inspector
+  POST /{id}/candidate/publication publish candidate; Inspector
+  POST /{id}/review-submissions   submit review; Inspector
+  POST /{id}/acceptance           accept; Inspector
+  POST /{id}/returns              return; Inspector
+  POST /{id}/rejections           reject; Inspector
+  POST /{id}/projections/validations validate; Inspector
+  POST /{id}/projections/materializations materialize; Inspector (PDF eligible)
+  GET  /{id}/projections/{projection_id}/download studioApi.downloadPdf
+
+Publication and accepted-knowledge ports are explicitly unavailable in production,
+so those lifecycle calls fail closed rather than mutating MANIFOLD/System Canon.
+
+8. HISTORICAL 404/422 AND CURRENT SCHEMA MISMATCH (ANSWERS 7–8)
+
+FACTUAL CAUSES
+
+- Before commit 3e62270 (A16-I1C), Studio persistence routes were not mounted; calls
+  to guessed Studio artifact URLs therefore returned 404.
+- Routes intentionally return non-disclosing 404 for absent artifacts, wrong owner,
+  wrong Investigation, path/body artifact mismatch, missing output, and unauthorized
+  access. A 404 is not proof that the route is absent.
+- Pydantic schemas use extra="forbid" and require command-specific fields. Mutation
+  calls missing schemaVersion, investigationId, principalId, idempotencyKey, and for
+  existing artifacts artifactId/expectedRevision return FastAPI 422. Invalid source
+  kinds/classifications, malformed timestamps/hashes, or an older payload shape also
+  return 422.
+- First-save logic must POST the collection route with CreateStudioDraft; sending a
+  SaveStudioArtifactVersion to an artifact URL before an artifact exists yields the
+  wrong route/lifecycle behavior. A17 commits c4e6318 and 32fd303 addressed first-save
+  and empty-state semantics.
+
+CURRENT MISMATCHES
+
+- composeStudioVersionCommand intentionally returns the document payload but not
+  idempotencyKey/artifactId/expectedRevision; Inspector/orchestrator must add them.
+  Calling the adapter result directly produces 422.
+- Frontend StudioArtifactProjection omits backend versionHistory and audit arrays and
+  models only a subset of snapshot fields. The backend response is wider; this is
+  tolerated structurally but is not one generated wire contract.
+- Local serialized .author uses its own artifact/schema envelope, while the backend
+  expects authorSchemaVersion plus document Any. Upload bytes are not the same as a
+  CreateStudioDraft command.
+- The frontend sends X-ISEES-Principal-Id, but current server authority comes from an
+  authenticated session cookie; mutations also require X-ISEES-CSRF. StudioApi.ts
+  does not send the CSRF header. _ownership requires command.principalId equal the
+  authenticated account_id, while the frontend uses operator.identity.operatorId.
+  These identities require an explicit convergence contract.
+- api/__init__.py CORS allow_headers includes Content-Type, X-ISEES-CSRF, and
+  X-Request-Id, but not X-ISEES-Principal-Id. Cross-origin browser preflight can fail
+  even though the header is ignored for authentication.
+
+9. TRACKED/UNTRACKED OWNERSHIP AND COLLISION RISK (ANSWERS 9–10)
+
+IMPLEMENTED AND TRACKED
+
+All inspected isees_uap/studio source/migrations, api/v1/studio.py, Studio frontend
+files except the three named below, author model/runtime/projections, and Studio
+verification scripts are tracked. StudioToolbar.tsx is tracked but had pre-existing
+local modifications. WorkspaceSurface.tsx and OverviewWorkspace.tsx also had
+pre-existing tracked modifications.
+
+IMPLEMENTED BUT UNTRACKED
+
+  isees-ui/src/studio/api/StudioSaveOrchestrator.ts
+  isees-ui/src/studio/runtime/StudioSaveActionContext.ts
+  isees-ui/src/studio/runtime/StudioSaveActionProvider.tsx
+
+Python __pycache__ files are also untracked generated material and are not authority.
+
+Collision risks:
+
+- Inspector contains tracked inline save orchestration while the untracked
+  StudioSaveOrchestrator duplicates/refactors that responsibility.
+- The untracked provider/registry is not composed by tracked StudioShell, while the
+  locally modified StudioToolbar may be integrating it.
+- Any bulk checkout/clean/reset, scaffolding over src/studio, or generated contract
+  rewrite could destroy the active work.
+
+The untracked work can be preserved safely: treat those exact paths and the modified
+StudioToolbar as user-owned, inspect before any future edit, make additive contract
+files first, then integrate by narrow patches with pre/post hashes. Do not move,
+overwrite, clean, or stage it implicitly.
+
+10. SCIENTIFIC, CITATION, NOTATION, FIGURE, AND TABLE SUPPORT
+
+IMPLEMENTED AND TRACKED
+
+- AuthorNodeTypes provides shallow CITATION (string citation/source/page/URL), IMAGE
+  (src/alt/caption), and TABLE (headers/rows/caption) nodes. QUOTE and REFERENCE exist.
+- Backend StudioCitation links citation_id to source_snapshot_id and optional locator
+  metadata. Claims and claim-source mappings model SUPPORTS, CONTRADICTS,
+  CONTEXT_ONLY, and REQUIRES_RESOLUTION.
+- IntentionEquationRegistry.ts defines stable equation descriptor identities and
+  explicit availability; IntentionMetricDerivation preserves equationId, variables/
+  inputs, units, assumptions, and lineage. This is INTENTION-owned and can inform a
+  read-only adapter, not be moved into STUDIO.
+
+PARTIAL OR PLACEHOLDER
+
+- StudioAuthorDocumentAdapter always sends citations: [] and
+  claimSourceMappings: []; the editor has no complete structured citation workflow.
+- No footnote, bibliography-entry, appendix/supplement, numbered equation, math AST,
+  figure asset lineage, table source lineage, cross-reference, or citation-style
+  semantic contracts meet A23.
+- Current IMAGE/TABLE/CITATION nodes lack required stable scholarly metadata.
+
+ABSENT
+
+APA/Chicago/IEEE formatting; CSL/BibTeX/RIS interoperability; DOI verification;
+LaTeX-style math rendering; bibliography generation; citation completeness and
+fabrication gates; deterministic figure/table asset packaging.
+
+11. INTENTION RESULT CONSUMPTION AND INFERENCE BOX (ANSWER 16)
+
+IMPLEMENTED AND TRACKED
+
+- intention/projection/IntentionProjectionTypes.ts defines an immutable projection
+  with id, executionId, availability, epistemicClassification, nodes, descriptive
+  links, metric derivations, lineage, hypotheses, validationStatus, and canonical
+  representation.
+- IntentionProjectionResolver.ts deterministically derives identities and explicitly
+  labels presentation coordinates non-scientific. Current attractor detection is
+  THEORETICAL with reason “No repository-authoritative attractor definition or test
+  exists.” Current hypothesis is NOT_TESTED.
+- IntentionInspector explicitly publishes selected derivations/hypotheses through
+  TypedResearchSourceAdapters.ts as INTENTION_DERIVATION or INTENTION_HYPOTHESIS
+  Research Inbox anchors. Those anchors preserve revision/execution/projection and
+  captured representation. STUDIO can already consume these copies without calling
+  or modifying INTENTION.
+
+PARTIAL OR PLACEHOLDER
+
+This provides the correct one-way seam only if V1 eligibility is tightened to
+explicitly selected, completed, immutable results. Current hypothetical/theoretical
+anchors may be inspection-only or candidate material and must retain that status.
+There is no explicit “completed result” predicate shared with STUDIO.
+
+ABSENT
+
+No Inference Box, ABDUCTIVE/CANDIDATE output schema, H0/H1 assessment profile,
+controlled conclusion vocabulary, or measurement-versus-interpretation UI exists.
+
+Answer: yes, STUDIO can consume a frozen ResearchAnchor copy of an existing result
+without modifying INTENTION. The V1 contract should depend only on a new read-only
+adapter over selected INTENTION anchors; it must not import INTENTION runtime
+commands or add controls to INTENTION Mode.
+
+12. AUTHENTICATION, PRINCIPAL HEADERS, CORS, SECURITY, AND PRIVACY (ANSWER 19)
+
+IMPLEMENTED AND TRACKED
+
+- api/v1/studio.py uses require_authenticated_principal for reads and
+  require_csrf_protected_principal for mutations, then PersistedInvestigationAuthority
+  verifies account ownership. Cookies are credentialed. Cross-owner access is
+  non-disclosing.
+- API errors sanitize browser messages; output_location is removed from responses;
+  PDF output paths are content-addressed and validated against traversal.
+- Drafting has source/count/text bounds, strict response validation, timeout/provider
+  error categories, hash checks, and rejects unknown proposal source references.
+
+CONTRADICTS CANON / BLOCKER
+
+- No source sensitivity policy exists for analysis/artifact/public citation/
+  anonymization/restricted appendix/AI exclusion.
+- No production AI adapter exists, but any future adapter would currently lack a
+  prompt-injection boundary, provider allow-list, egress policy, data minimization,
+  regional/retention policy, and persisted auditable disposition.
+- Current proposal validation prevents invented anchor IDs but does not verify every
+  factual sentence, quotation, DOI, locator, equation, number, or result against the
+  frozen snapshots. Citation fabrication remains a critical risk.
+- Captured source content can contain adversarial instructions. It must be serialized
+  as untrusted evidence, never concatenated as instructions. System/developer prompt
+  layers, tool access, URLs, attachments, and model output must be bounded.
+- Browser/backend principal and CSRF mismatch described above blocks safe production
+  mutation and must be resolved before browser acceptance.
+
+Required governance: classify/redact before provider submission; enforce the most
+restrictive source rule; server-side provider/model allow-list; no arbitrary URLs or
+tools; no client credentials; TLS; strict request/response byte/token/time limits;
+sanitized logs; encryption/access/retention policy; immutable prompt/source/model
+audit; output schema validation; source-backed citation/quotation/number checking;
+human granular acceptance; and egress tests proving excluded sources never appear in
+prompts, logs, telemetry, exports, or errors.
+
+13. VERIFICATION AND NODE 24 FINDINGS (ANSWER 15)
+
+IMPLEMENTED AND TRACKED
+
+Backend suites under isees_uap/testing/studio:
+  test_models.py, test_lifecycle.py, test_hashing.py, test_service_contract.py,
+  test_sqlite_repository.py, test_studio_api.py, test_drafting_contract.py,
+  test_manifold_research_resolution.py, test_pdf_materialization.py.
+
+Frontend tools include VerifyStudioFinalAcceptance, ShellOwnership,
+ArtifactInspectorEmptyState, FirstSaveTransition, ProjectionConsistency,
+RestoredAuthorReconciliation, SaveReliability, PdfMaterialization,
+ResearchInboxProduction, StructuredAuthoringCanvas, drafting contract/runtime/panel
+verifiers, and broader Investigation/Research/Guest regressions.
+
+KNOWN TOOLING FAILURE
+
+Prior result/discovery documents record bare Node 24 --experimental-strip-types
+failures for extensionless TypeScript imports, including
+VerifyCanonicalFreshGuestEntry.ts, VerifyFreshInvestigationIsolation.ts, and
+VerifyRevisionCompleteInvestigationActivation.ts. The repo now contains
+tools/verification/TypeScriptExtensionLoader.mjs, whose resolver retries .ts and
+/index.ts, but package scripts still invoke bare node and do not consistently use
+--experimental-loader. Therefore a passing verifier must identify the exact runner;
+an extensionless-import loader failure is NOT a product-test failure, and an unrun
+script is not passing evidence.
+
+Every increment must gate:
+
+1. git diff --check and scope/staging/preservation checks;
+2. deterministic contract fixtures and canonical-hash golden vectors in TS/Python;
+3. backend unit, repository migration/atomicity/idempotency/concurrency/isolation,
+   API auth/CSRF/CORS, source-resolution, and projection byte/hash tests;
+4. frontend typecheck/build plus focused runtime/component interaction tests using a
+   declared Node 24-compatible resolver;
+5. Research Inbox, Investigation switching, Guest/session, Author restore, INTENTION
+   unchanged, MANIFOLD/System Canon non-mutation, and publication-boundary regressions;
+6. adversarial prompt-injection, data-exfiltration, sensitivity, fabricated citation/
+   quotation/number, stale proposal, partial save, projection failure/retry, and
+   browser acceptance tests.
+
+14. PRODUCTION BACKEND/STORAGE/DEPLOYMENT BLOCKERS (ANSWER 20)
+
+IMPLEMENTED AND TRACKED
+
+SQLite paths are configured in studio/config.py; raw migrations use WAL-backed
+repository transactions; PDF output is filesystem content-addressed; routes are
+mounted in isees_uap.api:app; CORS origins are environment-configured.
+
+BLOCKERS / UNKNOWN
+
+- No production drafting provider/configuration/secret/egress/audit implementation.
+- No DOCX/HTML/LaTeX/bibliography/provenance materializers or durable projection job
+  queue; current materialization is synchronous PDF only.
+- Save plus all-child regeneration is not one durable orchestration/outbox contract.
+- SQLite and local filesystem are single-host storage. There is no defined production
+  volume, backup/restore, migration rollout, concurrency topology, retention,
+  encryption, object storage, garbage collection, disaster recovery, or published-
+  artifact immutability policy.
+- Publication and AcceptedKnowledge adapters deliberately fail unavailable. No System
+  Canon promotion adapter should be added to STUDIO.
+- Authentication identity convergence, CSRF client support, CORS header convergence,
+  roles/publication authorization, and service-to-service principal policy remain.
+- No observability/SLO/job recovery contract for projection queues or AI calls.
+- No asset upload/virus scanning/content-type validation for figures/supplements.
+- Deployment entrypoint must be proven to start isees_uap.api:app rather than the
+  permissive legacy api_legacy.py, whose wildcard CORS is unsuitable.
+
+15. EXISTING CONTRACTS TO EXTEND AND ELEMENTS TO REPLACE (ANSWERS 11–12)
+
+EXTEND
+
+- ComputationalAuthorDocument/AuthorNode discriminated semantic structure.
+- Author serializer/parser versioning and deterministic ingestion discipline.
+- AuthorDocumentRuntime as sole unsaved mutation owner.
+- ResearchAnchor/ResearchBridgeRuntime active-Investigation source ownership.
+- Studio drafting canonicalization, base identity, proposal separation, limits, and
+  source-reference validation.
+- Backend frozen dataclasses, canonical hashing, strict Pydantic schemas,
+  StudioService, repository protocol, SQLite transactions, idempotency, optimistic
+  revision checks, non-disclosing authorization, and projection output hashes.
+- Deterministic PDF content addressing and last-successful-output retention pattern.
+- One-way INTENTION Research Inbox publication adapter.
+
+REPLACE OR CONVERGE
+
+- Current artifact designs with the four canonical versioned profiles.
+- Split local-download/durable-save cleanliness semantics with one declared .author
+  authority and distinct Download Source versus Save Revision commands.
+- Shallow citation/image/table nodes and absent equation/footnote/bibliography model
+  with complete scholarly semantic nodes.
+- Projection readiness/materialization vocabulary with the A23 child state machine.
+- Manual per-format validate/materialize-only behavior with automatic post-save
+  enabled-child queuing, while retaining explicit rebuild/export/publish commands.
+- Frontend/backend hand-written partial wire types with shared fixtures or generated
+  schemas and exact authentication/CSRF identity contracts.
+- Lifecycle labels “Save as Candidate Knowledge,” “Publish Candidate to Manifold,”
+  and “Accept as Knowledge” where they imply STUDIO promotion authority. Saved
+  artifacts remain Candidate Knowledge; System Canon promotion is outside STUDIO.
+- Inline tracked save orchestration and untracked duplicate must converge into one
+  owner only after preserving/reviewing the user work.
+
+16. SMALLEST AUTHORITATIVE V1 TECHNICAL CONTRACT SLICE (ANSWER 13)
+
+The smallest slice is domain-only and deterministic; it changes no UI/backend route:
+
+  A. Versioned StudioArtifactProfile enum/schema with exactly the four V1 profiles.
+  B. Versioned AuthorDocumentV1 semantic schema containing stable blocks for section,
+     claim, quotation, footnote, citation/bibliography entry, equation/variable/unit/
+     assumption/derivation, figure/table, appendix, supplement, inference statement,
+     and controlled conclusion.
+  C. Stable artifact identity plus immutable AuthorRevision, parent ID, canonical
+     content hash, frozen SourceSnapshot, sensitivity directives, and AIContribution.
+  D. Unapplied Proposal/ProposalUnit/Disposition with base revision and source hash.
+  E. ChildProjection lineage/config/output hash and exact A23 state machine.
+  F. Pure validators for citation completeness/no fabricated identifiers, source
+     eligibility, sensitivity, inference epistemic boundary, and publication command
+     separation.
+  G. Cross-language canonical JSON/hash fixtures and transition tables.
+
+This slice establishes authority before adapting persistence or presentation. It can
+be tested without AI, browser, database, network, INTENTION mutation, or new package.
+
+17. PROPOSED CONTRACT FILE MAP — DO NOT CREATE YET
+
+Frontend/domain-neutral TypeScript:
+
+  isees-ui/src/studio/contracts/StudioV1Contract.ts
+  isees-ui/src/studio/contracts/StudioArtifactProfile.ts
+  isees-ui/src/studio/contracts/StudioAuthorDocumentV1.ts
+  isees-ui/src/studio/contracts/StudioAuthorRevision.ts
+  isees-ui/src/studio/contracts/StudioSourceSnapshotV1.ts
+  isees-ui/src/studio/contracts/StudioSensitiveSourcePolicy.ts
+  isees-ui/src/studio/contracts/StudioProposalV1.ts
+  isees-ui/src/studio/contracts/StudioProjectionV1.ts
+  isees-ui/src/studio/contracts/StudioPublicationCommands.ts
+  isees-ui/src/studio/contracts/StudioInferenceV1.ts
+  isees-ui/src/studio/contracts/StudioCanonicalSerialization.ts
+  isees-ui/src/studio/intention/StudioIntentionResultAdapter.ts
+
+Backend mirror/adapters:
+
+  isees_uap/studio/v1/contracts.py
+  isees_uap/studio/v1/schemas.py
+  isees_uap/studio/v1/hashing.py
+  isees_uap/studio/v1/validation.py
+  isees_uap/studio/v1/repository.py
+  isees_uap/studio/v1/projection_jobs.py
+  isees_uap/studio/v1/security.py
+  isees_uap/studio/v1/intention_adapter.py
+  isees_uap/studio/migrations/003_studio_v1_contract.sql
+
+Shared deterministic fixtures/verifiers:
+
+  contracts/studio-v1/schema/*.json
+  contracts/studio-v1/fixtures/canonical-hash-v1.json
+  isees-ui/tools/verification/VerifyStudioV1Contracts.ts
+  isees-ui/tools/verification/VerifyStudioV1IntentionBoundary.ts
+  isees_uap/testing/studio_v1/test_contracts.py
+  isees_uap/testing/studio_v1/test_cross_language_hashes.py
+  isees_uap/testing/studio_v1/test_security_policy.py
+
+The file names are proposed, not created. A decision is required whether JSON Schema
+is the neutral source and TS/Python are generated, or whether both languages remain
+hand-authored against golden fixtures. One authority is preferable.
+
+18. FASTEST SAFE IMPLEMENTATION SEQUENCE (ANSWER 14)
+
+I1 — Domain contract only: add the schemas/enums/invariants/fixtures/transition tests
+above. No UI, database, API, AI, export, or INTENTION mutation.
+
+I2 — Persistence adapter: map the new revision/snapshot/proposal/projection records
+onto append-only SQLite tables with atomic save plus durable projection outbox. Add
+migration/restart/concurrency/idempotency tests. Preserve old reads through an
+explicit migration adapter; never reinterpret old JSON silently.
+
+I3 — Authentication/wire convergence: cookie account authority, CSRF header/client,
+CORS allow-list, exact request/response schemas, non-disclosing ownership, and one
+save orchestrator. Browser smoke-test create/list/save/reload before other UI work.
+
+I4 — Minimal UI acceptance: four-profile selector, structured source snapshot review,
+unsaved/saved identity, revision history, and deterministic plain HTML plus existing
+PDF child state. Automatic post-save queue and isolated failure UI. No AI yet.
+
+I5 — Scholarly semantics: citations/bibliography, quotation/locator, equation, figure,
+table, appendix/supplement editing and validation; deterministic HTML/PDF. Add DOCX
+only after its byte/lineage contract is verified.
+
+I6 — AI proposal boundary: injected server provider, sensitivity filtering, bounded
+context, audit record, unapplied proposal, granular disposition/apply transaction,
+stale-base rejection, fabricated-source/locator/number gates. Provider unavailable
+must remain a valid fail-closed deployment.
+
+I7 — STUDIO-only Inference Box and Intention Hypothesis Assessment: consume selected
+immutable INTENTION Research anchors through the read-only adapter; implement H0/H1,
+epistemic separation, controlled conclusions, and INTENTION-unchanged regression.
+
+I8 — Governed export/publication: explicit download/export/publication/supersession/
+retraction commands, immutable publication records, restricted/public packages,
+backup/recovery/observability, and production browser acceptance. System Canon
+promotion remains outside STUDIO.
+
+Each increment should be small enough to land with its focused deterministic tests
+and the complete relevant regression gate. UI-first implementation would conceal the
+authority and schema conflicts and is not recommended.
+
+19. DIRECT ANSWERS SUMMARY
+
+1. Runtime owns unsaved document; backend service/repository owns durable identity and
+   revisions; serializer owns local file transport. They need one declared authority.
+2. Structured semantic document, but incomplete for A23 scholarship/inference.
+3. Four old designs; only Investigation Report matches required V1 profiles.
+4. Real backend deterministic PDF works; HTML/DOCX validate only; previews are labels.
+5. Export/Publish buttons, HTML/DOCX preview/materialization, provider generation, and
+   much scholarly UI are placeholder or absent.
+6. Endpoint/caller map is in section 7.
+7. Historical unmounted/wrong route and deliberate non-disclosure caused 404; strict
+   incomplete/old payloads caused 422.
+8. Split .author/backend schemas, required command augmentation, partial response
+   types, and auth/principal/CSRF contracts cause current mismatch.
+9. Core implementation is tracked; save orchestrator/action context/provider are
+   pre-existing untracked; three tracked files were already modified.
+10. Yes. Preserve by exact-path avoidance, hashes, additive contracts, and narrow
+    integration; never clean/reset/overwrite.
+11. Extend owners, hashes, snapshots, strict schemas, repository/service, proposal
+    separation, PDF store, and one-way INTENTION anchors.
+12. Replace/converge profiles, scholarly nodes, projection states/automation,
+    lifecycle vocabulary, split save semantics, wire/auth, and duplicate orchestrator.
+13. Immutable domain/revision/source/proposal/projection/inference contracts plus
+    cross-language deterministic fixtures.
+14. Domain -> persistence -> auth/wire -> minimal browser -> scholarly -> AI ->
+    Inference -> publication/operations.
+15. Gate scope, deterministic fixtures, backend atomic/security tests, Node-compatible
+    frontend tests, browser tests, domain regressions, and adversarial governance.
+16. Yes, through selected frozen INTENTION Research anchors only; no INTENTION change.
+17. Lexical and reportlab exist; shallow nodes and equation registry exist; no CSL,
+    BibTeX/RIS, math renderer, DOCX/HTML production generator.
+18. Avoid new dependencies for initial contracts/minimal HTML; CSL and DOCX choices
+    require later decision and verification.
+19. Govern prompt injection, data minimization/exfiltration, sensitivity, provider
+    egress/secrets/logs, fabrication, stale apply, authorization, and output exposure.
+20. Provider, jobs/materializers, storage operations, auth/CSRF/CORS, publication
+    authority, observability, asset security, and correct deployment entrypoint block
+    production.
+
+20. HISTORY RELEVANT TO A16/A17
+
+The relevant linear checkpoints are:
+
+  6f34805 A16-I1B domain contract
+  3e62270 A16-I1C durable repository/API
+  41ea14a..a943610 A16-I2A/B source scoping/adapters
+  b782dc0..765d788 A16-I2C/D Inbox and structured canvas
+  9c6fb48..b2a3447 A16-I2E/I3 lifecycle/projections/end-state
+  b574077..710be9b A16-I3A/B authority and shell ownership
+  b527638 A17-I1 deterministic drafting contracts
+  c9909f8 A17-I2 drafting workspace
+  2fab2e4..e711f88 A17-I2B/C serialization and proposal isolation
+  c8ec4c5..32fd303 A17-I2D/E hash and empty semantics
+  c4e6318..0ec7e3b A17-I2F/G first-save and projection consistency
+  2003448 A17-I2H authoritative PDF
+  e3366a1..3b2f996 A17-I2I/J/K source bridge, restoration, save reliability
+
+These commits explain why older A16/A17 discovery documents understate the present
+implementation. Current source at c54e646 is the factual authority for this report.
+
+DISCOVERY VERDICT
+
+READY FOR A SMALL DOMAIN-CONTRACT AND DETERMINISTIC-VERIFICATION INCREMENT.
+NOT READY TO CLAIM STUDIO V1, PRODUCTION AI, SCIENTIFIC EXPORT, INFERENCE BOX,
+AUTOMATIC CHILD SYNCHRONIZATION, OR PUBLICATION ACCEPTANCE.
