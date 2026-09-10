@@ -4,6 +4,7 @@ import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from threading import RLock
 from typing import Callable
 
 from .hashing import canonical_serialize
@@ -16,6 +17,8 @@ ConnectionFactory = Callable[[], sqlite3.Connection]
 
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS studio_v1_schema_identity(
+ schema_name TEXT PRIMARY KEY, schema_version INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS studio_v1_artifacts(
  owner_id TEXT NOT NULL, investigation_id TEXT NOT NULL, artifact_id TEXT NOT NULL,
  profile TEXT NOT NULL, profile_capability TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -80,17 +83,67 @@ class SQLiteStudioV1Store:
         self._factory = connection_factory
         self.max_attempts = max_attempts
         self._inject = failure_injector or (lambda _: None)
+        self._closed = False
+        self._connections = []
+        self._connections_lock = RLock()
 
     def _connect(self):
+        if self._closed:
+            self._fail(FailureCode.APPLICATION_CLOSED, "Studio application persistence is closed.")
         db = self._factory() if self._factory else sqlite3.connect(self.path, timeout=10, isolation_level=None)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
         try: db.execute("PRAGMA journal_mode=WAL")
         except sqlite3.DatabaseError: pass
+        with self._connections_lock: self._connections.append(db)
         return db
 
     def initialize_schema(self):
-        with self._connect() as db: db.executescript(SCHEMA)
+        try:
+            with self._connect() as db:
+                existing = db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='studio_v1_schema_identity'"
+                ).fetchone()
+                if existing:
+                    row = db.execute(
+                        "SELECT schema_version FROM studio_v1_schema_identity WHERE schema_name='STUDIO_V1'"
+                    ).fetchone()
+                    if row and row[0] != 1:
+                        self._fail(FailureCode.INCOMPATIBLE_SCHEMA_VERSION,
+                                   "The Studio V1 persistence schema is incompatible.")
+                db.executescript(SCHEMA)
+                db.execute("INSERT OR IGNORE INTO studio_v1_schema_identity VALUES('STUDIO_V1',1)")
+        except StudioV1Failure: raise
+        except sqlite3.Error as exc:
+            self._fail(FailureCode.PERSISTENCE_UNAVAILABLE, "Studio persistence is unavailable.", exc)
+
+    def verify_schema_version(self, expected_version):
+        if expected_version != 1:
+            self._fail(FailureCode.INCOMPATIBLE_SCHEMA_VERSION,
+                       "The requested Studio V1 schema version is incompatible.")
+        try:
+            with self._connect() as db:
+                if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
+                    self._fail(FailureCode.APPLICATION_START_FAILED,
+                               "Studio persistence foreign-key enforcement is unavailable.")
+                row = db.execute(
+                    "SELECT schema_version FROM studio_v1_schema_identity WHERE schema_name='STUDIO_V1'"
+                ).fetchone()
+                if not row or row[0] != expected_version:
+                    self._fail(FailureCode.INCOMPATIBLE_SCHEMA_VERSION,
+                               "The Studio V1 persistence schema is incompatible.")
+        except StudioV1Failure: raise
+        except sqlite3.Error as exc:
+            self._fail(FailureCode.PERSISTENCE_UNAVAILABLE, "Studio persistence is unavailable.", exc)
+
+    def close(self):
+        with self._connections_lock:
+            if self._closed: return
+            self._closed = True
+            for connection in self._connections:
+                try: connection.close()
+                except sqlite3.Error: pass
+            self._connections.clear()
 
     def _fail(self, code, message, exc=None): raise StudioV1Failure(code, message) from exc
 

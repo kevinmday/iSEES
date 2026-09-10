@@ -8,6 +8,11 @@ from .schemas import ArtifactIdentity, AuthorRevision, FrozenResearchSourceSnaps
 
 
 class FailureCode(str, Enum):
+    APPLICATION_NOT_STARTED = "APPLICATION_NOT_STARTED"
+    APPLICATION_CLOSED = "APPLICATION_CLOSED"
+    APPLICATION_START_FAILED = "APPLICATION_START_FAILED"
+    INVALID_APPLICATION_CONFIGURATION = "INVALID_APPLICATION_CONFIGURATION"
+    INCOMPATIBLE_SCHEMA_VERSION = "INCOMPATIBLE_SCHEMA_VERSION"
     ARTIFACT_NOT_FOUND = "ARTIFACT_NOT_FOUND"
     AUTHORITY_MISMATCH = "AUTHORITY_MISMATCH"
     INVESTIGATION_MISMATCH = "INVESTIGATION_MISMATCH"
@@ -90,6 +95,8 @@ class ProjectionJob:
 
 class AuthoritativeStudioV1Store(Protocol):
     def initialize_schema(self) -> None: ...
+    def verify_schema_version(self, expected_version: int) -> None: ...
+    def close(self) -> None: ...
     def append_revision_and_jobs(self, command: SaveCommand) -> SaveResult: ...
     def locate_artifact(self, owner_id: str, investigation_id: str, artifact_id: str) -> ArtifactIdentity: ...
     def get_idempotency_result(self, owner_id: str, investigation_id: str, operation: str, idempotency_key: str, request_fingerprint: str) -> SaveResult | None: ...
