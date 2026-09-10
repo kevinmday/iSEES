@@ -246,10 +246,10 @@ def test_lifespan_helper_stores_owner_not_facade_and_orders_shutdown(tmp_path):
     assert owner.state is LifecycleState.STOPPED and application.closes == 1
 
 
-def test_live_api_has_no_private_v1_route_or_lifecycle_mount():
+def test_live_api_has_governed_v1_routes_but_no_import_time_lifecycle_mount():
     from isees_uap.api import app
     assert not hasattr(app.state, "private_studio_v1_lifecycle_owner")
-    assert not any("studio-v1" in route.path.lower() for route in app.routes)
+    assert sum("studio-v1" in route.path.lower() for route in app.routes) == 6
 
 
 def test_connection_factory_is_accepted_without_database_path(tmp_path):

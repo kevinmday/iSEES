@@ -138,12 +138,20 @@ def test_routes_openapi_middleware_handlers_and_dependencies_are_unchanged():
     fresh = create_application({})
     assert route_methods(fresh) == route_methods(app)
     assert fresh.openapi()["paths"] == app.openapi()["paths"]
-    assert not any("studio-v1" in path.lower() for path in fresh.openapi()["paths"])
+    studio_paths = {path for path in fresh.openapi()["paths"] if "/studio-v1/" in path}
+    assert studio_paths == {
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections",
+    }
     assert [middleware.cls for middleware in fresh.user_middleware] == [
         middleware.cls for middleware in app.user_middleware]
     assert set(fresh.exception_handlers) == set(app.exception_handlers)
-    dependencies = repr([getattr(route, "dependant", None) for route in fresh.routes]).lower()
-    assert "private_studio_v1" not in dependencies
+    dependencies = repr([getattr(route, "dependant", None) for route in fresh.routes
+                         if "/studio-v1/" in route.path]).lower()
+    assert "sqlitestudiov1store" not in dependencies and "connection_factory" not in dependencies
 
 
 def test_deployment_adapter_does_not_mutate_environment(tmp_path):

@@ -49,6 +49,9 @@ class StudioV1SaveService:
             raise StudioV1Failure(FailureCode.REVISION_IDENTITY_CONFLICT, "Command timestamp must be UTC.") from exc
         if revision.artifactId != artifact.artifactId or revision.authorPrincipalId != artifact.authorPrincipalId:
             raise StudioV1Failure(FailureCode.REVISION_IDENTITY_CONFLICT, "Revision identity does not match the artifact.")
+        if revision.profile != artifact.profile:
+            raise StudioV1Failure(FailureCode.REVISION_IDENTITY_CONFLICT,
+                                  "Revision profile does not match the artifact.")
         if artifact.currentSavedRevisionId != command.expected_head_revision_id:
             raise StudioV1Failure(FailureCode.REVISION_CONFLICT, "Artifact identity does not describe the expected head.")
         keys = [(x.format, x.template_profile_version, x.renderer_version, x.configuration_hash) for x in command.projections]

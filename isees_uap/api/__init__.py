@@ -35,6 +35,10 @@ from isees_uap.api.application import (
     studio_v1_application_lifespan,
 )
 from isees_uap.studio.v1.lifecycle import StudioV1LifecycleConfiguration
+from isees_uap.api.v1.studio_v1 import (
+    router as studio_v1_router, StudioV1ApiError, studio_v1_error_handler,
+)
+from isees_uap.studio.v1.persistence import StudioV1Failure
 
 # ------------------------------------------------------------
 # APP INIT
@@ -282,6 +286,9 @@ def create_application(
     application.add_exception_handler(StudioError, studio_error_handler)
     application.include_router(investigations_router)
     application.add_exception_handler(InvestigationLibraryError, investigation_error_handler)
+    application.include_router(studio_v1_router)
+    application.add_exception_handler(StudioV1ApiError, studio_v1_error_handler)
+    application.add_exception_handler(StudioV1Failure, studio_v1_error_handler)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=[

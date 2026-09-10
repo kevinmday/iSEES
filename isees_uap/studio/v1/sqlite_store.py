@@ -159,6 +159,11 @@ class SQLiteStudioV1Store:
                 row=db.execute("SELECT * FROM studio_v1_artifacts WHERE artifact_id=?",(aid,)).fetchone()
                 if row and row["owner_id"] != owner: self._fail(FailureCode.AUTHORITY_MISMATCH,"Artifact belongs to a different owner.")
                 if row and row["investigation_id"] != inv: self._fail(FailureCode.INVESTIGATION_MISMATCH,"Artifact belongs to a different investigation.")
+                if row and (row["profile"] != c.artifact.profile
+                            or row["profile_capability"] != c.artifact.profileCapability
+                            or row["created_at"] != c.artifact.createdAt):
+                    self._fail(FailureCode.REVISION_IDENTITY_CONFLICT,
+                               "Artifact identity conflicts with the saved authority.")
                 if not row:
                     if c.expected_head_revision_id is not None or c.revision.revisionNumber != 1: self._fail(FailureCode.REVISION_CONFLICT,"Expected artifact head is stale.")
                     db.execute("INSERT INTO studio_v1_artifacts VALUES(?,?,?,?,?,?,NULL,0)",(owner,inv,aid,c.artifact.profile,c.artifact.profileCapability,c.artifact.createdAt))
