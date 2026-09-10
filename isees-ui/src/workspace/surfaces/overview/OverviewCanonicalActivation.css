@@ -1,0 +1,14 @@
+.overview-inspector > .overview-inspector__activate {
+  padding: 10px;
+  border-color: #67e8f9;
+  background: #0b2632;
+  color: #e8fbff;
+  cursor: pointer;
+}
+
+.overview-inspector > .overview-inspector__activate:hover:not(:disabled) { background: #103746; }
+.overview-inspector > .overview-inspector__activate:disabled { opacity: .55; cursor: wait; }
+.overview-inspector__activation-boundary { display: block; color: #9fb3c8; font-size: 11px; line-height: 1.45; }
+.overview-inspector__feedback { padding: 8px; border-radius: 4px; background: rgba(103,232,249,.08); }
+.overview-inspector__feedback--error { color: #fca5a5; background: rgba(239,68,68,.09); }
+.overview-inspector__feedback--succeeded { color: #a7f3d0; }

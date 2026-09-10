@@ -378,6 +378,7 @@ export async function importInvestigationIntoWorkspace(
   eventId: string,
   runtime: WorkspaceRuntime,
   admittedKnowledge: readonly KnowledgeObject[],
+  activationStillCurrent: () => boolean = () => true,
 ): Promise<CanonicalInvestigationImportResult> {
 
   const result =
@@ -422,6 +423,12 @@ export async function importInvestigationIntoWorkspace(
   if (focusedEventMatches.length !== 1) {
     throw new Error(
       `Focused Event ${focusedEventId} resolved ${focusedEventMatches.length} times in the initial operational revision.`,
+    );
+  }
+
+  if (!activationStillCurrent()) {
+    throw new Error(
+      "Canonical event activation was cancelled because the Overview selection changed.",
     );
   }
 

@@ -1,17 +1,22 @@
 import { useOverviewSelection, type OverviewSelection } from "./OverviewSelectionContext";
+import { useOverviewCanonicalActivation } from "./OverviewCanonicalActivationContext";
 import "./OverviewPanels.css";
+import "./OverviewCanonicalActivation.css";
 
 export default function OverviewInspector() {
   const { selection } = useOverviewSelection();
-  return <div className="overview-panel overview-inspector" aria-live="polite">{renderSelection(selection)}</div>;
+  const activation = useOverviewCanonicalActivation();
+  return <div className="overview-panel overview-inspector" aria-live="polite">{renderSelection(selection, activation)}</div>;
 }
 
-function renderSelection(selection: OverviewSelection) {
+function renderSelection(selection: OverviewSelection, activation: ReturnType<typeof useOverviewCanonicalActivation>) {
   switch (selection.kind) {
     case "CANON_EVENT":
       return <><Eyebrow>Canon Event / Public Record</Eyebrow><h2>{selection.title}</h2><Details rows={[["Canonical ID", selection.eventId], ["Time / Place", `${selection.year} · ${selection.location}`], ["Classification", selection.classification]]} />
         {selection.vectors.length > 0 && <section><h3>Investigation vectors</h3><ul>{selection.vectors.map(vector => <li key={vector}>{vector}</li>)}</ul></section>}
-        <Boundary>Preview only. This does not create, replace, or alter the workspace.</Boundary></>;
+        <Boundary>Preview only. Opening is a separate explicit action.</Boundary>
+        {activation.canActivate && <><p>Loads a local investigation workspace from this canonical event. It does not create a saved account investigation.</p><button className="overview-inspector__activate" type="button" disabled={activation.status === "STARTING" || activation.status === "SUCCEEDED"} aria-describedby="overview-canonical-activation-boundary" onClick={() => { void activation.activate(); }}>Open Event in Workspace</button><span id="overview-canonical-activation-boundary" className="overview-inspector__activation-boundary">Local workspace only. No account investigation is saved.</span></>}
+        {activation.message !== null && <p className={`overview-inspector__feedback overview-inspector__feedback--${activation.status.toLowerCase()}`} role={activation.status === "ERROR" ? "alert" : "status"}>{activation.message}</p>}</>;
     case "EXTERNAL_REPOSITORY":
       return <><Eyebrow>Repository / Orientation</Eyebrow><h2>{selection.name}</h2><Details rows={[["Capability", selection.capability]]} /><p>{selection.note}</p><Boundary>{repositoryBoundary(selection.capability)}</Boundary></>;
     case "OWNED_INVESTIGATION":

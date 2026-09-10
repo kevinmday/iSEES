@@ -70,17 +70,13 @@ import {
   useOperatorIdentity,
 
 } from "./identity/runtime/OperatorIdentityRuntimeContext";
-
-import {
-
-  OperatorEntryGate,
-
-} from "./identity/components/OperatorEntryGate";
+import { OperatorEntryGate } from "./identity/components/OperatorEntryGate";
 
 import {
   InvestigationLibraryRuntimeProvider,
 } from "./investigation/library/InvestigationLibraryRuntimeContext";
 import { OverviewSelectionProvider } from "./workspace/surfaces/overview/OverviewSelectionContext";
+import { OverviewCanonicalActivationProvider } from "./workspace/surfaces/overview/OverviewCanonicalActivationContext";
 import OverviewCaseIntake from "./workspace/surfaces/overview/OverviewCaseIntake";
 import OverviewInspector from "./workspace/surfaces/overview/OverviewInspector";
 
@@ -437,7 +433,9 @@ function ModeAwareOperatorLayout() {
     ? (
       <InvestigationLibraryRuntimeProvider>
         <OverviewSelectionProvider>
-          <OperatorLayout />
+          <OverviewCanonicalActivationProvider>
+            <OperatorLayout />
+          </OverviewCanonicalActivationProvider>
         </OverviewSelectionProvider>
       </InvestigationLibraryRuntimeProvider>
     )
