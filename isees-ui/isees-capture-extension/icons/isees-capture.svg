@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">iSEES Capture</title>
+  <desc id="description">The iS identity centered within a focused capture frame</desc>
+  <rect width="128" height="128" rx="24" fill="#061525"/>
+  <path d="M18 48V26a8 8 0 0 1 8-8h22M80 18h22a8 8 0 0 1 8 8v22M110 80v22a8 8 0 0 1-8 8H80M48 110H26a8 8 0 0 1-8-8V80" fill="none" stroke="#25D8F5" stroke-width="10" stroke-linecap="square"/>
+  <circle cx="43" cy="45" r="6" fill="#EAFBFF"/>
+  <path d="M43 58v28" fill="none" stroke="#EAFBFF" stroke-width="11" stroke-linecap="square"/>
+  <path d="M87 51c-4-4-9-6-15-6-8 0-14 4-14 10 0 7 6 9 14 10 9 2 15 4 15 11 0 6-6 10-15 10-6 0-12-2-16-6" fill="none" stroke="#25D8F5" stroke-width="10" stroke-linecap="square" stroke-linejoin="round"/>
+</svg>
