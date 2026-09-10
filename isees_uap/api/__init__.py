@@ -5,11 +5,11 @@
 # FULL DROP-IN REPLACEMENT
 # ============================================================
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Mapping, Optional
 
 from isees_uap.analysis.cluster_engine import run_cluster_engine
 from isees_uap.api.submit_report import build_report
@@ -30,42 +30,21 @@ from isees_uap.api.v1.authentication import (
     router as authentication_router,
 )
 from isees_uap.authentication.errors import AuthenticationError
+from isees_uap.api.application import (
+    process_studio_v1_configuration,
+    studio_v1_application_lifespan,
+)
+from isees_uap.studio.v1.lifecycle import StudioV1LifecycleConfiguration
 
 # ------------------------------------------------------------
 # APP INIT
 # ------------------------------------------------------------
 
-app = FastAPI()
-app.include_router(authentication_router)
-app.add_exception_handler(AuthenticationError, authentication_error_handler)
-app.include_router(candidate_evidence_router)
-app.include_router(native_case_router)
-app.include_router(research_sources_router)
-app.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
-app.include_router(studio_router)
-app.add_exception_handler(StudioError, studio_error_handler)
-app.include_router(investigations_router)
-app.add_exception_handler(InvestigationLibraryError, investigation_error_handler)
+core_router = APIRouter()
 
 # ------------------------------------------------------------
 # CORS
 # ------------------------------------------------------------
-
-cors_origins = [
-    origin.strip()
-    for origin in os.environ.get(
-        "ISEES_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-    ).split(",")
-    if origin.strip()
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
-    allow_headers=["Content-Type", "X-ISEES-CSRF", "X-Request-Id"],
-)
 
 # ------------------------------------------------------------
 # GLOBAL STORES
@@ -79,7 +58,7 @@ report_store: Dict[str, Dict] = {}
 # ROOT
 # ============================================================
 
-@app.get("/")
+@core_router.get("/")
 def root():
 
     return {
@@ -90,7 +69,7 @@ def root():
 # MANUAL CLUSTER ENGINE RUN
 # ============================================================
 
-@app.get("/run")
+@core_router.get("/run")
 def run() -> Dict:
     """
     Trigger cluster engine manually.
@@ -162,7 +141,7 @@ def run() -> Dict:
 # CLUSTERS
 # ============================================================
 
-@app.get("/clusters")
+@core_router.get("/clusters")
 def get_clusters() -> List[Dict]:
 
     return clusters_store
@@ -171,7 +150,7 @@ def get_clusters() -> List[Dict]:
 # 🔥 LIVE REPORT INGESTION
 # ============================================================
 
-@app.post("/report")
+@core_router.post("/report")
 def submit_report(payload: Dict):
     """
     Primary public ROR ingestion endpoint.
@@ -254,7 +233,7 @@ def submit_report(payload: Dict):
 # REPORT RETRIEVAL
 # ============================================================
 
-@app.get("/report/{event_id}")
+@core_router.get("/report/{event_id}")
 def get_report(event_id: str) -> Optional[Dict]:
     """
     Retrieve operational report package.
@@ -279,3 +258,45 @@ def get_report(event_id: str) -> Optional[Dict]:
         }
 
     return report
+
+
+def create_application(
+    studio_v1_configuration: StudioV1LifecycleConfiguration | Mapping[str, str] | None = None,
+) -> FastAPI:
+    """Construct the production API with injectable STUDIO deployment configuration."""
+    if studio_v1_configuration is None:
+        configuration = process_studio_v1_configuration()
+    elif isinstance(studio_v1_configuration, StudioV1LifecycleConfiguration):
+        configuration = studio_v1_configuration
+    else:
+        from isees_uap.api.application import studio_v1_deployment_configuration
+        configuration = studio_v1_deployment_configuration(studio_v1_configuration)
+    application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
+    application.include_router(authentication_router)
+    application.add_exception_handler(AuthenticationError, authentication_error_handler)
+    application.include_router(candidate_evidence_router)
+    application.include_router(native_case_router)
+    application.include_router(research_sources_router)
+    application.add_exception_handler(CandidateEvidenceError, candidate_error_handler)
+    application.include_router(studio_router)
+    application.add_exception_handler(StudioError, studio_error_handler)
+    application.include_router(investigations_router)
+    application.add_exception_handler(InvestigationLibraryError, investigation_error_handler)
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            origin.strip()
+            for origin in os.environ.get(
+                "ISEES_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+            ).split(",")
+            if origin.strip()
+        ],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+        allow_headers=["Content-Type", "X-ISEES-CSRF", "X-Request-Id"],
+    )
+    application.include_router(core_router)
+    return application
+
+
+app = create_application()
