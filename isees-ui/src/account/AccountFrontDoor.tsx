@@ -16,6 +16,8 @@ import {
   readCsrfCookie, submitAccount, type OwnedInvestigationSummary,
 } from "./AccountFrontDoorApi";
 import { captureGuestAdoptionCandidate, GuestPreservationCoordinator, submitGuestAdoption } from "./GuestInvestigationAdoption";
+import IseesIntroductionGate from "../onboarding/components/IseesIntroductionGate";
+import { hasAcknowledgedIseesIntroduction } from "../onboarding/runtime/OnboardingAcknowledgement";
 import "./AccountFrontDoor.css";
 
 type Phase = "restoring" | "anonymous" | "loading-library" | "ready" | "working";
@@ -122,7 +124,8 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
       }
       operatorIdentityRuntime.establishAuthenticatedAccount(restored.researcherId);
       setPrincipal(restored);
-      await loadLibrary(ticket, signal, true);
+      if (hasAcknowledgedIseesIntroduction()) await loadLibrary(ticket, signal, true);
+      else if (isCurrent(ticket)) setPhase("ready");
     })();
     return () => {
       mounted.current = false; generation.current += 1; requestController.current?.abort();
@@ -182,7 +185,8 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
       setPrincipal(restored);
       if (preservation.current.candidate) {
         preservation.current.authenticated(); setPhase("ready"); renderPreservation(value => value + 1);
-      } else await loadLibrary(ticket, signal, true);
+      } else if (hasAcknowledgedIseesIntroduction()) await loadLibrary(ticket, signal, true);
+      else if (isCurrent(ticket)) setPhase("ready");
     } catch (cause) {
       if (isCurrent(ticket)) showAnonymous(errorMessage(cause));
     } finally { commandPending.current = false; }
@@ -266,12 +270,17 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
     } finally { commandPending.current = false; }
   }
 
+  function enterAccountWorkspace(): void {
+    const { ticket, signal } = beginRequest();
+    void loadLibrary(ticket, signal, true);
+  }
+
   if (phase === "restoring") return <main className="account-door account-door--center" aria-busy="true"><p role="status">Restoring your researcher account…</p></main>;
   if ((preservation.current.phase === "AWAITING_DECISION" || preservation.current.phase === "PRESERVING" || preservation.current.phase === "RECOVERABLE_ERROR") && principal)
     return <PreservationDecision headingRef={preservationHeading} phase={preservation.current.phase} onPreserve={preserveGuestInvestigation} onDiscard={finishWithoutPreserving} />;
-  if (identityState.identity?.kind === "GUEST") return <><GuestBar onAccountEntry={enterAccountDoorFromGuest} />{children}</>;
+  if (identityState.identity?.kind === "GUEST") return <IseesIntroductionGate identityKind="GUEST"><><GuestBar onAccountEntry={enterAccountDoorFromGuest} />{children}</></IseesIntroductionGate>;
   if (!principal) return <AnonymousDoor key={anonymousMode} initialMode={anonymousMode} busy={phase === "working"} error={error} onSubmit={authenticate} onContinueAsGuest={preservation.current.candidate ? cancelAuthentication : continueAsGuest} />;
-  return <div className="account-authenticated-shell"><AccountBar principal={principal} items={items} activeInvestigationId={activeInvestigationId} phase={phase} error={error} onCreate={create} onOpen={open} onLogout={logout} /><div className="account-authenticated-shell__workspace">{children}</div></div>;
+  return <IseesIntroductionGate identityKind="ACCOUNT" onEntered={enterAccountWorkspace}><div className="account-authenticated-shell"><AccountBar principal={principal} items={items} activeInvestigationId={activeInvestigationId} phase={phase} error={error} onCreate={create} onOpen={open} onLogout={logout} /><div className="account-authenticated-shell__workspace">{children}</div></div></IseesIntroductionGate>;
 }
 
 function PreservationDecision({ headingRef, phase, onPreserve, onDiscard }: { headingRef: React.RefObject<HTMLHeadingElement | null>; phase: string; onPreserve(): Promise<void>; onDiscard(): Promise<void> }) {

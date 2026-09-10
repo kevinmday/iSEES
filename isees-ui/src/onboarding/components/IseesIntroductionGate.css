@@ -1,0 +1,45 @@
+.isees-introduction {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(24px, 5vh, 56px) clamp(18px, 5vw, 72px);
+  background: #02070d url("/images/isees-earth-stars-landing.png") center / cover fixed;
+  color: #dcecf2;
+  font-family: var(--font-family-sans, system-ui, sans-serif);
+}
+
+.isees-introduction__veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(2,7,13,.98) 0%, rgba(2,7,13,.92) 58%, rgba(2,7,13,.62) 100%); }
+.isees-introduction__content { position: relative; display: grid; width: min(1040px, 100%); margin: 0 auto; gap: clamp(18px, 3vh, 30px); }
+.isees-introduction__identity p { margin: 0 0 8px; color: #74d7e3; font: 700 11px/1.4 var(--font-family-mono, monospace); letter-spacing: .16em; text-transform: uppercase; }
+.isees-introduction__identity h1 { margin: 0; color: #f6fbfd; font-size: clamp(34px, 5vw, 64px); font-weight: 450; line-height: 1.04; }
+.isees-introduction__identity h1 span { color: #8ee8ef; font-weight: 720; }
+.isees-introduction__identity h1:focus-visible { outline: 2px solid #fbbf24; outline-offset: 7px; }
+.isees-introduction__identity h2 { margin: 10px 0 0; color: #a8bbc5; font-size: clamp(14px, 1.8vw, 20px); font-weight: 500; }
+.isees-introduction__principles { display: grid; max-width: 900px; gap: 9px; }
+.isees-introduction__principles p { margin: 0; color: #bfd0d8; font-size: clamp(13px, 1.3vw, 16px); line-height: 1.55; }
+.isees-introduction__principles .isees-introduction__lead { color: #f0f7f9; font-size: clamp(16px, 1.8vw, 21px); }
+.isees-introduction__workflow, .isees-introduction__trust { padding-top: 15px; border-top: 1px solid rgba(116,215,227,.22); }
+.isees-introduction h2 { color: #dcecf2; }
+.isees-introduction__workflow h2, .isees-introduction__trust h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+.isees-introduction__workflow ol { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 0; list-style-position: inside; gap: 9px; }
+.isees-introduction__workflow li { padding: 10px; border: 1px solid rgba(116,215,227,.2); background: rgba(5,18,27,.72); color: #c9dbe2; font-size: 12px; line-height: 1.4; }
+.isees-introduction__trust ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding-left: 18px; gap: 10px 24px; color: #aec1ca; font-size: 12px; line-height: 1.45; }
+.isees-introduction__trust > p { margin: 12px 0 0; color: #f6d88d; font-size: 12px; }
+.isees-introduction__actions { display: flex; align-items: center; gap: 18px; }
+.isees-introduction__actions button { min-height: 44px; padding: 10px 24px; border: 1px solid #74d7e3; border-radius: 5px; background: #0c3b46; color: #f3fdff; font: 750 13px/1 var(--font-family-sans, system-ui, sans-serif); cursor: pointer; }
+.isees-introduction__actions button:hover { background: #12505d; }
+.isees-introduction__actions button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 3px; }
+.isees-introduction__actions p { margin: 0; color: #849aa6; font-size: 12px; }
+
+@media (max-width: 760px) {
+  .isees-introduction { padding: 24px 16px; background-attachment: scroll; }
+  .isees-introduction__workflow ol, .isees-introduction__trust ul { grid-template-columns: 1fr; }
+  .isees-introduction__actions { align-items: flex-start; flex-direction: column; gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .isees-introduction, .isees-introduction * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}

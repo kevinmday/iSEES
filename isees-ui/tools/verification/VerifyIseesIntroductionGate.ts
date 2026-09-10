@@ -1,0 +1,45 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { ISEES_INTRODUCTION_ACKNOWLEDGEMENT_KEY, ISEES_INTRODUCTION_ACKNOWLEDGEMENT_VERSION, acknowledgeIseesIntroduction, hasAcknowledgedIseesIntroduction, type OnboardingAcknowledgementStorage } from "../../src/onboarding/runtime/OnboardingAcknowledgement.ts";
+import { ISEES_V1_INTRODUCTION, ONBOARDING_RESEARCHER_GUIDE_TARGET_ID } from "../../src/onboarding/content/IseesIntroductionContent.ts";
+
+const root = fileURLToPath(new URL("../../", import.meta.url));
+const read = (path: string) => readFileSync(`${root}${path}`, "utf8");
+const gate = read("src/onboarding/components/IseesIntroductionGate.tsx");
+const css = read("src/onboarding/components/IseesIntroductionGate.css");
+const frontDoor = read("src/account/AccountFrontDoor.tsx");
+const values = new Map<string, string>();
+const storage: OnboardingAcknowledgementStorage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => { values.set(key, value); } };
+
+assert.equal(hasAcknowledgedIseesIntroduction(storage), false, "fresh browser must not bypass Welcome");
+assert.equal(values.size, 0, "render/read alone must not acknowledge");
+acknowledgeIseesIntroduction(storage);
+assert.equal(values.get(ISEES_INTRODUCTION_ACKNOWLEDGEMENT_KEY), ISEES_INTRODUCTION_ACKNOWLEDGEMENT_VERSION, "acknowledgement must be versioned");
+assert.equal(hasAcknowledgedIseesIntroduction(storage), true, "acknowledged browser must bypass Welcome");
+const failing: OnboardingAcknowledgementStorage = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
+assert.equal(hasAcknowledgedIseesIntroduction(failing), false, "storage read failure must fail closed to Welcome");
+assert.doesNotThrow(() => acknowledgeIseesIntroduction(failing), "storage failure must not block explicit entry");
+
+assert.equal(ISEES_V1_INTRODUCTION.workflow.length, 6);
+assert.match(gate, /identityKind === "GUEST"[\s\S]*Guest work is temporary and is not saved after the guest session/);
+assert.match(gate, /Private investigations you save belong to your signed-in researcher account/);
+assert.match(gate, /<button type="button" onClick=\{enterIsees\}>Enter iSEES<\/button>/);
+assert.match(gate, /if \(entered\) return <>\{children\}<\/>/, "operational children must be absent before entry");
+assert.match(gate, /<h1[\s\S]*ref=\{headingRef\}[\s\S]*tabIndex=\{-1\}/);
+assert.match(gate, /headingRef\.current\?\.focus\(\)/);
+assert.ok(frontDoor.includes('identityKind="GUEST"') && frontDoor.includes('identityKind="ACCOUNT"'), "both established identity paths must pass through Welcome");
+assert.ok(frontDoor.indexOf('<IseesIntroductionGate identityKind="GUEST">') < frontDoor.indexOf("<GuestBar"), "guest operational bar must remain behind Welcome");
+assert.ok(frontDoor.indexOf('<IseesIntroductionGate identityKind="ACCOUNT"') < frontDoor.indexOf('<div className="account-authenticated-shell">'), "account library must remain behind Welcome");
+assert.match(frontDoor, /hasAcknowledgedIseesIntroduction\(\)[\s\S]*loadLibrary/, "acknowledged account restoration must retain the direct workspace path");
+assert.match(frontDoor, /onEntered=\{enterAccountWorkspace\}/, "fresh account library loading must wait for explicit entry");
+assert.equal(ONBOARDING_RESEARCHER_GUIDE_TARGET_ID, "onboarding.researcher-guide.download");
+assert.match(gate, /V1 Researcher Guide PDF is being prepared/);
+assert.equal(/href=|download=/.test(gate), false, "no nonexistent PDF download may be exposed");
+for (const forbidden of ["activateInvestigation", "setSelection", "executeResolve", "setActiveMode", "ResearchInbox", "ResearchBridge", "StudioApi", "fetch(", "axios", "SystemCanon"]) assert.equal(gate.includes(forbidden), false, `Welcome contains forbidden authority: ${forbidden}`);
+assert.match(css, /min-height:\s*100dvh/);
+assert.match(css, /overflow-x:\s*hidden/);
+assert.match(css, /@media \(max-width: 760px\)/);
+assert.match(css, /grid-template-columns:\s*1fr/);
+assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+console.log("VerifyIseesIntroductionGate: PASS (identity boundary, explicit versioned entry, storage failure containment, truthful copy, operational isolation, accessibility, and responsive presentation verified)");
