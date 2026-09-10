@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROHIBITED_STUDIO_MUTATIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES, type SensitiveSourceDirectives } from "../../src/studio/contracts/StudioV1Contract";
-import { canonicalSerialize, canonicalSha256, effectiveSensitivity, validateAuthorRevision, validateInference, validateProjection, validateProjectionTransition, validateProposal, validateSnapshot } from "../../src/studio/contracts/StudioCanonicalSerialization";
+import { ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROHIBITED_STUDIO_MUTATIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES, type SensitiveSourceDirectives } from "../../src/studio/contracts/StudioV1Contract.ts";
+import { canonicalSerialize, canonicalSha256, effectiveSensitivity, validateAuthorRevision, validateInference, validateProjection, validateProjectionTransition, validateProposal, validateSnapshot } from "../../src/studio/contracts/StudioCanonicalSerialization.ts";
 
 const fixturePath = fileURLToPath(new URL("../../../contracts/studio-v1/fixtures/studio-v1-contract-fixtures.json", import.meta.url));
 const fixtures = JSON.parse(readFileSync(fixturePath, "utf8"));

@@ -1,4 +1,4 @@
-import { ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES, type AiDraftProposal, type AuthorRevision, type ChildProjection, type FrozenResearchSourceSnapshot, type InferencePackage, type SemanticDocument, type SensitiveSourceDirectives } from "./StudioV1Contract";
+import { ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES, type AiDraftProposal, type AuthorRevision, type ChildProjection, type FrozenResearchSourceSnapshot, type InferencePackage, type SemanticDocument, type SensitiveSourceDirectives } from "./StudioV1Contract.ts";
 
 export class StudioV1ValidationError extends Error {}
 const object = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
