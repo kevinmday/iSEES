@@ -110,6 +110,8 @@ export interface LayersExperimentState {
   scope?: LayersExperimentScope;
   baseline?: LayersExperimentBaseline;
   armedLayers: readonly ArmedLayer[];
+  preparationInvestigationId?: string;
+  preparationWorkspaceId?: string;
   currentExecution?: LayersExperimentExecution;
   history: readonly LayersExperimentExecution[];
   error?: LayersExperimentError;

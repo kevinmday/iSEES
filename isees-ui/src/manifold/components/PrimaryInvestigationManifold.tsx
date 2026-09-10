@@ -138,7 +138,6 @@ import {
 import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
 
 import {
-  useResolveRuntime,
   useResolveRuntimeState,
 } from "../../resolve/runtime/ResolveRuntimeContext";
 
@@ -189,6 +188,8 @@ export default function PrimaryInvestigationManifold({
     _focusedEventId,
 }: PrimaryInvestigationManifoldProps) {
 
+  void _focusedEventId;
+
   // ==========================================================
   // CANONICAL RUNTIME INPUT SOURCES
   // ==========================================================
@@ -204,9 +205,6 @@ export default function PrimaryInvestigationManifold({
 
   const workspaceRuntime =
     useWorkspaceRuntime();
-
-  const resolveRuntime =
-    useResolveRuntime();
 
   const resolveState =
     useResolveRuntimeState();
@@ -496,126 +494,6 @@ export default function PrimaryInvestigationManifold({
       "P56D-H MANIFOLD ACTION RECEIVED:",
       action,
     );
-
-    // --------------------------------------------------------
-    // RESOLVE
-    // --------------------------------------------------------
-
-    if (
-      action ===
-      "RESOLVE"
-    ) {
-
-      console.log(
-        "P56D-H LIVE RESOLVE CLICK RECEIVED",
-      );
-
-      const activeInvestigation =
-        workspaceRuntime.getActiveInvestigation();
-
-      console.log(
-        "P56D-H ACTIVE INVESTIGATION:",
-        activeInvestigation,
-      );
-
-      // ------------------------------------------------------
-      // RESOLVE PRECONDITION
-      // ------------------------------------------------------
-
-      if (
-        activeInvestigation ===
-        undefined
-      ) {
-
-        console.warn(
-          "RESOLVE ignored: no active Investigation.",
-        );
-
-        return;
-
-      }
-
-      // ------------------------------------------------------
-      // K â€” CANONICAL KNOWLEDGE POPULATION
-      // ------------------------------------------------------
-
-      const knowledgeObjects =
-        knowledgeRuntime.getObjects();
-
-      // ------------------------------------------------------
-      // L â€” ACTIVE COMPUTATIONAL LAYERS
-      // ------------------------------------------------------
-
-      const activeLayers =
-        workspaceRuntime.getActiveLayers();
-
-      // ------------------------------------------------------
-      // T â€” TEMPORAL CONTEXT
-      // ------------------------------------------------------
-
-      const temporalContext =
-        workspaceRuntime.getTemporalContext();
-
-      // ------------------------------------------------------
-      // S â€” INVESTIGATIVE SCALE
-      // ------------------------------------------------------
-
-      const investigativeScale =
-        workspaceRuntime.getInvestigativeScale();
-
-      // ------------------------------------------------------
-      // INPUT DIAGNOSTIC
-      // ------------------------------------------------------
-
-      console.log(
-        "P56D-H RESOLVE INPUT READY:",
-        {
-
-          investigationId:
-            activeInvestigation.id,
-
-          knowledgeObjectCount:
-            knowledgeObjects.length,
-
-          activeLayers,
-
-          temporalContext,
-
-          investigativeScale,
-
-        },
-      );
-
-      // ------------------------------------------------------
-      // CANONICAL RESOLVE EXECUTION
-      // ------------------------------------------------------
-
-      console.log(
-        "P56D-H CALLING ResolveRuntime.execute()",
-      );
-
-      resolveRuntime.execute({
-
-        investigation:
-          activeInvestigation,
-
-        knowledgeObjects,
-
-        activeLayers,
-
-        temporalContext,
-
-        investigativeScale,
-
-      });
-
-      console.log(
-        "P56D-H ResolveRuntime.execute() RETURNED",
-      );
-
-      return;
-
-    }
 
     // --------------------------------------------------------
     // MANIFOLD OPERATIONS

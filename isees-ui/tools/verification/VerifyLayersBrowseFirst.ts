@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { CanonicalLayerCatalog } from "../../src/layers/catalog/index.ts";
-import { layerCatalogTotals, operationalSelectableLayerIds, projectLayerCatalogFamilies } from "../../src/layers/presentation/LayerCatalogMatrixProjection.ts";
+import { catalogSelectableLayerIds, layerCatalogTotals, operationalSelectableLayerIds, projectLayerCatalogFamilies } from "../../src/layers/presentation/LayerCatalogMatrixProjection.ts";
 
 const workspace = readFileSync("src/layers/components/LayersLaboratoryWorkspace.tsx", "utf8");
 const catalog = readFileSync("src/layers/components/LayerCatalogMatrix.tsx", "utf8");
@@ -10,15 +10,16 @@ assert.equal(CanonicalLayerCatalog.length, 48, "canonical catalog remains exactl
 assert.equal(projectLayerCatalogFamilies("", []).flatMap(group => group.members).length, 48, "unprepared catalog projection remains complete");
 assert.equal(layerCatalogTotals.operational, 5, "exactly five catalog evaluators remain operational");
 assert.equal(operationalSelectableLayerIds.length, 5, "prepared experiments expose the same five selectable evaluators");
+assert.equal(catalogSelectableLayerIds.length, 48, "all catalog dimensions remain selectable research objectives");
 assert(!workspace.includes("if (\"error\" in source) return <main"), "missing prerequisites do not replace the workspace");
 for (const text of ["Experimentation is not ready", "all 48 layers", "Canonical knowledge remains untouched", "Run Resolve", "Choose Comparison"]) assert(workspace.includes(text), text);
 assert(!workspace.includes("Missing:") && !workspace.includes("Run Resolve before entering the laboratory"), "prerequisite banner uses one browse-first conversational explanation");
 assert(workspace.includes("resolveMissing && <button") && workspace.includes("comparisonMissing && <button"), "only contextually missing prerequisite actions render");
 assert(workspace.includes("resolveMissing || comparisonMissing") && workspace.includes(": source.error"), "ready inputs render no prerequisite actions or warning banner");
-assert(workspace.includes("disabled={!experimentReady || armedIds.length === 0}"), "run is disabled for missing prerequisites and empty input");
-assert(catalog.includes("INPUT REQUIRED") && catalog.includes("experimentReady"), "implemented evaluators disclose missing experiment input");
-assert(catalog.includes('experimentReady ? "Available" : "Input required"') && catalog.includes('"AVAILABLE"'), "five implemented evaluators use INPUT REQUIRED before prerequisites and AVAILABLE afterward");
-assert(catalog.includes("UNAVAILABLE") && catalog.includes("unavailableReason"), "unimplemented catalog members remain inspectable and unavailable");
+assert(workspace.includes("disabled={!experimentReady || readyArmedIds.length === 0}"), "run is disabled for missing prerequisites and zero READY selected input");
+assert(catalog.includes("INPUT_NEEDED") && catalog.includes("METHOD_NEEDED"), "preparation lifecycle remains explicit");
+assert(catalog.includes("Ready to compute") && catalog.includes("Preparation needed"), "READY objectives precede subordinate preparation objectives");
+assert(catalog.includes("contributes no score") && !catalog.includes(">UNAVAILABLE<"), "incomplete selected objectives remain scoreless without graveyard wording");
 assert(workspace.indexOf("<LayerCatalogMatrix") < workspace.indexOf("layers-lab__primary-action-rail"), "primary action stays outside the catalog scroller");
 for (const field of ["projection.evaluatorInput.endpoints", "endpoint.components", "endpoint.endpointSnapshotId", "topology?.evaluatorKey", "topology.evaluatorVersion", "topology?.normalization", "topology?.normalizedResult"]) assert(inspector.includes(field), `immutable inspector projection includes ${field}`);
 assert(inspector.includes("layersContributionId(LayersContributionSet.EXPERIMENTAL, CanonicalFeatureDimension.TOPOLOGY)"), "Case A/B resolves the authoritative EXPERIMENTAL:TOPOLOGY contribution identity");

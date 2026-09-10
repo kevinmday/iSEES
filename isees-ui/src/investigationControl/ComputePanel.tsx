@@ -21,11 +21,17 @@ import ManifoldProjectionStatus, {
   useManifoldProjectionStatus,
 } from "../components/workspace/ManifoldProjectionStatus";
 
+import { useResolveExecutionCommand }
+  from "../resolve/runtime/useResolveExecutionCommand";
+
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function ComputePanel() {
+  const resolveCommand =
+    useResolveExecutionCommand();
+
   const projection =
     useManifoldProjectionStatus();
 
@@ -41,6 +47,17 @@ export default function ComputePanel() {
         <div className="investigation-library__compute-copy">
           Configure the deterministic context used to construct
           the Investigation Manifold.
+        </div>
+        <div className="investigation-library__resolve-command">
+          <button
+            type="button"
+            data-guide-id="manifold.resolve.execute"
+            disabled={resolveCommand.disabled}
+            onClick={resolveCommand.execute}
+          >
+            RESOLVE
+          </button>
+          <span role="status">{resolveCommand.statusText}</span>
         </div>
       </Section>
 

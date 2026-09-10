@@ -1,58 +1,35 @@
 import { useId, useMemo, useState } from "react";
-import { CanonicalLayerCatalog, CanonicalLayerOperationalStatus, CanonicalLayerProfileId } from "../catalog/index.ts";
-import { clearCatalogFamily, layerCatalogTotals, normalizeOperationalSelection, operationalSelectableLayerIds, projectLayerCatalogFamilies, selectCatalogFamily } from "../presentation/LayerCatalogMatrixProjection.ts";
+import { CanonicalLayerCatalog, CanonicalLayerProfileId, CanonicalLayerReadiness, type CanonicalLayerDefinition } from "../catalog/index.ts";
+import { catalogSelectableLayerIds, clearCatalogFamily, layerCatalogTotals, normalizeOperationalSelection, operationalSelectableLayerIds, projectLayerCatalogFamilies, selectCatalogFamily } from "../presentation/LayerCatalogMatrixProjection.ts";
+import "./LayerCatalogMatrix.css";
 
-interface Props {
-  readonly experimentReady: boolean;
-  readonly inputRequiredReason?: string;
-  readonly selectedIds: readonly string[];
-  readonly baselineIds: readonly string[];
-  readonly restoreProfile: (profileId: typeof CanonicalLayerProfileId.CANONICAL_BASELINE) => void;
-  readonly onSelectionChange: (layerIds: readonly string[]) => void;
+interface Props { readonly experimentReady:boolean; readonly inputRequiredReason?:string; readonly selectedIds:readonly string[]; readonly baselineIds:readonly string[]; readonly restoreProfile:(id:typeof CanonicalLayerProfileId.CANONICAL_BASELINE)=>void; readonly onSelectionChange:(ids:readonly string[])=>void; }
+
+export default function LayerCatalogMatrix({experimentReady,inputRequiredReason,selectedIds,baselineIds,restoreProfile,onSelectionChange}:Props) {
+ const [filter,setFilter]=useState(""); const searchId=useId(); const selected=normalizeOperationalSelection(selectedIds);
+ const selectedSet=useMemo(()=>new Set(selected),[selected]); const baselineSet=useMemo(()=>new Set(baselineIds),[baselineIds]); const families=projectLayerCatalogFamilies(filter,selected); const counts=readinessCounts(selected);
+ const toggle=(layer:CanonicalLayerDefinition):void=>onSelectionChange(selectedSet.has(layer.id)?selected.filter(id=>id!==layer.id):normalizeOperationalSelection([...selected,layer.id]));
+ return <div className="layer-catalog">
+  <header className="layer-catalog__header"><div><p className="layers-lab__eyebrow">LAYER CATALOG</p><h3>{layerCatalogTotals.total} investigation layers</h3></div><dl className="layer-catalog__totals" aria-label="Catalog readiness totals">{[["Selected",selected.length],["Ready",layerCatalogTotals.ready],["Input needed",layerCatalogTotals.inputNeeded],["Method needed",layerCatalogTotals.methodNeeded],...(layerCatalogTotals.blocked?[["Blocked",layerCatalogTotals.blocked]]:[])].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></header>
+  <p className="layer-catalog__selection-status" role="status">{selectionStatement(selected,counts)}</p>
+  <div className="layer-catalog__toolbar"><button type="button" onClick={()=>onSelectionChange(operationalSelectableLayerIds)}>Select all ready</button><button type="button" onClick={()=>onSelectionChange(catalogSelectableLayerIds)}>Select all research objectives</button><button type="button" onClick={()=>onSelectionChange([])} disabled={!selected.length}>Clear all</button><button type="button" disabled={!experimentReady} onClick={()=>restoreProfile(CanonicalLayerProfileId.CANONICAL_BASELINE)}>Restore baseline</button><label htmlFor={searchId}>Filter catalog<input id={searchId} type="search" value={filter} onChange={event=>setFilter(event.target.value)} placeholder="Label, ID, family, or description"/></label></div>
+  <div className="layer-catalog__families" aria-label="Layer catalog readiness groups">{!families.length&&<div className="layer-catalog__empty" role="status"><p>No investigation layers match the filter <strong>“{filter}”</strong>.</p><button type="button" onClick={()=>setFilter("")}>Clear filter</button></div>}
+   <ReadinessGroup title="Ready to compute" description="Governed deterministic evaluators and required canonical inputs are available." readiness={[CanonicalLayerReadiness.READY]} families={families} selected={selected} selectedSet={selectedSet} baselineSet={baselineSet} toggle={toggle} onSelectionChange={onSelectionChange}/>
+   <ReadinessGroup title="Preparation needed" description="Selectable research objectives excluded from computation until their stated requirements are satisfied." readiness={[CanonicalLayerReadiness.INPUT_NEEDED,CanonicalLayerReadiness.METHOD_NEEDED,CanonicalLayerReadiness.BLOCKED]} families={families} selected={selected} selectedSet={selectedSet} baselineSet={baselineSet} toggle={toggle} onSelectionChange={onSelectionChange} inputRequiredReason={inputRequiredReason}/>
+  </div>
+ </div>;
 }
 
-export default function LayerCatalogMatrix({ experimentReady, inputRequiredReason, selectedIds, baselineIds, restoreProfile, onSelectionChange }: Props) {
-  const [filter, setFilter] = useState("");
-  const searchId = useId();
-  const selected = normalizeOperationalSelection(selectedIds);
-  const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const baselineSet = useMemo(() => new Set(baselineIds), [baselineIds]);
-  const families = projectLayerCatalogFamilies(filter, selected);
-  return <div className="layer-catalog">
-    <header className="layer-catalog__header">
-      <div><p className="layers-lab__eyebrow">LAYER CATALOG</p><h3>{layerCatalogTotals.total} investigation layers</h3></div>
-      <dl className="layer-catalog__totals" aria-label="Catalog totals"><div><dt>Selected</dt><dd>{selected.length}</dd></div><div><dt>{experimentReady ? "Available" : "Input required"}</dt><dd>{layerCatalogTotals.operational}</dd></div><div><dt>Unavailable</dt><dd>{layerCatalogTotals.unavailable}</dd></div></dl>
-    </header>
-    <div className="layer-catalog__toolbar">
-      <button type="button" disabled={!experimentReady} onClick={() => onSelectionChange(operationalSelectableLayerIds)}>Select all operational</button>
-      <button type="button" onClick={() => onSelectionChange([])} disabled={selected.length === 0}>Clear all</button>
-      <button type="button" disabled={!experimentReady} onClick={() => restoreProfile(CanonicalLayerProfileId.CANONICAL_BASELINE)}>Restore baseline</button>
-      <label htmlFor={searchId}>Filter catalog<input id={searchId} type="search" value={filter} onChange={event => setFilter(event.target.value)} placeholder="Label, ID, family, or description"/></label>
-    </div>
-    <div className="layer-catalog__families" aria-label="Layer catalog families">
-      {families.length === 0 && <div className="layer-catalog__empty" role="status"><p>No investigation layers match the filter <strong>“{filter}”</strong>.</p><button type="button" onClick={() => setFilter("")}>Clear filter</button></div>}
-      {families.map(group => <section className="layer-family" key={group.family.id} aria-labelledby={`layer-family-${group.family.id}`}>
-        <header className="layer-family__header"><div><h4 id={`layer-family-${group.family.id}`}>{group.family.label}</h4><p>{group.family.description}</p><small>{group.members.length === CanonicalLayerCatalogFamilyTotal(group.family.id) ? `${group.members.length} members` : `${group.members.length} visible of ${CanonicalLayerCatalogFamilyTotal(group.family.id)}`} · {group.operationalCount} {experimentReady ? "available" : "input required"} · {group.selectedOperationalCount} selected</small></div><div>
-          <button type="button" aria-label={`Select ${group.family.label} family`} disabled={!experimentReady || group.operationalCount === 0} onClick={() => onSelectionChange(selectCatalogFamily(selected, group.family.id))}>Select family</button>
-          <button type="button" aria-label={`Clear ${group.family.label} family`} disabled={group.selectedOperationalCount === 0} onClick={() => onSelectionChange(clearCatalogFamily(selected, group.family.id))}>Clear family</button>
-        </div></header>
-        <div className="layer-family__grid">{group.members.map(layer => {
-          const operational = layer.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL && layer.researcherSelectable;
-          const isSelected = selectedSet.has(layer.id);
-          const baseline = baselineSet.has(layer.id);
-          return operational && experimentReady ? <button type="button" key={layer.id} className="layer-cell layer-cell--operational" aria-pressed={isSelected} onClick={() => onSelectionChange(isSelected ? selected.filter(id => id !== layer.id) : normalizeOperationalSelection([...selected, layer.id]))}>
-            <span className="layer-cell__title"><strong>{layer.label}</strong><em>{isSelected ? "SELECTED" : "AVAILABLE"}</em></span><code>{layer.id}</code><p>{layer.description}</p>{baseline && <small>CANONICAL BASELINE MEMBER</small>}
-          </button> : operational ? <details className="layer-cell layer-cell--input-required" key={layer.id}>
-            <summary><span className="layer-cell__title"><strong>{layer.label}</strong><em>INPUT REQUIRED</em></span><code>{layer.id}</code><p>{layer.description}</p>{baseline && <small>CANONICAL BASELINE MEMBER</small>}</summary>
-            <div><p><strong>Evaluator:</strong> {layer.evaluatorKey}@{layer.evaluatorVersion}</p><p>{inputRequiredReason ?? "Resolve and comparison inputs are required before this evaluator can participate."}</p><p><strong>Required inputs:</strong> {layer.requiredCanonicalInputs.join(" · ")}</p></div>
-          </details> : <details className="layer-cell layer-cell--unavailable" key={layer.id}>
-            <summary><span className="layer-cell__title"><strong>{layer.label}</strong><em>UNAVAILABLE</em></span><code>{layer.id}</code><p>{layer.description}</p>{baseline && <small>CANONICAL BASELINE MEMBER · NOT COMPUTATIONALLY ACTIVE</small>}</summary>
-            <div><p><strong>Availability:</strong> {layer.availability}</p><p>{layer.unavailableReason}</p><p><strong>Required missing inputs:</strong> {layer.requiredCanonicalInputs.join(" · ")}</p></div>
-          </details>;
-        })}</div>
-      </section>)}
-    </div>
-  </div>;
+interface GroupProps { readonly title:string; readonly description:string; readonly readiness:readonly CanonicalLayerDefinition["readiness"][]; readonly families:ReturnType<typeof projectLayerCatalogFamilies>; readonly selected:readonly string[]; readonly selectedSet:ReadonlySet<string>; readonly baselineSet:ReadonlySet<string>; readonly toggle:(layer:CanonicalLayerDefinition)=>void; readonly onSelectionChange:(ids:readonly string[])=>void; readonly inputRequiredReason?:string; }
+function ReadinessGroup({title,description,readiness,families,selected,selectedSet,baselineSet,toggle,onSelectionChange,inputRequiredReason}:GroupProps) {
+ const groups=families.map(group=>({...group,members:group.members.filter(layer=>readiness.includes(layer.readiness))})).filter(group=>group.members.length);
+ if(!groups.length)return null;
+ return <section className="layer-readiness-group"><header><h4>{title}</h4><p>{description}</p></header>{groups.map(group=><section className="layer-family" key={`${title}:${group.family.id}`} aria-labelledby={`${title}-${group.family.id}`}><header className="layer-family__header"><div><h4 id={`${title}-${group.family.id}`}>{group.family.label}</h4><p>{group.family.description}</p><small>{group.members.length} visible · {group.members.filter(layer=>selectedSet.has(layer.id)).length} selected</small></div><div><button type="button" aria-label={`Select ${group.family.label} family`} onClick={()=>onSelectionChange(selectCatalogFamily(selected,group.family.id))}>Select family</button><button type="button" aria-label={`Clear ${group.family.label} family`} disabled={!group.members.some(layer=>selectedSet.has(layer.id))} onClick={()=>onSelectionChange(clearCatalogFamily(selected,group.family.id))}>Clear family</button></div></header><div className="layer-family__grid">{group.members.map(layer=><LayerCell key={layer.id} layer={layer} selected={selectedSet.has(layer.id)} baseline={baselineSet.has(layer.id)} toggle={toggle} inputRequiredReason={inputRequiredReason}/>)}</div></section>)}</section>;
 }
-
-function CanonicalLayerCatalogFamilyTotal(familyId: string): number { return CanonicalLayerCatalog.filter(layer => layer.familyId === familyId).length; }
+function LayerCell({layer,selected,baseline,toggle,inputRequiredReason}:{readonly layer:CanonicalLayerDefinition;readonly selected:boolean;readonly baseline:boolean;readonly toggle:(layer:CanonicalLayerDefinition)=>void;readonly inputRequiredReason?:string}) {
+ const ready=layer.readiness===CanonicalLayerReadiness.READY;
+ return <article className={`layer-cell ${ready?"layer-cell--operational":"layer-cell--preparation"}`} data-readiness={layer.readiness}><button type="button" data-guide-id={layer.id==="TOPOLOGY"?"layers.layer.resolve-topology-state":undefined} aria-pressed={selected} onClick={()=>toggle(layer)}><span className="layer-cell__title"><strong>{layer.label}</strong><em>{selected?"SELECTED":label(layer.readiness)}</em></span><code>{layer.id}</code><p>{layer.description}</p>{baseline&&<small>CANONICAL BASELINE MEMBER{ready?"":" · SELECTABLE RESEARCH OBJECTIVE"}</small>}</button>{!ready&&<details><summary>Preparation requirements</summary><div><p><strong>Readiness:</strong> {label(layer.readiness)}</p><p>{layer.readinessReason}</p>{inputRequiredReason&&<p><strong>Current workflow:</strong> {inputRequiredReason}</p>}<p><strong>Required:</strong> {layer.requiredCanonicalInputs.join(" · ")}</p><p>This selection remains unresolved and contributes no score.</p></div></details>}</article>;
+}
+const label=(value:CanonicalLayerDefinition["readiness"]):string=>value.replace("_"," ");
+function readinessCounts(selected:readonly string[]){const definitions=CanonicalLayerCatalog.filter(layer=>selected.includes(layer.id));return{ready:definitions.filter(layer=>layer.readiness===CanonicalLayerReadiness.READY).length,unresolved:definitions.filter(layer=>layer.readiness!==CanonicalLayerReadiness.READY).length};}
+function selectionStatement(selected:readonly string[],counts:{readonly ready:number;readonly unresolved:number}):string{if(!selected.length)return"No layers selected.";const last=CanonicalLayerCatalog.find(layer=>layer.id===selected[selected.length-1]);const preparation=last&&last.readiness!==CanonicalLayerReadiness.READY?` — awaiting ${last.requiredCanonicalInputs[0]}.`:".";return`${last?.label??"Layer"} selected${preparation} ${counts.ready} ready to participate; ${counts.unresolved} selected layer${counts.unresolved===1?"":"s"} unresolved.`;}

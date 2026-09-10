@@ -1,4 +1,4 @@
-export const CANONICAL_LAYER_CATALOG_VERSION = "layers-catalog/v1" as const;
+export const CANONICAL_LAYER_CATALOG_VERSION = "layers-catalog/v2" as const;
 export const LAYERS_EXPERIMENT_SCHEMA_VERSION = "layers-experiment/v2" as const;
 export const CANONICAL_LAYER_DEFAULT_PROFILE_VERSION = "layers-default-profiles/v1" as const;
 
@@ -22,6 +22,10 @@ export const CanonicalLayerAvailability = {
 export type CanonicalLayerAvailability = typeof CanonicalLayerAvailability[keyof typeof CanonicalLayerAvailability];
 export const CanonicalLayerOperationalStatus = { OPERATIONAL: "OPERATIONAL", UNAVAILABLE: "UNAVAILABLE" } as const;
 export type CanonicalLayerOperationalStatus = typeof CanonicalLayerOperationalStatus[keyof typeof CanonicalLayerOperationalStatus];
+export const CanonicalLayerReadiness = {
+  READY: "READY", INPUT_NEEDED: "INPUT_NEEDED", METHOD_NEEDED: "METHOD_NEEDED", BLOCKED: "BLOCKED",
+} as const;
+export type CanonicalLayerReadiness = typeof CanonicalLayerReadiness[keyof typeof CanonicalLayerReadiness];
 
 export const CanonicalLayerProfileId = {
   CANONICAL_BASELINE: "CANONICAL_BASELINE", EMPTY_EXPERIMENT: "EMPTY_EXPERIMENT",
@@ -47,6 +51,8 @@ export interface CanonicalLayerDefinition {
   readonly lifecycleStatus: CanonicalLayerLifecycleStatus;
   readonly availability: CanonicalLayerAvailability;
   readonly operationalStatus: CanonicalLayerOperationalStatus;
+  readonly readiness: CanonicalLayerReadiness;
+  readonly readinessReason: string;
   readonly requiredCanonicalInputs: readonly string[];
   readonly evaluatorKey?: string;
   readonly evaluatorVersion?: string;

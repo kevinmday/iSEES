@@ -27,6 +27,7 @@
 // ============================================================
 
 import {
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -70,6 +71,19 @@ interface ManifoldInstrumentPaletteProps {
 // ============================================================
 
 const DOCK_SNAP_TOLERANCE = 32;
+
+function clampInstrumentPosition(
+  position: InstrumentPosition,
+  viewportWidth: number,
+  viewportHeight: number,
+  instrumentWidth: number,
+  instrumentHeight: number,
+): InstrumentPosition {
+  return {
+    x: Math.min(Math.max(0, position.x), Math.max(0, viewportWidth - instrumentWidth)),
+    y: Math.min(Math.max(0, position.y), Math.max(0, viewportHeight - instrumentHeight)),
+  };
+}
 
 // ============================================================
 // PERSISTENCE
@@ -193,26 +207,19 @@ export default function ManifoldInstrumentPalette({
   // INITIAL STATE
   // ==========================================================
 
-  const initialStateRef =
-    useRef<PersistedInstrumentState | null>(
-      null
-    );
-
-  if (!initialStateRef.current) {
-
-    initialStateRef.current =
+  const [initialState] =
+    useState<PersistedInstrumentState>(() =>
       loadInstrumentState(
         instrumentId,
-        defaultPosition
-      );
-
-  }
+        defaultPosition,
+      ),
+    );
 
   const [
     position,
     setPosition,
   ] = useState<InstrumentPosition>(
-    initialStateRef.current.position
+    initialState.position
   );
 
   const [
@@ -224,8 +231,11 @@ export default function ManifoldInstrumentPalette({
     dockState,
     setDockState,
   ] = useState<InstrumentDockState>(
-    initialStateRef.current.dockState
+    initialState.dockState
   );
+
+  const [instrumentHeight, setInstrumentHeight] =
+    useState(80);
 
   // ==========================================================
   // DOCK PROXIMITY
@@ -243,6 +253,42 @@ export default function ManifoldInstrumentPalette({
     dragging &&
     distanceFromDock <=
       DOCK_SNAP_TOLERANCE;
+
+  // Validate restored coordinates before paint and whenever responsive
+  // layout or browser zoom changes the containing viewport dimensions.
+  useLayoutEffect(() => {
+    const palette = paletteRef.current;
+    const viewport = palette?.offsetParent as HTMLElement | null;
+    if (!palette || !viewport) return;
+
+    const contain = (): void => {
+      setInstrumentHeight(current =>
+        current === palette.offsetHeight ? current : palette.offsetHeight,
+      );
+      setPosition(current => {
+        const next = clampInstrumentPosition(
+          current,
+          viewport.clientWidth,
+          viewport.clientHeight,
+          palette.offsetWidth,
+          palette.offsetHeight,
+        );
+
+        if (next.x === current.x && next.y === current.y) return current;
+
+        if (dockState === "FLOATING") {
+          saveInstrumentState(instrumentId, { position: next, dockState });
+        }
+        return next;
+      });
+    };
+
+    contain();
+    const observer = new ResizeObserver(contain);
+    observer.observe(viewport);
+    observer.observe(palette);
+    return () => observer.disconnect();
+  }, [dockState, instrumentId]);
 
   // ==========================================================
   // DRAG START
@@ -450,8 +496,7 @@ export default function ManifoldInstrumentPalette({
 
             width: width + 16,
             height:
-              paletteRef.current
-                ?.offsetHeight ?? 80,
+              instrumentHeight,
 
             border:
               "1px dashed rgba(96,165,250,0.65)",

@@ -80,12 +80,13 @@ runtime.setArmedLayers({ layerIds: ["TEMPORAL", "OBSERVABILITY", "TEMPORAL", "FU
 assert(json(externalSystems.workspaceRuntime.activeLayers) === '["OBSERVABILITY"]', "Arming Laboratory layers must not mutate WorkspaceRuntime.");
 console.log("PASS 3 — armed-layer changes do not mutate WorkspaceRuntime");
 state = runtime.getState();
-assert(state.armedLayers.map((layer) => layer.id).join() === "OBSERVABILITY", "Armed layers must contain only operational researcher-selectable catalog entries.");
-console.log("PASS 4 — unavailable, unsupported, and legacy entries fail closed");
+assert(state.armedLayers.map((layer) => layer.id).join() === "OBSERVABILITY,TEMPORAL", "Canonical research objectives remain armed while unknown and legacy entries fail closed.");
+assert(state.armedLayers.find(layer => layer.id === "TEMPORAL")?.operational === false, "A METHOD NEEDED selection is explicit but non-participating.");
+console.log("PASS 4 — incomplete canonical selections remain armed; unsupported and legacy entries fail closed");
 throws(() => runtime.setArmedLayers({ layerIds: ["bad layer"] }), "malformed");
 console.log("PASS 5 — invalid identifiers are rejected");
-assert(state.armedLayers.every((layer) => layer.classification === ArmedLayerClassification.CANONICAL && layer.operational), "Only operational canonical layers may be armed.");
-console.log("PASS 6 — unsupported and legacy identifiers cannot enter the armed set");
+assert(state.armedLayers.every((layer) => layer.classification === ArmedLayerClassification.CANONICAL), "Only current canonical identities may enter the armed set.");
+console.log("PASS 6 — readiness does not admit unsupported or legacy identities");
 
 const configA: Record<string, unknown> = { threshold: 0.5, nested: { b: 2, a: 1 } };
 const executionA = runtime.beginExecution(configA);

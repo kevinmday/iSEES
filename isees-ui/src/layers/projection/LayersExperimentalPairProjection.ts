@@ -5,6 +5,7 @@ import { LayersContributionSet, LayersOperationalMappingStatus, LayersPairAvaila
 import type { LayersExperimentalPairProjection, LayersExperimentalPairProjectionInput, LayersLayerContribution, LayersPairRelationshipProjection } from "./LayersExperimentalPairProjectionTypes";
 import { CANONICAL_LAYER_CATALOG_VERSION, LAYERS_EXPERIMENT_SCHEMA_VERSION } from "../catalog/CanonicalLayerCatalogTypes";
 import { projectCanonicalLayerEvaluatorInput, type CanonicalLayerEvaluatorInputProjection } from "../evaluators/CanonicalLayerEvaluatorInputProjection";
+import { getCanonicalLayerDefinition } from "../catalog/index.ts";
 
 // Canonical evaluator registrations own DEFAULT_CANONICAL_SIMILARITY_WEIGHTS;
 // this projection preserves weightedContribution, weightedSum / participatingWeight, and scoreDelta mathematics.
@@ -34,7 +35,10 @@ function normalizeLayers(layers: readonly ArmedLayer[]): ArmedLayer[] {
 function compute(input: LayersExperimentalPairProjectionInput, layers: readonly ArmedLayer[], inputProjection: CanonicalLayerEvaluatorInputProjection): LayersPairRelationshipProjection {
   const evaluationId = input.evaluation.identity.evaluationId;
   const preliminary = normalizeLayers(layers).map((layer): LayersLayerContribution => {
-    if (layer.classification !== ArmedLayerClassification.CANONICAL || !layer.operational) return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.UNAVAILABLE, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: `${layer.classification} layer is not a registered operational canonical mapping.`, sourceEvaluationId: evaluationId };
+    if (layer.classification !== ArmedLayerClassification.CANONICAL || !layer.operational) {
+      const definition = getCanonicalLayerDefinition(layer.id);
+      return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.UNAVAILABLE, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: definition ? `${definition.readiness.replace("_", " ")}: ${definition.readinessReason}` : `${layer.classification} layer is not a registered operational canonical mapping.`, sourceEvaluationId: evaluationId };
+    }
     const evaluator = getCanonicalLayerEvaluator(layer.id);
     if (!evaluator) return { layerId: layer.id, classification: layer.classification, operationalMappingStatus: LayersOperationalMappingStatus.UNAVAILABLE, availability: LayersPairAvailability.UNAVAILABLE, participatingWeight: 0, weightedContribution: 0, unavailableReason: layer.id === "TEMPORAL" ? "Temporal layer mathematics is not implemented in the canonical similarity contract." : "No canonical similarity dimension mapping is implemented for this layer.", sourceEvaluationId: evaluationId };
     const result = evaluator.evaluate({ evaluation: input.evaluation, inputProjection });

@@ -1,19 +1,25 @@
 .capture-global-link {
   display: inline-flex;
+  height: 34px;
+  box-sizing: border-box;
   align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 2px 8px;
-  border: 1px solid rgba(103, 210, 218, 0.34);
+  gap: 5px;
+  padding: 4px 7px;
+  border: 1px solid rgba(103, 210, 218, 0.28);
   border-radius: 6px;
-  color: #9be8ed;
-  font-weight: var(--weight-semibold);
+  background: transparent;
+  color: #9bcbd3;
+  font: var(--weight-semibold) var(--font-micro)/1 var(--font-family-sans);
+  letter-spacing: var(--tracking-system);
+  text-transform: uppercase;
   text-decoration: none;
 }
 
 .capture-global-link img {
   width: 30px;
   height: 30px;
+  inline-size: 19px;
+  block-size: 19px;
   flex: 0 0 auto;
 }
 
@@ -30,7 +36,7 @@
 
 @media (max-width: 760px) {
   .capture-global-link {
-    padding-inline: 3px;
+    padding-inline: 6px;
     border-color: transparent;
   }
 

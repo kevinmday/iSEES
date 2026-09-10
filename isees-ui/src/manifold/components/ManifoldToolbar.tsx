@@ -21,6 +21,9 @@
 import ManifoldInstrumentPalette
 from "./ManifoldInstrumentPalette";
 
+import { useResolveExecutionCommand }
+from "../../resolve/runtime/useResolveExecutionCommand";
+
 // ============================================================
 // ACTIONS
 // ============================================================
@@ -43,6 +46,7 @@ interface InstrumentButtonProps {
   onAction: (
     action: ManifoldToolbarAction,
   ) => void;
+  disabled?: boolean;
 }
 
 function InstrumentButton({
@@ -50,12 +54,14 @@ function InstrumentButton({
   tooltip,
   action,
   onAction,
+  disabled = false,
 }: InstrumentButtonProps) {
 
   return (
 
     <button
         type="button"
+        disabled={disabled}
         title={tooltip}
         onClick={() =>
           onAction(action)
@@ -79,7 +85,8 @@ function InstrumentButton({
           fontWeight: 700,
           letterSpacing: 0.8,
 
-          cursor: "pointer",
+          cursor: disabled ? "not-allowed" : "pointer",
+          opacity: disabled ? 0.62 : 1,
 
           textAlign: "left",
           textTransform: "uppercase",
@@ -108,6 +115,9 @@ export default function ManifoldToolbar({
   onAction,
 }: ManifoldToolbarProps) {
 
+  const resolveCommand =
+    useResolveExecutionCommand();
+
   return (
 
     <>
@@ -127,7 +137,8 @@ export default function ManifoldToolbar({
         <InstrumentButton
           label="Resolve"
           action="RESOLVE"
-          onAction={onAction}
+          onAction={() => resolveCommand.execute()}
+          disabled={resolveCommand.disabled}
           tooltip="Execute Resolve-Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
         />
 

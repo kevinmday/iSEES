@@ -2,6 +2,7 @@ import {
   CANONICAL_LAYER_CATALOG_VERSION, CanonicalLayerAvailability as A,
   CanonicalLayerFamilyId as F, CanonicalLayerLifecycleStatus as L,
   CanonicalLayerOperationalStatus as O, CanonicalLayerProfileId as P,
+  CanonicalLayerReadiness as R,
   type CanonicalLayerDefinition, type CanonicalLayerFamilyDefinition,
 } from "./CanonicalLayerCatalogTypes.ts";
 
@@ -86,6 +87,10 @@ const unavailableReason = (id:string, availability:CanonicalLayerDefinition["ava
  ? "Unavailable: no governed, versioned composite methodology or qualified component datasets exist; missing " + inputs.join(", ") + "."
  : `Unavailable (${availability}): requires ${inputs.join(", ")}.`;
 const memberCounts = new Map<string,number>();
+const readiness = (availability: CanonicalLayerDefinition["availability"]): CanonicalLayerDefinition["readiness"] =>
+ availability === A.OPERATIONAL ? R.READY
+ : availability === A.ADAPTER_REQUIRED || availability === A.CONCEPT_METHODOLOGY_UNAVAILABLE ? R.METHOD_NEEDED
+ : R.INPUT_NEEDED;
 export type CanonicalLayerId = typeof seeds[number][0];
 export const CanonicalLayerCatalog = freeze(seeds.map(([id,label,familyId,availability,inputs,outputs,evaluatorKey], index): CanonicalLayerDefinition => {
  const operational = availability === A.OPERATIONAL;
@@ -93,11 +98,14 @@ export const CanonicalLayerCatalog = freeze(seeds.map(([id,label,familyId,availa
  return {
   id,label,description:legacyDescriptions[id] ?? `${label} evaluates its declared analytical question only when its required canonical inputs and methodology are available.`,
   familyId,displayOrder:index+1,familyMemberOrder,catalogVersion:CANONICAL_LAYER_CATALOG_VERSION,lifecycleStatus:L.CURRENT,
-  availability,operationalStatus:operational?O.OPERATIONAL:O.UNAVAILABLE,requiredCanonicalInputs:inputs,evaluatorKey,
+ availability,operationalStatus:operational?O.OPERATIONAL:O.UNAVAILABLE,requiredCanonicalInputs:inputs,evaluatorKey,
+  readiness:readiness(availability),readinessReason:operational
+    ? "Required canonical inputs and a governed deterministic evaluator are available."
+    : unavailableReason(id,availability,inputs).replace(/^Unavailable[^:]*:\s*/,""),
   evaluatorVersion:operational?"canonical-similarity/v1":undefined,outputKinds:outputs,
   provenancePolicy: id === "TOPOLOGY" ? topologyProvenancePolicy : operational?"Preserve canonical feature and source evaluation lineage.":"Require complete input, source, revision, method, and window lineage before evaluation.",
   missingDataBehavior:"Return UNAVAILABLE; never substitute zero, infer evidence, or affect scores or weights.",
   defaultProfileMembership: [...(id === "OBSERVABILITY" || id === "NARRATIVE" || id === "TEMPORAL" ? [P.CANONICAL_BASELINE] : []), ...(operational ? [P.ALL_OPERATIONAL] : [])],
-  researcherSelectable:operational, unavailableReason:operational?undefined:unavailableReason(id,availability,inputs),
+  researcherSelectable:true, unavailableReason:operational?undefined:unavailableReason(id,availability,inputs),
  };
 }));

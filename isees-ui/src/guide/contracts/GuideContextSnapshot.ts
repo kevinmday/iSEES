@@ -116,6 +116,15 @@ export interface GuideContextSnapshot {
     executionId?: string;
   }>;
   readonly activeLayerIds: readonly string[];
+  readonly layerReadiness?: Readonly<{
+    selectedReadyLayerIds: readonly string[];
+    selectedUnresolvedLayers: readonly Readonly<{
+      layerId: string;
+      label: string;
+      readiness: "INPUT_NEEDED" | "METHOD_NEEDED" | "BLOCKED";
+      missingRequirements: readonly string[];
+    }>[];
+  }>;
   readonly layersExperiment: Readonly<{
     classification: GuideLayersExperimentClassification;
     executionId?: string;

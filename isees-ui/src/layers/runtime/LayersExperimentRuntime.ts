@@ -124,8 +124,8 @@ function normalizeLayers(selection: ArmedLayerSelection): readonly ArmedLayer[] 
     const catalogDefinition = getCanonicalLayerDefinition(id);
     const canonicalDefinition = compatibility.get(id);
     if (catalogDefinition) {
-      return catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL && catalogDefinition.researcherSelectable
-        ? [{ id, classification: ArmedLayerClassification.CANONICAL, operational: true, ...(canonicalDefinition ? { canonicalDefinition } : {}) }]
+      return catalogDefinition.researcherSelectable
+        ? [{ id, classification: ArmedLayerClassification.CANONICAL, operational: catalogDefinition.operationalStatus === CanonicalLayerOperationalStatus.OPERATIONAL, ...(canonicalDefinition ? { canonicalDefinition } : {}) }]
         : [];
     }
     return [];
@@ -197,6 +197,18 @@ export class LayersExperimentRuntime {
     if (!this.state.scope || !this.state.baseline) throw new Error("Establish the Laboratory before changing armed layers.");
     if (this.state.status === LayersExperimentStatus.EXECUTING) throw new Error("Armed layers cannot change during execution.");
     this.replace({ ...this.state, status: LayersExperimentStatus.READY, armedLayers: normalizeLayers(selection), currentExecution: undefined, error: undefined, revision: this.state.revision + 1 });
+  }
+
+  prepareResearchObjectives(investigationId: string, workspaceId: string, selection: ArmedLayerSelection): void {
+    if (this.state.status === LayersExperimentStatus.EXECUTING) throw new Error("Research objectives cannot change during execution.");
+    this.replace({
+      status: LayersExperimentStatus.EMPTY,
+      armedLayers: normalizeLayers(selection),
+      preparationInvestigationId: requireIdentifier(investigationId, "Preparation Investigation identity"),
+      preparationWorkspaceId: requireIdentifier(workspaceId, "Preparation workspace identity"),
+      history: [],
+      revision: this.state.revision + 1,
+    });
   }
 
   beginExecution(researcherConfiguration: Readonly<Record<string, unknown>>, metadata?: { startedAt?: string }): string {

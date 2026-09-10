@@ -29,6 +29,7 @@ import WorkspaceModeBar
 import ManifoldProjectionStatus
   from "../components/workspace/ManifoldProjectionStatus";
 import IseesCaptureGlobalLink from "../companion/capture/IseesCaptureGlobalLink";
+import IseesGuideHost from "../guide/components/IseesGuideHost";
 
 import "../components/SelectionIntelligence.css";
 
@@ -151,6 +152,8 @@ export default function MainLayout({
           }}
         >
           <IseesCaptureGlobalLink />
+
+          <IseesGuideHost />
 
           <Link
             to="/briefing"
