@@ -30,7 +30,9 @@ from isees_uap.investigations.errors import InvestigationLibraryError
 from isees_uap.api.v1.authentication import (
     authentication_error_handler,
     router as authentication_router,
+    settings as authentication_api_settings,
 )
+from isees_uap.authentication.config import authentication_settings
 from isees_uap.authentication.errors import AuthenticationError
 from isees_uap.api.application import (
     process_studio_v1_configuration,
@@ -284,6 +286,12 @@ def create_application(
         from isees_uap.api.application import studio_v1_deployment_configuration
         configuration = studio_v1_deployment_configuration(studio_v1_configuration)
     application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
+    # Capture candidate access once during application construction. Invalid allowlist
+    # input is represented by a fail-closed policy, so public and guest routes still start.
+    startup_authentication_settings = authentication_settings()
+    application.dependency_overrides[authentication_api_settings] = (
+        lambda: startup_authentication_settings
+    )
 
     @application.get("/health", include_in_schema=False)
     def health() -> dict[str, str]:

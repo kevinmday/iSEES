@@ -1,31 +1,23 @@
 from __future__ import annotations
 
 import hashlib
-import re
 import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable
 
-from .errors import InvalidAccountInput, InvalidCredentials
+from .candidate_access import CandidateAccessPolicy, normalize_email
+from .errors import DuplicateAccount, InvalidAccountInput, InvalidCredentials
 from .models import AccountStatus, AuthenticatedSession, ResearcherAccount
 from .passwords import hash_password, verify_password
 from .sqlite_repository import SQLiteAuthenticationRepository, session_secret_digest
 
-_EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _DUMMY_HASH = hash_password("not-a-real-password")
 
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def normalize_email(email: str) -> str:
-    normalized = email.strip().casefold()
-    if len(normalized) > 254 or not _EMAIL.fullmatch(normalized):
-        raise InvalidAccountInput("Account details are invalid")
-    return normalized
 
 
 @dataclass(frozen=True)
@@ -38,13 +30,17 @@ class IssuedSession:
 class AuthenticationService:
     def __init__(self, repository: SQLiteAuthenticationRepository, *,
                  session_ttl_seconds: int,
+                 candidate_access: CandidateAccessPolicy | None = None,
                  clock: Callable[[], datetime] = _utc_now):
         self.repository = repository
         self.session_ttl_seconds = session_ttl_seconds
+        self.candidate_access = candidate_access or CandidateAccessPolicy()
         self.clock = clock
 
     def create_account(self, *, email: str, password: str) -> ResearcherAccount:
         normalized = normalize_email(email)
+        if not self.candidate_access.permits_registration(normalized):
+            raise DuplicateAccount("Account registration is unavailable")
         return self.repository.create_account(
             account_id=f"acct_{uuid.uuid4().hex}", email=email.strip(),
             normalized_email=normalized, password_hash=hash_password(password),

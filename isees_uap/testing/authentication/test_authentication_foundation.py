@@ -32,7 +32,7 @@ def authentication(tmp_path):
     app.dependency_overrides.clear()
 
 
-def _create(client: TestClient, email="Researcher@Example.com"):
+def _create(client: TestClient, email="Researcher@Example.test"):
     return client.post("/api/v1/auth/accounts", json={"email": email, "password": PASSWORD})
 
 
@@ -46,7 +46,7 @@ def test_account_creation_normalization_hashing_and_empty_research_state(authent
         row = connection.execute(
             "SELECT normalized_email,password_hash FROM researcher_account"
         ).fetchone()
-        assert row[0] == "researcher@example.com"
+        assert row[0] == "researcher@example.test"
         assert row[1].startswith("scrypt$") and PASSWORD not in row[1]
         assert connection.execute("SELECT count(*) FROM authenticated_session").fetchone()[0] == 1
         secret = client.cookies.get("isees_session").split(".", 1)[1]
@@ -63,7 +63,7 @@ def test_account_creation_normalization_hashing_and_empty_research_state(authent
 def test_duplicate_normalized_identity_is_safe(authentication):
     client, _, _ = authentication
     assert _create(client).status_code == 201
-    duplicate = _create(client, "  researcher@example.COM ")
+    duplicate = _create(client, "  researcher@example.TEST ")
     assert duplicate.status_code == 409
     assert duplicate.json()["error"]["code"] == "ACCOUNT_UNAVAILABLE"
     assert "email" not in duplicate.json()["error"]["message"].lower()
@@ -74,15 +74,15 @@ def test_login_is_valid_and_invalid_login_is_non_disclosing(authentication):
     _create(client)
     client.cookies.clear()
     valid = client.post("/api/v1/auth/sessions", json={
-        "email": "researcher@example.com", "password": PASSWORD,
+        "email": "researcher@example.test", "password": PASSWORD,
     })
     assert valid.status_code == 200 and client.cookies.get("isees_session")
     client.cookies.clear()
     wrong_account = client.post("/api/v1/auth/sessions", json={
-        "email": "missing@example.com", "password": "wrong password",
+        "email": "missing@example.test", "password": "wrong password",
     })
     wrong_password = client.post("/api/v1/auth/sessions", json={
-        "email": "researcher@example.com", "password": "wrong password",
+        "email": "researcher@example.test", "password": "wrong password",
     })
     assert wrong_account.status_code == wrong_password.status_code == 401
     assert wrong_account.json()["error"]["code"] == wrong_password.json()["error"]["code"]
@@ -114,7 +114,7 @@ def test_missing_expired_and_revoked_sessions_are_rejected(authentication):
     repository.revoke_session(session_id=session_id, revoked_at=datetime.now(timezone.utc))
     assert client.get("/api/v1/auth/session").status_code == 401
 
-    account = repository.find_account_by_normalized_email("researcher@example.com")
+    account = repository.find_account_by_normalized_email("researcher@example.test")
     raw = "expired-secret"
     repository.create_session(
         session_id="ses_expired", account_id=account.account_id,

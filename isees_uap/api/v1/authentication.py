@@ -41,7 +41,11 @@ def service(
     repo: SQLiteAuthenticationRepository = Depends(authentication_repository),
     config: AuthenticationSettings = Depends(settings),
 ) -> AuthenticationService:
-    return AuthenticationService(repo, session_ttl_seconds=config.session_ttl_seconds)
+    return AuthenticationService(
+        repo,
+        session_ttl_seconds=config.session_ttl_seconds,
+        candidate_access=config.candidate_access,
+    )
 
 
 def _identity(account_id: str, email: str, expires_at: datetime) -> SafeResearcherIdentity:
