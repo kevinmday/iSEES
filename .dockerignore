@@ -60,7 +60,6 @@ runtime
 
 # Runtime state, outputs, logs, databases, and secrets.
 /runtime/**
-/isees_uap/runtime/**
 **/outputs/**
 **/*.log
 **/*.db
@@ -74,9 +73,30 @@ runtime
 .env.*
 **/.env
 **/.env.*
-**/*credential*
-**/*credentials*
-**/*token*
+# File-oriented credentials and runtime secrets. Do not filter source modules by
+# domain words such as "token", "authentication", "key", or "secret".
+**/.credential
+**/.credential.*
+**/.credentials
+**/.credentials.*
+**/credential.json
+**/credentials.json
+**/credentials.yaml
+**/credentials.yml
+**/credentials.toml
+**/*.credential
+**/*.credentials
+**/.token
+**/.token.*
+**/hf_token
+**/hf_token.*
+**/huggingface_token
+**/huggingface_token.*
+**/*.secret
+**/secrets.json
+**/secrets.yaml
+**/secrets.yml
+**/secrets.toml
 **/*.pem
 **/*.key
 

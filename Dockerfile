@@ -6,6 +6,7 @@ RUN npm ci
 COPY isees-ui/index.html isees-ui/tsconfig.json isees-ui/tsconfig.app.json isees-ui/tsconfig.node.json isees-ui/vite.config.ts isees-ui/eslint.config.js ./
 COPY isees-ui/public ./public
 COPY isees-ui/src ./src
+COPY isees-ui/isees-capture-extension/icons/isees-capture.svg ./isees-capture-extension/icons/isees-capture.svg
 RUN npm run build
 
 FROM python:3.12.11-slim-bookworm AS runtime
