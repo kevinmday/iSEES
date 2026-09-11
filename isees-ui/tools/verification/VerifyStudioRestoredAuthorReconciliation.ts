@@ -41,6 +41,7 @@ const command = composeStudioVersionCommand(scope, local as never);
 assert.equal(command.sourceSnapshots.length, 1, "derived source snapshot participates in save/hash content");
 assert.equal(command.sourceSnapshots[0]?.snapshotId, "studio-source:anchor:1");
 const inspector = readFileSync("src/studio/components/StudioArtifactInspector.tsx", "utf8");
+const family = readFileSync("src/studio/components/StudioArtifactFamily.tsx", "utf8");
 const toolbar = readFileSync("src/author/components/StudioToolbar.tsx", "utf8");
 const status = readFileSync("src/author/components/StudioStatusBar.tsx", "utf8");
 assert.match(toolbar, /saveAction\.state\.message/, "header projects the Studio V1 save owner message");
@@ -48,7 +49,7 @@ assert.doesNotMatch(toolbar, /runtime\.markClean\(\)/, "local .author download c
 assert.match(status, /saveAction\.state\.message/, "footer projects the Studio V1 save owner message");
 assert.match(inspector, /dirty \? "Dirty · unsaved changes"/, "Inspector projects the runtime dirty owner");
 assert.match(inspector, /activeArtifact && !dirty \? "The canonical draft has no unsaved changes/, "Save Draft remains enabled for a reconciled difference");
-assert.match(inspector, /contentConsistent === undefined \? "Unavailable" : contentConsistent \? "Current" : "Draft changed"/, "projection consistency reports a reconciled difference as Draft changed");
+assert.match(family, /Local changes do not alter these saved projection records/, "projection lineage remains unchanged by a dirty restored source");
 assert.match(inspector, /await saveAction\.save\(\)/, "Save Draft uses the governed Studio V1 author contract");
 assert.match(inspector, /const lifecycleAction[\s\S]*void mutate/, "legacy lifecycle behavior remains isolated from Studio V1 save");
 console.log("PASS VerifyStudioRestoredAuthorReconciliation — fail-safe restore, canonical equality/difference, source lineage, stale revision, edit race, and Investigation switching verified");

@@ -8,19 +8,21 @@ const read = (path: string) => readFileSync(path, "utf8");
 const shell = read("src/author/components/StudioShell.tsx");
 const css = read("src/author/components/StudioShell.css");
 const inspector = read("src/studio/components/StudioArtifactInspector.tsx");
+const family = read("src/studio/components/StudioArtifactFamily.tsx");
+const familySemantics = read("src/studio/components/StudioArtifactFamilySemantics.ts");
 const api = read("src/studio/api/StudioApi.ts");
 assert.match(shell, /<StudioResearchInbox\s*\/>[\s\S]*<main[\s\S]*<StudioArtifactInspector\s*\/>/, "permanent three-column order");
 assert.match(css, /grid-template-columns:[^;]+minmax\(0, 1fr\)[^;]+clamp\(320px, 23vw, 380px\)/);
 assert.doesNotMatch(inspector, /new AuthorDocumentRuntime|useState<.*ComputationalAuthorDocument/, "React does not own the author document");
-for (const route of ["candidate/publication", "review-submissions", "acceptance", "returns", "rejections", "projections/validations"]) assert.ok(inspector.includes(route), `route composed: ${route}`);
+for (const route of ["candidate/publication", "review-submissions", "acceptance", "returns", "rejections"]) assert.ok(inspector.includes(route), `route composed: ${route}`);
 for (const state of ["CONFLICT", "STALE_REVISION", "FORBIDDEN", "UNAVAILABLE_BACKEND", "ERROR"]) assert.ok(api.includes(state), `explicit API state: ${state}`);
-for (const format of ["PDF", "DOCX", "HTML"]) assert.ok(inspector.includes(`\"${format}\"`), `${format} projection composed`);
-assert.match(inspector, /canMaterializeProjection\(/, "materialization eligibility fails closed through canonical projection semantics");
+for (const format of ["PDF", "DOCX", "HTML"]) assert.ok(familySemantics.includes(format), `${format} child projection composed`);
+assert.match(family,/projectStudioArtifactFamily/,"projection glyphs derive from Studio V1 authoritative state");
 assert.match(inspector, /does not create accepted knowledge or an accepted relationship/, "publication is not falsely accepted");
 assert.match(inspector, /expectedRevision/); assert.match(inspector, /idempotencyKey/); assert.match(inspector, /if \(!scope \|\| inFlight\) return/); assert.match(inspector, /await refresh\(scope, document\)/);
 assert.match(inspector, /item\.artifact\.investigationId === expectedScope\.investigationId && item\.artifact\.ownerPrincipalId === expectedScope\.principalId/, "artifact selection is exactly Investigation and principal scoped");
 assert.match(inspector, /current\?\.lifecycleState !== actionTarget\[operation\]/, "invalid transitions are disabled with reasons");
-assert.match(inspector, /dirty \? \"Save current changes before advancing lifecycle/, "dirty versions cannot advance");
+assert.match(inspector, /dirty \? "Save current changes before advancing lifecycle/, "dirty versions cannot advance");
 
 const at = new Date("2026-09-04T12:00:00.000Z");
 const document = { identity: { id: "author:a", createdAt: at }, metadata: { title: "A", description: "", author: "p:a", modifiedAt: at, version: 1 }, type: AuthorDocumentTypes.DOCUMENT, status: AuthorDocumentStatuses.MODIFIED, nodes: [

@@ -18,6 +18,8 @@ const inspectorCss = read("src/studio/components/StudioArtifactInspector.css");
 const api = read("src/studio/api/StudioApi.ts");
 const adapter = read("src/studio/api/StudioAuthorDocumentAdapter.ts");
 const surface = read("src/surfaces/WorkspaceSurface.tsx");
+const v1Owner = read("src/studio/v1/runtime/StudioV1SaveOrchestrator.ts");
+const artifactFamilySemantics = read("src/studio/components/StudioArtifactFamilySemantics.ts");
 
 assert.match(shell, /<StudioResearchInbox\s*\/>[\s\S]*<main className="studio-shell__authoring">[\s\S]*<StudioArtifactInspector\s*\/>/, "permanent three-column composition");
 assert.match(shellCss, /grid-template-columns:[^;]+minmax\(0, 1fr\)/);
@@ -29,16 +31,16 @@ assert.equal((shell.match(/<StudioResearchInbox/g) ?? []).length, 1, "one canoni
 assert.doesNotMatch([shell, canvas, inbox, inspector].join("\n"), /new AuthorDocumentRuntime|useState<.*ComputationalAuthorDocument/, "one canonical Author owner");
 
 for (const text of ["No active Investigation", "No active draft", "No collected sources", "Inspection only", "already in this draft", "No canonical claim/source mapping", "No source-backed blocks", "MISSING CITATION", "Candidate boundary:"]) assert.ok([canvas, inbox, inspector].some(source => source.includes(text)), `explicit operator state: ${text}`);
-for (const route of ["candidate/publication", "review-submissions", "acceptance", "returns", "rejections", "projections/validations"]) assert.ok(inspector.includes(route), `lifecycle route ${route}`);
+for (const route of ["candidate/publication", "review-submissions", "acceptance", "returns", "rejections"]) assert.ok(inspector.includes(route), `lifecycle route ${route}`);
 for (const state of ["RETURNED", "REJECTED", "CONFLICT", "STALE_REVISION", "FORBIDDEN", "UNAVAILABLE_BACKEND"]) assert.ok(inspector.includes(state) || api.includes(state), `restored/error state ${state}`);
-for (const format of ["PDF", "DOCX", "HTML"]) assert.ok(inspector.includes(`"${format}"`));
+for (const format of ["PDF", "DOCX", "HTML"]) assert.ok(artifactFamilySemantics.includes(format));
 assert.match(inspector, /publication creates a candidate node only/); assert.match(inspector, /does not create accepted knowledge/);
 assert.match(inspector, /claimSourceMappings/); assert.match(inspector, /sourceIdentity/); assert.match(inspector, /resolutionStatus/);
-assert.match(inspector, /restoreStudioDocument/); assert.match(inspector, /toSorted\([\s\S]*updatedAt/);
+assert.match(v1Owner, /restoreAuthorDocument/); assert.match(v1Owner, /discoverArtifacts/);
 assert.match(inbox, /aria-pressed/); assert.match(inbox, /Remove source/); assert.match(inbox, /aria-describedby/);
 assert.match(canvas, /<button type="button" className="author-section__empty"/); assert.match(canvas, /Move .* up/); assert.match(canvas, /Remove .* from draft/);
 for (const css of [canvasCss, inboxCss, inspectorCss]) assert.match(css, /focus-visible/);
-assert.match(inspector, /role=\{state === "ERROR"[\s\S]*\? "alert" : "status"\}/);
+assert.match(inspector, /role=\{v1SaveFailed \? "alert" : "status"\}/);
 assert.doesNotMatch([api, adapter, inbox, inspector].join("\n"), /openai|anthropic|\/chat\/completions|\/responses/i, "no AI integration");
 assert.doesNotMatch([canvas, inbox, inspector].join("\n"), /lorem ipsum|sample claim|fake evidence/i, "no fake production data");
 

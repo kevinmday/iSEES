@@ -77,6 +77,7 @@ import {
 
 import {
   useAuthorDocument,
+  useAuthorDocumentDirty,
   useAuthorDocumentRuntime,
 } from "../runtime/AuthorDocumentRuntimeContext";
 
@@ -147,6 +148,11 @@ const subtitleStyle: CSSProperties = {
   fontSize: 12,
   color: "#94a3b8",
 };
+
+const authorIdentityStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 10, minWidth: 0 };
+const authorGlyphStyle: CSSProperties = { display: "grid", placeItems: "center", width: 42, height: 42, border: "1px solid #38bdf8", borderRadius: 7, background: "#082f49", color: "#f8fafc", fontSize: 9, fontWeight: 800, lineHeight: 1.05 };
+const authorCopyStyle: CSSProperties = { display: "grid", gap: 2, minWidth: 0 };
+const canonicalLabelStyle: CSSProperties = { color: "#7dd3fc", fontSize: 10, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase" };
 
 const statusStyle: CSSProperties = {
   padding: "4px 10px",
@@ -303,6 +309,7 @@ export default function StudioToolbar() {
 
   const document =
     useAuthorDocument();
+  const dirty = useAuthorDocumentDirty();
 
   const saveAction = useStudioSaveAction();
   const canDurablySave = useIsAccountOperator();
@@ -629,23 +636,29 @@ export default function StudioToolbar() {
 
       <div style={leftStyle}>
 
-        <div>
+        <div style={authorIdentityStyle} aria-label={document ? `Canonical .author source. ${document.metadata.title}. ${saveAction.state.revisionNumber ? `Immutable revision ${saveAction.state.revisionNumber}.` : "Local draft."} ${dirty ? "Dirty." : saveAction.state.headRevisionId ? "Saved." : "Unsaved."}` : "No active canonical .author source"}>
+          <span style={authorGlyphStyle} role="img" aria-label="Canonical dot author source glyph"><b style={{fontSize: 16}}>A</b>.author</span>
+          <span style={authorCopyStyle}>
+          <span style={canonicalLabelStyle}>Canonical source</span>
 
           <div style={titleStyle}>
 
             {
               document?.metadata.title ??
-              "No Active Document"
+              "No active .author"
             }
+
+            {document ? ".author" : ""}
 
           </div>
 
           <div style={subtitleStyle}>
 
-            Authoring Studio
+            {saveAction.state.revisionNumber ? `Immutable revision ${saveAction.state.revisionNumber}` : "Local .author draft"} · {dirty ? "Dirty" : saveAction.state.status === "LOADING" ? "Restoring" : saveAction.state.status === "FAILED" ? "Failed · draft preserved" : saveAction.state.headRevisionId ? "Saved" : "Unsaved"}
 
           </div>
 
+          </span>
         </div>
 
         {
@@ -703,6 +716,7 @@ export default function StudioToolbar() {
           type="button"
           style={activeInvestigation ? buttonStyle : disabledButtonStyle}
           disabled={!activeInvestigation}
+          title={activeInvestigation ? "Create a new canonical .author draft." : "Select an Investigation before creating a .author draft."}
           onClick={handleNewDocument}
         >
 
@@ -746,6 +760,7 @@ export default function StudioToolbar() {
               : buttonStyle
           }
           disabled={ingesting}
+          title={ingesting ? "A .author artifact is currently being ingested." : "Upload a native .author artifact for ingestion."}
           onClick={handleUploadDocument}
         >
 
@@ -780,6 +795,7 @@ export default function StudioToolbar() {
             type="button"
             style={disabledButtonStyle}
             disabled
+            title={`${command} is unavailable in this Studio iteration.`}
           >
 
             {command}

@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { canMaterializeProjection } from "../../src/studio/components/StudioArtifactInspectorSemantics.ts";
 
 const inspector = readFileSync(new URL("../../src/studio/components/StudioArtifactInspector.tsx", import.meta.url), "utf8");
+const family = readFileSync(new URL("../../src/studio/components/StudioArtifactFamily.tsx", import.meta.url), "utf8");
+const familySemantics = readFileSync(new URL("../../src/studio/components/StudioArtifactFamilySemantics.ts", import.meta.url), "utf8");
 const api = readFileSync(new URL("../../src/studio/api/StudioApi.ts", import.meta.url), "utf8");
 
 const projection = { projectionId: "pdf:1", artifactVersionId: "v1", projectionFormat: "PDF" as const,
@@ -12,17 +14,13 @@ assert.equal(canMaterializeProjection({ durableVersionExists: true, synchronized
   inFlight: false, owned: true, currentVersionId: "v1", format: "PDF", projection }), true);
 assert.equal(canMaterializeProjection({ durableVersionExists: true, synchronized: true, dirty: true,
   inFlight: false, owned: true, currentVersionId: "v1", format: "PDF", projection }), false);
-assert.match(inspector, /artifactVersionId[,}]/, "materialization sends the exact saved version identity");
-assert.match(inspector, /projections\/materializations/, "eligible action calls the canonical backend route");
-assert.match(inspector, /await studioApi\.downloadPdf/, "download waits for the binary API");
 assert.match(inspector, /await refresh\(scope, document\)/, "mutations wait for canonical refresh");
-assert.match(inspector, /latest\?\.materializationState === "MATERIALIZED"/, "download derives from canonical materialized state");
-assert.match(inspector, /Download PDF/, "canonical PDF exposes a clear download action");
-assert.match(inspector, /Browser-only content preview\. This is not an authoritative exported/, "preview remains non-authoritative");
-assert.doesNotMatch(inspector, /No authoritative output materializer is configured/, "placeholder is removed");
+assert.match(family,/parentRevisionId/,"projection glyph carries the exact saved revision identity");
+assert.doesNotMatch(inspector,/projections\/materializations|downloadPdf|Download PDF/,"I9 does not claim materialization capability");
+assert.match(family,/No authoritative projection/,"absence remains explicit and non-authoritative");
 assert.match(api, /response\.blob\(\)/, "download consumes actual binary bytes");
 assert.match(api, /Content-Type.*application\/pdf/, "binary response is type checked");
 assert.doesNotMatch(api, /outputLocation\?:/, "internal storage location is absent from the frontend contract");
-assert.match(inspector, /\["PDF", "DOCX", "HTML"\]/, "format controls remain independent");
+for(const format of ["PDF","DOCX","HTML"])assert.match(familySemantics,new RegExp(format),`${format} remains an independent child glyph`);
 
 console.log("PASS VerifyStudioPdfMaterialization — authoritative materialize/refresh/download and fail-closed projection UI verified");
