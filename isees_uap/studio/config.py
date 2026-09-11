@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
+
+from isees_uap.persistence import database_path, output_path
 
 
 # P57-UI-A17-I1 conservative drafting bounds. This is the backend authority;
@@ -18,13 +19,9 @@ STUDIO_DRAFTING_MAX_GENERATED_TEXT_BYTES = 256_000
 
 def studio_database_path() -> Path:
     """Return the independently configured STUDIO database location."""
-    configured = os.environ.get("ISEES_STUDIO_DB_PATH")
-    path = Path(configured) if configured else Path("runtime/studio.sqlite3")
-    return path.expanduser().resolve()
+    return database_path("ISEES_STUDIO_DB_PATH", "studio.sqlite3", "runtime/studio.sqlite3")
 
 
 def studio_output_root() -> Path:
     """Backend-owned root for durable Studio projection outputs."""
-    configured = os.environ.get("ISEES_STUDIO_OUTPUT_ROOT")
-    path = Path(configured) if configured else Path("runtime/studio-outputs")
-    return path.expanduser().resolve()
+    return output_path("ISEES_STUDIO_OUTPUT_ROOT", "runtime/studio-outputs")

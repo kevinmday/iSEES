@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, Response
 
 
 DEFAULT_FRONTEND_DIRECTORY = Path("/app/frontend")
-_BACKEND_PREFIXES = ("api", "run", "clusters")
+_BACKEND_PREFIXES = ("api", "run", "clusters", "health", "ready")
 
 
 def _not_found() -> None:

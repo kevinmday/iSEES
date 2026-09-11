@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from isees_uap.persistence import database_path
+
 
 @dataclass(frozen=True)
 class AuthenticationSettings:
@@ -20,9 +22,9 @@ def authentication_settings() -> AuthenticationSettings:
     environment = os.environ.get("ISEES_AUTH_ENV", "production").strip().lower()
     if environment not in {"production", "development", "test"}:
         raise RuntimeError("ISEES_AUTH_ENV must be production, development, or test")
-    configured = os.environ.get("ISEES_AUTH_DB_PATH")
-    path = Path(configured) if configured else Path("runtime/authentication.sqlite3")
+    path = database_path("ISEES_AUTH_DB_PATH", "authentication.sqlite3",
+                         "runtime/authentication.sqlite3")
     return AuthenticationSettings(
-        database_path=path.expanduser().resolve(),
+        database_path=path,
         secure_cookies=environment == "production",
     )

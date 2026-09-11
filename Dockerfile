@@ -14,7 +14,9 @@ RUN useradd --create-home --uid 1000 user
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ISEES_FRONTEND_DIR=/app/frontend \
-    ISEES_CORS_ORIGINS=""
+    ISEES_CORS_ORIGINS="" \
+    ISEES_PERSISTENT_ROOT=/data/isees
+RUN install -d -o 1000 -g 1000 /data/isees/databases /data/isees/studio-outputs /data/isees/backups
 WORKDIR /app
 COPY --chown=user:user isees_uap/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --requirement /app/requirements.txt

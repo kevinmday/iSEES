@@ -6,6 +6,7 @@
 # ============================================================
 
 from fastapi import APIRouter, FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -40,6 +41,8 @@ from isees_uap.api.v1.studio_v1 import (
     router as studio_v1_router, StudioV1ApiError, studio_v1_error_handler,
 )
 from isees_uap.studio.v1.persistence import StudioV1Failure
+from isees_uap.persistence import readiness_report
+from isees_uap.studio.config import studio_output_root
 from isees_uap.api.frontend import (
     DEFAULT_FRONTEND_DIRECTORY, create_frontend_root_router, create_frontend_router,
 )
@@ -281,6 +284,26 @@ def create_application(
         from isees_uap.api.application import studio_v1_deployment_configuration
         configuration = studio_v1_deployment_configuration(studio_v1_configuration)
     application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
+
+    @application.get("/health", include_in_schema=False)
+    def health() -> dict[str, str]:
+        return {"schemaVersion": "isees-health/v1", "status": "live"}
+
+    @application.get("/ready", include_in_schema=False, response_model=None)
+    def ready() -> JSONResponse:
+        compatible, dependencies = readiness_report(
+            studio_v1_enabled=configuration.enabled,
+            studio_v1_path=configuration.database_path,
+            output_root=studio_output_root(),
+        )
+        return JSONResponse(
+            status_code=200 if compatible else 503,
+            content={
+                "schemaVersion": "isees-readiness/v1",
+                "status": "ready" if compatible else "not_ready",
+                "dependencies": dependencies,
+            },
+        )
     configured_frontend = Path(
         frontend_directory
         if frontend_directory is not None

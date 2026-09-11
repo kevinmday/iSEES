@@ -36,6 +36,7 @@ def enabled_config(tmp_path, **changes):
 def enabled_mapping(tmp_path):
     return {
         "ISEES_STUDIO_V1_ENABLED": "true",
+        "ISEES_PERSISTENT_ROOT": str(tmp_path),
         "ISEES_STUDIO_V1_DATABASE_PATH": str(tmp_path / "mapped.sqlite3"),
         "ISEES_STUDIO_V1_APPLICATION_INSTANCE_ID": "pytest-mapped-instance",
         "ISEES_STUDIO_V1_PROJECTION_LEASE_SECONDS": "30",
@@ -92,7 +93,6 @@ def test_application_state_exposes_only_private_owner(tmp_path):
 
 
 @pytest.mark.parametrize(("key", "value"), [
-    ("ISEES_STUDIO_V1_DATABASE_PATH", None),
     ("ISEES_STUDIO_V1_DATABASE_PATH", "relative.sqlite3"),
     ("ISEES_STUDIO_V1_APPLICATION_INSTANCE_ID", None),
     ("ISEES_STUDIO_V1_PROJECTION_LEASE_SECONDS", "0"),
@@ -110,6 +110,24 @@ def test_invalid_enabled_mapping_fails_closed(tmp_path, key, value):
         create_application(values)
     assert "sqlite3" not in caught.value.safe_message.lower()
     assert str(tmp_path).lower() not in caught.value.safe_message.lower()
+
+
+def test_enabled_mapping_without_database_path_or_persistent_root_fails_closed(tmp_path):
+    values = enabled_mapping(tmp_path)
+    values.pop("ISEES_STUDIO_V1_DATABASE_PATH")
+    values.pop("ISEES_PERSISTENT_ROOT")
+    with pytest.raises(StudioV1LifecycleFailure) as caught:
+        create_application(values)
+    assert "sqlite3" not in caught.value.safe_message.lower()
+    assert str(tmp_path).lower() not in caught.value.safe_message.lower()
+
+
+def test_enabled_mapping_without_database_path_rejects_relative_persistent_root(tmp_path):
+    values = enabled_mapping(tmp_path)
+    values.pop("ISEES_STUDIO_V1_DATABASE_PATH")
+    values["ISEES_PERSISTENT_ROOT"] = "relative-persistent-root"
+    with pytest.raises(StudioV1LifecycleFailure):
+        create_application(values)
 
 
 def test_incompatible_schema_startup_is_sanitized_and_cleans_up(tmp_path):

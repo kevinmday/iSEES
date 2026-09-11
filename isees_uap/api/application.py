@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from os import environ
+from pathlib import Path
 from typing import AsyncContextManager, Callable, Mapping
 
 from fastapi import FastAPI
@@ -14,6 +15,7 @@ from isees_uap.studio.v1.lifecycle import (
     StudioV1LifecycleConfiguration,
     configuration_from_environment,
 )
+from isees_uap.persistence import database_path
 
 Lifespan = Callable[[FastAPI], AsyncContextManager[None]]
 
@@ -36,6 +38,12 @@ def studio_v1_deployment_configuration(
         supplied[ENVIRONMENT_KEYS[0]] = "false"
     if supplied[ENVIRONMENT_KEYS[0]].strip().lower() == "false":
         supplied = {**_DISABLED_DEFAULTS, **supplied}
+    elif ENVIRONMENT_KEYS[1] not in supplied:
+        persistent_root = values.get("ISEES_PERSISTENT_ROOT")
+        if (isinstance(persistent_root, str) and persistent_root.strip()
+                and Path(persistent_root).is_absolute()):
+            supplied[ENVIRONMENT_KEYS[1]] = str(database_path(
+                ENVIRONMENT_KEYS[1], "studio-v1.sqlite3", "runtime/studio-v1.sqlite3", values))
     return configuration_from_environment(supplied)
 
 
