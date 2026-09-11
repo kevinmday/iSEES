@@ -1,22 +1,22 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { CANONICAL_EVENTS } from "../../src/canonical/runtimeCorpus";
-import { publishCompareCandidateToResearch } from "../../src/compare/research/CompareCandidateResearchPublication";
-import { materializeInitialOperationalRevision } from "../../src/investigation/revision/OperationalGraphRevision";
-import type { Investigation } from "../../src/investigation/investigationTypes";
-import { adaptSystemCanonToKnowledge } from "../../src/knowledge/ingestion/SystemCanonKnowledgeAdapter";
-import { KnowledgeObjectType } from "../../src/knowledge/model/KnowledgeObjectTypes";
-import { resolveNarrativeWorkspaceProjection } from "../../src/narrative/projection/NarrativeWorkspaceProjection";
-import { NarrativeWorkspaceProjectionStatus } from "../../src/narrative/projection/NarrativeWorkspaceProjectionTypes";
-import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime";
-import { ResearchAnchorType } from "../../src/research/researchBridgeTypes";
-import { generateCanonicalSimilarityCandidates } from "../../src/resolve/candidates/CanonicalSimilarityCandidateGenerator";
-import { evaluateCanonicalSimilarityCandidates } from "../../src/resolve/evaluation/CanonicalSimilarityCandidateEvaluator";
-import { extractCanonicalEventFeatureSets } from "../../src/resolve/features/CanonicalKnowledgeFeatureExtractor";
-import { resolveCandidateIntelligence } from "../../src/resolve/intelligence/ResolveCandidateIntelligenceResolver";
-import { createWorkspaceCandidateSelection } from "../../src/resolve/intelligence/ResolveCandidateSelection";
-import { computeCanonicalKnowledgeSimilarityMatrix } from "../../src/resolve/similarity/CanonicalKnowledgeSimilarityMatrix";
-import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence";
+import { CANONICAL_EVENTS } from "../../src/canonical/runtimeCorpus.ts";
+import { publishCompareCandidateToResearch } from "../../src/compare/research/CompareCandidateResearchPublication.ts";
+import { materializeInitialOperationalRevision } from "../../src/investigation/revision/OperationalGraphRevision.ts";
+import type { Investigation } from "../../src/investigation/investigationTypes.ts";
+import { adaptSystemCanonToKnowledge } from "../../src/knowledge/ingestion/SystemCanonKnowledgeAdapter.ts";
+import { KnowledgeObjectType } from "../../src/knowledge/model/KnowledgeObjectTypes.ts";
+import { resolveNarrativeWorkspaceProjection } from "../../src/narrative/projection/NarrativeWorkspaceProjection.ts";
+import { NarrativeWorkspaceProjectionStatus } from "../../src/narrative/projection/NarrativeWorkspaceProjectionTypes.ts";
+import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime.ts";
+import { ResearchAnchorType } from "../../src/research/researchBridgeTypes.ts";
+import { generateCanonicalSimilarityCandidates } from "../../src/resolve/candidates/CanonicalSimilarityCandidateGenerator.ts";
+import { evaluateCanonicalSimilarityCandidates } from "../../src/resolve/evaluation/CanonicalSimilarityCandidateEvaluator.ts";
+import { extractCanonicalEventFeatureSets } from "../../src/resolve/features/CanonicalKnowledgeFeatureExtractor.ts";
+import { resolveCandidateIntelligence } from "../../src/resolve/intelligence/ResolveCandidateIntelligenceResolver.ts";
+import { createWorkspaceCandidateSelection } from "../../src/resolve/intelligence/ResolveCandidateSelection.ts";
+import { computeCanonicalKnowledgeSimilarityMatrix } from "../../src/resolve/similarity/CanonicalKnowledgeSimilarityMatrix.ts";
+import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence.ts";
 
 let passCount = 0;
 function pass(condition: unknown, message: string): asserts condition {
@@ -70,11 +70,13 @@ pass(first.candidate.dimensions === projection.comparePair.dimensions && first.c
 pass(first.candidate.dimensions.every((item, index) => JSON.stringify(item) === JSON.stringify(projection.comparePair.dimensions[index])), "dimension availability, unavailable reasons, lineage, and values are preserved");
 pass(!("graph" in first) && !("nodeId" in first.candidate) && !("edgeId" in first.candidate), "no NODE, EDGE, or accepted relationship is created");
 pass(runtime.getDesk().entries.length === 1 && runtime.getRevision() === 1, "first publication advances only Research runtime state once");
+pass(new ResearchBridgeRuntime().getDesk().entries.length === 0, "missing publication leaves Research empty");
+pass(runtime.projectInvestigation({ investigationId: "investigation:other" }).entries.length === 0, "publication cannot leak across Investigations");
 const second = publishCompareCandidateToResearch({ investigationId: investigation.id, projection: projection.comparePair, resolveExecutionId, researchBridgeRuntime: runtime });
 pass(second.anchorId === first.anchorId && runtime.getDesk().entries.length === 1, "two publication attempts yield one Research entry");
 pass(runtime.getRevision() === 1, "duplicate publication does not increment Research runtime revision");
 
-const snapshot = createGuestWorkspaceSessionSnapshot({ ownership: { kind: "GUEST", operatorId: "guest-narrative", establishedAt: "2026-09-03T00:00:00.000Z" }, workspace: { operator: { activeMode: "OVERVIEW" as any, layoutMode: "NORMAL" as any }, computational: { activeLayers: [] } }, research: { desk: runtime.getDesk() }, authoring: {} });
+const snapshot = createGuestWorkspaceSessionSnapshot({ ownership: { kind: "GUEST", operatorId: "guest:narrative-publication", establishedAt: "2026-09-03T00:00:00.000Z" }, workspace: { investigation: investigation as never, workspace: investigation.workspace as never, operator: { activeMode: "OVERVIEW" as never, layoutMode: "NORMAL" as never }, computational: { activeLayers: [] } }, research: { desk: runtime.getDesk() }, authoring: {} });
 const roundTrip: unknown = JSON.parse(JSON.stringify(snapshot));
 pass(isGuestWorkspaceSessionSnapshot(roundTrip), "Guest snapshot validation and JSON round-trip preserve the anchor contract");
 if (!isGuestWorkspaceSessionSnapshot(roundTrip)) throw new Error("unreachable");

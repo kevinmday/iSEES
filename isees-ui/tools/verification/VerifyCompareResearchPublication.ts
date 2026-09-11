@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime";
-import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/researchBridgeTypes";
-import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence";
-import { createCompareCandidateResearchAnchor, publishCompareCandidateToResearch } from "../../src/compare/research/CompareCandidateResearchPublication";
-import { ComparePairProjectionStatus, type ComparePairProjectionReady } from "../../src/compare/projection/ComparePairProjectionTypes";
-import { migrateResearchAnchor } from "../../src/research/ResearchAnchorContract";
+import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime.ts";
+import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/researchBridgeTypes.ts";
+import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence.ts";
+import { createCompareCandidateResearchAnchor, publishCompareCandidateToResearch } from "../../src/compare/research/CompareCandidateResearchPublication.ts";
+import { ComparePairProjectionStatus, type ComparePairProjectionReady } from "../../src/compare/projection/ComparePairProjectionTypes.ts";
+import { migrateResearchAnchor } from "../../src/research/ResearchAnchorContract.ts";
 
 const dimensions = ["NARRATIVE", "OBSERVABILITY", "INFRASTRUCTURE", "TOPOLOGY", "GEOGRAPHY"].map((dimension, index) => ({
   dimension,
@@ -41,6 +41,8 @@ const first = publishCompareCandidateToResearch(input);
 const second = publishCompareCandidateToResearch(input);
 assert.equal(first.anchorId, second.anchorId);
 assert.equal(runtime.getDesk().entries.length, 1);
+assert.equal(new ResearchBridgeRuntime().getDesk().entries.length, 0, "missing publication leaves Research empty");
+assert.equal(runtime.projectInvestigation({ investigationId: "investigation-2" }).entries.length, 0, "publication cannot leak across Investigations");
 assert.equal(first.candidate.type, ResearchAnchorType.CANDIDATE);
 assert.equal("graph" in first, false);
 assert.equal("nodeId" in first.candidate, false);
@@ -67,8 +69,8 @@ for (const forbidden of ["ResolveCandidateAcceptance", "acceptResolveCandidate",
 
 const restored = new ResearchBridgeRuntime();
 const guestSnapshot = createGuestWorkspaceSessionSnapshot({
-  ownership: { kind: "GUEST", operatorId: "guest-1", establishedAt: "2026-01-01T00:00:00.000Z" },
-  workspace: { operator: { activeMode: "OVERVIEW" as any, layoutMode: "NORMAL" as any }, computational: { activeLayers: [] } },
+  ownership: { kind: "GUEST", operatorId: "guest:compare-publication", establishedAt: "2026-01-01T00:00:00.000Z" },
+  workspace: { investigation: { id: "investigation-1" } as never, workspace: { id: "workspace:compare-publication" } as never, operator: { activeMode: "OVERVIEW" as never, layoutMode: "NORMAL" as never }, computational: { activeLayers: [] } },
   research: { desk: runtime.getDesk() },
   authoring: {},
 });

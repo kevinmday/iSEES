@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- wire-shape corruption fixtures intentionally cross static type boundaries */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import ts from "typescript";
 import { AccountWorkspaceContinuityCoordinator } from "../../src/investigation/continuity/AccountWorkspaceContinuityCoordinator.ts";
 import { ContinuityError, materializeOwnedActivation, parseOwnedActivationAggregate } from "../../src/investigation/continuity/OwnedInvestigationContinuity.ts";
 import type { AccountContinuityApi } from "../../src/investigation/continuity/AccountContinuityApi.ts";
@@ -100,11 +102,10 @@ const api: AccountContinuityApi = {
 const values = new Map<string, string>();
 const store = { read: (account: string) => values.get(account) ?? null, write: (account: string, id: string) => { values.set(account, id); } };
 let subordinate = "sensitive"; const teardown = { clearAccountState() { subordinate = ""; } };
-let active: ReturnType<typeof parseOwnedActivationAggregate> | undefined;
 let activeInvestigation: unknown;
 let adoptedActivation: any; let restoredDesk: any;
 const workspace = {
-  deactivate() { active = undefined; activeInvestigation = undefined; },
+  deactivate() { activeInvestigation = undefined; },
   activateEmptyOwnedInvestigation(investigation: unknown) { activeInvestigation = investigation; },
   activateAdoptedOwnedInvestigation(activation: unknown) { adoptedActivation = activation; activeInvestigation = (activation as any).investigation; },
   activateOwnedInvestigation(activation: any, install: () => void) { adoptedActivation = activation; activeInvestigation = activation.investigation; install(); },
@@ -172,6 +173,9 @@ const restoredNodeAnchor = dockProjection.entries[0]!.anchor as ResearchGraphAnc
 assert.equal(researchInboxGraphEntryTitle(restoredNodeAnchor), "AN/APG-79 AESA Radar", "restored NODE renders its display title at the instrument boundary");
 assert.notEqual(researchInboxGraphEntryTitle(restoredNodeAnchor), restoredNodeAnchor.graph.id, "a valid display title prevents the internal graph ID becoming the primary label");
 assert.deepEqual(restoredNodeAnchor.graph, { type: "NODE", id: "system:entity:an-apg-79-aesa-radar" }, "presentation preserves deterministic graph identity");
+const wrongOwnershipResearch = new ResearchBridgeRuntime();
+wrongOwnershipResearch.restoreDesk({ entries: [{ ...dockProjection.entries[0]!, anchor: { ...restoredNodeAnchor, investigationId: "foreign-investigation" } }] });
+assert.equal(wrongOwnershipResearch.projectInvestigation({ investigationId: "nimitz" }).entries.length, 0, "incorrect Research Inbox ownership cannot enter the active Investigation projection");
 
 const edgeAnchor = {
   ...restoredNodeAnchor,
@@ -225,7 +229,26 @@ assert.match(dockSource, /useResearchBridge\(\)/, "MANIFOLD dock consumes that p
 assert.match(dockSource, /researchInboxGraphEntryTitle\(entry\.anchor\)/, "graph entry JSX renders through the verified title projection");
 assert.doesNotMatch(dockSource, /<div style=\{\{ marginTop: 3, overflowWrap: "anywhere", color: "#e2e8f0", fontSize: 11 \}\}>\s*\{entry\.anchor\.graph\.id\}/, "instrument does not render the raw graph ID as its primary visible label");
 assert.match(workspaceSource, /installAccountState\(\);[\s\S]*this\.notify\(\)/, "Workspace publishes only after live account owners install");
-assert.match(frontDoorSource, /return <div className="account-authenticated-shell"><AccountBar[\s\S]*<div className="account-authenticated-shell__workspace">\{children\}<\/div><\/div>/, "authenticated Account Bar and workspace use one bounded shell");
+function verifyAuthenticatedComposition(source: string): void {
+  const sourceFile = ts.createSourceFile("AccountFrontDoor.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let shell: ts.JsxElement | undefined;
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxElement(node) && node.openingElement.tagName.getText(sourceFile) === "div" && node.openingElement.attributes.properties.some(property => ts.isJsxAttribute(property) && property.name.getText(sourceFile) === "className" && property.initializer?.getText(sourceFile) === '"account-authenticated-shell"')) shell = node;
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  assert(shell, "missing authenticated Account shell boundary");
+  const directElements = shell.children.filter(ts.isJsxElement);
+  const accountBar = shell.children.find(child => ts.isJsxSelfClosingElement(child) && child.tagName.getText(sourceFile) === "AccountBar") as ts.JsxSelfClosingElement | undefined;
+  assert(accountBar, "authenticated Account shell must own AccountBar");
+  assert(accountBar.attributes.properties.some(property => ts.isJsxAttribute(property) && property.name.getText(sourceFile) === "activeInvestigationId" && property.initializer?.getText(sourceFile) === "{activeInvestigationId}"), "AccountBar must receive active-investigation continuity");
+  const workspaceBoundary = directElements.find(element => element.openingElement.attributes.properties.some(property => ts.isJsxAttribute(property) && property.name.getText(sourceFile) === "className" && property.initializer?.getText(sourceFile) === '"account-authenticated-shell__workspace"'));
+  assert(workspaceBoundary, "authenticated Account shell must own workspace boundary");
+  assert(workspaceBoundary.children.some(child => ts.isJsxExpression(child) && child.expression?.getText(sourceFile) === "children"), "workspace boundary must retain active workspace children");
+}
+verifyAuthenticatedComposition(frontDoorSource);
+assert.throws(() => verifyAuthenticatedComposition(frontDoorSource.replace('className="account-authenticated-shell"', 'className="removed-shell"')), /missing authenticated Account shell boundary/, "negative control detects a missing authenticated Account shell boundary");
+assert.throws(() => verifyAuthenticatedComposition(frontDoorSource.replace(' activeInvestigationId={activeInvestigationId}', '')), /active-investigation continuity/, "negative control detects missing active-investigation continuity");
 assert.match(frontDoorCss, /\.account-authenticated-shell \{[^}]*height:100vh[^}]*display:grid[^}]*grid-template-rows:auto minmax\(0,1fr\)[^}]*overflow:hidden/, "authenticated shell owns one viewport with intrinsic Account Bar and bounded workspace row");
 assert.match(frontDoorCss, /\.account-authenticated-shell__workspace \{[^}]*min-height:0[^}]*overflow:hidden/, "workspace row remains shrinkable without page scrolling");
 assert.match(mainLayoutSource, /height: "100%"/, "MainLayout fills its parent");

@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy projection fixtures deliberately exercise runtime migration boundaries */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime";
-import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/researchBridgeTypes";
-import { createLayersExperimentResearchAnchor, publishLayersExperimentToResearch } from "../../src/layers/research/LayersExperimentResearchPublication";
-import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence";
-import { migrateResearchAnchor } from "../../src/research/ResearchAnchorContract";
-import { experimentReferenceSummary } from "../../src/research/LayersExperimentReferencePresentation";
+import { ResearchBridgeRuntime } from "../../src/research/ResearchBridgeRuntime.ts";
+import { ResearchAnchorType, type ResearchAnchor } from "../../src/research/researchBridgeTypes.ts";
+import { createLayersExperimentResearchAnchor, publishLayersExperimentToResearch } from "../../src/layers/research/LayersExperimentResearchPublication.ts";
+import { createGuestWorkspaceSessionSnapshot, isGuestWorkspaceSessionSnapshot } from "../../src/workspace/persistence/GuestWorkspaceSessionPersistence.ts";
+import { migrateResearchAnchor } from "../../src/research/ResearchAnchorContract.ts";
+import { experimentReferenceSummary } from "../../src/research/LayersExperimentReferencePresentation.ts";
 
 const availableContribution = {layerId:"NARRATIVE",classification:"CANONICAL",operationalMappingStatus:"MAPPED",canonicalDimension:"NARRATIVE",evaluatorKey:"NARRATIVE",evaluatorVersion:"canonical-similarity/v1",availability:"AVAILABLE",rawLeftSubjectComponents:{traits:["alpha"],measuredZero:0},rawRightSubjectComponents:{traits:["beta"]},normalization:{normalizationKey:"trait-jaccard",normalizationVersion:"v1"},normalizedResult:.077,availableInputLineage:[{inputIdentity:"narrative.traits",sourceIdentity:"ko-a",sourceVersion:"knowledge/v1",sourceRevision:"7"},{inputIdentity:"narrative.traits",sourceIdentity:"ko-b",sourceVersion:"knowledge/v1",sourceRevision:"9"}],similarity:.077,canonicalWeight:1,participatingWeight:1,weightedContribution:.077,sourceEvaluationId:"evaluation:left:right"} as const;
 const unavailableContribution = {layerId:"INFRASTRUCTURE",classification:"CANONICAL",operationalMappingStatus:"MAPPED",canonicalDimension:"INFRASTRUCTURE",evaluatorKey:"INFRASTRUCTURE",evaluatorVersion:"canonical-similarity/v1",availability:"UNAVAILABLE",missingCanonicalInput:"INFRASTRUCTURE",missingInputs:[{inputIdentity:"infrastructure.entities",subjectKnowledgeObjectId:"ko-b"}],participatingWeight:0,weightedContribution:0,sourceEvaluationId:"evaluation:left:right"} as const;
@@ -16,6 +17,8 @@ const runtime = new ResearchBridgeRuntime();
 const input = { investigationId:"investigation-1",caseAEventId:"event-a",caseBEventId:"event-b",execution,projection,researchBridgeRuntime:runtime } as any;
 const first = publishLayersExperimentToResearch(input); const second = publishLayersExperimentToResearch(input);
 assert.equal(first.anchorId, second.anchorId); assert.equal(runtime.getDesk().entries.length, 1);
+assert.equal(new ResearchBridgeRuntime().getDesk().entries.length, 0, "missing publication leaves Research empty");
+assert.equal(runtime.projectInvestigation({ investigationId: "investigation-2" }).entries.length, 0, "publication cannot leak across Investigations");
 assert.equal(first.experiment.type, ResearchAnchorType.EXPERIMENT); assert.notEqual(first.experiment.projection, projection);
 assert.equal(first.experiment.schemaVersion,"layers-experiment/v2"); assert.equal(first.capturedRepresentation.schemaVersion,"layers-experiment/v2");
 assert.equal(first.experiment.projection.provenance.catalogVersion,"layers-catalog/v1");
@@ -40,7 +43,7 @@ const before = JSON.stringify({knowledge:["ko-a","ko-b"],relationships:[],active
 assert.equal(before, JSON.stringify({knowledge:["ko-a","ko-b"],relationships:[],activeLayers:[],resolve:"complete",compare:"selected",manifold:"stable"}));
 const source = readFileSync("src/layers/research/LayersExperimentResearchPublication.ts","utf8");
 for (const forbidden of ["setSelection","setActiveLayers","acceptResolveCandidate","createEdge","executeResolve"]) assert(!source.includes(forbidden));
-const snapshot = createGuestWorkspaceSessionSnapshot({ownership:{kind:"GUEST",operatorId:"guest",establishedAt:"2026-01-01"},workspace:{operator:{activeMode:"OVERVIEW" as any,layoutMode:"NORMAL" as any},computational:{activeLayers:[]}},research:{desk:runtime.getDesk()},authoring:{}});
+const snapshot = createGuestWorkspaceSessionSnapshot({ownership:{kind:"GUEST",operatorId:"guest:layers-publication",establishedAt:"2026-01-01T00:00:00.000Z"},workspace:{investigation:{id:"investigation-1"} as never,workspace:{id:"workspace:layers-publication"} as never,operator:{activeMode:"OVERVIEW" as never,layoutMode:"NORMAL" as never},computational:{activeLayers:[]}},research:{desk:runtime.getDesk()},authoring:{}});
 assert(isGuestWorkspaceSessionSnapshot(JSON.parse(JSON.stringify(snapshot))));
 const anchors: ResearchAnchor[] = [{anchorId:"n",investigationId:"i",graph:{type:ResearchAnchorType.NODE,id:"n"},graphRevision:1,createdAt:new Date(),pinned:false},{anchorId:"e",investigationId:"i",graph:{type:ResearchAnchorType.EDGE,id:"e"},graphRevision:1,createdAt:new Date(),pinned:false}];
 assert.deepEqual(anchors.map(a => "graph" in a && a.graph.type),["NODE","EDGE"]);

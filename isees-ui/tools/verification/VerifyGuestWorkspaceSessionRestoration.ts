@@ -36,44 +36,44 @@
 
 import type {
   OperatorIdentityState,
-} from "../../src/identity/runtime/OperatorIdentityRuntimeTypes";
+} from "../../src/identity/runtime/OperatorIdentityRuntimeTypes.ts";
 
 import {
   WorkspaceRuntime,
-} from "../../src/workspace/runtime/WorkspaceRuntime";
+} from "../../src/workspace/runtime/WorkspaceRuntime.ts";
 
 import {
   WorkspaceLayoutMode,
   WorkspaceMode,
-} from "../../src/workspace/runtime/WorkspaceRuntimeTypes";
+} from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
 
 import {
   ResearchBridgeRuntime,
-} from "../../src/research/ResearchBridgeRuntime";
+} from "../../src/research/ResearchBridgeRuntime.ts";
 
 import {
   AuthorDocumentRuntime,
-} from "../../src/author/runtime/AuthorDocumentRuntime";
+} from "../../src/author/runtime/AuthorDocumentRuntime.ts";
 
 import type {
   ResearchDesk,
-} from "../../src/research/researchBridgeTypes";
+} from "../../src/research/researchBridgeTypes.ts";
 
 import type {
   ComputationalAuthorDocument,
-} from "../../src/author/model/AuthorDocument";
+} from "../../src/author/model/AuthorDocument.ts";
 
 import {
   DEFAULT_INVESTIGATION,
-} from "../../src/investigation/defaultInvestigation";
+} from "../../src/investigation/defaultInvestigation.ts";
 
 import {
   createGuestWorkspaceSnapshotFromRuntimeState,
-} from "../../src/workspace/persistence/GuestWorkspaceSessionSnapshotFactory";
+} from "../../src/workspace/persistence/GuestWorkspaceSessionSnapshotFactory.ts";
 
 import {
   restoreGuestWorkspaceSessionIntoRuntimes,
-} from "../../src/workspace/persistence/GuestWorkspaceSessionRestorer";
+} from "../../src/workspace/persistence/GuestWorkspaceSessionRestorer.ts";
 
 
 // ============================================================
@@ -193,6 +193,9 @@ const TEST_UPDATED_AT =
 
 const TEST_RECAPTURE_AT =
   "2026-08-16T14:03:00.000Z";
+
+const TEST_AUTHOR_AT =
+  new Date("2026-08-16T14:00:30.000Z");
 
 
 // ============================================================
@@ -360,21 +363,40 @@ const initialTargetInvestigation = {
 
 const sourceAuthorDocument = {
 
-  identity:
-    "author:g2-restored-document",
+  identity: {
+
+    id:
+      "author:g2-restored-document",
+
+    createdAt:
+      TEST_AUTHOR_AT,
+
+  },
 
   metadata: {
 
     title:
       "Persisted G2 Document",
 
-    type:
-      "DOCUMENT",
+    description:
+      "Canonical Guest restoration fixture",
 
-    status:
-      "NEW",
+    author:
+      TEST_OPERATOR_ID,
+
+    modifiedAt:
+      TEST_AUTHOR_AT,
+
+    version:
+      1,
 
   },
+
+  type:
+    "DOCUMENT",
+
+  status:
+    "NEW",
 
   nodes:
     [],
@@ -384,21 +406,40 @@ const sourceAuthorDocument = {
 
 const preExistingAuthorDocument = {
 
-  identity:
-    "author:g2-preexisting-document",
+  identity: {
+
+    id:
+      "author:g2-preexisting-document",
+
+    createdAt:
+      TEST_AUTHOR_AT,
+
+  },
 
   metadata: {
 
     title:
       "Pre-existing Runtime Document",
 
-    type:
-      "DOCUMENT",
+    description:
+      "Must be replaced during restoration",
 
-    status:
-      "NEW",
+    author:
+      TEST_OPERATOR_ID,
+
+    modifiedAt:
+      TEST_AUTHOR_AT,
+
+    version:
+      1,
 
   },
+
+  type:
+    "DOCUMENT",
+
+  status:
+    "NEW",
 
   nodes:
     [],
@@ -670,6 +711,105 @@ function createTargetRuntimes() {
   };
 
 }
+
+
+// ============================================================
+// NEGATIVE CONTROLS
+// ============================================================
+
+const malformedTimestampTarget =
+  createTargetRuntimes();
+
+const malformedTimestampSnapshot = {
+
+  ...snapshot,
+
+  authoring: {
+
+    activeDocument: {
+
+      ...sourceAuthorDocument,
+
+      identity: {
+
+        ...sourceAuthorDocument.identity,
+
+        createdAt:
+          "not-a-canonical-timestamp" as unknown as Date,
+
+      },
+
+    },
+
+  },
+
+};
+
+expectThrow(
+  () => restoreGuestWorkspaceSessionIntoRuntimes({
+    snapshot: malformedTimestampSnapshot,
+    identity,
+    workspaceRuntime: malformedTimestampTarget.workspaceRuntime,
+    researchBridgeRuntime: malformedTimestampTarget.researchRuntime,
+    authorDocumentRuntime: malformedTimestampTarget.authorRuntime,
+  }),
+  "non-canonical Author document timestamp was accepted",
+);
+
+const missingIdentityTarget =
+  createTargetRuntimes();
+
+const missingIdentitySnapshot = {
+  ...snapshot,
+  authoring: {
+    activeDocument: {
+      ...sourceAuthorDocument,
+      identity: {
+        ...sourceAuthorDocument.identity,
+        id: "",
+      },
+    },
+  },
+};
+
+expectThrow(
+  () => restoreGuestWorkspaceSessionIntoRuntimes({
+    snapshot: missingIdentitySnapshot,
+    identity,
+    workspaceRuntime: missingIdentityTarget.workspaceRuntime,
+    researchBridgeRuntime: missingIdentityTarget.researchRuntime,
+    authorDocumentRuntime: missingIdentityTarget.authorRuntime,
+  }),
+  "Author document without identity was accepted",
+);
+
+const missingAuthorityTarget =
+  createTargetRuntimes();
+
+const missingAuthoritySnapshot = {
+  ...snapshot,
+  authoring: {
+    activeDocument: {
+      ...sourceAuthorDocument,
+      metadata: undefined,
+    } as unknown as ComputationalAuthorDocument,
+  },
+};
+
+expectThrow(
+  () => restoreGuestWorkspaceSessionIntoRuntimes({
+    snapshot: missingAuthoritySnapshot,
+    identity,
+    workspaceRuntime: missingAuthorityTarget.workspaceRuntime,
+    researchBridgeRuntime: missingAuthorityTarget.researchRuntime,
+    authorDocumentRuntime: missingAuthorityTarget.authorRuntime,
+  }),
+  "Author document without metadata authority was accepted",
+);
+
+pass(
+  "malformed timestamps and missing Author identity or authority are rejected",
+);
 
 
 // ============================================================
@@ -1005,6 +1145,43 @@ for (
 
 pass(
   "Research order and pin state survive restoration",
+);
+
+const foreignResearchTarget =
+  createTargetRuntimes();
+
+const foreignResearchSnapshot = {
+  ...snapshot,
+  research: {
+    desk: {
+      entries: sourceResearchDesk.entries.map(entry => ({
+        ...entry,
+        anchor: {
+          ...entry.anchor,
+          investigationId: "INVESTIGATION-FOREIGN",
+        },
+      })),
+    },
+  },
+};
+
+restoreGuestWorkspaceSessionIntoRuntimes({
+  snapshot: foreignResearchSnapshot,
+  identity,
+  workspaceRuntime: foreignResearchTarget.workspaceRuntime,
+  researchBridgeRuntime: foreignResearchTarget.researchRuntime,
+  authorDocumentRuntime: foreignResearchTarget.authorRuntime,
+});
+
+assert(
+  foreignResearchTarget.researchRuntime.projectInvestigation({
+    investigationId: sourceInvestigation.id,
+  }).entries.length === 0,
+  "cross-Investigation Research Inbox entries leaked into the restored Investigation projection",
+);
+
+pass(
+  "wrong Investigation ownership is rejected by the active Research Inbox projection",
 );
 
 
@@ -1399,6 +1576,10 @@ console.log(
 );
 
 console.log(
+  "  malformed Author timestamp and authority rejection",
+);
+
+console.log(
   "  Investigation identity preservation",
 );
 
@@ -1420,6 +1601,10 @@ console.log(
 
 console.log(
   "  Research order and pin-state preservation",
+);
+
+console.log(
+  "  cross-Investigation Research Inbox isolation",
 );
 
 console.log(

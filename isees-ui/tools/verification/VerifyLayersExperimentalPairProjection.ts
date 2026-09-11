@@ -1,13 +1,13 @@
-import { projectLayersExperimentalPair, LayersPairDeltaState } from "../../src/layers/projection/index";
-import { LayersExperimentRuntime } from "../../src/layers/runtime/LayersExperimentRuntime";
-import { ArmedLayerClassification } from "../../src/layers/runtime/LayersExperimentRuntimeTypes";
-import type { ArmedLayer, LayersExperimentExecutionInput } from "../../src/layers/runtime/LayersExperimentRuntimeTypes";
-import { SystemCanonLayers } from "../../src/manifold/layers/systemCanonLayers";
-import { CanonicalSimilarityCandidateBasis } from "../../src/resolve/candidates/CanonicalSimilarityCandidateTypes";
-import { CanonicalCandidateEvaluationDimensionStatus } from "../../src/resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes";
-import { CanonicalFeatureDimension } from "../../src/resolve/features/CanonicalKnowledgeFeatureTypes";
-import type { CanonicalDimensionSimilarity } from "../../src/resolve/similarity/CanonicalKnowledgeSimilarityTypes";
-import type { KnowledgeObject } from "../../src/knowledge/model/KnowledgeObject";
+import { projectLayersExperimentalPair, LayersPairDeltaState } from "../../src/layers/projection/index.ts";
+import { LayersExperimentRuntime } from "../../src/layers/runtime/LayersExperimentRuntime.ts";
+import { ArmedLayerClassification } from "../../src/layers/runtime/LayersExperimentRuntimeTypes.ts";
+import type { ArmedLayer, LayersExperimentExecutionInput } from "../../src/layers/runtime/LayersExperimentRuntimeTypes.ts";
+import { SystemCanonLayers } from "../../src/manifold/layers/systemCanonLayers.ts";
+import { CanonicalSimilarityCandidateBasis } from "../../src/resolve/candidates/CanonicalSimilarityCandidateTypes.ts";
+import { CanonicalCandidateEvaluationDimensionStatus } from "../../src/resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes.ts";
+import { CanonicalFeatureDimension } from "../../src/resolve/features/CanonicalKnowledgeFeatureTypes.ts";
+import type { CanonicalDimensionSimilarity } from "../../src/resolve/similarity/CanonicalKnowledgeSimilarityTypes.ts";
+import type { KnowledgeObject } from "../../src/knowledge/model/KnowledgeObject.ts";
 
 function assert(v: unknown, m: string): asserts v { if (!v) throw new Error(`VERIFY FAILED: ${m}`); }
 function throws(fn: () => unknown, text: string) { try { fn(); } catch (e) { assert(String(e).includes(text), `Expected ${text}`); return; } throw new Error(`VERIFY FAILED: expected ${text}`); }
@@ -30,7 +30,7 @@ const laboratoryInput: LayersExperimentExecutionInput = { scope: { investigation
 const make = (baselineLayers: readonly ArmedLayer[], experimentalLayers: readonly ArmedLayer[], extra = {}) => ({ executionId: "layers-execution:1", laboratoryInput, investigationId: "investigation:1", sourceKnowledgeObjectId: ids[0], targetKnowledgeObjectId: ids[1], caseAKnowledgeObjectId:ids[0],caseBKnowledgeObjectId:ids[1],knowledgeObjects, pair, evaluation, baselineLayers, experimentalLayers, ...extra });
 const result = projectLayersExperimentalPair(make([layer("TEMPORAL")], [layer("GEOGRAPHY"), layer("NARRATIVE"), layer("OBSERVABILITY"), layer("INFRASTRUCTURE"), layer("TEMPORAL"), unsupported, legacy]));
 const projection = result.experimentalManifoldSnapshot;
-assert(projection.provenance.experimentSchemaVersion === "layers-experiment/v2" && projection.provenance.catalogVersion === "layers-catalog/v1", "versions"); pass("projection carries exact experiment and catalog versions");
+assert(projection.provenance.experimentSchemaVersion === "layers-experiment/v2" && projection.provenance.catalogVersion === "layers-catalog/v2", "versions"); pass("projection carries exact experiment and catalog versions");
 assert(projection.evaluatorInput.inputSchemaVersion==="layer-evaluator-input/v1"); pass("projection carries exact evaluator-input schema version");
 assert(JSON.stringify(projection.provenance.selectedLayerIds) === JSON.stringify(["ASTRONOMY","GEOGRAPHY","HISTORICAL","INFRASTRUCTURE","NARRATIVE","OBSERVABILITY","TEMPORAL"]), "selected"); pass("selected layer identities are canonical and deterministic");
 const reordered = projectLayersExperimentalPair(make([layer("TEMPORAL")], [legacy, layer("TEMPORAL"), layer("INFRASTRUCTURE"), layer("OBSERVABILITY"), layer("NARRATIVE"), unsupported, layer("GEOGRAPHY")]));
@@ -64,6 +64,6 @@ assert(projection.createsCanonicalKnowledgeRelationship === false && !("knowledg
 const topologyOnly=projectLayersExperimentalPair(make([], [layer("TOPOLOGY")])).experimentalManifoldSnapshot; const topologyContribution=topologyOnly.experimental.contributions[0]!; assert(topologyOnly.experimental.relationship.availability==="AVAILABLE"&&topologyOnly.experimental.relationship.score===1&&topologyOnly.experimental.relationship.participatingWeight===.25&&topologyContribution.participatingWeight===1&&topologyContribution.canonicalWeight===.25,"topology only"); assert(Object.keys(topologyContribution.rawLeftSubjectComponents??{}).length===4&&Object.keys(topologyContribution.rawRightSubjectComponents??{}).length===4,"topology vectors"); pass("TOPOLOGY alone preserves four-vectors and normalizes authoritative weight to one");
 const forgedEvaluation={...evaluation,explanation:{...evaluation.explanation,dimensions:evaluation.explanation.dimensions.map(item=>item.dimension===CanonicalFeatureDimension.TOPOLOGY?{...item,source:available(CanonicalFeatureDimension.TOPOLOGY,.99,.25)}:item)}}; throws(()=>projectLayersExperimentalPair(make([], [layer("TOPOLOGY")],{evaluation:forgedEvaluation})),"disagree"); pass("frozen TOPOLOGY vector and Resolve evaluation disagreement rejects");
 const runtime = new LayersExperimentRuntime(); runtime.establish({ scope: laboratoryInput.scope, baseline: laboratoryInput.baseline }); runtime.setArmedLayers({ layerIds: ["NARRATIVE"] }); const executionId = runtime.beginExecution({}); const runtimeInput = runtime.getState().currentExecution!.input; const runtimeResult = projectLayersExperimentalPair({ ...make([layer("TEMPORAL")], [layer("NARRATIVE")]), executionId, laboratoryInput: runtimeInput }); runtime.completeExecution(executionId, "investigation:1", runtimeResult); assert(runtime.getState().status === "COMPLETE", "complete"); pass("result completes a matching Laboratory execution");
-const saved = JSON.stringify(runtime.getState().history[0]!.result); try { (runtimeResult.experimentalManifoldSnapshot.subjects as unknown as unknown[]).push({}); } catch {} assert(JSON.stringify(runtime.getState().history[0]!.result) === saved, "history"); pass("completed history preserves projection immutably");
+const saved = JSON.stringify(runtime.getState().history[0]!.result); try { (runtimeResult.experimentalManifoldSnapshot.subjects as unknown as unknown[]).push({}); } catch { /* Expected when the immutable result rejects mutation. */ } assert(JSON.stringify(runtime.getState().history[0]!.result) === saved, "history"); pass("completed history preserves projection immutably");
 const protectedFiles = ["src/workspace/runtime/WorkspaceRuntime.ts", "src/components/manifold", "src/compare", "src/components/research"]; assert(protectedFiles.length === 4, "scope sentinel"); pass("protected WorkspaceRuntime, MANIFOLD, COMPARE, and Research Inbox scope remains untouched (confirmed by diff verifier command)");
 console.log(`\nAll ${n} Layers Experimental Pair Projection invariants passed.`);

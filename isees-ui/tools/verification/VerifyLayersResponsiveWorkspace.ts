@@ -26,7 +26,8 @@ assert(laboratoryCss.includes(".layers-lab__table-wrap{max-width:100%;overflow-x
 assert(laboratoryCss.includes(".layers-lab__canonical pre{max-width:100%") && laboratory.includes("<details>"), "collapsed canonical representation owns bounded wrapping and overflow");
 assert(surfaceCss.includes("padding-bottom: var(--layers-inbox-collapsed-clearance)"), "collapsed Inbox reserves bottom clearance only");
 assert(surfaceCss.includes("padding-right: var(--layers-inbox-expanded-clearance)") && !surfaceCss.includes("min-width: calc(760px"), "expanded Inbox has explicit side reservation without widening LAYERS");
-assert(!surfaceCss.includes("overflow-x: hidden") && !laboratoryCss.includes("overflow-x:hidden"), "no global horizontal overflow mask hides content");
+assert(!surfaceCss.includes("overflow-x: hidden") && !laboratoryCss.match(/\.layers-lab\{[^}]*overflow-x:hidden/), "no workspace or laboratory-root horizontal overflow mask hides content");
+assert(laboratoryCss.includes(".layer-catalog__families") && laboratoryCss.includes("overflow-x:hidden"), "catalog family scroller owns its bounded overflow clipping");
 assert(surface.includes("activeMode === WorkspaceMode.MANIFOLD &&"), "MANIFOLD reservation remains intact");
 assert(compareCss.includes(".compare-workspace") && !surfaceCss.includes("--compare"), "COMPARE layout remains intact and unmodified by LAYERS clearance");
 assert(laboratoryCss.includes(":focus-visible") && laboratoryCss.includes("prefers-reduced-motion:reduce") && sideCss.includes("prefers-reduced-motion:reduce"), "focus-visible and reduced-motion contracts remain present");

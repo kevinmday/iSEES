@@ -349,21 +349,40 @@ const lifecycleInvestigation = {
 
 const lifecycleAuthorDocument = {
 
-  identity:
-    "author:g2-lifecycle-document",
+  identity: {
+
+    id:
+      "author:g2-lifecycle-document",
+
+    createdAt:
+      new Date("2026-01-01T00:00:00.000Z"),
+
+  },
 
   metadata: {
 
     title:
       "G2 Lifecycle Document",
 
-    type:
-      "DOCUMENT",
+    description:
+      "Canonical Guest lifecycle fixture",
 
-    status:
-      "NEW",
+    author:
+      "guest:g2-lifecycle",
+
+    modifiedAt:
+      new Date("2026-01-01T00:00:00.000Z"),
+
+    version:
+      1,
 
   },
+
+  type:
+    "DOCUMENT",
+
+  status:
+    "NEW",
 
   nodes:
     [],
@@ -558,6 +577,10 @@ establishGuestIdentity();
 
 const establishedGuestIdentity =
   requireCurrentGuestIdentity();
+
+
+lifecycleAuthorDocument.metadata.author =
+  establishedGuestIdentity.operatorId;
 
 
 pass(
@@ -1283,6 +1306,129 @@ pass(
 
 
 // ============================================================
+// NEGATIVE CONTROLS
+// ============================================================
+
+guestWorkspaceSessionLifecycle.stop();
+
+
+function expectLifecycleRecovery(
+  candidate:
+    unknown,
+  diagnostic:
+    "OWNERSHIP_MISMATCH" | "INVALID_SNAPSHOT" | "RESTORE_FAILURE",
+  message:
+    string,
+): void {
+
+  verificationStorage.setItem(
+    GUEST_WORKSPACE_SESSION_STORAGE_KEY,
+    JSON.stringify(candidate),
+  );
+
+  guestWorkspaceSessionLifecycle.start();
+
+  assert(
+    guestWorkspaceSessionLifecycle.getState().restored === false &&
+      guestWorkspaceSessionLifecycle.getState().diagnostic === diagnostic,
+    message,
+  );
+
+  guestWorkspaceSessionLifecycle.stop();
+
+}
+
+
+const malformedAuthorTimestamp =
+  structuredClone(finalSnapshot) as GuestWorkspaceSessionSnapshot;
+
+(malformedAuthorTimestamp.authoring.activeDocument as unknown as {
+  metadata: { modifiedAt: unknown };
+}).metadata.modifiedAt = "not-a-timestamp";
+
+expectLifecycleRecovery(
+  malformedAuthorTimestamp,
+  "RESTORE_FAILURE",
+  "lifecycle accepted a malformed Author timestamp",
+);
+
+
+const invalidAuthorAuthority =
+  structuredClone(finalSnapshot) as GuestWorkspaceSessionSnapshot;
+
+(invalidAuthorAuthority.authoring.activeDocument as unknown as {
+  metadata?: unknown;
+}).metadata = undefined;
+
+expectLifecycleRecovery(
+  invalidAuthorAuthority,
+  "RESTORE_FAILURE",
+  "lifecycle accepted a document without canonical metadata authority",
+);
+
+
+const wrongGuestOwner = {
+  ...structuredClone(finalSnapshot),
+  ownership: {
+    ...finalSnapshot.ownership,
+    operatorId:
+      "guest:foreign-owner",
+  },
+};
+
+expectLifecycleRecovery(
+  wrongGuestOwner,
+  "OWNERSHIP_MISMATCH",
+  "lifecycle accepted a snapshot owned by a different Guest",
+);
+
+
+const accountOwnedSnapshot = {
+  ...structuredClone(finalSnapshot),
+  ownership: {
+    ...finalSnapshot.ownership,
+    kind:
+      "ACCOUNT",
+  },
+};
+
+expectLifecycleRecovery(
+  accountOwnedSnapshot,
+  "INVALID_SNAPSHOT",
+  "lifecycle accepted Account ownership at the Guest boundary",
+);
+
+
+const foreignResearchSnapshot =
+  structuredClone(finalSnapshot) as GuestWorkspaceSessionSnapshot;
+
+foreignResearchSnapshot.research.desk.entries.forEach(entry => {
+  (entry.anchor as { investigationId: string }).investigationId =
+    "INVESTIGATION-FOREIGN";
+});
+
+verificationStorage.setItem(
+  GUEST_WORKSPACE_SESSION_STORAGE_KEY,
+  JSON.stringify(foreignResearchSnapshot),
+);
+
+guestWorkspaceSessionLifecycle.start();
+
+assert(
+  guestWorkspaceSessionLifecycle.getState().restored === true &&
+    researchBridgeRuntime.projectInvestigation({
+      investigationId:
+        lifecycleInvestigation.id,
+    }).entries.length === 0,
+  "cross-Investigation Research Inbox entries leaked into the active Investigation projection",
+);
+
+pass(
+  "negative controls reject malformed timestamps, invalid document authority, wrong Guest/Account ownership, and cross-Investigation leakage",
+);
+
+
+// ============================================================
 // CLEANUP
 // ============================================================
 
@@ -1389,6 +1535,10 @@ console.log(
 
 console.log(
   "  complete Guest lifecycle closure",
+);
+
+console.log(
+  "  malformed timestamp, document authority, ownership, and cross-Investigation negative controls",
 );
 
 console.log("");
