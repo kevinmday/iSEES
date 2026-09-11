@@ -9,6 +9,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
+from pathlib import Path
 from typing import Dict, List, Mapping, Optional
 
 from isees_uap.analysis.cluster_engine import run_cluster_engine
@@ -39,6 +40,9 @@ from isees_uap.api.v1.studio_v1 import (
     router as studio_v1_router, StudioV1ApiError, studio_v1_error_handler,
 )
 from isees_uap.studio.v1.persistence import StudioV1Failure
+from isees_uap.api.frontend import (
+    DEFAULT_FRONTEND_DIRECTORY, create_frontend_root_router, create_frontend_router,
+)
 
 # ------------------------------------------------------------
 # APP INIT
@@ -266,6 +270,7 @@ def get_report(event_id: str) -> Optional[Dict]:
 
 def create_application(
     studio_v1_configuration: StudioV1LifecycleConfiguration | Mapping[str, str] | None = None,
+    frontend_directory: Path | str | None = None,
 ) -> FastAPI:
     """Construct the production API with injectable STUDIO deployment configuration."""
     if studio_v1_configuration is None:
@@ -276,6 +281,15 @@ def create_application(
         from isees_uap.api.application import studio_v1_deployment_configuration
         configuration = studio_v1_deployment_configuration(studio_v1_configuration)
     application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
+    configured_frontend = Path(
+        frontend_directory
+        if frontend_directory is not None
+        else os.environ.get("ISEES_FRONTEND_DIR", DEFAULT_FRONTEND_DIRECTORY)
+    )
+    frontend_root_router = create_frontend_root_router(configured_frontend)
+    if frontend_root_router is not None:
+        # Production intentionally changes GET / from the API-live JSON to the SPA.
+        application.include_router(frontend_root_router)
     application.include_router(authentication_router)
     application.add_exception_handler(AuthenticationError, authentication_error_handler)
     application.include_router(candidate_evidence_router)
@@ -308,6 +322,10 @@ def create_application(
         ],
     )
     application.include_router(core_router)
+    frontend_router = create_frontend_router(configured_frontend)
+    if frontend_router is not None:
+        # This catch-all must remain last so API and legacy/core routes win first.
+        application.include_router(frontend_router)
     return application
 
 

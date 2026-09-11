@@ -1,3 +1,5 @@
+import { resolveApiBaseUrl } from "../../api/ApiOrigin";
+
 export type ApiCandidateOrigin = "DISCOVERY" | "SUBMISSION" | "CURATED_REPOSITORY";
 export type ApiCandidateLifecycle = "DISCOVERED" | "SUBMITTED" | "REFERENCED" | "IN_REVIEW" | "DEFERRED" | "EXCLUDED";
 export type ApiCandidateAvailability = "AVAILABLE" | "UNAVAILABLE" | "MISSING" | "REDACTED" | "UNKNOWN";
@@ -8,9 +10,15 @@ export interface CandidateListResponse { readonly investigationId: string; reado
 export interface SubmissionCommand { readonly schemaVersion: "candidate-evidence-command/v1"; readonly investigationId: string; readonly submissionIdentity: string; readonly submittedLocator?: string; readonly source: Readonly<Record<string, string>>; readonly idempotencyKey: string }
 export interface LifecycleCommand { readonly schemaVersion: "candidate-evidence-command/v1"; readonly investigationId: string; readonly expectedRevision: number; readonly to: Exclude<ApiCandidateLifecycle, "DISCOVERED" | "SUBMITTED">; readonly reviewDecision?: { readonly decision: "DEFERRED" | "EXCLUDED"; readonly reason: string }; readonly idempotencyKey: string }
 export class CandidateEvidenceHttpError extends Error { readonly status: number; constructor(status: number, message: string) { super(message); this.status = status; } }
-export const CANDIDATE_EVIDENCE_API_BASE_URL = (import.meta.env.VITE_CANDIDATE_EVIDENCE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "http://127.0.0.1:8001";
+export const CANDIDATE_EVIDENCE_API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_CANDIDATE_EVIDENCE_API_BASE_URL as string | undefined);
+function csrfHeader(init?: RequestInit): Readonly<Record<string, string>> {
+  if (!init?.method || init.method === "GET" || typeof document === "undefined") return {};
+  const pair = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("isees_csrf="));
+  if (!pair) return {};
+  try { const value = decodeURIComponent(pair.slice("isees_csrf=".length)); return value ? { "X-ISEES-CSRF": value } : {}; } catch { return {}; }
+}
 async function request<T>(scope: CandidateEvidenceApiScope, path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${CANDIDATE_EVIDENCE_API_BASE_URL}/api/v1/investigations/${encodeURIComponent(scope.investigationId)}/candidate-evidence${path}`, { ...init, headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": scope.principalId, ...init?.headers } });
+  const response = await fetch(`${CANDIDATE_EVIDENCE_API_BASE_URL}/api/v1/investigations/${encodeURIComponent(scope.investigationId)}/candidate-evidence${path}`, { ...init, credentials: "include", headers: { "Content-Type": "application/json", "X-ISEES-Principal-Id": scope.principalId, ...csrfHeader(init), ...init?.headers } });
   if (!response.ok) { let message = `Candidate Evidence request failed (${response.status})`; try { const body = await response.json() as { error?: { message?: string }; detail?: string }; message = body.error?.message ?? body.detail ?? message; } catch { /* retain status message */ } throw new CandidateEvidenceHttpError(response.status, message); }
   return response.json() as Promise<T>;
 }
