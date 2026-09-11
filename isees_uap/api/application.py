@@ -48,6 +48,9 @@ def studio_v1_application_lifespan(
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         owner = PrivateStudioV1LifecycleOwner(configuration)
+        state = vars(app.state).setdefault("_state", {})
+        missing = object()
+        previous_owner = state.get("private_studio_v1_lifecycle_owner", missing)
         app.state.private_studio_v1_lifecycle_owner = owner
 
         @asynccontextmanager
@@ -64,6 +67,10 @@ def studio_v1_application_lifespan(
                 yield
             finally:
                 owner.stop()
+                if previous_owner is missing:
+                    state.pop("private_studio_v1_lifecycle_owner", None)
+                else:
+                    app.state.private_studio_v1_lifecycle_owner = previous_owner
 
     return lifespan
 

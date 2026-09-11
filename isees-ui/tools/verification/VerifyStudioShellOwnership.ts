@@ -10,6 +10,7 @@ const inboxCss = read("src/studio/components/StudioResearchInbox.css");
 const inspectorCss = read("src/studio/components/StudioArtifactInspector.css");
 const toolbar = read("src/author/components/StudioToolbar.tsx");
 const api = read("src/studio/api/StudioApi.ts");
+const apiOrigin = read("src/api/ApiOrigin.ts");
 
 assert.match(layout, /studioMode\s*=\s*workspaceMode === WorkspaceMode\.RESEARCH/);
 assert.match(layout, /!studioMode && !workspaceExpanded && leftPanelCollapsed/);
@@ -35,6 +36,7 @@ assert.match(inspectorCss, /\.studio-inspector[^}]*overflow-y:\s*auto/);
 assert.match(inspectorCss, /nth-of-type\(4\) \{ order:3/);
 assert.match(inspectorCss, /nth-of-type\(2\) \{ order:4/);
 assert.match(toolbar, /flexWrap:\s*"wrap"/);
-assert.match(api, /VITE_STUDIO_API_BASE_URL[\s\S]*VITE_API_BASE_URL[\s\S]*http:\/\/127\.0\.0\.1:8000/);
+assert.match(api, /resolveApiBaseUrl\(import\.meta\.env\.VITE_STUDIO_API_BASE_URL/);
+assert.match(apiOrigin, /VITE_API_BASE_URL[\s\S]*\?\? ""/, "Studio defaults to the deployed same-origin API unless explicitly overridden");
 
-console.log("PASS VerifyStudioShellOwnership — STUDIO exclusively owns its three-column workspace, blocks without an Investigation, preserves global framing, scrolls intentionally, and defaults to API port 8000");
+console.log("PASS VerifyStudioShellOwnership — STUDIO exclusively owns its three-column workspace, blocks without an Investigation, preserves global framing, scrolls intentionally, and uses the governed same-origin API default");

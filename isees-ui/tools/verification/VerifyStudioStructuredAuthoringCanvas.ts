@@ -13,7 +13,7 @@ const shell = read("src/author/components/StudioShell.tsx");
 const inbox = read("src/studio/components/StudioResearchInbox.tsx");
 const workspace = read("src/surfaces/WorkspaceSurface.tsx");
 for (const section of ["Abstract", "Research Question", "Hypothesis / H0 / H1", "Method", "Evidence", "Analysis", "Figures / Tables", "Conclusion", "References / Footnotes"]) assert.ok(surface.includes(section), `${section} is production-composed`);
-for (const marker of ["Authoring Canvas", "SOURCE-BACKED EVIDENCE", "FIGURE", "TABLE", "EQUATION", "PROVENANCE CITATION", "Inspect exact provenance", "Empty draft", "No active Investigation", "New authored text section"]) assert.ok(surface.includes(marker), `${marker} is visible`);
+for (const marker of ["Authoring Canvas", "SOURCE-BACKED EVIDENCE", "FIGURE", "TABLE", "EQUATION", "PROVENANCE CITATION", "Inspect exact provenance", "Empty draft", "No active Investigation", "Add heading", "Add paragraph", "Click to begin writing"]) assert.ok(surface.includes(marker), `${marker} is visible`);
 assert.match(shell, /useAuthorDocumentRuntime/);
 assert.doesNotMatch(surface, /new AuthorDocumentRuntime|useState<.*ComputationalAuthorDocument/);
 assert.match(inbox, /authorDocumentRuntime\.insertNode\(createAuthorReferenceFromResearchAnchor/);

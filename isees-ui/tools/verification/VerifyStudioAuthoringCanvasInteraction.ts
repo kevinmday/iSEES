@@ -1,0 +1,47 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { AuthorNodeTypes, type ReferenceNode } from "../../src/author/model/AuthorNodeTypes.ts";
+import { AuthorDocumentRuntime } from "../../src/author/runtime/AuthorDocumentRuntime.ts";
+import { adaptAuthorDocument, StudioV1AdaptationError } from "../../src/studio/v1/runtime/StudioV1AuthorAdapter.ts";
+import { StudioV1SaveOrchestrator } from "../../src/studio/v1/runtime/StudioV1SaveOrchestrator.ts";
+
+const surface = readFileSync("src/author/components/AuthorEditorSurface.tsx", "utf8");
+const styles = readFileSync("src/author/components/AuthorEditorSurface.css", "utf8");
+const inspector = readFileSync("src/studio/components/StudioArtifactInspector.tsx", "utf8");
+const status = readFileSync("src/author/components/StudioStatusBar.tsx", "utf8");
+
+for (const label of ["Click to begin writing", "Add heading", "Add paragraph", "Heading text", "Paragraph text", "Remove from draft"]) assert.ok(surface.includes(label), `canvas exposes ${label}`);
+assert.match(surface, /<button type="button" className="author-section__empty"/, "empty-section activation is a native keyboard/mouse button");
+assert.match(surface, /<textarea autoFocus/, "section activation opens a real labelled editing control");
+assert.doesNotMatch(surface, /contentEditable/, "canvas does not introduce contentEditable");
+assert.match(styles, /\.author-paper[^}]*color:\s*#172235/, "ivory paper establishes dark foreground text");
+assert.match(styles, /:focus-visible[^}]*outline:\s*2px solid #2563eb/, "controls have visible focus treatment");
+assert.match(inspector, /LEGACY LIFECYCLE UNAVAILABLE/, "legacy lifecycle failure is not presented as Studio V1 authority");
+assert.match(inspector + status, /Studio V1 author service/, "Studio V1 service status is separately identified");
+
+const runtime = new AuthorDocumentRuntime();
+runtime.activateInvestigation("investigation:interaction");
+runtime.setActiveDocument({ identity: { id: "document:interaction", createdAt: new Date("2026-09-10T12:00:00Z") }, metadata: { title: "Interaction", description: "", author: "", modifiedAt: new Date("2026-09-10T12:00:00Z"), version: 1 }, type: "DOCUMENT", status: "NEW", nodes: [] });
+const owner = new StudioV1SaveOrchestrator({} as never, () => "stable", () => "2026-09-10T12:00:00Z");
+owner.observe(runtime.getActiveDocument(), runtime.isDirty(), runtime.getActiveInvestigationId());
+assert.equal(owner.getState().canSave, false, "empty new document is unsaveable");
+assert.equal(runtime.insertNode({ id: "paragraph:stable", type: AuthorNodeTypes.PARAGRAPH, section: "Analysis", text: "Researcher text" }), "INSERTED");
+owner.observe(runtime.getActiveDocument(), runtime.isDirty(), runtime.getActiveInvestigationId());
+assert.equal(owner.getState().canSave, true, "nonempty authored paragraph enables save");
+assert.equal(runtime.updateNodeText("paragraph:stable", "Edited researcher text"), true);
+assert.equal(runtime.isDirty(), true, "editing publishes DIRTY canonical runtime state");
+assert.equal(runtime.insertNode({ id: "heading:stable", type: AuthorNodeTypes.HEADING, level: 3, section: "Analysis", text: "Finding" }), "INSERTED");
+assert.notEqual(runtime.getActiveDocument()!.nodes[0]!.id, runtime.getActiveDocument()!.nodes[1]!.id, "heading and paragraph identities remain distinct");
+const adapted = adaptAuthorDocument(runtime.getActiveDocument()!, "investigation:interaction", { snapshotId: "snapshot:stable", capturedAt: "2026-09-10T12:00:00Z" });
+assert.deepEqual(adapted.semanticContent.nodeOrder, ["paragraph:stable", "heading:stable"], "canonical adapter retains stable authored identity and order");
+assert.equal(adapted.snapshots.length, 0, "manual authoring cannot manufacture source provenance");
+assert.equal(runtime.removeNode("heading:stable"), true);
+assert.equal(runtime.removeNode("paragraph:stable"), true);
+owner.observe(runtime.getActiveDocument(), runtime.isDirty(), runtime.getActiveInvestigationId());
+assert.equal(owner.getState().canSave, false, "removing final valid block disables save");
+assert.throws(() => adaptAuthorDocument(runtime.getActiveDocument()!, "investigation:interaction", { snapshotId: "snapshot:none", capturedAt: "2026-09-10T12:00:00Z" }), StudioV1AdaptationError);
+const forged: ReferenceNode = { id: "reference:forged", type: AuthorNodeTypes.REFERENCE, targetType: "DOCUMENT", targetId: "target", title: "Manual", source: "manual", corpusId: "manual", insertedAt: new Date(), researchSource: { anchorId: "forged", sourceKind: "MANUAL", sourceIdentity: "forged", sourceInvestigationId: "other-investigation", sourceWorkspace: "STUDIO", classification: "CANONICAL", insertability: { state: "INSERTABLE", reason: "forged" }, capturedRepresentation: {} } };
+assert.equal(runtime.insertNode(forged), "INVESTIGATION_MISMATCH", "forged cross-Investigation provenance is rejected at canonical runtime ingress");
+assert.equal(runtime.getActiveDocument()!.nodes.length, 0, "rejected provenance never enters canonical document state");
+assert.doesNotMatch(surface, /\.save\(|generate\(|project\(|validate\(|publish\(|infer\(/, "canvas interaction contains no implicit governed operation invocation");
+console.log("PASS VerifyStudioAuthoringCanvasInteraction — accessible section activation, canonical mutations, save eligibility, identity, provenance, contrast, focus, and status authority verified");

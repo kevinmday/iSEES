@@ -133,6 +133,10 @@ export interface HeadingNode
   text:
     string;
 
+  /** Optional production-canvas section; omitted by legacy artifacts. */
+  section?:
+    string;
+
 }
 
 // ============================================================

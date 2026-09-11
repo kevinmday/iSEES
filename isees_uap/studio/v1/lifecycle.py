@@ -310,10 +310,17 @@ def studio_v1_lifespan(owner_factory: Callable[[], PrivateStudioV1LifecycleOwner
     @asynccontextmanager
     async def lifespan(app):
         owner = owner_factory()
+        state = vars(app.state).setdefault("_state", {})
+        missing = object()
+        previous_owner = state.get("private_studio_v1_lifecycle_owner", missing)
         app.state.private_studio_v1_lifecycle_owner = owner
         owner.start()
         try:
             yield
         finally:
             owner.stop()
+            if previous_owner is missing:
+                state.pop("private_studio_v1_lifecycle_owner", None)
+            else:
+                app.state.private_studio_v1_lifecycle_owner = previous_owner
     return lifespan

@@ -33,6 +33,7 @@ import {
   useAuthorDocumentDirty,
   useAuthorDocumentRevision,
 } from "../runtime/AuthorDocumentRuntimeContext";
+import { useStudioSaveAction } from "../../studio/runtime/StudioSaveActionContext.ts";
 
 // ============================================================
 // STYLES
@@ -86,6 +87,12 @@ export default function StudioStatusBar() {
 
   const revision =
     useAuthorDocumentRevision();
+  const saveAction = useStudioSaveAction();
+  const serviceAvailability = saveAction.state.status === "UNAVAILABLE"
+    ? "Unavailable"
+    : ["SAVED", "DIRTY", "CONFLICT"].includes(saveAction.state.status)
+      ? "Available"
+      : "Not yet established";
 
   return (
 
@@ -95,7 +102,7 @@ export default function StudioStatusBar() {
 
         <div>
 
-          Studio Runtime Ready
+          Studio V1 author service: {serviceAvailability}
 
         </div>
 
@@ -112,9 +119,7 @@ export default function StudioStatusBar() {
         <div>
 
           {
-            document
-              ? document.status
-              : "No Document"
+            saveAction.state.message
           }
 
         </div>
@@ -122,9 +127,7 @@ export default function StudioStatusBar() {
         <div>
 
           {
-            dirty
-              ? "Dirty"
-              : "Clean"
+            saveAction.state.headRevisionId ? `Head ${saveAction.state.headRevisionId}` : dirty ? "Local only" : document ? "Not yet authoritative" : "No authority"
           }
 
         </div>

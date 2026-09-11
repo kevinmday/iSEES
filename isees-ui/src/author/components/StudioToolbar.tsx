@@ -18,8 +18,8 @@
 //   ComputationalAuthorDocument and transfers ownership
 //   immediately to AuthorDocumentRuntime.
 //
-// • SAVE serializes the active ComputationalAuthorDocument
-//   into the native canonical iSEES .author JSON artifact.
+// • SAVE delegates to the Studio V1 orchestration owner, which
+//   appends an authoritative immutable .author revision.
 //
 // • UPLOAD accepts a native canonical iSEES .author artifact,
 //   validates it, compiles authored computational content into
@@ -32,8 +32,8 @@
 // • Existing references are NOT duplicated as Knowledge
 //   Objects.
 //
-// • The runtime is marked clean only after the artifact
-//   has been successfully serialized and emitted.
+// • The runtime is marked clean only after the exact local
+//   runtime revision is acknowledged by the authoritative API.
 //
 // P56 RETURN PATH:
 //
@@ -77,7 +77,6 @@ import {
 
 import {
   useAuthorDocument,
-  useAuthorDocumentDirty,
   useAuthorDocumentRuntime,
 } from "../runtime/AuthorDocumentRuntimeContext";
 
@@ -96,17 +95,14 @@ import {
 } from "../model/AuthorDocumentTypes";
 
 import {
-  createAuthorArtifactFileName,
-  serializeAuthorArtifact,
-} from "../artifact/AuthorArtifactSerializer";
-
-import {
   AuthorArtifactParser,
 } from "../ingestion/AuthorArtifactParser";
 
 import {
   AuthorKnowledgeCompiler,
 } from "../ingestion/AuthorKnowledgeCompiler";
+import { useStudioSaveAction } from "../../studio/runtime/StudioSaveActionContext.ts";
+import { useIsAccountOperator } from "../../identity/runtime/OperatorIdentityRuntimeContext.tsx";
 
 // ============================================================
 // STYLES
@@ -308,8 +304,8 @@ export default function StudioToolbar() {
   const document =
     useAuthorDocument();
 
-  const dirty =
-    useAuthorDocumentDirty();
+  const saveAction = useStudioSaveAction();
+  const canDurablySave = useIsAccountOperator();
 
   const fileInputRef =
     useRef<HTMLInputElement | null>(
@@ -368,78 +364,7 @@ export default function StudioToolbar() {
   // SAVE DOCUMENT
   // ==========================================================
 
-  const handleSaveDocument =
-    () => {
-
-      if (!document) {
-
-        return;
-
-      }
-
-      // ------------------------------------------------------
-      // Serialize the canonical computational document.
-      //
-      // This is NOT an export projection.
-      //
-      // .author JSON is the native iSEES Author artifact.
-      // ------------------------------------------------------
-
-      const serialized =
-        serializeAuthorArtifact(
-          document,
-        );
-
-      // ------------------------------------------------------
-      // Materialize the canonical artifact in the browser.
-      // ------------------------------------------------------
-
-      const blob =
-        new Blob(
-          [serialized],
-          {
-            type:
-              "application/json",
-          },
-        );
-
-      const url =
-        URL.createObjectURL(
-          blob,
-        );
-
-      const anchor =
-        window.document.createElement(
-          "a",
-        );
-
-      anchor.href =
-        url;
-
-      anchor.download =
-        createAuthorArtifactFileName(
-          document,
-        );
-
-      window.document.body.appendChild(
-        anchor,
-      );
-
-      anchor.click();
-
-      window.document.body.removeChild(
-        anchor,
-      );
-
-      URL.revokeObjectURL(
-        url,
-      );
-
-      // A local file download is an export convenience, not proof that the
-      // canonical Studio artifact matches this runtime revision. Canonical
-      // reconciliation remains the sole clean-state transition.
-
-  };
+  const handleSaveDocument = () => { void saveAction.save(); };
 
   // ==========================================================
   // OPEN AUTHOR ARTIFACT PICKER
@@ -766,13 +691,7 @@ export default function StudioToolbar() {
 
         <div style={statusStyle}>
 
-          {
-            !document
-              ? "No Document"
-              : dirty
-                ? "Unsaved Changes"
-                : "Saved"
-          }
+          {document && !canDurablySave ? "Sign in to save this .author document." : saveAction.state.message}
 
         </div>
 
@@ -798,17 +717,22 @@ export default function StudioToolbar() {
         <button
           type="button"
           style={
-            document
+            document && canDurablySave && saveAction.state.canSave
               ? buttonStyle
               : disabledButtonStyle
           }
-          disabled={!document}
+          disabled={!document || !canDurablySave || !saveAction.state.canSave}
           onClick={handleSaveDocument}
+          title={saveAction.state.status === "UNAUTHENTICATED" ? "Sign in to save this .author document." : saveAction.state.message}
         >
 
-          Save
+          {saveAction.state.status === "SAVING_INITIAL" || saveAction.state.status === "SAVING_REVISION" ? "Saving…" : saveAction.state.retryable ? "Retry" : "Save"}
 
         </button>
+
+        {saveAction.state.status === "CONFLICT" && <><button type="button" style={buttonStyle} onClick={() => void saveAction.reloadHead()}>Reload authoritative head</button><button type="button" style={buttonStyle} onClick={saveAction.keepLocalDraft}>Keep local draft</button></>}
+
+        {saveAction.state.status === "SAVED" && <button type="button" style={buttonStyle} onClick={() => void saveAction.reloadHead()}>Reload head</button>}
 
         {/* ================================================== */}
         {/* UPLOAD / INGEST                                    */}

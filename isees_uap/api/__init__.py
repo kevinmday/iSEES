@@ -300,7 +300,12 @@ def create_application(
         ],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "OPTIONS"],
-        allow_headers=["Content-Type", "X-ISEES-CSRF", "X-Request-Id"],
+        allow_headers=[
+            "Content-Type",
+            "X-ISEES-CSRF",
+            "X-ISEES-Principal-Id",
+            "X-Request-Id",
+        ],
     )
     application.include_router(core_router)
     return application

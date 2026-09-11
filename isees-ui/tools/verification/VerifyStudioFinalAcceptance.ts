@@ -36,7 +36,7 @@ assert.match(inspector, /publication creates a candidate node only/); assert.mat
 assert.match(inspector, /claimSourceMappings/); assert.match(inspector, /sourceIdentity/); assert.match(inspector, /resolutionStatus/);
 assert.match(inspector, /restoreStudioDocument/); assert.match(inspector, /toSorted\([\s\S]*updatedAt/);
 assert.match(inbox, /aria-pressed/); assert.match(inbox, /Remove source/); assert.match(inbox, /aria-describedby/);
-assert.match(canvas, /tabIndex=\{0\}/); assert.match(canvas, /Move .* up/); assert.match(canvas, /Remove .* from draft/);
+assert.match(canvas, /<button type="button" className="author-section__empty"/); assert.match(canvas, /Move .* up/); assert.match(canvas, /Remove .* from draft/);
 for (const css of [canvasCss, inboxCss, inspectorCss]) assert.match(css, /focus-visible/);
 assert.match(inspector, /role=\{state === "ERROR"[\s\S]*\? "alert" : "status"\}/);
 assert.doesNotMatch([api, adapter, inbox, inspector].join("\n"), /openai|anthropic|\/chat\/completions|\/responses/i, "no AI integration");

@@ -154,6 +154,47 @@ def test_routes_openapi_middleware_handlers_and_dependencies_are_unchanged():
     assert "sqlitestudiov1store" not in dependencies and "connection_factory" not in dependencies
 
 
+@pytest.mark.parametrize("origin", [
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+])
+def test_local_authenticated_mutation_preflight_is_exact(origin):
+    with TestClient(create_application({})) as client:
+        response = client.options(
+            "/api/v1/investigations/investigation-1/studio-v1/artifacts",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": (
+                    "content-type,x-isees-csrf,x-isees-principal-id,x-request-id"
+                ),
+            },
+        )
+    assert response.status_code == 200
+    assert response.text == "OK"
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "POST" in response.headers["access-control-allow-methods"]
+    allowed_headers = response.headers["access-control-allow-headers"].lower()
+    for header in ("content-type", "x-isees-csrf", "x-isees-principal-id", "x-request-id"):
+        assert header in allowed_headers
+
+
+def test_unauthorized_cors_origin_remains_rejected():
+    with TestClient(create_application({})) as client:
+        response = client.options(
+            "/api/v1/investigations/investigation-1/studio-v1/artifacts",
+            headers={
+                "Origin": "http://malicious.invalid:5173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type,x-isees-csrf",
+            },
+        )
+    assert response.status_code == 400
+    assert response.text == "Disallowed CORS origin"
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_deployment_adapter_does_not_mutate_environment(tmp_path):
     before = dict(os.environ)
     parsed = studio_v1_deployment_configuration(enabled_mapping(tmp_path))
