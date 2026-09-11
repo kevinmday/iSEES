@@ -241,3 +241,19 @@ class SQLiteAuthenticationRepository:
             raise AuthenticationRepositoryUnavailable(
                 "Authentication service is unavailable"
             ) from error
+
+    def revoke_all_sessions(self, *, account_id: str, revoked_at: datetime) -> int:
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                cursor = connection.execute(
+                    "UPDATE authenticated_session SET revoked_at=? "
+                    "WHERE account_id=? AND revoked_at IS NULL",
+                    (_utc_text(revoked_at), account_id),
+                )
+                connection.commit()
+                return cursor.rowcount
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable"
+            ) from error

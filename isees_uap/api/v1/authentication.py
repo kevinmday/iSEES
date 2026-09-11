@@ -8,11 +8,11 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from isees_uap.authentication.config import AuthenticationSettings, authentication_settings
+from isees_uap.authentication.config import AuthenticationSettings
 from isees_uap.authentication.errors import AuthenticationError
 from isees_uap.authentication.principal import (
     AuthenticatedPrincipal, authentication_repository,
-    require_authenticated_principal, require_csrf_protected_principal,
+    require_authenticated_principal, require_csrf_protected_principal, settings,
 )
 from isees_uap.authentication.service import AuthenticationService
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
@@ -31,10 +31,6 @@ class SafeResearcherIdentity(BaseModel):
     researcherId: str
     email: str
     sessionExpiresAt: datetime
-
-
-def settings() -> AuthenticationSettings:
-    return authentication_settings()
 
 
 def service(

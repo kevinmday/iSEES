@@ -10,7 +10,7 @@ from fastapi import Cookie, Depends, Header
 
 from .config import AuthenticationSettings, authentication_settings
 from .errors import AuthenticationRequired, CsrfRejected
-from .models import AuthenticatedSession, ResearcherAccount
+from .models import AccountStatus, AuthenticatedSession, ResearcherAccount
 from .sqlite_repository import SQLiteAuthenticationRepository, session_secret_digest
 
 
@@ -28,6 +28,10 @@ def authentication_repository() -> SQLiteAuthenticationRepository:
     return SQLiteAuthenticationRepository(authentication_settings().database_path)
 
 
+def settings() -> AuthenticationSettings:
+    return authentication_settings()
+
+
 def _parse_bearer(value: str | None) -> tuple[str, str]:
     if not value or value.count(".") != 1:
         raise AuthenticationRequired("Authentication is required")
@@ -40,6 +44,7 @@ def _parse_bearer(value: str | None) -> tuple[str, str]:
 def require_authenticated_principal(
     session_cookie: str | None = Cookie(default=None, alias="isees_session"),
     repository: SQLiteAuthenticationRepository = Depends(authentication_repository),
+    config: AuthenticationSettings = Depends(settings),
 ) -> AuthenticatedPrincipal:
     session_id, secret = _parse_bearer(session_cookie)
     resolved = repository.resolve_session(
@@ -49,6 +54,15 @@ def require_authenticated_principal(
     if resolved is None:
         raise AuthenticationRequired("Authentication is required")
     session, account, csrf_digest = resolved
+    eligible = (
+        account.status is AccountStatus.ACTIVE
+        and config.candidate_access.permits_authentication(account.normalized_email)
+    )
+    if not eligible:
+        repository.revoke_all_sessions(
+            account_id=account.account_id, revoked_at=datetime.now(timezone.utc)
+        )
+        raise AuthenticationRequired("Authentication is required")
     return AuthenticatedPrincipal(
         account_id=account.account_id, email=account.email,
         session_id=session.session_id, session_expires_at=session.expires_at,

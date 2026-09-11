@@ -54,7 +54,12 @@ class AuthenticationService:
         account = self.repository.find_account_by_normalized_email(normalized)
         password_hash = account.password_hash if account else _DUMMY_HASH
         valid = verify_password(password, password_hash)
-        if not valid or account is None or account.status is not AccountStatus.ACTIVE:
+        eligible = (
+            account is not None
+            and account.status is AccountStatus.ACTIVE
+            and self.candidate_access.permits_authentication(account.normalized_email)
+        )
+        if not valid or not eligible:
             raise InvalidCredentials("Email or password is invalid")
         return account, self._issue(account.account_id)
 

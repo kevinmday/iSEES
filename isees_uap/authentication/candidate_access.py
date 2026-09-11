@@ -53,3 +53,8 @@ class CandidateAccessPolicy:
         if not self.enabled:
             return True
         return self.configuration_valid and email in self.approved_emails
+
+    def permits_authentication(self, normalized_email: str) -> bool:
+        if not self.enabled:
+            return True
+        return self.configuration_valid and normalized_email in self.approved_emails
