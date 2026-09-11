@@ -169,6 +169,9 @@ class PrivateStudioV1Application:
         self._require_ready()
         try: return self._store.locate_artifact(owner_id, investigation_id, artifact_id)
         except StudioV1Failure as exc: self._scope_failure(exc)
+    def list_artifact_identities(self, owner_id, investigation_id):
+        self._require_ready()
+        return tuple(self._store.list_artifacts(owner_id, investigation_id))
     def get_artifact_head(self, owner_id, investigation_id, artifact_id):
         self._require_ready()
         try: return self._store.get_artifact_head(owner_id, investigation_id, artifact_id)

@@ -110,6 +110,25 @@ class ArtifactHeadResponse(BaseModel):
     savedAt: str | None
 
 
+class ArtifactDiscoveryItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    artifactId: str
+    investigationId: str
+    ownerPrincipalId: str
+    profile: str
+    lifecycleClassification: str
+    createdAt: str
+    currentRevisionId: str | None
+    currentRevisionNumber: int | None
+    contentHash: str | None
+    savedAt: str | None
+
+
+class ArtifactDiscoveryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[ArtifactDiscoveryItem]
+
+
 class RevisionMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
     revisionId: str
@@ -247,6 +266,27 @@ def create_author_artifact(
     facade: PrivateStudioV1Application = Depends(private_ready_facade),
 ):
     return _save(payload, owner, investigation_id, None, facade, initial=True)
+
+
+@router.get("", response_model=ArtifactDiscoveryResponse)
+def discover_author_artifacts(
+    investigation_id: IdentityPath,
+    owner: str = Depends(owned_read_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    items = []
+    for identity in facade.list_artifact_identities(owner, investigation_id):
+        head = facade.get_artifact_head(owner, investigation_id, identity.artifactId)
+        items.append(ArtifactDiscoveryItem(
+            artifactId=identity.artifactId, investigationId=identity.investigationId,
+            ownerPrincipalId=identity.authorPrincipalId, profile=identity.profile,
+            lifecycleClassification=identity.lifecycleClassification, createdAt=identity.createdAt,
+            currentRevisionId=head.revisionId if head else None,
+            currentRevisionNumber=head.revisionNumber if head else None,
+            contentHash=head.contentHash if head else None,
+            savedAt=head.createdAt if head else None,
+        ))
+    return ArtifactDiscoveryResponse(items=items)
 
 
 @router.post("/{artifact_id}/revisions", response_model=SaveAuthorResponse,

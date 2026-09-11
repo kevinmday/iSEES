@@ -82,7 +82,7 @@ def test_exact_route_surface_and_no_worker_or_publication_mutations(api):
     paths = application.openapi()["paths"]
     studio = {path: set(methods) for path, methods in paths.items() if "/studio-v1/" in path}
     assert len(studio) == 5
-    assert sum(len(methods) for methods in studio.values()) == 6
+    assert sum(len(methods) for methods in studio.values()) == 7
     assert all(not any(word in path for word in ("claim", "complete", "fail", "retry", "publish"))
                for path in studio)
 
@@ -115,14 +115,50 @@ def test_owner_create_read_list_revision_and_safe_projections(api):
     assert not any(term in projections.text.lower() for term in forbidden)
 
 
+def test_owned_investigation_discovery_is_empty_scoped_and_deterministic(api):
+    _, investigations, client, owner, base = prepare(api)
+    assert client.get(base).status_code == 200
+    assert client.get(base).json() == {"items": []}
+    second_artifact = make_command(key="artifact-b", artifact_id="artifact-b", owner=owner)
+    first_artifact = make_command(key="artifact-a", artifact_id="artifact-a", owner=owner)
+    assert client.post(base, json=wire(second_artifact), headers=csrf(client)).status_code == 201
+    assert client.post(base, json=wire(first_artifact), headers=csrf(client)).status_code == 201
+    discovered = client.get(base)
+    assert discovered.status_code == 200
+    assert [item["artifactId"] for item in discovered.json()["items"]] == ["artifact-a", "artifact-b"]
+    assert all(item["ownerPrincipalId"] == owner and item["investigationId"] == "investigation-1"
+               for item in discovered.json()["items"])
+    assert all(item["currentRevisionNumber"] == 1 and item["currentRevisionId"]
+               for item in discovered.json()["items"])
+    investigations.create(investigation_id="investigation-2", owner_principal_id=owner, title="Other")
+    assert client.get("/api/v1/investigations/investigation-2/studio-v1/artifacts").json() == {"items": []}
+
+
+def test_discovery_conceals_cross_principal_investigations(api):
+    _, investigations, owner_client, owner, base = prepare(api)
+    command = make_command(owner=owner)
+    assert owner_client.post(base, json=wire(command), headers=csrf(owner_client)).status_code == 201
+    foreign, foreign_id = api[2]("discovery-foreign")
+    investigations.create(investigation_id="foreign-discovery", owner_principal_id=foreign_id, title="Foreign")
+    assert foreign.get(base).status_code == 404
+    assert foreign.get("/api/v1/investigations/foreign-discovery/studio-v1/artifacts").json() == {"items": []}
+
+
 def test_next_revision_concurrency_replay_and_key_reuse(api):
     _, _, client, _, base = prepare(api)
     one = make_command()
     assert client.post(base, json=wire(one), headers=csrf(client)).status_code == 201
+    revision_one_before = client.get(base + "/" + one.artifact.artifactId + "/revisions/" + one.revision.revisionId).json()
     two = second(one)
     url = base + "/" + one.artifact.artifactId + "/revisions"
     saved = client.post(url, json=wire(two), headers=csrf(client))
     assert saved.status_code == 201
+    revision_two = client.get(url + "/" + two.revision.revisionId).json()
+    assert client.get(url + "/" + one.revision.revisionId).json() == revision_one_before
+    assert revision_two["revision"]["revisionNumber"] == 2
+    assert client.get(base + "/" + one.artifact.artifactId).json()["currentRevisionId"] == two.revision.revisionId
+    assert client.get(url).json()["items"][0]["revisionId"] == one.revision.revisionId
+    assert client.get(url).json()["items"][1]["revisionId"] == two.revision.revisionId
     replay = client.post(url, json=wire(two), headers=csrf(client))
     assert replay.status_code == 201 and replay.json()["replayed"] is True
     changed = wire(two)
@@ -135,6 +171,7 @@ def test_next_revision_concurrency_replay_and_key_reuse(api):
     stale["idempotencyKey"] = "stale"
     stale["expectedHeadRevisionId"] = one.revision.revisionId
     assert client.post(url, json=stale, headers=csrf(client)).status_code in (409, 422)
+    assert client.get(url + "/" + one.revision.revisionId).json() == revision_one_before
 
 
 def test_strict_identity_hash_and_unknown_fields(api):

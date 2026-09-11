@@ -222,6 +222,26 @@ class SQLiteStudioV1Store:
             "lifecycleClassification":"CANDIDATE_KNOWLEDGE","createdAt":row["created_at"],
             "currentSavedRevisionId":row["head_revision_id"],"workingDraft":{"state":"UNSAVED","basedOnRevisionId":row["head_revision_id"]}})
 
+    def list_artifacts(self, owner_id, investigation_id):
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT artifact.* FROM studio_v1_artifacts AS artifact "
+                "LEFT JOIN studio_v1_revisions AS head ON head.owner_id=artifact.owner_id "
+                "AND head.investigation_id=artifact.investigation_id AND head.artifact_id=artifact.artifact_id "
+                "AND head.revision_id=artifact.head_revision_id "
+                "WHERE artifact.owner_id=? AND artifact.investigation_id=? "
+                "ORDER BY COALESCE(head.created_at, artifact.created_at) DESC, artifact.artifact_id ASC",
+                (owner_id, investigation_id),
+            ).fetchall()
+        return tuple(ArtifactIdentity.model_validate({
+            "artifactId": row["artifact_id"], "investigationId": row["investigation_id"],
+            "authorPrincipalId": row["owner_id"], "profile": row["profile"],
+            "profileCapability": row["profile_capability"],
+            "lifecycleClassification": "CANDIDATE_KNOWLEDGE", "createdAt": row["created_at"],
+            "currentSavedRevisionId": row["head_revision_id"],
+            "workingDraft": {"state": "UNSAVED", "basedOnRevisionId": row["head_revision_id"]},
+        }) for row in rows)
+
     def get_idempotency_result(self, owner_id, investigation_id, operation, idempotency_key, request_fingerprint):
         with self._connect() as db: row=db.execute("SELECT request_fingerprint,result_json FROM studio_v1_idempotency_commands WHERE owner_id=? AND investigation_id=? AND operation=? AND idempotency_key=?",(owner_id,investigation_id,operation,idempotency_key)).fetchone()
         if not row: return None

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuthorDocument, useAuthorDocumentDirty, useAuthorDocumentRevision, useAuthorDocumentRuntime } from "../../author/runtime/AuthorDocumentRuntimeContext";
+import { useAuthorDocument, useAuthorDocumentDirty } from "../../author/runtime/AuthorDocumentRuntimeContext";
 import { useOperatorIdentity } from "../../identity/runtime/OperatorIdentityRuntimeContext";
 import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
-import { restoreStudioDocument } from "../api/StudioDocumentRestoration";
 import { authoredBlockCount, sourceBackedBlockCount } from "../api/StudioAuthorDocumentAdapter";
 import { studioApi, StudioApiError, type ProjectionFormat, type StudioArtifactProjection, type StudioLifecycle, type StudioScope } from "../api/StudioApi";
-import { activeStudioContentHash, canMaterializeProjection, hasDurableArtifactVersion, isExpectedUnsavedArtifact, selectCurrentProjection, STUDIO_ARTIFACT_EMPTY_ACTION, STUDIO_ARTIFACT_EMPTY_MESSAGE, STUDIO_PROJECTION_EMPTY_MESSAGE } from "./StudioArtifactInspectorSemantics";
+import { canMaterializeProjection, hasDurableArtifactVersion, isExpectedUnsavedArtifact, selectCurrentProjection, STUDIO_ARTIFACT_EMPTY_ACTION, STUDIO_ARTIFACT_EMPTY_MESSAGE, STUDIO_PROJECTION_EMPTY_MESSAGE } from "./StudioArtifactInspectorSemantics";
 import "./StudioArtifactInspector.css";
 import { useStudioSaveAction } from "../runtime/StudioSaveActionContext.ts";
 
@@ -15,15 +14,12 @@ const labels: Record<StudioLifecycle, string> = { DRAFT: "Draft", CANDIDATE_KNOW
 const actionTarget = { candidate: "DRAFT", publication: "CANDIDATE_KNOWLEDGE_ARTIFACT", review: "MANIFOLD_CANDIDATE_NODE", accept: "REVIEW_TEST", return: "REVIEW_TEST", reject: "REVIEW_TEST" } as const;
 
 function idempotency(operation: string): string { return `${operation}:${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`}`; }
-function display(value: unknown): string { return typeof value === "string" && value.trim() ? value : "Unavailable / not yet created"; }
 function formatTime(value: string | undefined): string { if (!value) return "Unavailable / not yet created"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unavailable" : date.toLocaleString(); }
 export default function StudioArtifactInspector() {
   const investigation = useActiveInvestigation();
   const operator = useOperatorIdentity();
   const document = useAuthorDocument();
   const dirty = useAuthorDocumentDirty();
-  const revision = useAuthorDocumentRevision();
-  const runtime = useAuthorDocumentRuntime();
   const saveAction = useStudioSaveAction();
   const scope = useMemo<StudioScope | undefined>(() => investigation && operator.identity ? { investigationId: investigation.id, principalId: operator.identity.operatorId } : undefined, [investigation, operator.identity]);
   const [artifact, setArtifact] = useState<StudioArtifactProjection>();
@@ -32,7 +28,6 @@ export default function StudioArtifactInspector() {
   const [inFlight, setInFlight] = useState<string>();
   const [reviewReason, setReviewReason] = useState("");
   const [preview, setPreview] = useState<ProjectionFormat>();
-  const [contentHashResult, setContentHashResult] = useState<{ artifact: StudioArtifactProjection; document: object; revision: number; hash: string }>();
   const requestSequence = useRef(0);
   const activeArtifact = artifact && scope && document
     && artifact.artifact.investigationId === scope.investigationId
@@ -59,11 +54,6 @@ export default function StudioArtifactInspector() {
       const exact = expectedDocument
         ? scoped.find(item => item.artifact.artifactId === expectedDocument.identity.id && (item.currentVersion.document as { identity?: { id?: string } } | undefined)?.identity?.id === expectedDocument.identity.id)
         : scoped.toSorted((left, right) => right.artifact.updatedAt.localeCompare(left.artifact.updatedAt))[0];
-      if (!expectedDocument && exact) {
-        const restored = restoreStudioDocument(exact.currentVersion.document);
-        if (!restored) { setState("ERROR"); setMessage("The saved artifact document could not be restored safely."); return undefined; }
-        runtime.restoreActiveDocument(restored);
-      }
       setArtifact(exact);
       setState(exact ? "READY" : expectedDocument ? "NOT_CREATED" : "EMPTY");
       setMessage(exact ? "Canonical artifact loaded; comparing the active draft." : expectedDocument ? STUDIO_ARTIFACT_EMPTY_MESSAGE : "No durable artifact has been created for this draft.");
@@ -76,22 +66,9 @@ export default function StudioArtifactInspector() {
       }
       return undefined;
     }
-  }, [document, handleError, runtime, scope]);
+  }, [document, handleError, scope]);
 
   useEffect(() => { queueMicrotask(() => void refresh()); return () => { requestSequence.current += 1; }; }, [refresh]);
-
-  useEffect(() => {
-    let current = true;
-    const comparedRevision = revision;
-    if (scope && document && activeArtifact) void activeStudioContentHash(scope, document, activeArtifact)
-      .then(hash => {
-        if (!current) return;
-        setContentHashResult({ artifact: activeArtifact, document, revision: comparedRevision, hash });
-        runtime.reconcileCanonicalState({ investigationId: scope.investigationId, document, revision: comparedRevision, synchronized: hash === activeArtifact.currentVersion.contentHash });
-      })
-      .catch(() => { /* Hash failure remains unavailable and fail-closed. */ });
-    return () => { current = false; };
-  }, [scope, document, activeArtifact, revision, runtime]);
 
   const mutate = useCallback(async (operation: string, path: string, command: object) => {
     if (!scope || inFlight) return;
@@ -155,22 +132,25 @@ export default function StudioArtifactInspector() {
   const current = activeArtifact?.artifact;
   const version = activeArtifact?.currentVersion;
   const durableVersionExists = hasDurableArtifactVersion(current?.artifactId, current?.currentVersionId, version?.versionId);
-  const activeContentHash = contentHashResult && contentHashResult.artifact === activeArtifact && contentHashResult.document === document && contentHashResult.revision === revision ? contentHashResult.hash : undefined;
-  const contentConsistent = activeArtifact && document && activeContentHash ? !dirty && activeContentHash === version?.contentHash : undefined;
+  const contentConsistent = saveAction.state.headRevisionId ? !dirty : undefined;
   const activeSnapshots = activeArtifact?.sourceSnapshots.filter(snapshot => version?.sourceSnapshotIds.includes(snapshot.snapshotId)) ?? [];
   const snapshotState = !activeArtifact ? "Not yet captured" : activeSnapshots.some(item => item.resolutionStatus === "STALE") ? "Stale" : activeSnapshots.some(item => ["MISSING", "UNAVAILABLE", "REDACTED"].includes(item.resolutionStatus)) ? "Unavailable" : activeSnapshots.length ? (activeSnapshots.every(item => item.resolutionStatus === "AVAILABLE") ? "Consistent" : "Not yet resolved") : "No snapshots";
   const actionReason = (operation: keyof typeof actionTarget) => !activeArtifact ? "Create and save a draft first." : current?.lifecycleState !== actionTarget[operation] ? `Requires ${labels[actionTarget[operation]]}.` : (["accept", "return", "reject"].includes(operation) && !reviewReason.trim()) ? "A review reason is required." : undefined;
   const saveReason = !scope ? "Select an Investigation and establish an operator identity." : !document ? "Create or restore a canonical author draft." : inFlight ? `${inFlight} is in progress.` : activeArtifact && !dirty ? "The canonical draft has no unsaved changes." : current && !["DRAFT", "RETURNED"].includes(current.lifecycleState) ? "Versions may be saved only in Draft or Returned." : undefined;
   const saveAvailable = !saveReason && saveAction.state.canSave;
   const v1SaveFailed = ["FAILED", "UNAVAILABLE", "UNAUTHENTICATED", "CONFLICT"].includes(saveAction.state.status);
+  const v1Durable = Boolean(saveAction.state.artifactId && saveAction.state.headRevisionId && saveAction.state.revisionNumber);
+  const serviceAvailability = saveAction.state.status === "UNAVAILABLE" ? "Unavailable" : saveAction.state.status === "LOADING" ? "Restoring" : operator.identity?.kind === "ACCOUNT" ? "Available" : "Not yet established";
 
   return <aside className="studio-inspector" data-permanent="true" aria-label="Artifact Inspector">
-    <header className="studio-inspector__header"><div className="studio-inspector__kicker">STUDIO / CANONICAL</div><h2>Artifact Inspector</h2><span className={`studio-inspector__state studio-inspector__state--${state.toLowerCase()}`}>{state === "UNAVAILABLE_BACKEND" ? "LEGACY LIFECYCLE UNAVAILABLE" : state.replaceAll("_", " ")}</span></header>
-    <p className="studio-inspector__message" role={state === "ERROR" || state === "CONFLICT" || state === "STALE_REVISION" || state === "FORBIDDEN" || state === "UNAVAILABLE_BACKEND" ? "alert" : "status"}>{state === "UNAVAILABLE_BACKEND" ? `Legacy lifecycle/artifact service: ${message}` : message}{state === "NOT_CREATED" && <> {STUDIO_ARTIFACT_EMPTY_ACTION}</>}</p>
-    <p className="studio-inspector__message" role="status">Studio V1 author service: {saveAction.state.status === "UNAVAILABLE" ? "unavailable" : ["SAVED", "DIRTY", "CONFLICT"].includes(saveAction.state.status) ? "available" : "availability not yet established"}.</p>
+    <header className="studio-inspector__header"><div className="studio-inspector__kicker">STUDIO V1 / AUTHORITATIVE</div><h2>Artifact Inspector</h2><span className={`studio-inspector__state studio-inspector__state--${saveAction.state.status.toLowerCase()}`}>{saveAction.state.status.replaceAll("_", " ")}</span></header>
+    <p className="studio-inspector__message" role={v1SaveFailed ? "alert" : "status"}>{saveAction.state.message}</p>
+    <p className="studio-inspector__message" role="status">Studio V1 author service: {serviceAvailability}.</p>
     <section className="studio-inspector__card"><h3>Artifact identity</h3><dl className="studio-inspector__facts">
-      <dt>Artifact ID</dt><dd>{display(current?.artifactId)}</dd><dt>Author / principal</dt><dd>{display(current?.ownerPrincipalId ?? operator.identity?.operatorId)}</dd><dt>Investigation</dt><dd>{display(investigation?.id)}</dd><dt>Focused event</dt><dd>{display(investigation?.workspace.focused_event_id)}</dd><dt>Compared event</dt><dd>{display(version?.comparisonContext?.comparisonEventId)}</dd><dt>Version</dt><dd>{current ? `v${current.currentVersionNumber} · r${current.revision}` : "Not yet created"}</dd><dt>Created</dt><dd>{formatTime(current?.createdAt)}</dd><dt>Modified</dt><dd>{formatTime(current?.updatedAt)}</dd><dt>Source snapshot</dt><dd>{version?.sourceSnapshotIds.length === 1 ? version.sourceSnapshotIds[0] : version?.sourceSnapshotIds.length ? `${version.sourceSnapshotIds.length} snapshots` : "Unavailable / not yet created"}</dd><dt>Citations / claims</dt><dd>{version ? `${version.citations.length} / ${version.claims.length}` : "Not yet represented"}</dd><dt>Lifecycle</dt><dd>{current ? labels[current.lifecycleState] : "Not yet created"}</dd><dt>Draft state</dt><dd>{dirty ? "Dirty · unsaved changes" : artifact ? "Saved" : "Not yet saved"}</dd>
-    </dl>{dirty && durableVersionExists && <p className="studio-inspector__historical-note">Saved v{current?.currentVersionNumber} outputs, including its PDF, remain available but do not represent this unsaved draft.</p>}{v1SaveFailed && <div className="studio-inspector__operation-error" role="alert"><strong>Studio V1 Save Failed</strong><span>{saveAction.state.message}. Your unsaved draft is preserved.</span></div>}<button className="studio-inspector__button studio-inspector__button--primary" disabled={!saveAvailable} aria-describedby={saveReason ? "studio-save-reason" : undefined} onClick={() => void save()}>{inFlight === "Save Draft" ? "Saving Draft…" : saveAction.state.retryable ? "Retry Save" : "Save Draft"}</button>{saveReason && <p id="studio-save-reason" className="studio-inspector__disabled-reason">{saveReason}</p>}</section>
+      <dt>Artifact ID</dt><dd>{saveAction.state.artifactId ?? "Not yet created"}</dd><dt>Immutable revision</dt><dd>{saveAction.state.revisionNumber ? `Revision ${saveAction.state.revisionNumber}` : "Not yet created"}</dd><dt>Durable head</dt><dd>{saveAction.state.headRevisionId ?? "Not yet created"}</dd><dt>Author / principal</dt><dd>{saveAction.state.ownerPrincipalId ?? "Not yet created"}</dd><dt>Investigation</dt><dd>{saveAction.state.investigationId ?? investigation?.id ?? "Not yet created"}</dd><dt>Created</dt><dd>{saveAction.state.artifactCreatedAt ? formatTime(saveAction.state.artifactCreatedAt) : "Not yet created"}</dd><dt>Modified / saved</dt><dd>{saveAction.state.savedAt ? formatTime(saveAction.state.savedAt) : "Not yet created"}</dd><dt>Lifecycle / save state</dt><dd>{saveAction.state.lifecycleClassification ?? (v1Durable ? "Saved revision" : "Not yet created")}</dd><dt>Draft state</dt><dd>{dirty ? "Dirty · unsaved changes" : v1Durable ? "Saved · clean" : "Not yet saved"}</dd><dt>Source snapshots</dt><dd>{saveAction.state.sourceSnapshotCount ?? "Not yet created"}</dd><dt>Citations</dt><dd>{saveAction.state.citationCount ?? "Not yet created"}</dd><dt>Claims</dt><dd>{saveAction.state.claimCount ?? "Not yet created"}</dd><dt>Projection status</dt><dd>{saveAction.state.projections ? saveAction.state.projections.items.length ? "Authoritative statuses available" : "Not validated · not materialized" : "Not yet available"}</dd>
+    </dl>{dirty && v1Durable && <p className="studio-inspector__historical-note">Saved revision {saveAction.state.revisionNumber} remains authoritative; projections do not include these unsaved changes.</p>}{v1SaveFailed && <div className="studio-inspector__operation-error" role="alert"><strong>Studio V1 operation requires attention</strong><span>{saveAction.state.message} Your unsaved draft is preserved.</span>{saveAction.state.status === "CONFLICT" && saveAction.state.artifactId && <button className="studio-inspector__button" onClick={() => void saveAction.reloadHead()}>Reload saved head</button>}</div>}<button className="studio-inspector__button studio-inspector__button--primary" disabled={!saveAvailable} aria-describedby={saveReason ? "studio-save-reason" : undefined} onClick={() => void save()}>{inFlight === "Save Draft" ? "Saving Draft…" : saveAction.state.retryable ? "Retry Save" : "Save Draft"}</button>{saveReason && <p id="studio-save-reason" className="studio-inspector__disabled-reason">{saveReason}</p>}</section>
+
+    <p className="studio-inspector__message" role={state === "UNAVAILABLE_BACKEND" ? "alert" : "status"}>Legacy lifecycle/artifact service (secondary): {message}{state === "NOT_CREATED" && <> {STUDIO_ARTIFACT_EMPTY_ACTION}</>}</p>
 
     <section className="studio-inspector__card"><h3>Knowledge lifecycle</h3><ol className="studio-inspector__lifecycle">{lifecycle.map(item => <li key={item} className={current?.lifecycleState === item ? "is-current" : ""}>{labels[item]}</li>)}</ol>{current && ["RETURNED", "REJECTED"].includes(current.lifecycleState) && <div className={`studio-inspector__terminal studio-inspector__terminal--${current.lifecycleState.toLowerCase()}`}>{labels[current.lifecycleState]}</div>}
       <div className="studio-inspector__actions">{(["candidate", "publication", "review"] as const).map(action => { const reason = dirty ? "Save current changes before advancing lifecycle." : actionReason(action); const label = action === "candidate" ? "Save as Candidate Knowledge" : action === "publication" ? "Publish Candidate to Manifold" : "Submit for Review"; return <div className="studio-inspector__action" key={action}><button className="studio-inspector__button" disabled={Boolean(reason || inFlight)} aria-describedby={reason ? `studio-${action}-reason` : undefined} onClick={() => lifecycleAction(action)}>{inFlight === label ? `${label}…` : label}</button>{reason && <span id={`studio-${action}-reason`}>{reason}</span>}</div>; })}</div>
