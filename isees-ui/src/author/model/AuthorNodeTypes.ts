@@ -241,6 +241,10 @@ export interface ReferenceNode
   summary?:
     string;
 
+  /** Researcher-chosen production section for this governed source block. */
+  section?:
+    string;
+
   /**
    * UTC timestamp indicating when this
    * reference entered the document.
@@ -258,6 +262,8 @@ export interface ReferenceNode
     sourceRevisionId?: string;
     sourceExecutionId?: string;
     sourceProjectionId?: string;
+    collectedAt: Date;
+    locator?: string;
     classification: "CANONICAL" | "RESEARCHER_GENERATED" | "UNDETERMINED";
     insertability: Readonly<{ state: "INSERTABLE" | "INSPECTION_ONLY"; reason: string }>;
     capturedRepresentation: unknown;

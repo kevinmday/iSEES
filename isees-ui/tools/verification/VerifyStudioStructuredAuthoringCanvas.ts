@@ -8,7 +8,7 @@ import { createTypedResearchAnchor } from "../../src/research/ResearchAnchorCont
 import { createAuthorReferenceFromResearchAnchor } from "../../src/studio/sources/ResearchAnchorAuthorInsertion.ts";
 
 const read = (path: string) => readFileSync(path, "utf8");
-const surface = read("src/author/components/AuthorEditorSurface.tsx");
+const surface = read("src/author/components/AuthorEditorSurface.tsx") + read("src/author/model/AuthorSections.ts");
 const shell = read("src/author/components/StudioShell.tsx");
 const inbox = read("src/studio/components/StudioResearchInbox.tsx");
 const workspace = read("src/surfaces/WorkspaceSurface.tsx");
@@ -36,7 +36,7 @@ runtime.setActiveDocument({ identity: { id: "draft:a", createdAt: at }, metadata
 const reference = createAuthorReferenceFromResearchAnchor(source, `research-reference:${source.anchorId}`, at);
 assert.equal(runtime.insertNode(reference), "INSERTED");
 assert.equal(runtime.getActiveDocument()?.nodes[0], reference, "typed source is immediately visible in canonical draft");
-assert.deepEqual(reference.researchSource, { anchorId: source.anchorId, sourceKind: source.kind, sourceIdentity: source.sourceIdentity, sourceInvestigationId: source.investigationId, sourceWorkspace: source.sourceWorkspace, sourceRevisionId: source.sourceRevisionId, sourceExecutionId: source.sourceExecutionId, sourceProjectionId: source.sourceProjectionId, classification: source.classification, insertability: source.insertability, capturedRepresentation: source.capturedRepresentation }, "exact provenance survives insertion");
+assert.deepEqual(reference.researchSource, { anchorId: source.anchorId, sourceKind: source.kind, sourceIdentity: source.sourceIdentity, sourceInvestigationId: source.investigationId, sourceWorkspace: source.sourceWorkspace, sourceRevisionId: source.sourceRevisionId, sourceExecutionId: source.sourceExecutionId, sourceProjectionId: source.sourceProjectionId, collectedAt: source.collectedAt, locator: source.sourceRevisionId, classification: source.classification, insertability: source.insertability, capturedRepresentation: source.capturedRepresentation }, "exact provenance survives insertion");
 assert.equal(JSON.stringify(research.getDesk()), deskBefore, "Research Inbox is unchanged by insertion");
 assert.throws(() => createAuthorReferenceFromResearchAnchor(blocked, "blocked"), /inspection-only/i);
 assert.equal(runtime.insertNode(createAuthorReferenceFromResearchAnchor(source, "another-id", at)), "DUPLICATE", "duplicates deterministically retain the existing block");

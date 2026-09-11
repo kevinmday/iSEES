@@ -144,6 +144,7 @@ def test_routes_openapi_middleware_handlers_and_dependencies_are_unchanged():
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/source-snapshots/{snapshot_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections",
     }
     assert [middleware.cls for middleware in fresh.user_middleware] == [

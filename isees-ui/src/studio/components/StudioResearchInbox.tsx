@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authorDocumentRuntime } from "../../author/runtime/AuthorDocumentRuntime";
 import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
 import type { ResearchAnchor, ResearchAnchorKind, ResearchSourceWorkspace } from "../../research/researchBridgeTypes";
 import { createAuthorReferenceFromResearchAnchor } from "../sources/ResearchAnchorAuthorInsertion";
+import { AUTHOR_SECTIONS } from "../../author/model/AuthorSections";
+import { useAuthorDocument } from "../../author/runtime/AuthorDocumentRuntimeContext";
+import type { ReferenceNode } from "../../author/model/AuthorNodeTypes";
 import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import "./StudioResearchInbox.css";
 
@@ -36,6 +39,7 @@ export default function StudioResearchInbox() {
   useResearchDesk();
   const investigation = useActiveInvestigation();
   const investigationId = investigation?.id;
+  const document = useAuthorDocument();
   const previousInvestigationId = useRef(investigationId);
   const [selectedAnchorId, setSelectedAnchorId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,6 +48,7 @@ export default function StudioResearchInbox() {
   const [insertableOnly, setInsertableOnly] = useState(false);
   const [pinnedFirst, setPinnedFirst] = useState(true);
   const [notice, setNotice] = useState<string>();
+  const [destinationSection, setDestinationSection] = useState<(typeof AUTHOR_SECTIONS)[number]>("Evidence");
 
   useEffect(() => {
     if (previousInvestigationId.current !== investigationId) {
@@ -56,8 +61,9 @@ export default function StudioResearchInbox() {
   const projection = runtime.projectInvestigation({ investigationId, selectedAnchorId, searchQuery, sourceWorkspace, sourceKind, insertableOnly, pinnedFirst });
   const unfiltered = runtime.projectInvestigation({ investigationId });
   const selected = projection.entries.find(entry => entry.anchor.anchorId === projection.selectedAnchorId)?.anchor;
+  const duplicate = Boolean(selected && document?.nodes.some(node => node.type === "REFERENCE" && (node as ReferenceNode).researchSource?.anchorId === selected.anchorId));
   const filtersActive = Boolean(searchQuery.trim() || sourceWorkspace || sourceKind || insertableOnly || !pinnedFirst);
-  const grouped = useMemo(() => GROUPS.map(group => ({ ...group, entries: projection.entries.filter(entry => group.kinds.includes(entry.anchor.kind)) })).filter(group => group.entries.length), [projection.entries]);
+  const grouped = GROUPS.map(group => ({ ...group, entries: projection.entries.filter(entry => group.kinds.includes(entry.anchor.kind)) })).filter(group => group.entries.length);
 
   function clearFilters() {
     setSearchQuery(""); setSourceWorkspace(undefined); setSourceKind(undefined); setInsertableOnly(false); setPinnedFirst(true);
@@ -72,7 +78,7 @@ export default function StudioResearchInbox() {
 
   function insertSelected() {
     if (!selected || selected.investigationId !== investigationId || selected.insertability.state !== "INSERTABLE") return;
-    const result = authorDocumentRuntime.insertNode(createAuthorReferenceFromResearchAnchor(selected, `research-reference:${selected.anchorId}`));
+    const result = authorDocumentRuntime.insertNode(createAuthorReferenceFromResearchAnchor(selected, `research-reference:${selected.anchorId}`, destinationSection));
     if (result === "INSERTED") setNotice(`Inserted “${selected.display.title}” into the draft with its exact source provenance.`);
     else if (result === "DUPLICATE") setNotice(`“${selected.display.title}” is already in this draft. The existing source-backed block was selected.`);
     else if (result === "NO_ACTIVE_DOCUMENT") setNotice("Create or open a draft before inserting this source.");
@@ -121,12 +127,14 @@ export default function StudioResearchInbox() {
 
     <footer className="studio-research-inbox__detail">
       {selected ? <>
-        <div className="studio-research-inbox__selected"><span>Selected source</span><strong>{selected.display.title}</strong></div>
+        <div className="studio-research-inbox__selected"><span>Selected {selected.kind === "GRAPH" ? selected.graph.type : selected.kind.replaceAll("_", " ")} source</span><strong>{selected.display.title}</strong><small>{selected.display.summary}</small><code>{selected.sourceIdentity}</code><span>Collected {selected.collectedAt.toLocaleString()}</span></div>
+        <label className="studio-research-inbox__destination"><span>Destination section</span><select value={destinationSection} onChange={event => setDestinationSection(event.target.value as (typeof AUTHOR_SECTIONS)[number])}>{AUTHOR_SECTIONS.map(section => <option key={section}>{section}</option>)}</select></label>
+        {duplicate && <div className="studio-research-inbox__duplicate" role="status">Already present in this .author draft. Duplicate insertion is blocked.</div>}
         {selected.insertability.state === "INSPECTION_ONLY" && <div className="studio-research-inbox__disabled-reason">Inspection only: {selected.insertability.reason}</div>}
         <div className="studio-research-inbox__actions"><button type="button" onClick={() => runtime.pinAnchor(selected.anchorId, !selected.pinned)}>{selected.pinned ? "Unpin" : "Pin"}</button><button className="studio-research-inbox__remove" type="button" aria-label={`Remove ${selected.display.title} from this Investigation's Research Inbox`} onClick={removeSelected}>Remove source</button></div>
       </> : <div className="studio-research-inbox__selected-empty">Select one source to inspect or insert.</div>}
-      <button className="studio-research-inbox__insert" type="button" disabled={!selected || selected.insertability.state !== "INSERTABLE"} aria-describedby="studio-insert-reason" onClick={insertSelected}>Insert into Draft</button>
-      {(!selected || selected.insertability.state !== "INSERTABLE") && <div id="studio-insert-reason" className="studio-research-inbox__disabled-reason">{selected ? `Insertion unavailable: ${selected.insertability.reason}` : "Insertion unavailable: select a source first."}</div>}
+      <button className="studio-research-inbox__insert" type="button" disabled={!selected || !document || duplicate || selected.insertability.state !== "INSERTABLE"} aria-describedby="studio-insert-reason" onClick={insertSelected}>Insert into .author</button>
+      {(!selected || !document || duplicate || selected.insertability.state !== "INSERTABLE") && <div id="studio-insert-reason" className="studio-research-inbox__disabled-reason">{!selected ? "Insertion unavailable: select a source first." : !document ? "Insertion unavailable: create or restore an active .author draft first." : duplicate ? "Insertion unavailable: this source is already present in the draft." : `Insertion unavailable: ${selected.insertability.reason}`}</div>}
     </footer>
   </aside>;
 }

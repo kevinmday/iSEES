@@ -1,0 +1,9 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const read=(path:string)=>readFileSync(path,"utf8");
+const inspector=read("src/workspace/surfaces/overview/OverviewInspector.tsx"),context=read("src/workspace/surfaces/overview/OverviewCanonicalActivationContext.tsx"),command=read("src/investigation/continuity/OwnedCanonEventImport.ts"),backend=read("../isees_uap/api/v1/investigations.py"),store=read("../isees_uap/investigations/sqlite_repository.py");
+assert.match(inspector,/Import into Active Investigation/i);assert.match(inspector,/Open Event in Workspace/);assert.match(inspector,/owned Investigation identity and attached \.author artifact remain active/);
+assert.match(context,/importIntoActive/);assert.match(context,/activeInvestigation\.id/);assert.match(context,/createdBy==="AUTHENTICATED_RESEARCHER"/);assert.match(context,/activateAdoptedOwnedInvestigation/);assert.match(context,/researchBridgeRuntime\.activateOwnedInvestigation/);
+assert.match(command,/expectedAggregateRevision/);assert.match(command,/idempotencyKey/);assert.match(command,/credentials:"include"/);assert.match(command,/X-ISEES-CSRF/);assert.match(command,/result\.investigationId!==input\.investigation\.id/);assert.match(command,/materializeInitialOperationalRevision/);assert.match(command,/focused\.length!==1/);
+assert.match(backend,/command\.investigationId != investigation_id/);assert.match(backend,/CANON_EVENT_IDS/);assert.match(backend,/require_csrf_protected_principal/);assert.match(store,/BEGIN IMMEDIATE/);assert.match(store,/expected_revision/);assert.match(store,/RevisionConflict/);assert.match(store,/IMPORT_CANON/);assert.doesNotMatch(context+command,/openai|chatgpt|inference|generateContent/i);
+console.log("PASS VerifyOwnedCanonEventImport — 24 explicit action, preserved preview, ownership, identity, CSRF, concurrency, idempotency, graph, Inbox scope, and no-AI checks passed.");

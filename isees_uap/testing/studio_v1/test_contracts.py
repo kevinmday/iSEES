@@ -6,10 +6,20 @@ import pytest
 from pydantic import ValidationError
 from isees_uap.studio.v1.contracts import ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES
 from isees_uap.studio.v1.hashing import canonical_serialize, canonical_sha256
-from isees_uap.studio.v1.schemas import SensitiveSourceDirectives
+from isees_uap.studio.v1.schemas import SemanticDocument, SensitiveSourceDirectives
 from isees_uap.studio.v1.validation import effective_sensitivity, validate_inference, validate_projection, validate_projection_transition, validate_proposal, validate_revision, validate_snapshot
 
 FIXTURES = json.loads((Path(__file__).parents[3] / "contracts/studio-v1/fixtures/studio-v1-contract-fixtures.json").read_text(encoding="utf-8"))
+
+def test_source_backed_author_ingestion_payload_validates_with_python_contract():
+    frozen = {"schemaVersion":"studio-author-reference/v1","nodeId":"research-reference:anchor-1","targetType":"NODE","targetId":"NODE:event-7","title":"Event seven","summary":"Exact governed event representation.","section":"Analysis","sourceIdentity":"NODE:event-7","sourceKind":"GRAPH","sourceWorkspace":"MANIFOLD","sourceRevisionId":"graph-revision-12","collectedAt":"2026-09-11T18:00:00.000Z","locator":"graph-revision-12","classification":"CANONICAL","capturedRepresentation":{"schemaVersion":"research-graph/v1","mediaType":"application/json","value":{"graph":{"type":"NODE","id":"event-7"},"graphRevision":12}}}
+    content = canonical_serialize(frozen)
+    source = {"anchorId":"anchor-1","classification":"CANONICAL","availability":"AVAILABLE","provenance":"MANIFOLD:GRAPH:NODE:event-7","sensitivity":{"includeInAnalysis":True,"includeInArtifact":True,"citePublicly":False,"anonymize":False,"restrictedAppendix":False,"excludeFromAiProcessing":True},"representations":[{"representationId":"anchor-1:representation","mediaType":"application/json","schemaVersion":"studio-author-reference/v1","content":content,"contentHash":canonical_sha256(content)}]}
+    domain = {"snapshotId":"artifact.snapshot-r4:anchor-1","investigationId":"inv:i10","capturedAt":"2026-09-11T18:00:00.000Z","selectionScope":"EXPLICIT_SELECTION","selectedAnchorIds":["anchor-1"],"inboxMembershipBasis":"EXPLICIT_STABLE_IDENTITIES","sources":[source],"immutableStatus":"FROZEN"}
+    snapshot = validate_snapshot({**domain,"snapshotHash":canonical_sha256(domain)})
+    semantic = SemanticDocument.model_validate({"documentId":"author:i10","schemaVersion":"studio-author-semantic/v1","title":"I10 report","nodeOrder":["research-reference:anchor-1"],"nodes":[{"id":"research-reference:anchor-1","type":"CLAIM","text":"Exact governed event representation.","sourceSnapshotIds":[snapshot.snapshotId],"supportState":"SUPPORTED"}],"citations":[{"citationId":"citation:research-reference:anchor-1","institutionalAuthor":"MANIFOLD","title":"Event seven","pagesOrLocator":"graph-revision-12","sourceSnapshotId":snapshot.snapshotId,"completeness":"COMPLETE","missingRequiredFields":[]}],"citationStyle":{"style":"APA","styleVersion":"studio-v1-apa/1","locale":"en-US"}})
+    assert semantic.nodes[0].sourceSnapshotIds == (snapshot.snapshotId,)
+    assert semantic.citations[0].sourceSnapshotId == snapshot.snapshotId
 
 def test_exact_vocabulary_and_cross_language_golden_hashes():
     vocabulary = FIXTURES["vocabulary"]

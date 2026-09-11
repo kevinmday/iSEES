@@ -30,6 +30,10 @@
 .studio-research-card__warning, .studio-research-inbox__disabled-reason { padding:6px 10px; background:#422006; color:#fcd34d; font-size:10px; line-height:1.35; }
 .studio-research-inbox__detail { flex:0 0 auto; display:grid; gap:8px; padding:10px 12px 12px; border-top:1px solid #334155; background:#0f172a; }
 .studio-research-inbox__selected { display:grid; gap:2px; min-width:0; } .studio-research-inbox__selected span, .studio-research-inbox__selected-empty { color:#64748b; font-size:10px; } .studio-research-inbox__selected strong { overflow:hidden; color:#e2e8f0; text-overflow:ellipsis; white-space:nowrap; }
+.studio-research-inbox__selected small, .studio-research-inbox__selected code { color:#cbd5e1; overflow-wrap:anywhere; white-space:normal; }
+.studio-research-inbox__destination { display:grid; gap:5px; color:#cbd5e1; font-size:10px; font-weight:700; }
+.studio-research-inbox__destination select { min-height:34px; border:1px solid #475569; border-radius:4px; background:#111c2e; color:#f1f5f9; }
+.studio-research-inbox__duplicate { padding:7px 9px; border-left:3px solid #f59e0b; background:#422006; color:#fde68a; font-size:10px; }
 .studio-research-inbox__actions { display:flex; gap:6px; } .studio-research-inbox__actions button { flex:1; padding:5px; border:1px solid #334155; border-radius:4px; background:#111c2e; color:#cbd5e1; cursor:pointer; }
 .studio-research-inbox__insert { min-height:34px; border:1px solid #2563eb; border-radius:5px; background:#1d4ed8; color:white; font-weight:800; cursor:pointer; }
 .studio-research-inbox__insert:disabled { border-color:#334155; background:#1e293b; color:#64748b; cursor:not-allowed; }

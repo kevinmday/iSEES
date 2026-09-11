@@ -335,7 +335,8 @@ def list_author_revisions(
         _metadata(item) for item in facade.list_revisions(owner, investigation_id, artifact_id)])
 
 
-@router.get("/{artifact_id}/revisions/{revision_id}", response_model=RevisionResponse)
+@router.get("/{artifact_id}/revisions/{revision_id}", response_model=RevisionResponse,
+            response_model_exclude_none=True)
 def get_author_revision(
     investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
     owner: str = Depends(owned_read_principal),
@@ -349,6 +350,21 @@ def get_author_revision(
                                    "Studio V1 revision was not found", 404) from exc
         raise
     return RevisionResponse(artifactId=artifact_id, revision=revision)
+
+
+@router.get("/{artifact_id}/revisions/{revision_id}/source-snapshots/{snapshot_id}",
+            response_model=FrozenResearchSourceSnapshot)
+def get_revision_source_snapshot(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    snapshot_id: IdentityPath,
+    owner: str = Depends(owned_read_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    revision = facade.get_revision(owner, investigation_id, artifact_id, revision_id)
+    if snapshot_id not in {reference.snapshotId for reference in revision.sourceSnapshots}:
+        raise StudioV1ApiError("STUDIO_V1_SNAPSHOT_NOT_FOUND",
+                               "Studio V1 source snapshot was not found", 404)
+    return facade.get_frozen_snapshot(owner, investigation_id, snapshot_id)
 
 
 @router.get("/{artifact_id}/revisions/{revision_id}/projections",

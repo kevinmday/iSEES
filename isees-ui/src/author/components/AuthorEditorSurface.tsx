@@ -3,8 +3,9 @@ import { AuthorNodeTypes, type AuthorNode, type ObservationNode, type ReferenceN
 import { useAuthorDocument, useAuthorDocumentRuntime } from "../runtime/AuthorDocumentRuntimeContext";
 import { useActiveInvestigation } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import "./AuthorEditorSurface.css";
+import { AUTHOR_SECTIONS } from "../model/AuthorSections";
 
-const SECTIONS = ["Abstract", "Research Question", "Hypothesis / H0 / H1", "Method", "Evidence", "Analysis", "Figures / Tables", "Conclusion", "References / Footnotes"] as const;
+const SECTIONS = AUTHOR_SECTIONS;
 function nodeKind(node: AuthorNode): string {
   if (node.type === AuthorNodeTypes.REFERENCE) return "SOURCE-BACKED EVIDENCE";
   if (node.type === AuthorNodeTypes.IMAGE) return "FIGURE";
@@ -16,6 +17,7 @@ function nodeKind(node: AuthorNode): string {
 }
 function sectionFor(node: AuthorNode): typeof SECTIONS[number] {
   if ((node.type === AuthorNodeTypes.PARAGRAPH || node.type === AuthorNodeTypes.HEADING) && "section" in node && SECTIONS.includes(node.section as typeof SECTIONS[number])) return node.section as typeof SECTIONS[number];
+  if (node.type === AuthorNodeTypes.REFERENCE && SECTIONS.includes((node as ReferenceNode).section as typeof SECTIONS[number])) return (node as ReferenceNode).section as typeof SECTIONS[number];
   if (node.type === AuthorNodeTypes.REFERENCE) return "Evidence";
   if (node.type === AuthorNodeTypes.IMAGE || node.type === AuthorNodeTypes.TABLE || node.type === AuthorNodeTypes.CUSTOM) return "Figures / Tables";
   if (node.type === AuthorNodeTypes.CITATION) return "References / Footnotes";
@@ -73,12 +75,12 @@ export default function AuthorEditorSurface() {
             const editableText = textOf(node);
             return <article ref={selected ? selectedRef : undefined} key={node.id} className={`author-block author-block--${reference ? "source" : "authored"}${selected ? " is-selected" : ""}`}>
               <div className="author-block__topline"><span>{nodeKind(node)}</span><code>{node.id}</code></div>
-              {reference && <><h3>{reference.title}</h3>{reference.summary && <p>{reference.summary}</p>}</>}
+              {reference && <><h3>{reference.title}</h3>{reference.summary && <p>{reference.summary}</p>}<div className="author-block__relations">Source {reference.targetType} · citation [{reference.researchSource?.anchorId}] · section {section}</div></>}
               {editableText !== undefined && <label className="author-block__editor"><span>Edit {nodeKind(node).toLowerCase()}</span><textarea aria-label={`Edit ${nodeKind(node).toLowerCase()}`} value={editableText} onFocus={() => setSelectedNodeId(node.id)} onChange={event => runtime.updateNodeText(node.id, event.target.value)} /></label>}
               {node.type === AuthorNodeTypes.OBSERVATION && <div className="author-block__relations">Related references: {(node as ObservationNode).relatedReferences.length}</div>}
               {node.type === AuthorNodeTypes.IMAGE && <div className="author-block__placeholder">Figure · {String((node as AuthorNode & { source: string }).source)}</div>}
               {node.type === AuthorNodeTypes.TABLE && <div className="author-block__placeholder">Table · {(node as AuthorNode & { rows: number }).rows} rows</div>}
-              {research && <details className="author-provenance"><summary>Inspect exact provenance</summary><dl><dt>Source identity</dt><dd>{research.sourceIdentity}</dd><dt>Workspace / kind</dt><dd>{research.sourceWorkspace} · {research.sourceKind}</dd><dt>Investigation</dt><dd>{research.sourceInvestigationId}</dd><dt>Projection</dt><dd>{research.sourceProjectionId ?? "Not supplied"}</dd><dt>Classification</dt><dd>{research.classification}</dd><dt>Insertability</dt><dd>{research.insertability.state} · {research.insertability.reason}</dd><dt>Captured representation</dt><dd><pre>{JSON.stringify(research.capturedRepresentation, null, 2)}</pre></dd></dl></details>}
+              {research && <details className="author-provenance"><summary>Inspect exact provenance and citation</summary><dl><dt>Source identity</dt><dd>{research.sourceIdentity}</dd><dt>Workspace / kind</dt><dd>{research.sourceWorkspace} · {research.sourceKind}</dd><dt>Investigation</dt><dd>{research.sourceInvestigationId}</dd><dt>Collected</dt><dd>{research.collectedAt.toISOString()}</dd><dt>Locator</dt><dd>{research.locator ?? "No locator supplied"}</dd><dt>Projection</dt><dd>{research.sourceProjectionId ?? "Not supplied"}</dd><dt>Classification</dt><dd>{research.classification}</dd><dt>Insertability</dt><dd>{research.insertability.state} · {research.insertability.reason}</dd><dt>Captured representation</dt><dd><pre>{JSON.stringify(research.capturedRepresentation, null, 2)}</pre></dd></dl></details>}
               <div className="author-block__actions"><button disabled={document.nodes.indexOf(node) === 0} aria-label={`Move ${node.id} up`} onClick={() => runtime.moveNode(node.id, "UP")}>Move up</button><button disabled={document.nodes.indexOf(node) === document.nodes.length - 1} aria-label={`Move ${node.id} down`} onClick={() => runtime.moveNode(node.id, "DOWN")}>Move down</button><button className="is-remove" aria-label={`Remove ${node.id} from draft`} onClick={() => { runtime.removeNode(node.id); setSelectedNodeId(undefined); }}>Remove from draft</button></div>
             </article>;
           })}

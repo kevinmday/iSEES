@@ -10,12 +10,14 @@ from typing import Callable
 from .errors import (
     DuplicateInvestigationId,
     IdempotencyKeyReuse,
+    InvestigationNotFound,
     InvalidStoredInvestigation,
     RepositoryUnavailable,
+    RevisionConflict,
 )
 from .models import AdoptionReceipt, Investigation, InvestigationAggregate, InvestigationLifecycle
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def _sql_statements(script: str):
@@ -68,7 +70,10 @@ class SQLiteInvestigationRepository:
         connection.execute("PRAGMA busy_timeout=5000")
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA synchronous=FULL")
-        connection.execute("PRAGMA journal_mode=WAL")
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError as error:
+            if "locked" not in str(error).lower(): raise
         return connection
 
     def _migrate(self) -> None:
@@ -402,3 +407,33 @@ class SQLiteInvestigationRepository:
                 return self._from_row(parent), self._aggregate_from_row(aggregate)
         except sqlite3.Error as error:
             raise RepositoryUnavailable("Investigation repository is unavailable") from error
+
+    def import_canon_event_owned(self, *, investigation_id, owner_principal_id,
+                                 expected_revision, idempotency_key, command_hash, payload):
+        occurred_at = _utc_text(self.clock())
+        canonical_json = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                replay = connection.execute("SELECT command_hash FROM investigation_idempotency WHERE owner_principal_id=? AND operation='IMPORT_CANON' AND idempotency_key=?", (owner_principal_id, idempotency_key)).fetchone()
+                if replay:
+                    if replay["command_hash"] != command_hash: raise IdempotencyKeyReuse("Idempotency key was reused with different command content")
+                    parent = connection.execute("SELECT * FROM investigation WHERE investigation_id=? AND owner_principal_id=?", (investigation_id, owner_principal_id)).fetchone(); aggregate = connection.execute("SELECT * FROM investigation_aggregate WHERE investigation_id=?", (investigation_id,)).fetchone()
+                    if not parent or not aggregate: raise InvalidStoredInvestigation("Stored import result is invalid")
+                    connection.commit(); return self._from_row(parent), self._aggregate_from_row(aggregate), True, False
+                parent = connection.execute("SELECT * FROM investigation WHERE investigation_id=? AND owner_principal_id=?", (investigation_id, owner_principal_id)).fetchone()
+                if not parent: raise InvestigationNotFound("Investigation was not found")
+                aggregate = connection.execute("SELECT * FROM investigation_aggregate WHERE investigation_id=?", (investigation_id,)).fetchone()
+                if not aggregate: raise InvalidStoredInvestigation("Investigation aggregate is unavailable")
+                if aggregate["revision"] != expected_revision: raise RevisionConflict("Expected investigation revision is stale")
+                existing = json.loads(aggregate["payload_json"]) if aggregate["payload_json"] else None
+                duplicate = bool(existing and payload["viewState"]["focusedEventId"] in [n.get("canonicalEventId") for n in existing["workspace"]["nodes"]])
+                if duplicate: connection.commit(); return self._from_row(parent), self._aggregate_from_row(aggregate), False, True
+                revision = expected_revision + 1
+                connection.execute("UPDATE investigation_aggregate SET state='ADOPTED',revision=?,payload_json=? WHERE investigation_id=?", (revision, canonical_json, investigation_id))
+                connection.execute("UPDATE investigation SET modified_at=?,version=version+1 WHERE investigation_id=?", (occurred_at, investigation_id))
+                connection.execute("INSERT INTO investigation_idempotency VALUES (?,?,?,?,?,?)", (owner_principal_id, "IMPORT_CANON", idempotency_key, command_hash, investigation_id, occurred_at))
+                connection.execute("INSERT INTO account_active_investigation VALUES (?,?,?) ON CONFLICT(owner_principal_id) DO UPDATE SET investigation_id=excluded.investigation_id,activated_at=excluded.activated_at", (owner_principal_id, investigation_id, occurred_at))
+                parent = connection.execute("SELECT * FROM investigation WHERE investigation_id=?", (investigation_id,)).fetchone(); aggregate = connection.execute("SELECT * FROM investigation_aggregate WHERE investigation_id=?", (investigation_id,)).fetchone(); connection.commit()
+                return self._from_row(parent), self._aggregate_from_row(aggregate), False, False
+        except sqlite3.Error as error: raise RepositoryUnavailable("Investigation repository is unavailable") from error

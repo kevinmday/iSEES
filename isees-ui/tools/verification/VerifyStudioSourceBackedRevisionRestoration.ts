@@ -1,0 +1,42 @@
+import assert from "node:assert/strict";
+import { AuthorDocumentRuntime } from "../../src/author/runtime/AuthorDocumentRuntime.ts";
+import { AuthorDocumentStatuses, AuthorDocumentTypes } from "../../src/author/model/AuthorDocumentTypes.ts";
+import { RESEARCH_ANCHOR_SCHEMA_VERSION, type ResearchAnchor } from "../../src/research/researchBridgeTypes.ts";
+import { canonicalSha256 } from "../../src/studio/contracts/StudioCanonicalSerialization.ts";
+import { createAuthorReferenceFromResearchAnchor } from "../../src/studio/sources/ResearchAnchorAuthorInsertion.ts";
+import { createStudioV1AuthorApiClient } from "../../src/studio/v1/api/StudioV1AuthorApiClient.ts";
+import { decodeRevisionDetail } from "../../src/studio/v1/api/StudioV1AuthorDecoders.ts";
+import { adaptAuthorDocument } from "../../src/studio/v1/runtime/StudioV1AuthorAdapter.ts";
+import { StudioV1SaveOrchestrator } from "../../src/studio/v1/runtime/StudioV1SaveOrchestrator.ts";
+
+const investigationId="inv:i10b", artifactId="artifact-i10b", revisionId="artifact-i10b.r4", ownerPrincipalId="principal:i10b";
+const capturedAt="2026-09-11T20:00:00.000Z", createdAt="2026-09-11T18:00:00.000Z";
+const anchor:ResearchAnchor=Object.freeze({schemaVersion:RESEARCH_ANCHOR_SCHEMA_VERSION,kind:"GRAPH",anchorId:"research-v2:inv%3Ai10b:GRAPH:NODE%3Asystem%3Aevent%3AE-TICTAC-2004",investigationId,sourceWorkspace:"MANIFOLD",sourceIdentity:"NODE:system:event:E-TICTAC-2004",collectedAt:new Date(capturedAt),createdAt:new Date(createdAt),classification:"CANONICAL",sourceRevisionId:"graph-revision-4",display:{title:"E-TICTAC-2004",summary:"Exact captured canonical event representation."},insertability:{state:"INSERTABLE",reason:"Canonical NODE identity and representation are available."},capturedRepresentation:{schemaVersion:"research-graph/v1",mediaType:"application/json",value:{graph:{type:"NODE",id:"system:event:E-TICTAC-2004"},graphRevision:4}},pinned:false,graph:{type:"NODE",id:"system:event:E-TICTAC-2004"},graphRevision:4});
+const source=createAuthorReferenceFromResearchAnchor(anchor,`research-reference:${anchor.anchorId}`,"Evidence",new Date(capturedAt));
+const document={identity:{id:"author:i10b",createdAt:new Date(createdAt)},metadata:{title:"I10B report",description:"",author:"",modifiedAt:new Date(capturedAt),version:4},type:AuthorDocumentTypes.DOCUMENT,status:AuthorDocumentStatuses.SAVED,nodes:[{id:"authored-1",type:"PARAGRAPH" as const,text:"Researcher-authored context.",section:"Analysis"},source]};
+const adapted=adaptAuthorDocument(document,investigationId,{snapshotId:"artifact-i10b.snapshot-r4",capturedAt});
+const revision={artifactId,revisionId,revisionNumber:4,parentRevisionId:"artifact-i10b.r3",semanticContent:adapted.semanticContent,contentHash:canonicalSha256(adapted.semanticContent),sourceSnapshots:adapted.snapshots.map(snapshot=>({snapshotId:snapshot.snapshotId,snapshotHash:snapshot.snapshotHash})),profile:"INVESTIGATION_REPORT",profileVersion:"investigation-report/v1",createdAt:capturedAt,authorPrincipalId:ownerPrincipalId,immutableStatus:"IMMUTABLE_SAVED_REVISION"};
+const revisionWire={artifactId,revision};
+
+assert.equal(decodeRevisionDetail(revisionWire).revision.contentHash,revision.contentHash,"the canonical revision-4 API shape passes the real decoder");
+const nullExpanded=structuredClone(revisionWire) as typeof revisionWire & {revision:{semanticContent:{citations:Array<Record<string,unknown>>}}};
+nullExpanded.revision.semanticContent.citations[0]!.authors=null;
+assert.throws(()=>decodeRevisionDetail(nullExpanded),/contentHash mismatch/,"wire expansion must not silently change the hashed semantic contract");
+const malformed=structuredClone(revisionWire) as typeof revisionWire & {revision:{semanticContent:{citations:Array<Record<string,unknown>>}}};
+malformed.revision.semanticContent.citations[0]!.fabricatedAuthority="forbidden";
+malformed.revision.contentHash=canonicalSha256(malformed.revision.semanticContent);
+assert.throws(()=>decodeRevisionDetail(malformed),/unknown field/,"malformed citation contracts remain fail-closed even with a matching hash");
+
+const calls:string[]=[];
+const client=createStudioV1AuthorApiClient({baseUrl:"https://contract.test",readCsrfToken:()=>"csrf",fetch:async(input)=>{const url=String(input);calls.push(url);let body:unknown;if(url.endsWith("/artifacts"))body={items:[{artifactId,investigationId,ownerPrincipalId,profile:"INVESTIGATION_REPORT",lifecycleClassification:"CANDIDATE_KNOWLEDGE",createdAt,currentRevisionId:revisionId,currentRevisionNumber:4,contentHash:revision.contentHash,savedAt:capturedAt}]};else if(url.includes("/source-snapshots/"))body=adapted.snapshots[0];else if(url.endsWith("/projections"))body={artifactId,revisionId,items:[]};else body=revisionWire;return new Response(JSON.stringify(body),{status:200,headers:{"Content-Type":"application/json"}})}});
+const runtime=new AuthorDocumentRuntime();runtime.activateInvestigation(investigationId);
+const orchestrator=new StudioV1SaveOrchestrator(client);
+await orchestrator.discover(runtime,investigationId,ownerPrincipalId);
+assert.equal(orchestrator.getState().status,"SAVED");assert.equal(orchestrator.getState().revisionNumber,4);assert.equal(runtime.isDirty(),false);
+assert.equal(calls.filter(url=>url.includes("/source-snapshots/")).length,1,"hydration uses the authenticated revision-scoped snapshot route");
+const restored=runtime.getActiveDocument()!;assert.equal(restored.nodes[0]?.type,"PARAGRAPH","authored blocks survive restoration");
+const restoredSource=restored.nodes[1]!;assert.equal(restoredSource.type,"REFERENCE");assert.equal("section" in restoredSource&&restoredSource.section,"Evidence");
+assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.sourceIdentity,anchor.sourceIdentity);assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.sourceWorkspace,"MANIFOLD");assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.sourceKind,"GRAPH");assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.sourceInvestigationId,investigationId);assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.sourceRevisionId,"graph-revision-4");assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.locator,"graph-revision-4");assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.collectedAt.toISOString(),capturedAt);assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.classification,"CANONICAL");assert.equal("researchSource" in restoredSource&&restoredSource.researchSource?.insertability.state,"INSERTABLE");assert.deepEqual("researchSource" in restoredSource&&restoredSource.researchSource?.capturedRepresentation,anchor.capturedRepresentation);
+assert.equal(runtime.insertNode(createAuthorReferenceFromResearchAnchor(anchor,"duplicate","Analysis",new Date(capturedAt))),"DUPLICATE","restored provenance preserves duplicate protection");
+assert.equal(restored.nodes.length,2);assert.equal(orchestrator.getState().headRevisionId,revisionId);
+console.log("PASS VerifyStudioSourceBackedRevisionRestoration — canonical revision-4 wire decoding, authenticated snapshot hydration, lossless authored/source-backed restoration, duplicate protection, immutable head preservation, and malformed-contract rejection verified.");

@@ -57,7 +57,9 @@ assert.equal(reference.researchSource?.sourceIdentity, evidence.sourceIdentity);
 assert.equal(reference.researchSource?.sourceWorkspace, evidence.sourceWorkspace);
 assert.equal(reference.researchSource?.sourceProjectionId, "projection:exact");
 assert.equal(JSON.stringify(runtime.getDesk()), beforeInsert, "reference creation does not mutate Research or implicitly insert another source");
-assert.match(component, /Insert into Draft/);
+assert.match(component, /Insert into \.author/);
+assert.match(component, /Destination section/);
+assert.match(component, /Duplicate insertion is blocked/);
 assert.match(component, /selected\.insertability\.state !== "INSERTABLE"/);
 
 runtime.removeAnchor(evidence.anchorId);

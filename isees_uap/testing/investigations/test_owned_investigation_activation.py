@@ -52,3 +52,15 @@ def test_foreign_and_absent_are_non_disclosing_and_revoked_fails(tmp_path):
         assert logout.status_code == 200
         assert a.get(f"/api/v1/investigations/{investigation_id}/activation").status_code == 401
         second.close()
+
+def test_explicit_canon_import_preserves_owned_identity_replays_and_conflicts(tmp_path):
+    with authenticated_route_session(tmp_path, investigation_ids=()) as session:
+        investigation_id = create_owned(session); url=f"/api/v1/investigations/{investigation_id}/canon-events"
+        payload={"investigationId":investigation_id,"eventId":"E-TICTAC-2004","eventTitle":"Nimitz Tic Tac Encounter","expectedAggregateRevision":0,"idempotencyKey":"import-one","workspace":{"sourceWorkspaceId":f"workspace:{investigation_id}","nodes":[{"id":"system:event:E-TICTAC-2004","kind":"CANONICAL_EVENT","canonicalEventId":"E-TICTAC-2004","title":"Nimitz Tic Tac Encounter"}],"edges":[]},"viewState":{"activeMode":"OVERVIEW","focusedEventId":"E-TICTAC-2004","activeLayers":[],"temporalContext":None,"investigativeScale":None}}
+        result=session.client.post(url,json=payload,headers=session.csrf_headers); assert result.status_code==200
+        body=result.json(); assert body["investigationId"]==investigation_id and body["aggregateRevision"]==1 and not body["duplicate"]
+        assert body["activation"]["title"]=="Empty Field Study" and body["activation"]["operationalState"]["viewState"]["focusedEventId"]=="E-TICTAC-2004"
+        replay=session.client.post(url,json=payload,headers=session.csrf_headers).json(); assert replay["replayed"] and replay["aggregateRevision"]==1
+        stale={**payload,"idempotencyKey":"stale","eventId":"E-ROOSEVELT-2015"}; stale["workspace"]={**payload["workspace"],"nodes":[{"id":"system:event:E-ROOSEVELT-2015","kind":"CANONICAL_EVENT","canonicalEventId":"E-ROOSEVELT-2015","title":"Roosevelt"}]}; stale["viewState"]={**payload["viewState"],"focusedEventId":"E-ROOSEVELT-2015"}
+        assert session.client.post(url,json=stale,headers=session.csrf_headers).status_code==409
+        restored=session.get(f"/api/v1/investigations/{investigation_id}/activation").json(); assert restored["aggregateRevision"]==1 and restored["investigationId"]==investigation_id

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from copy import deepcopy
 from collections.abc import Callable
 
 from .errors import (
@@ -85,3 +86,12 @@ class InvestigationLibraryService:
 
     def get_active_owned(self, principal_id: str):
         return self.repository.get_active_owned(owner_principal_id=principal_id)
+
+    def import_canon_event_owned(self, *, investigation_id: str, principal_id: str,
+                                 expected_revision: int, idempotency_key: str, payload: dict):
+        command_domain = deepcopy(payload); command_domain["source"].pop("importedAt", None)
+        canonical = json.dumps(command_domain, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return self.repository.import_canon_event_owned(
+            investigation_id=investigation_id, owner_principal_id=principal_id,
+            expected_revision=expected_revision, idempotency_key=idempotency_key,
+            command_hash=hashlib.sha256(canonical.encode("utf-8")).hexdigest(), payload=payload)

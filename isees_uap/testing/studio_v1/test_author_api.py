@@ -81,8 +81,8 @@ def test_exact_route_surface_and_no_worker_or_publication_mutations(api):
     application, _, _, _ = api
     paths = application.openapi()["paths"]
     studio = {path: set(methods) for path, methods in paths.items() if "/studio-v1/" in path}
-    assert len(studio) == 5
-    assert sum(len(methods) for methods in studio.values()) == 7
+    assert len(studio) == 6
+    assert sum(len(methods) for methods in studio.values()) == 8
     assert all(not any(word in path for word in ("claim", "complete", "fail", "retry", "publish"))
                for path in studio)
 
@@ -109,6 +109,13 @@ def test_owner_create_read_list_revision_and_safe_projections(api):
     assert [x["revisionNumber"] for x in listing["items"]] == [1]
     revision = client.get(artifact + "/revisions/" + command.revision.revisionId)
     assert revision.status_code == 200 and revision.json()["revision"]["contentHash"] == command.revision.contentHash
+    semantic = revision.json()["revision"]["semanticContent"]
+    assert canonical_sha256(semantic) == command.revision.contentHash
+    assert all(value is not None for citation in semantic["citations"] for value in citation.values())
+    snapshot_url = artifact + "/revisions/" + command.revision.revisionId + "/source-snapshots/"
+    snapshot = client.get(snapshot_url + command.snapshots[0].snapshotId)
+    assert snapshot.status_code == 200 and snapshot.json()["snapshotHash"] == command.snapshots[0].snapshotHash
+    assert client.get(snapshot_url + "not-linked").status_code == 404
     projections = client.get(artifact + "/revisions/" + command.revision.revisionId + "/projections")
     assert projections.status_code == 200
     forbidden = ("lease", "worker", "attempt", "job")

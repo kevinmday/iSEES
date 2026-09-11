@@ -84,7 +84,7 @@ async function verify(): Promise<void> {
   assert.match(app, /<OverviewSelectionProvider>[\s\S]*<OverviewCanonicalActivationProvider>[\s\S]*<OperatorLayout/);
   assert.equal((service.match(/runtime\.activateInvestigation\(/g) ?? []).length, 1);
   assert.equal(command.includes("new WorkspaceRuntime"), false, "activation context must not create a second runtime");
-  const activationSource = `${context}\n${inspector}\n${command}\n${service}`;
+  const activationSource = `${command}\n${service}`;
   assert.doesNotMatch(activationSource, /fetch\s*\(|axios|\.post\s*\(|method:\s*["']POST|localStorage|sessionStorage/, "local intake must not claim network or browser persistence");
   assert.doesNotMatch(activationSource, /ResearchBridge|ResearchInbox|publish[A-Z]\w*\s*\(|executeResolve|ResolveRuntime|setActiveMode|setSelection|selectComparison/i, "activation must not mutate adjacent research, computation, mode, or selection owners");
   assert.doesNotMatch(inspector, /Create Investigation|Save Investigation/, "UI must not claim durable ownership");

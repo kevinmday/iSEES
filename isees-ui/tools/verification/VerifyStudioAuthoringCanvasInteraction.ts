@@ -16,7 +16,7 @@ assert.match(surface, /<textarea autoFocus/, "section activation opens a real la
 assert.doesNotMatch(surface, /contentEditable/, "canvas does not introduce contentEditable");
 assert.match(styles, /\.author-paper[^}]*color:\s*#172235/, "ivory paper establishes dark foreground text");
 assert.match(styles, /:focus-visible[^}]*outline:\s*2px solid #2563eb/, "controls have visible focus treatment");
-assert.match(inspector, /LEGACY LIFECYCLE UNAVAILABLE/, "legacy lifecycle failure is not presented as Studio V1 authority");
+assert.match(inspector, /Legacy lifecycle\/artifact service \(secondary\)/, "legacy lifecycle failure is not presented as Studio V1 authority");
 assert.match(inspector + status, /Studio V1 author service/, "Studio V1 service status is separately identified");
 
 const runtime = new AuthorDocumentRuntime();

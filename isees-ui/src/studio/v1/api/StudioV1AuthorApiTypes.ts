@@ -1,6 +1,6 @@
 import type { ArtifactIdentity, AuthorRevision, FrozenResearchSourceSnapshot, PROJECTION_FORMATS, PROJECTION_STATES } from "../../contracts/StudioV1Contract.ts";
 
-export type StudioV1AuthorOperation = "createArtifact" | "saveRevision" | "discoverArtifacts" | "getArtifact" | "listRevisions" | "getRevision" | "listProjectionStatuses";
+export type StudioV1AuthorOperation = "createArtifact" | "saveRevision" | "discoverArtifacts" | "getArtifact" | "listRevisions" | "getRevision" | "getSourceSnapshot" | "listProjectionStatuses";
 export type StudioV1AuthorErrorCode = "UNAUTHENTICATED" | "CSRF_REJECTED" | "INVESTIGATION_NOT_FOUND" | "ARTIFACT_NOT_FOUND" | "REVISION_NOT_FOUND" | "STUDIO_V1_UNAVAILABLE" | "CONTRACT_INVALID" | "ROUTE_PAYLOAD_MISMATCH" | "HASH_MISMATCH" | "EXPECTED_HEAD_CONFLICT" | "IDEMPOTENCY_KEY_REUSE" | "PERSISTENCE_UNAVAILABLE" | "MALFORMED_RESPONSE" | "NETWORK_FAILURE" | "ABORTED" | "SAFE_INTERNAL_FAILURE";
 export type StudioV1DecodeFailure = "DISCOVERY_DECODE_FAILED" | "REVISION_DECODE_FAILED" | "CONTENT_HASH_MISMATCH";
 

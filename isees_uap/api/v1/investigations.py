@@ -222,6 +222,23 @@ class AdoptionResponse(BaseModel):
     idempotencyDisposition: Literal["CREATED", "REPLAYED"]
     activation: InvestigationActivationResponse
 
+class ImportCanonEventCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    investigationId: str = Field(min_length=1, max_length=200)
+    eventId: str = Field(min_length=1, max_length=200)
+    eventTitle: str = Field(min_length=1, max_length=500)
+    expectedAggregateRevision: int = Field(ge=0)
+    idempotencyKey: str = Field(min_length=1, max_length=200)
+    workspace: WorkspaceState
+    viewState: ViewState
+
+class ImportCanonEventResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    investigationId: str; aggregateRevision: int; replayed: bool; duplicate: bool
+    activation: InvestigationActivationResponse
+
+CANON_EVENT_IDS = frozenset({"E-TICTAC-2004", "E-ROOSEVELT-2015", "E-RENDLESHAM-1980"})
+
 
 @lru_cache(maxsize=1)
 def repository() -> SQLiteInvestigationRepository:
@@ -384,6 +401,27 @@ def get_investigation_activation(
                           {"kind": "ADOPTED", "workspaceId": f"workspace:{item.investigation_id}", **aggregate.payload}),
         freshnessToken=f"{item.version}:{aggregate.revision}",
     )
+
+@router.post("/{investigation_id}/canon-events", response_model=ImportCanonEventResponse)
+def import_canon_event(investigation_id: InvestigationPath, payload: object = Body(...),
+                       principal: AuthenticatedPrincipal = Depends(require_csrf_protected_principal),
+                       svc: InvestigationLibraryService = Depends(service)):
+    try:
+        command = ImportCanonEventCommand.model_validate(payload)
+        if command.investigationId != investigation_id or command.eventId not in CANON_EVENT_IDS:
+            raise ValueError("route or canonical event identity is invalid")
+        canonical_nodes = [node for node in command.workspace.nodes if node.kind == "CANONICAL_EVENT" and node.canonicalEventId == command.eventId]
+        if len(canonical_nodes) != 1 or command.viewState.focusedEventId != command.eventId:
+            raise ValueError("focused canonical event is not represented exactly once")
+    except (ValidationError, ValueError) as error:
+        raise InvalidInvestigationInput("Canon event import is invalid") from error
+    owned = svc.get_owned(investigation_id, principal.account_id)
+    now = datetime.now().astimezone().isoformat()
+    normalized = {"schemaVersion":"canon-event-import/v1","source":{"kind":"SYSTEM_CANON","eventId":command.eventId,"importedAt":now},"title":owned.title,"objective":owned.objective,"workspace":command.workspace.model_dump(mode="json"),"researchInbox":[],"artifacts":[],"viewState":command.viewState.model_dump(mode="json")}
+    item, aggregate, replayed, duplicate = svc.import_canon_event_owned(investigation_id=investigation_id, principal_id=principal.account_id, expected_revision=command.expectedAggregateRevision, idempotency_key=command.idempotencyKey, payload=normalized)
+    detail = _detail_response(item, aggregate).model_dump()
+    activation = InvestigationActivationResponse(**detail, activationSchemaVersion="owned-investigation-activation/v1", access={"kind":"RESEARCHER_OWNED"}, operationalState={"kind":"ADOPTED","workspaceId":f"workspace:{item.investigation_id}",**aggregate.payload}, freshnessToken=f"{item.version}:{aggregate.revision}")
+    return ImportCanonEventResponse(investigationId=item.investigation_id, aggregateRevision=aggregate.revision, replayed=replayed, duplicate=duplicate, activation=activation)
 
 
 def investigation_error_handler(
