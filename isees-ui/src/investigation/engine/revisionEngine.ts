@@ -16,7 +16,7 @@ import type {
   Investigation,
   InvestigationRevision,
   ManifoldRevision,
-} from "../investigationTypes";
+} from "../investigationTypes.ts";
 
 function requireRevisionHistoryCoherence(
   investigation: Investigation,

@@ -404,6 +404,12 @@ export interface ResolveExecutionRecord {
   input:
     ResolveComputationInput;
 
+  /** Operator endpoint intent captured as runtime lineage, outside deterministic input. */
+  commandContext?: Readonly<{
+    focusedKnowledgeObjectId: string;
+    comparisonKnowledgeObjectId?: string;
+  }>;
+
   // ----------------------------------------------------------
   // Completed computation result
   //
@@ -413,6 +419,10 @@ export interface ResolveExecutionRecord {
 
   result?:
     ResolveComputationResult;
+
+  /** Exact diagnostic retained by the authoritative runtime for failed execution. */
+  failureReason?:
+    string;
 
 }
 

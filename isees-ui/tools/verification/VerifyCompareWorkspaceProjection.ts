@@ -152,10 +152,11 @@ for (const forbidden of [
   "setNodes",
   "setEdges",
   "executeResolve",
-  ".execute(",
 ]) {
   assertExcludes(compareWorkspace, forbidden, `CompareWorkspace excludes forbidden mutation/Resolve dependency ${forbidden}`);
 }
+assertIncludes(compareWorkspace, "useResolveExecutionCommand", "guest Resolve-on-MANIFOLD uses the governed Resolve command boundary");
+assertIncludes(compareWorkspace, "WorkspaceSelectionKind.COMPARISON_TARGET", "guest Canon target is WorkspaceRuntime-owned");
 
 console.log("");
 console.log(`All ${passCount} COMPARE Workspace Projection invariants passed.`);

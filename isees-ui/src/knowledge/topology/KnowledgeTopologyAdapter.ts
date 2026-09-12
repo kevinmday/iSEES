@@ -43,13 +43,13 @@ import type {
   GraphRelationshipType,
   GraphStatistics,
   InvestigationGraph,
-} from "../../manifold/graphTypes";
+} from "../../manifold/graphTypes.ts";
 
 import type {
   KnowledgeTopology,
   KnowledgeTopologyEdge,
   KnowledgeTopologyNode,
-} from "./KnowledgeTopologyTypes";
+} from "./KnowledgeTopologyTypes.ts";
 
 // ============================================================
 // SUPPORTED MANIFOLD NODE TYPES

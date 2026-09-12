@@ -47,6 +47,7 @@ import type {
   WorkspaceComputationalConfiguration,
   WorkspaceMode,
   WorkspaceLayoutMode,
+  WorkspaceSelection,
 } from "../runtime/WorkspaceRuntimeTypes";
 
 import type {
@@ -96,6 +97,9 @@ export interface PersistedGuestWorkspaceOperatorState {
 
   layoutMode:
     WorkspaceLayoutMode;
+
+  /** Exact comparison target or qualified pair; neither is an accepted edge. */
+  selection?: WorkspaceSelection;
 
 }
 

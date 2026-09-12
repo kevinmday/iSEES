@@ -7,6 +7,7 @@ import type {
   Artifact
 } from "../artifacts/artifactTypes";
 import type { NativeCaseDraftContent } from "../nativeCaseDraft/NativeCaseDraftTypes";
+import type { KnowledgeObject } from "../knowledge/model/KnowledgeObject";
 
 export type WorkspaceReferenceSource =
   | "SYSTEM_CANON"
@@ -20,11 +21,12 @@ export type GuestCandidateEvent = Readonly<{
   origin: "RESEARCHER_SUPPLIED";
   lifecycle: "DRAFT";
   objectType: "EVENT";
-  operationalMaterialization: "NONE";
+  operationalMaterialization: "INITIAL_REVISION_ACTIVE";
   systemCanonIdentity: null;
   title: string;
   content: NativeCaseDraftContent;
   canonicalSerialization: string;
+  knowledgeObject: KnowledgeObject;
 }>;
 
 export type WorkspaceReference = {

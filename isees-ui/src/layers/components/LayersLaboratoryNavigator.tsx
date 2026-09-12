@@ -2,6 +2,8 @@ import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeCon
 import { WorkspaceMode, WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 import { useLayersExperimentState, LayersExperimentStatus } from "../runtime";
 import { resolveLayersNavigatorCounts } from "./LayersNavigatorCounts";
+import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
 import "./LayersSideInstruments.css";
 
 const list = (ids: readonly string[]) => ids.length ? ids.join(" · ") : "NONE";
@@ -13,6 +15,15 @@ export default function LayersLaboratoryNavigator() {
   const investigation = workspaceRuntime.getActiveInvestigation();
   const workspace = workspaceRuntime.getWorkspace();
   const selection = workspaceRuntime.getSelection();
+  const canonicalKnowledge = useKnowledgeObjects();
+  const knowledge = composeGuestOperationalKnowledgeObjects(workspace, canonicalKnowledge);
+  const focusedKnowledgeId = knowledge.find(item => item.provenance.sourceId === workspace?.focused_event_id)?.identity.id;
+  const selectedComparisonKnowledgeId = selection?.kind === WorkspaceSelectionKind.CANDIDATE
+    ? [selection.leftKnowledgeObjectId, selection.rightKnowledgeObjectId].find(id => id !== focusedKnowledgeId)
+    : selection?.kind === WorkspaceSelectionKind.COMPARISON_TARGET ? selection.knowledgeObjectId : undefined;
+  const selectedComparisonEventId = selectedComparisonKnowledgeId
+    ? knowledge.find(item => item.identity.id === selectedComparisonKnowledgeId)?.provenance.sourceId
+    : undefined;
   const latestCompleted = [...state.history].reverse().find(item => item.result?.experimentalManifoldSnapshot);
   const projection = latestCompleted?.result?.experimentalManifoldSnapshot;
   const counts = resolveLayersNavigatorCounts(state.armedLayers, state.currentExecution?.result?.experimentalManifoldSnapshot);
@@ -30,8 +41,8 @@ export default function LayersLaboratoryNavigator() {
     <Section title="Experiment subject">
       <Row label="Investigation" value={investigation ? `${investigation.name} · ${investigation.id}` : "NO ACTIVE INVESTIGATION"}/>
       <Row label="Case A" value={workspace?.focused_event_id ?? "NO FOCUSED EVENT"}/>
-      <Row label="Case B" value={state.scope?.comparisonEventId ?? "NO SELECTED COMPARISON EVENT"}/>
-      <Row label="Candidate" value={state.scope?.compareOrigin?.candidateId ?? (selection?.kind === WorkspaceSelectionKind.CANDIDATE ? selection.candidateId : "UNAVAILABLE")}/>
+      <Row label="Case B" value={selectedComparisonEventId ?? state.scope?.comparisonEventId ?? "NO SELECTED COMPARISON EVENT"}/>
+      <Row label="Candidate" value={selection?.kind === WorkspaceSelectionKind.CANDIDATE ? selection.candidateId : "UNAVAILABLE"}/>
       <button type="button" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)}>Change Pair in COMPARE</button>
     </Section>
     <Section title="Baseline configuration">

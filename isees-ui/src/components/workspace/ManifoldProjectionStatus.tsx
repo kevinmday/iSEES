@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // ============================================================
 // src/components/workspace/ManifoldProjectionStatus.tsx
 //
@@ -22,6 +23,10 @@ import {
 } from "../../workspace/runtime/WorkspaceRuntimeContext";
 
 import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence";
+import { isActiveOperationalGraphFocused } from "../../investigation/revision/OperationalGraphRevision";
+import { resolveActiveResolvePair, resolveExecutionMatchesActiveResolveContext } from "../../resolve/runtime/useResolveExecutionCommand";
+import { useKnowledgeObjectRuntime } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
+import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter";
 
 // ============================================================
 // STATUS CONTRACT
@@ -41,6 +46,7 @@ export type ManifoldProjectionStatusValue =
   ];
 
 export interface ManifoldProjectionStatusSnapshot {
+  readonly graphSynchronized: boolean;
   readonly status:
     ManifoldProjectionStatusValue;
 
@@ -230,6 +236,8 @@ ManifoldProjectionStatusSnapshot {
   const resolveState =
     useResolveRuntimeState();
 
+  const knowledgeRuntime = useKnowledgeObjectRuntime();
+
   const selectedLayers =
     workspaceRuntime.getActiveLayers();
 
@@ -245,18 +253,26 @@ ManifoldProjectionStatusSnapshot {
       resolveState.currentExecution,
     );
 
+  const activeInvestigation = workspaceRuntime.getActiveInvestigation();
+  const activeKnowledge = activeInvestigation
+    ? composeGuestOperationalKnowledgeObjects(activeInvestigation.workspace, knowledgeRuntime.getObjects())
+    : knowledgeRuntime.getObjects();
+  const activePair = resolveActiveResolvePair(workspaceRuntime, activeKnowledge);
+  const exactExecution = resolveExecutionMatchesActiveResolveContext(latestExecution, workspaceRuntime, activePair);
+  const activeRevisionGraphFocused = isActiveOperationalGraphFocused(activeInvestigation);
+
   let status:
     ManifoldProjectionStatusValue;
 
   if (
-    latestExecution !== undefined &&
+    exactExecution &&
     resolveState.status ===
     ResolveRuntimeStatus.EXECUTING
   ) {
     status =
       ManifoldProjectionStatusValue.RESOLVING;
   } else if (
-    latestExecution !== undefined &&
+    exactExecution &&
     resolveState.status ===
     ResolveRuntimeStatus.ERROR
   ) {
@@ -272,6 +288,8 @@ ManifoldProjectionStatusSnapshot {
       latestExecution.input;
 
     const synchronized =
+      activeRevisionGraphFocused &&
+      exactExecution &&
       layersEqual(
         selectedLayers,
         resolvedInput.activeLayers,
@@ -292,6 +310,7 @@ ManifoldProjectionStatusSnapshot {
   }
 
   return {
+    graphSynchronized: activeRevisionGraphFocused,
     status,
 
     title:
@@ -341,7 +360,7 @@ export default function ManifoldProjectionStatus() {
           ],
       }}
     >
-      EVENT MANIFOLD: {snapshot.status}
+      EVENT MANIFOLD: GRAPH {snapshot.graphSynchronized ? "SYNCHRONIZED" : "STALE"} · RESOLVE: {snapshot.status}
     </span>
   );
 }

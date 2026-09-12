@@ -76,10 +76,10 @@ function TriStateField({ definition, entry, error, busy, onChange }: Readonly<{ 
   const setValue = (raw: string) => onChange(isObserverNarrative && raw === "" ? { state: "OMITTED" } : { state: "SUPPLIED", value: definition.kind === "integer" || definition.kind === "duration" ? raw === "" ? "" : Number(raw) : raw });
   const describedBy = error ? errorId : undefined;
   return (
-    <fieldset className={`native-case-draft__field native-case-draft__field--${definition.kind}${isObserverNarrative ? " native-case-draft__field--observer-narrative" : ""}`} data-invalid={error ? "true" : undefined}>
+    <fieldset id={`${id}-field`} className={`native-case-draft__field native-case-draft__field--${definition.kind}${isObserverNarrative ? " native-case-draft__field--observer-narrative" : ""}`} data-invalid={error ? "true" : undefined}>
       <legend>{definition.label}</legend>
       <div className="native-case-draft__state-choices" aria-label={`${definition.label} answer state`}>
-        {(["OMITTED", "UNKNOWN", "SUPPLIED"] as const).map(state => <label key={state}><input type="radio" name={stateName} value={state} checked={entry.state === state} disabled={busy} onChange={() => setState(state)} />{state === "OMITTED" ? "Not answered" : state === "UNKNOWN" ? "Unknown" : "Supply value"}</label>)}
+        {(["OMITTED", "UNKNOWN", "SUPPLIED"] as const).map(state => <label key={state}><input id={`${id}-state-${state}`} type="radio" name={stateName} value={state} checked={entry.state === state} disabled={busy} onChange={() => setState(state)} />{state === "OMITTED" ? "Not answered" : state === "UNKNOWN" ? "Unknown" : "Supply value"}</label>)}
       </div>
       {(entry.state === "SUPPLIED" || isObserverNarrative && entry.state === "OMITTED") && <ValueControl definition={definition} id={id} value={entry.state === "SUPPLIED" ? entry.value ?? "" : ""} busy={busy} invalid={Boolean(error)} describedBy={describedBy} onChange={setValue} />}
       {error && <p className="native-case-draft__field-error" id={errorId}>{error}</p>}

@@ -193,9 +193,22 @@ function isPersistedWorkspaceOperator(
     isString(
       value.layoutMode,
     ) &&
-    value.layoutMode.length > 0
+    value.layoutMode.length > 0 &&
+    (value.selection === undefined || isPersistedWorkspaceSelection(value.selection))
   );
 
+}
+
+function isPersistedWorkspaceSelection(value: unknown): boolean {
+  if (!isRecord(value) || !isString(value.kind)) return false;
+  if (value.kind === "NONE") return true;
+  if (value.kind === "NODE") return isString(value.nodeId) && value.nodeId.length > 0;
+  if (value.kind === "EDGE") return isString(value.edgeId) && value.edgeId.length > 0;
+  if (value.kind === "COMPARISON_TARGET") return isString(value.eventId) && value.eventId.length > 0 && isString(value.knowledgeObjectId) && value.knowledgeObjectId.length > 0;
+  return value.kind === "CANDIDATE" && isString(value.candidateId) && value.candidateId.length > 0 &&
+    isString(value.evaluationId) && value.evaluationId.length > 0 &&
+    isString(value.leftKnowledgeObjectId) && value.leftKnowledgeObjectId.length > 0 &&
+    isString(value.rightKnowledgeObjectId) && value.rightKnowledgeObjectId.length > 0;
 }
 
 

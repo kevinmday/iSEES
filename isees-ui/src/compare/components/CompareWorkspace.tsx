@@ -1,6 +1,5 @@
 import {
   useMemo,
-  useState,
 } from "react";
 import { projectGuestCandidateCanonOptions } from "../projection/GuestCandidateCompareProjection";
 import type { GuestCandidateEvent } from "../../workspace/workspaceTypes";
@@ -28,6 +27,9 @@ import { resolveCurrentInvestigationExecution } from "../../intelligence/selecti
 import {
   useWorkspaceRuntime,
 } from "../../workspace/runtime/WorkspaceRuntimeContext";
+import { WorkspaceMode, WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
+import { useResolveExecutionCommand } from "../../resolve/runtime/useResolveExecutionCommand";
+import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
 
 import {
   resolveComparePairProjection,
@@ -293,9 +295,22 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { p
 }
 
 function GuestCandidateWorkspace({ candidate, knowledgeObjects }: { readonly candidate: GuestCandidateEvent; readonly knowledgeObjects: ReturnType<typeof useKnowledgeObjects> }) {
+  const workspaceRuntime = useWorkspaceRuntime();
+  const resolveCommand = useResolveExecutionCommand();
   const options = useMemo(() => projectGuestCandidateCanonOptions(candidate, knowledgeObjects), [candidate, knowledgeObjects]);
-  const [comparisonId, setComparisonId] = useState("");
+  const selection = workspaceRuntime.getSelection();
+  const selectedKnowledgeObjectId = selection?.kind === WorkspaceSelectionKind.COMPARISON_TARGET
+    ? selection.knowledgeObjectId
+    : selection?.kind === WorkspaceSelectionKind.CANDIDATE
+      ? [selection.leftKnowledgeObjectId, selection.rightKnowledgeObjectId].find(id => id !== candidate.knowledgeObject.identity.id)
+      : undefined;
+  const comparisonId = options.find(option => option.knowledgeObjectId === selectedKnowledgeObjectId)?.eventId ?? "";
   const comparison = options.find(option => option.eventId === comparisonId);
+  const operationalKnowledge = useMemo(() => composeGuestOperationalKnowledgeObjects(workspaceRuntime.getWorkspace(), knowledgeObjects), [knowledgeObjects, workspaceRuntime]);
+  const resolveOnManifold = () => {
+    if (!comparison) return;
+    workspaceRuntime.setActiveMode(WorkspaceMode.MANIFOLD);
+  };
   const candidateFields = [
     ["Title", candidate.content.workingTitle], ["Location", candidate.content.observationLocation], ["Local date", candidate.content.localObservationDate],
     ["Local time", candidate.content.localObservationTime], ["Timezone", candidate.content.timezone], ["Narrative", candidate.content.observationNarrative],
@@ -306,11 +321,12 @@ function GuestCandidateWorkspace({ candidate, knowledgeObjects }: { readonly can
   const displayCandidate = (entry: typeof candidateFields[number][1]) => entry.state === "UNKNOWN" ? "Unknown" : entry.state === "OMITTED" ? "Not answered" : "seconds" in entry ? `${entry.seconds} seconds` : "value" in entry ? String(entry.value) : "Not answered";
   return <main className="compare-workspace"><div className="compare-workspace__content">
     <header className="compare-workspace__pair-heading"><div className="compare-workspace__eyebrow">COMPARE / GUEST CANDIDATE</div><h2 className="compare-workspace__title">{candidate.title}</h2><p className="compare-workspace__subtitle"><strong>Choose a System Canon event to compare with your case.</strong> This is a descriptive side-by-side view only.</p></header>
-    <label className="compare-workspace__guest-target">System Canon comparison target<select value={comparisonId} onChange={event => setComparisonId(event.target.value)}><option value="">Select a Canon event</option>{options.map(option => <option key={option.eventId} value={option.eventId}>{option.title} ({option.eventId})</option>)}</select></label>
+    <label className="compare-workspace__guest-target">System Canon comparison target<select value={comparisonId} onChange={event => { const option = options.find(item => item.eventId === event.target.value); if (option) workspaceRuntime.setSelection({ kind: WorkspaceSelectionKind.COMPARISON_TARGET, eventId: option.eventId, knowledgeObjectId: option.knowledgeObjectId }); else workspaceRuntime.clearSelection(); }}><option value="">Select a Canon event</option>{options.map(option => <option key={option.eventId} value={option.eventId}>{option.title} ({option.eventId})</option>)}</select></label>
     <section className="compare-workspace__cases" aria-label="Researcher candidate and System Canon comparison">
       <article className="compare-workspace__case compare-workspace__case--a"><div className="compare-workspace__case-topline"><span className="compare-workspace__case-label">YOUR CASE</span><span className="compare-workspace__badge compare-workspace__badge--candidate">CANDIDATE KNOWLEDGE</span></div><div className="compare-workspace__case-role">RESEARCHER SUPPLIED / DRAFT</div><h3>{candidate.title}</h3><dl className="compare-workspace__identity-list">{candidateFields.map(([label, entry]) => <div key={label}><dt>{label}</dt><dd>{displayCandidate(entry)}</dd></div>)}</dl></article>
       <article className="compare-workspace__case compare-workspace__case--b"><div className="compare-workspace__case-topline"><span className="compare-workspace__case-label">SYSTEM CANON CASE</span><span className="compare-workspace__badge compare-workspace__badge--canonical">SYSTEM CANON</span></div><div className="compare-workspace__case-role">COMPARISON EVENT</div><h3>{comparison?.title ?? "Select a Canon event"}</h3>{comparison && <><p>{comparison.eventId}</p><dl className="compare-workspace__identity-list">{comparison.fields.map(field => <div key={field.label}><dt>{field.label}</dt><dd>{field.value ?? "Unavailable in Canon record"}</dd></div>)}</dl></>}</article>
     </section>
+    <section className="compare-workspace__boundary" aria-label="Resolve guest candidate"><h2>Resolve on MANIFOLD</h2><p>Open MANIFOLD with this exact candidate and System Canon target, then run the governed deterministic Resolve once.</p>{comparison ? <button type="button" className="native-case-draft__button native-case-draft__button--primary" disabled={resolveCommand.disabled || operationalKnowledge.filter(object => object.identity.id === candidate.knowledgeObject.identity.id || object.identity.id === comparison.knowledgeObjectId).length !== 2} onClick={resolveOnManifold}>Resolve on MANIFOLD</button> : <p role="status">Unavailable: select a System Canon event before Resolve can establish an exact candidate pair.</p>}</section>
     <section className="compare-workspace__boundary"><h2>Inspection, not assertion</h2><ul><li>The focused event remains researcher-supplied Candidate Knowledge.</li><li>The comparison target remains System Canon.</li><li>No similarity, relationship, confidence, or conclusion is asserted.</li><li>Guest research is temporary and will not be saved after this session.</li></ul></section>
   </div></main>;
 }

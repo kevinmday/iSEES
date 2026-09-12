@@ -142,6 +142,20 @@ export default function ManifoldToolbar({
           tooltip="Execute Resolve-Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
         />
 
+        <div
+          role={resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "alert" : "status"}
+          aria-live={resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "assertive" : "polite"}
+          style={{ marginTop: 8, padding: 8, border: "1px solid rgba(125,211,252,.3)", borderRadius: 6, background: "rgba(2,6,23,.92)", color: resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "#fca5a5" : "#bae6fd", fontSize: 10, lineHeight: 1.5, pointerEvents: "auto" }}
+        >
+          <strong>{resolveCommand.feedback.phase.replaceAll("_", " ")}</strong>
+          <div>{resolveCommand.feedback.message}</div>
+          {resolveCommand.feedback.phase === "RESOLVE_COMPLETED" && <>
+            <div>Focused case: {resolveCommand.feedback.focusedLabel}</div>
+            <div>Comparison case: {resolveCommand.feedback.comparisonLabel}</div>
+            <div>Candidates produced: {resolveCommand.feedback.candidateCount}</div>
+          </>}
+        </div>
+
         <InstrumentButton
           label="Dissolve"
           action="DISSOLVE"

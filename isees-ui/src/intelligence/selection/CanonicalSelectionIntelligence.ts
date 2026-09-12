@@ -90,7 +90,8 @@ export function resolveCanonicalSelectionIntelligence(
     if (
       request.selection === undefined ||
       request.selection.kind === "NONE" ||
-      request.selection.kind === "CANDIDATE"
+      request.selection.kind === "CANDIDATE" ||
+      request.selection.kind === "COMPARISON_TARGET"
     ) {
       return { kind: "NONE" };
     }

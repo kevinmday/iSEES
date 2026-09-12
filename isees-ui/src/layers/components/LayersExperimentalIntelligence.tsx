@@ -16,6 +16,7 @@ import { canonicalLayerIdFromContribution, layersContributionId, LayersContribut
 import { assembleTopologySimilarityBriefing, collectMetricFinding, MetricIntelligenceTrigger, topologySimilaritySourceFromProjection } from "../../metric-intelligence";
 import { researchAnchorId } from "../../research/ResearchAnchorContract";
 import { eventDisplayName } from "../../research/LayersExperimentReferencePresentation";
+import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
 
 const pct = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value * 100).toFixed(1)}%`;
 const unavailableReason = (reason?: string) => reason?.replaceAll("_", " ") ?? "Evidence unavailable for the active baseline layers";
@@ -23,11 +24,12 @@ export default function LayersExperimentalIntelligence() {
   const state = useLayersExperimentState();
   const workspaceRuntime = useWorkspaceRuntime();
   const resolveState = useResolveRuntimeState();
-  const knowledge = useKnowledgeObjects();
+  const canonicalKnowledge = useKnowledgeObjects();
   const bridge = useResearchBridge();
   const desk = useResearchDesk();
   const { selection, select } = useLayersPresentationSelection();
   const workspace = workspaceRuntime.getWorkspace();
+  const knowledge = useMemo(() => composeGuestOperationalKnowledgeObjects(workspace, canonicalKnowledge), [canonicalKnowledge, workspace]);
   const investigation = workspaceRuntime.getActiveInvestigation();
   const candidateSelection = workspaceRuntime.getSelection();
   const completedResolve = resolveState.currentExecution?.result;

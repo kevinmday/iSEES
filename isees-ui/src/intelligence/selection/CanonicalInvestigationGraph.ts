@@ -31,19 +31,19 @@
 
 import type {
   KnowledgeObject,
-} from "../../knowledge/model/KnowledgeObject";
+} from "../../knowledge/model/KnowledgeObject.ts";
 
 import {
   buildKnowledgeTopology,
-} from "../../knowledge/topology/KnowledgeTopologyBuilder";
+} from "../../knowledge/topology/KnowledgeTopologyBuilder.ts";
 
 import {
   adaptKnowledgeTopology,
-} from "../../knowledge/topology/KnowledgeTopologyAdapter";
+} from "../../knowledge/topology/KnowledgeTopologyAdapter.ts";
 
 import type {
   InvestigationGraph,
-} from "../../manifold/graphTypes";
+} from "../../manifold/graphTypes.ts";
 
 // ============================================================
 // BUILD CANONICAL INVESTIGATION GRAPH

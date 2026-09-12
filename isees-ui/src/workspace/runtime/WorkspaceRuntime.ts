@@ -1135,7 +1135,7 @@ export class WorkspaceRuntime {
 
   }
 
-  /** Activates a session-only researcher candidate without canonical materialization. */
+  /** Activates a session-only researcher candidate with its real initial operational revision. */
   activateGuestCandidateInvestigation(investigation: Investigation): void {
     const workspace = investigation.workspace;
     const candidate = workspace.guest_candidate_event;
@@ -1143,11 +1143,14 @@ export class WorkspaceRuntime {
       investigation.status !== "DRAFT" || candidate === undefined ||
       candidate.knowledgeClassification !== "CANDIDATE_KNOWLEDGE" ||
       candidate.origin !== "RESEARCHER_SUPPLIED" || candidate.lifecycle !== "DRAFT" ||
-      candidate.objectType !== "EVENT" || candidate.operationalMaterialization !== "NONE" ||
+      candidate.objectType !== "EVENT" || candidate.operationalMaterialization !== "INITIAL_REVISION_ACTIVE" ||
       candidate.systemCanonIdentity !== null || workspace.focused_event_id !== candidate.candidateId ||
       workspace.imported_events.length !== 1 || workspace.imported_events[0]?.event_id !== candidate.candidateId ||
-      workspace.imported_events[0]?.source !== "RESEARCHER_SUPPLIED" || investigation.revisions.length !== 0
-    ) throw new Error("Guest candidate activation rejected a non-candidate or materialized payload.");
+      workspace.imported_events[0]?.source !== "RESEARCHER_SUPPLIED" || investigation.revisions.length !== 1 ||
+      investigation.currentRevisionId !== investigation.revisions[0]?.id
+    ) throw new Error("Guest candidate activation rejected a non-candidate or non-operational payload.");
+
+    validateOperationalRevisionInvestigation(investigation);
 
     this.state = { ...this.state, status: "ACTIVE",
       session: { workspace, investigation, focusedEvent: candidate.candidateId, artifacts: [] },

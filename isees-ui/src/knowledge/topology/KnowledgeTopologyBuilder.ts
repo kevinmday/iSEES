@@ -44,11 +44,11 @@
 
 import type {
   KnowledgeObject,
-} from "../model/KnowledgeObject";
+} from "../model/KnowledgeObject.ts";
 
 import type {
   KnowledgeRelationship,
-} from "../model/KnowledgeObjectTypes";
+} from "../model/KnowledgeObjectTypes.ts";
 
 import {
   KnowledgeTopologyDiagnosticType,
@@ -58,7 +58,7 @@ import {
   type KnowledgeTopologyDiagnostic,
   type KnowledgeTopologyEdge,
   type KnowledgeTopologyNode,
-} from "./KnowledgeTopologyTypes";
+} from "./KnowledgeTopologyTypes.ts";
 
 // ============================================================
 // CANONICAL STRING COMPARISON

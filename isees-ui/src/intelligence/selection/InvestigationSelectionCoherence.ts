@@ -72,6 +72,8 @@ export function resolveCoherentInvestigationSelection(
     return involvesFocus ? selection : undefined;
   }
 
+  if (selection.kind === WorkspaceSelectionKind.COMPARISON_TARGET) return undefined;
+
   const graph = buildCanonicalInvestigationGraph(knowledgeObjects, focusedNodeId);
   const connected = new Set<string>([focusedNodeId]);
   let changed = true;
@@ -98,7 +100,10 @@ export function resolveCurrentInvestigationExecution(
   investigation: Investigation | undefined,
   execution: ResolveExecutionRecord | undefined,
 ): ResolveExecutionRecord | undefined {
-  return investigation && execution?.input.investigation.id === investigation.id
+  return investigation &&
+    execution?.input.investigation.id === investigation.id &&
+    execution.input.investigation.workspace.id === investigation.workspace.id &&
+    execution.input.investigation.currentRevisionId === investigation.currentRevisionId
     ? execution
     : undefined;
 }

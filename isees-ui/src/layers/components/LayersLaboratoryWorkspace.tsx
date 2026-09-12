@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import { WorkspaceMode, WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 import { useResolveRuntimeState } from "../../resolve/runtime/ResolveRuntimeContext";
@@ -16,28 +16,35 @@ import { useLayersPresentationSelection } from "./LayersPresentationSelection";
 import LayerCatalogMatrix from "./LayerCatalogMatrix";
 import { CanonicalLayerCatalog, CanonicalLayerReadiness, restoreCanonicalLayerProfile } from "../catalog/index.ts";
 import { normalizeOperationalSelection } from "../presentation/LayerCatalogMatrixProjection.ts";
+import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
+import { resolveCurrentInvestigationExecution } from "../../intelligence/selection/InvestigationSelectionCoherence.ts";
 
 const pct = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value * 100).toFixed(1)}%`;
 const ids = (value: readonly string[]) => value.length ? value.join(" · ") : "NONE";
+const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
 export default function LayersLaboratoryWorkspace() {
   const workspaceRuntime = useWorkspaceRuntime();
   const runtime = useLayersExperimentRuntime();
   const state = useLayersExperimentState();
   const resolveState = useResolveRuntimeState();
-  const knowledge = useKnowledgeObjects();
+  const canonicalKnowledge = useKnowledgeObjects();
   const { selection: inspectionSelection, select: inspect } = useLayersPresentationSelection();
+  const [commandError, setCommandError] = useState<string>();
   const workspace = workspaceRuntime.getWorkspace();
+  const knowledge = useMemo(() => composeGuestOperationalKnowledgeObjects(workspace, canonicalKnowledge), [canonicalKnowledge, workspace]);
   const investigation = workspaceRuntime.getActiveInvestigation();
   const selection = workspaceRuntime.getSelection();
-  const completed = resolveState.currentExecution?.result;
+  const currentResolveExecution = resolveCurrentInvestigationExecution(investigation, resolveState.currentExecution);
+  const completed = currentResolveExecution?.result;
   const focusedEventId = workspace?.focused_event_id;
   const source = useMemo(() => {
     const intelligence = completed ? resolveCandidateIntelligenceCollection(completed.candidateEvaluations.evaluations).intelligence : [];
     if (!investigation) return { error: "No active investigation. Start or restore an investigation before opening the laboratory." } as const;
     if (!focusedEventId) return { error: "No focused canonical EVENT. Focus an EVENT before selecting a COMPARE candidate." } as const;
     if (!completed) return { error: "Run Resolve before running an experiment." } as const;
-    if (completed.provenance.investigationId !== investigation.id || resolveState.currentExecution?.executionId !== completed.executionId) return { error: "The completed Resolve execution does not belong to the active investigation." } as const;
+    if (completed.provenance.investigationId !== investigation.id || currentResolveExecution?.executionId !== completed.executionId) return { error: "The completed Resolve execution does not belong to the active investigation, guest workspace, or operational revision." } as const;
+    if (!same(currentResolveExecution.input.activeLayers, workspaceRuntime.getActiveLayers()) || !same(currentResolveExecution.input.temporalContext, workspaceRuntime.getTemporalContext()) || !same(currentResolveExecution.input.investigativeScale, workspaceRuntime.getInvestigativeScale())) return { error: "The completed Resolve execution is stale for the active layer or context inputs. Run Resolve on MANIFOLD again." } as const;
     if (selection?.kind !== WorkspaceSelectionKind.CANDIDATE) return { error: "No selected COMPARE candidate. Select a candidate in COMPARE, then return to LAYERS." } as const;
     try {
       const pairView = resolveComparePairProjection(focusedEventId, knowledge, selection, intelligence);
@@ -47,7 +54,7 @@ export default function LayersLaboratoryWorkspace() {
       if (!pair || !evaluation) return { error: "Pair or evaluation inputs are unavailable in the completed Resolve execution." } as const;
       return { pairView, pair, evaluation } as const;
     } catch (error) { return { error: `Stale or malformed selected candidate: ${error instanceof Error ? error.message : "unknown error"}` } as const; }
-  }, [completed, focusedEventId, investigation, knowledge, resolveState.currentExecution?.executionId, selection]);
+  }, [completed, currentResolveExecution, focusedEventId, investigation, knowledge, selection, workspaceRuntime]);
 
   const activeAuthority = useMemo<LayersExperimentAuthority | undefined>(() => {
     if ("error" in source || !investigation || !workspace || !workspace.focused_event_id || !completed) return undefined;
@@ -73,11 +80,12 @@ export default function LayersLaboratoryWorkspace() {
   }, [preparationIsCurrent, runtime, scopeIsCurrent, state.armedLayers.length, state.scope]);
 
   const experimentReady = !("error" in source);
-  const resolveMissing = !completed;
-  const comparisonMissing = selection?.kind !== WorkspaceSelectionKind.CANDIDATE;
+  const comparisonSelected = selection?.kind === WorkspaceSelectionKind.CANDIDATE || selection?.kind === WorkspaceSelectionKind.COMPARISON_TARGET;
+  const comparisonMissing = !comparisonSelected;
+  const resolveMissing = !completed || selection?.kind === WorkspaceSelectionKind.COMPARISON_TARGET;
   const missingReason = "error" in source
     ? resolveMissing && comparisonMissing ? "Open MANIFOLD and explicitly run Resolve, then choose a comparison before running an experiment."
-    : resolveMissing ? "Open MANIFOLD and explicitly run Resolve before running an experiment."
+    : resolveMissing ? "Comparison selected. Run Resolve on MANIFOLD for this pair before running an experiment."
     : comparisonMissing ? "Choose a comparison before running an experiment."
     : source.error
     : undefined;
@@ -95,18 +103,27 @@ export default function LayersLaboratoryWorkspace() {
     runtime.establish({ scope: activeAuthority!, baseline: { investigationId: investigation.id, workspaceId: workspace.id, subjectIds: activeAuthority!.subjectIds, canonicalStartingLayerIds: baselineIds, startingResolveExecutionId: completed!.executionId, temporalContext: completed!.provenance.temporalContext, investigativeScale: completed!.provenance.investigativeScale }, armedLayers: { layerIds } });
   }
   function run() {
-    if (!investigation || "error" in source || !pairView || readyArmedIds.length === 0) return;
-    if (!scopeIsCurrent) establish(armedIds);
-    const executionId = runtime.beginExecution({ operatorAction: "RUN_RECOMPUTE" });
+    setCommandError(undefined);
+    if (!investigation || "error" in source || !pairView || readyArmedIds.length === 0) {
+      setCommandError(missingReason ?? "Select at least one READY layer before running the experiment.");
+      return;
+    }
+    let executionId: string | undefined;
     try {
+      if (!scopeIsCurrent) establish(armedIds);
+      executionId = runtime.beginExecution({ operatorAction: "RUN_RECOMPUTE" });
       const result = projectLayersExperimentalPair({ executionId, laboratoryInput: runtime.getState().currentExecution!.input, investigationId: investigation.id, sourceKnowledgeObjectId: pairView.leftKnowledgeObjectId, targetKnowledgeObjectId: pairView.rightKnowledgeObjectId, caseAKnowledgeObjectId: pairView.caseAKnowledgeObjectId, caseBKnowledgeObjectId: pairView.caseBKnowledgeObjectId, knowledgeObjects: knowledge, pair: source.pair, evaluation: source.evaluation, baselineLayers: CanonicalLayerRegistry.filter(layer => baselineIds.includes(layer.id)).map(layer => ({ id: layer.id, classification: ArmedLayerClassification.CANONICAL, operational: true, canonicalDefinition: layer })), experimentalLayers: runtime.getState().armedLayers });
       runtime.completeExecution(executionId, investigation.id, result);
-    } catch (error) { runtime.failExecution(executionId, investigation.id, { code: "EXPERIMENT_PROJECTION_ERROR", message: error instanceof Error ? error.message : "Experiment failed." }); }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Experiment failed.";
+      if (executionId && runtime.getState().status === LayersExperimentStatus.EXECUTING) runtime.failExecution(executionId, investigation.id, { code: "EXPERIMENT_PROJECTION_ERROR", message });
+      else setCommandError(message);
+    }
   }
 
   return <main className="layers-lab">
     <header className="layers-lab__header"><div><p className="layers-lab__eyebrow">LAYERS LABORATORY</p><h1>Experimental relationship chamber</h1><p>Canonical knowledge is untouched by laboratory computation.</p></div><div className="layers-lab__status"><strong>EXPERIMENTAL / NON-CANONICAL</strong><span>{experimentReady ? (scopeIsCurrent ? state.status : LayersExperimentStatus.READY) : "BROWSE"} · deterministic execution</span></div>{experimentReady && <dl><div><dt>Investigation</dt><dd>{investigation?.name} · {investigation?.id}</dd></div><div><dt>Case A</dt><dd>{pairView!.focusedEventId} · {pairView!.caseAKnowledgeObjectId}</dd></div><div><dt>Case B</dt><dd>{pairView!.comparisonEventId} · {pairView!.caseBKnowledgeObjectId}</dd></div></dl>}</header>
-    <section className="layers-lab__rack"><Heading number="01" title="Experiment control area" status={!experimentReady ? "BROWSE" : scopeIsCurrent && state.status === LayersExperimentStatus.COMPLETE ? "EXECUTED" : "PREPARED — NOT RUN"}/>{missingReason && <div className="layers-lab__prerequisite" role="status"><div><strong>Experimentation is not ready</strong><p>{missingReason}</p><p>You may still search, expand, and inspect all 48 layers. Canonical knowledge remains untouched.</p></div>{(resolveMissing || comparisonMissing) && <div>{resolveMissing && <button type="button" data-guide-id="layers.prerequisite.run-resolve" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.MANIFOLD)}>Open MANIFOLD</button>}{comparisonMissing && <button type="button" data-guide-id="layers.prerequisite.choose-comparison" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)}>Choose Comparison</button>}</div>}</div>}<LayerCatalogMatrix experimentReady={experimentReady} inputRequiredReason={missingReason} selectedIds={armedIds} baselineIds={baselineIds} onSelectionChange={establish} restoreProfile={profileId => establish(restoreCanonicalLayerProfile(profileId))}/><div className="layers-lab__primary-action-rail" role="region" aria-label="Experiment execution"><button className="layers-lab__run-action" data-guide-id="layers.experiment.run" type="button" disabled={!experimentReady || readyArmedIds.length === 0} onClick={run}>Run / Recompute experiment</button><span>{missingReason ? `Unavailable: ${missingReason}` : readyArmedIds.length === 0 ? `${armedIds.length} selected research objective${armedIds.length === 1 ? "" : "s"}; none is READY, so computation remains unavailable.` : `${readyArmedIds.length} READY selected layer${readyArmedIds.length === 1 ? "" : "s"} will participate${unresolvedArmedIds.length ? `; ${unresolvedArmedIds.length} selected layer${unresolvedArmedIds.length === 1 ? " remains" : "s remain"} unresolved and excluded` : ""}. Execution occurs only on this command.`}</span></div></section>
+    <section className="layers-lab__rack"><Heading number="01" title="Experiment control area" status={!experimentReady ? "BROWSE" : scopeIsCurrent && state.status === LayersExperimentStatus.COMPLETE ? "EXECUTION COMPLETED" : "PREPARED — NOT RUN"}/>{missingReason && <div className="layers-lab__prerequisite" role="status"><div><strong>Experimentation is not ready</strong><p>{missingReason}</p><p>You may still search, expand, and inspect all 48 layers. Canonical knowledge remains untouched.</p></div>{(resolveMissing || comparisonMissing) && <div>{resolveMissing && <button type="button" data-guide-id="layers.prerequisite.run-resolve" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.MANIFOLD)}>Open MANIFOLD</button>}{comparisonMissing && <button type="button" data-guide-id="layers.prerequisite.choose-comparison" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)}>Choose Comparison</button>}</div>}</div>}<LayerCatalogMatrix experimentReady={experimentReady} inputRequiredReason={missingReason} selectedIds={armedIds} baselineIds={baselineIds} onSelectionChange={establish} restoreProfile={profileId => establish(restoreCanonicalLayerProfile(profileId))}/><div className="layers-lab__primary-action-rail" role="region" aria-label="Experiment execution"><button className="layers-lab__run-action" data-guide-id="layers.experiment.run" type="button" disabled={!experimentReady || readyArmedIds.length === 0 || state.status === LayersExperimentStatus.EXECUTING} onClick={run}>Run / Recompute experiment</button><span>{missingReason ? `Unavailable: ${missingReason}` : readyArmedIds.length === 0 ? `${armedIds.length} selected research objective${armedIds.length === 1 ? "" : "s"}; none is READY, so computation remains unavailable.` : `${readyArmedIds.length} READY selected layer${readyArmedIds.length === 1 ? "" : "s"} will participate${unresolvedArmedIds.length ? `; ${unresolvedArmedIds.length} selected layer${unresolvedArmedIds.length === 1 ? " remains" : "s remain"} unresolved and excluded` : ""}. Execution occurs only on this command.`}</span>{commandError && <p role="alert">Experiment could not run: {commandError}</p>}{scopeIsCurrent && state.status === LayersExperimentStatus.COMPLETE && <p role="status">Execution completed. The immutable experimental, non-canonical result is ready for inspection.</p>}</div></section>
     {state.status === LayersExperimentStatus.ERROR && <section className="layers-lab__error" role="alert"><strong>Experiment runtime error</strong><p>{state.error?.message}</p></section>}
     {projection ? <>
       <LayersWireManifoldChamber projection={projection} caseA={pairView!.focusedEventId} caseB={pairView!.comparisonEventId}/>

@@ -66,6 +66,7 @@ import {
   type CanonicalTopologyState,
   type UnavailableCanonicalFeature,
 } from "./CanonicalKnowledgeFeatureTypes";
+import { isGuestCandidateKnowledgePayload } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
 
 // ============================================================
 // SYSTEM CANON PAYLOAD SHAPES
@@ -454,6 +455,14 @@ function extractNarrativeTraits(
   const payload =
     object.payload;
 
+  if (isGuestCandidateKnowledgePayload(payload)) {
+    const fields = ["observationNarrative", "objectShape", "movementBehavior", "soundCharacteristics", "lightingVisibility", "observerContext"] as const;
+    const traits = fields.map(field => payload.operationalFeatures[field]).filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+    return traits.length > 0
+      ? availableFeature([...new Set(traits)].sort(compareCanonicalStrings), createLineage(CanonicalFeatureSource.KNOWLEDGE_PAYLOAD, [object.identity.id]))
+      : unavailableFeature("No researcher-supplied narrative features are available for this guest candidate.");
+  }
+
   if (
     isSystemCanonEventPayload(
       payload,
@@ -533,6 +542,10 @@ function extractConfidence(
   object: KnowledgeObject,
 ): CanonicalFeatureValue<number> {
 
+  if (isGuestCandidateKnowledgePayload(object.payload)) {
+    return unavailableFeature("Guest candidate confidence was not researcher supplied.");
+  }
+
   const confidence =
     object.confidence?.value;
 
@@ -572,6 +585,13 @@ function extractDurationMinutes(
 
   const payload =
     object.payload;
+
+  if (isGuestCandidateKnowledgePayload(payload)) {
+    const seconds = payload.operationalFeatures.approximateDuration;
+    return typeof seconds === "number" && Number.isFinite(seconds)
+      ? availableFeature(seconds / 60, createLineage(CanonicalFeatureSource.KNOWLEDGE_PAYLOAD, [object.identity.id]))
+      : unavailableFeature("Guest candidate duration was not researcher supplied.");
+  }
 
   if (
     isSystemCanonEventPayload(

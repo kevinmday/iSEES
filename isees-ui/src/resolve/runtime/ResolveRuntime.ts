@@ -204,6 +204,7 @@ export class ResolveRuntime {
 
   execute(
     input: ResolveComputationInput,
+    commandContext?: ResolveExecutionRecord["commandContext"],
   ): ResolveComputationResult {
 
     // --------------------------------------------------------
@@ -224,6 +225,8 @@ export class ResolveRuntime {
         startedAt,
 
         input,
+
+        commandContext,
 
       };
 
@@ -407,6 +410,11 @@ export class ResolveRuntime {
       return result;
 
     } catch (error) {
+
+      record.failureReason =
+        error instanceof Error
+          ? error.message
+          : "unknown failure";
 
       // ------------------------------------------------------
       // Runtime failure state

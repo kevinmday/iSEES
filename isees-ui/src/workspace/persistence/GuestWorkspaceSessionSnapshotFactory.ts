@@ -286,6 +286,11 @@ export function createGuestWorkspaceSnapshotFromRuntimeState(
         layoutMode:
           input.workspace.operator.layoutMode,
 
+        selection:
+          input.workspace.operator.selection?.kind === "COMPARISON_TARGET" || input.workspace.operator.selection?.kind === "CANDIDATE"
+            ? input.workspace.operator.selection
+            : undefined,
+
       },
 
       computational: {

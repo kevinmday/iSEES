@@ -216,6 +216,9 @@ export const WorkspaceSelectionKind = {
   CANDIDATE:
     "CANDIDATE",
 
+  COMPARISON_TARGET:
+    "COMPARISON_TARGET",
+
 } as const;
 
 export type WorkspaceSelectionKind =
@@ -298,6 +301,13 @@ export interface WorkspaceCandidateSelection {
 
 }
 
+/** A chosen exact endpoint. This is not a Resolve evaluation or relationship. */
+export interface WorkspaceComparisonTargetSelection {
+  kind: typeof WorkspaceSelectionKind.COMPARISON_TARGET;
+  eventId: string;
+  knowledgeObjectId: string;
+}
+
 // ============================================================
 // CANONICAL OPERATOR SELECTION UNION
 // ============================================================
@@ -307,7 +317,8 @@ export type WorkspaceSelection =
   | WorkspaceNoneSelection
   | WorkspaceNodeSelection
   | WorkspaceEdgeSelection
-  | WorkspaceCandidateSelection;
+  | WorkspaceCandidateSelection
+  | WorkspaceComparisonTargetSelection;
 // ============================================================
 // INVESTIGATION SESSION
 // ============================================================

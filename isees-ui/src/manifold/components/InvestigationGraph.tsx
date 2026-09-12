@@ -12,17 +12,7 @@ import {
   useState,
 } from "react";
 
-import {
-  useKnowledgeObjects,
-} from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
-
-import {
-  buildKnowledgeTopology,
-} from "../../knowledge/topology/KnowledgeTopologyBuilder";
-
-import {
-  adaptKnowledgeTopology,
-} from "../../knowledge/topology/KnowledgeTopologyAdapter";
+import { resolveActiveOperationalGraphProjection } from "../../investigation/revision/OperationalGraphRevision";
 
 import {
   applyCircularManifoldLayout,
@@ -116,9 +106,6 @@ export default function InvestigationGraph({
       .getWorkspace()
       ?.focused_event_id;
 
-  const knowledgeObjects =
-    useKnowledgeObjects();
-
   // ==========================================================
   // P56B
   // KNOWLEDGE-DERIVED OPERATIONAL TOPOLOGY
@@ -157,18 +144,14 @@ export default function InvestigationGraph({
     useMemo(
       () => {
 
-        const topology =
-          buildKnowledgeTopology(
-            knowledgeObjects
-          );
-
-        return adaptKnowledgeTopology(
-          topology
-        );
+        if (!activeInvestigation) {
+          throw new Error("MANIFOLD requires an active operational Investigation.");
+        }
+        return resolveActiveOperationalGraphProjection(activeInvestigation);
 
       },
       [
-        knowledgeObjects,
+        activeInvestigation,
       ]
     );
 
@@ -280,7 +263,7 @@ function handleCollectNode(
     },
 
     graphRevision:
-      1,
+      activeInvestigation.revisions.length,
 
   });
 
@@ -311,7 +294,7 @@ function handleCollectEdge(
     },
 
     graphRevision:
-      1,
+      activeInvestigation.revisions.length,
 
   });
 
@@ -460,7 +443,7 @@ function handleCollectEdge(
 
   if (focusedEventId) {
     focusedNodeIds.add(
-      focusedEventId
+      graph.centerNodeId ?? focusedEventId
     );
   }
 
@@ -940,7 +923,7 @@ function handleCollectEdge(
                     height={viewportHeight}
                     nodes={positionedNodes}
                     edges={graph.edges}
-                    focusedEventId={focusedEventId}
+                    focusedEventId={graph.centerNodeId ?? focusedEventId}
                     selection={selection}
                     setSelection={setSelection}
                     onCollectNode={handleCollectNode}

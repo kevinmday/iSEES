@@ -26,6 +26,7 @@ import {
 
 const SYSTEM_CANON_SOURCE_TYPE =
   "SYSTEM_CANON";
+const GUEST_CANDIDATE_SOURCE_TYPE = "RESEARCHER_SUPPLIED_GUEST_CANDIDATE";
 
 function resolveSystemCanonEventId(
   knowledgeObject:
@@ -59,6 +60,13 @@ function resolveSystemCanonEventId(
 
   return eventId;
 
+}
+
+function resolveFocusedEventId(knowledgeObject: KnowledgeObject): string | undefined {
+  if (knowledgeObject.type !== KnowledgeObjectType.EVENT) return undefined;
+  if (knowledgeObject.provenance.sourceType !== SYSTEM_CANON_SOURCE_TYPE && knowledgeObject.provenance.sourceType !== GUEST_CANDIDATE_SOURCE_TYPE) return undefined;
+  if (!knowledgeObject.provenance.sourceId.trim()) throw new Error("COMPARE Pair Projection rejected EVENT Knowledge with an empty provenance.sourceId.");
+  return knowledgeObject.provenance.sourceId;
 }
 
 function resolveUniqueKnowledgeObjectById(
@@ -156,7 +164,7 @@ export function resolveComparePairProjection(
   const focusedMatches =
     knowledgeObjects.filter(
       knowledgeObject =>
-        resolveSystemCanonEventId(
+        resolveFocusedEventId(
           knowledgeObject,
         ) === focusedEventId,
     );

@@ -403,6 +403,12 @@ function restoreWorkspace(
 
   });
 
+  if (persisted.operator.selection !== undefined) {
+    runtime.setSelection(persisted.operator.selection);
+  } else {
+    runtime.clearSelection();
+  }
+
 }
 
 

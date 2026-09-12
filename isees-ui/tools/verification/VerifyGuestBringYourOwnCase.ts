@@ -21,7 +21,18 @@ assert.deepEqual(created.candidate.content, mapFormStateToContent(form));
 assert.equal(created.candidate.canonicalSerialization, serializeGuestCandidateContent(created.candidate.content));
 assert.equal(created.candidate.candidateId, "guest-candidate:verification-session-id");
 assert.ok(created.candidate.canonicalSerialization.includes("rightsPublicationRestriction"), "identity change material covers all canonical fields");
-assert.deepEqual({ classification: created.candidate.knowledgeClassification, origin: created.candidate.origin, materialization: created.candidate.operationalMaterialization, canon: created.candidate.systemCanonIdentity }, { classification: "CANDIDATE_KNOWLEDGE", origin: "RESEARCHER_SUPPLIED", materialization: "NONE", canon: null });
+assert.deepEqual({ classification: created.candidate.knowledgeClassification, origin: created.candidate.origin, materialization: created.candidate.operationalMaterialization, canon: created.candidate.systemCanonIdentity }, { classification: "CANDIDATE_KNOWLEDGE", origin: "RESEARCHER_SUPPLIED", materialization: "INITIAL_REVISION_ACTIVE", canon: null });
+assert.equal(created.candidate.knowledgeObject.identity.id, created.candidate.candidateId);
+assert.equal(created.candidate.knowledgeObject.type, "EVENT");
+assert.equal(created.candidate.knowledgeObject.provenance.sourceType, "RESEARCHER_SUPPLIED_GUEST_CANDIDATE");
+assert.deepEqual(created.candidate.knowledgeObject.payload.nativeCaseDraftContent, created.candidate.content);
+assert.deepEqual(created.candidate.knowledgeObject.payload.operationalFeatures, { approximateDuration: 75, observationNarrative: "Two lights above the water.", privacyClassification: "PRIVATE", witnessCount: 2, workingTitle: "Harbor lights" });
+assert.equal(Object.hasOwn(created.candidate.knowledgeObject.payload.operationalFeatures, "observationLocation"), false, "UNKNOWN is not an asserted feature");
+assert.equal(Object.hasOwn(created.candidate.knowledgeObject.payload.operationalFeatures, "rightsPublicationRestriction"), false, "OMITTED is not an asserted feature");
+assert.equal(created.investigation.revisions.length, 1);
+assert.equal(created.investigation.currentRevisionId, "REV-0001");
+assert.equal(created.investigation.revisions[0]?.manifold.graph.nodes.length, 1);
+assert.equal(created.investigation.revisions[0]?.manifold.graph.edges.length, 0);
 
 const welcome = source("src/workspace/surfaces/GuestWelcomeOverview.tsx");
 const intake = source("src/workspace/surfaces/GuestCaseIntake.tsx");
@@ -33,6 +44,7 @@ const structuredForm = source("src/nativeCaseDraft/StructuredObservationForm.tsx
 assert.ok(welcome.indexOf("Bring Your Own Case") < welcome.indexOf("System Canon / Hydrated Records"), "enabled hero CTA precedes Canon cards");
 assert.ok(source("src/identity/components/OperatorEntryScreen.tsx").includes("Bring your own case"));
 assert.ok(intake.includes("Ready to compare your case?"), "guest completion heading exists");
+assert.ok(intake.includes("GUEST_WORKING_TITLE_REQUIRED_MESSAGE") && intake.includes('role="alert"') && intake.includes("scrollIntoView") && intake.includes(".focus()"), "missing-title completion feedback scrolls and focuses accessibly");
 assert.ok(intake.includes("Create this temporary case and choose a System Canon event for comparison."), "guest comparison explanation exists");
 assert.ok(intake.includes("Your case remains only in this browser session and is not saved to an account or the server."), "guest retention reminder exists");
 assert.ok(intake.includes("StructuredObservationForm") && intake.includes("onSubmit={onSubmit}") && intake.includes('submitLabel="Create Temporary Case"'), "guest primary action remains wired through StructuredObservationForm");
@@ -42,6 +54,7 @@ assert.equal((intake.match(/submitGuestCase\(/g) ?? []).length, 1, "guest retain
 assert.ok(structuredForm.includes('submitLabel = "Save Draft"'), "account default submit label remains Save Draft");
 assert.ok(intake.includes("validateNativeCaseDraftForm") && model.includes("mapFormStateToContent"));
 assert.ok(compare.includes('"Unknown"') && compare.includes('"Not answered"') && compare.includes('"Unavailable in Canon record"'));
+assert.ok(compare.includes("WorkspaceSelectionKind.COMPARISON_TARGET") && compare.includes("Resolve on MANIFOLD") && compare.includes("createWorkspaceCandidateSelection"));
 assert.ok(runtime.includes("WorkspaceMode.COMPARE") && runtime.includes("activateGuestCandidateInvestigation"));
 assert.ok(projection.includes('sourceType === "SYSTEM_CANON"') && projection.includes("fields: canonFields(object.payload)"));
 assert.ok(source("src/workspace/persistence/GuestWorkspaceSessionPersistence.ts").includes("GuestWorkspaceSessionSnapshot"), "existing session restoration remains composed");

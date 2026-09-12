@@ -1,8 +1,8 @@
-import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
-import { buildCanonicalInvestigationGraph } from "../../intelligence/selection/CanonicalInvestigationGraph";
-import type { GraphEdge, GraphNode, InvestigationGraph } from "../../manifold/graphTypes";
-import { commitRevision, createRevision } from "../engine/revisionEngine";
-import type { Investigation, InvestigationRevision, ManifoldLayer, ManifoldRevision } from "../investigationTypes";
+import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject.ts";
+import { buildCanonicalInvestigationGraph } from "../../intelligence/selection/CanonicalInvestigationGraph.ts";
+import type { GraphEdge, GraphNode, InvestigationGraph } from "../../manifold/graphTypes.ts";
+import { commitRevision, createRevision } from "../engine/revisionEngine.ts";
+import type { Investigation, InvestigationRevision, ManifoldLayer, ManifoldRevision } from "../investigationTypes.ts";
 
 export const OPERATIONAL_GRAPH_ALGORITHM_VERSION = "KNOWLEDGE_TOPOLOGY_V1";
 
@@ -154,6 +154,36 @@ export function validateOperationalRevisionInvestigation(investigation: Investig
   const matches = investigation.revisions.filter(revision => revision.id === investigation.currentRevisionId);
   if (matches.length !== 1) throw new Error(`currentRevisionId resolved ${matches.length} times.`);
   if (matches[0] !== investigation.revisions[investigation.revisions.length - 1]) throw new Error("Current revision must be the latest revision.");
+}
+
+/** Resolves the exact active-revision graph and its focused EVENT presentation anchor. */
+export function resolveActiveOperationalGraphProjection(investigation: Investigation): InvestigationGraph {
+  const revision = resolveCurrentOperationalRevision(investigation);
+  const focusedEventId = investigation.workspace.focused_event_id;
+  if (!focusedEventId?.trim()) throw new Error("Operational graph projection requires a focused EVENT.");
+  const focusedMatches = revision.manifold.graph.nodes.filter(node =>
+    node.type === "EVENT" && (
+      node.id === focusedEventId ||
+      node.metadata?.sourceId === focusedEventId ||
+      node.metadata?.eventId === focusedEventId
+    ),
+  );
+  if (focusedMatches.length !== 1) {
+    throw new Error(`Focused EVENT ${focusedEventId} resolved ${focusedMatches.length} times in the active operational revision.`);
+  }
+  return Object.freeze({
+    ...revision.manifold.graph,
+    centerNodeId: focusedMatches[0]!.id,
+  });
+}
+
+export function isActiveOperationalGraphFocused(investigation: Investigation | undefined): boolean {
+  if (investigation === undefined) return false;
+  try {
+    return resolveActiveOperationalGraphProjection(investigation).centerNodeId !== undefined;
+  } catch {
+    return false;
+  }
 }
 
 export function rehydrateOperationalRevisionInvestigation(
