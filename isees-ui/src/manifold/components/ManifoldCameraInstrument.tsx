@@ -32,6 +32,9 @@
 // TYPES
 // ============================================================
 
+import ManifoldInstrumentPalette
+from "./ManifoldInstrumentPalette";
+
 export type ManifoldCameraAction =
   | "ZOOM_IN"
   | "ZOOM_OUT"
@@ -112,48 +115,14 @@ export default function ManifoldCameraInstrument({
 
   return (
 
-    <div
-      style={{
-        position: "absolute",
-
-        top: 12,
-        left: 166,
-
-        zIndex: 100,
-
-        width: 126,
-        padding: 8,
-
-        border:
-          "1px solid rgba(148,163,184,0.22)",
-
-        borderRadius: 8,
-
-        background:
-          "rgba(2,6,23,0.90)",
-
-        boxShadow:
-          "0 8px 24px rgba(0,0,0,0.28)",
-
-        pointerEvents: "auto",
+    <ManifoldInstrumentPalette
+      instrumentId="camera"
+      title="Camera"
+      defaultPosition={{
+        x: 166,
+        y: 12,
       }}
     >
-
-      <div
-        style={{
-          marginBottom: 7,
-
-          color: "#64748b",
-
-          fontSize: 9,
-          fontWeight: 700,
-
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-        }}
-      >
-        Camera
-      </div>
 
       <div
         style={{
@@ -254,7 +223,7 @@ export default function ManifoldCameraInstrument({
 
       </div>
 
-    </div>
+    </ManifoldInstrumentPalette>
 
   );
 }
