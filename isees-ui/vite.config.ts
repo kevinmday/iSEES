@@ -28,6 +28,14 @@ export default defineConfig({
         changeOrigin: true,
       },
 
+      // PublicIntake posts to the production same-origin route. Keep browser GET
+      // navigation on the React route while proxying only the backend mutation.
+      '/report': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        bypass: (request) => request.method === 'POST' ? undefined : request.url,
+      },
+
       // --------------------------------------------------------
       // CLUSTERS
       // --------------------------------------------------------

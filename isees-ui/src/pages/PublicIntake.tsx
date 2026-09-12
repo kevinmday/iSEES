@@ -6,6 +6,7 @@
 // ============================================================
 
 import { useState } from "react";
+import { API_BASE_URL } from "../api/ApiOrigin";
 
 export default function PublicIntake() {
 
@@ -132,7 +133,7 @@ export default function PublicIntake() {
     try {
 
       const res = await fetch(
-        "http://127.0.0.1:8001/report",
+        `${API_BASE_URL}/report`,
         {
           method: "POST",
 

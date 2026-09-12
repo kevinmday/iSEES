@@ -8,6 +8,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 import os
 
 from pathlib import Path
@@ -35,7 +36,7 @@ from isees_uap.api.v1.authentication import (
 from isees_uap.authentication.config import authentication_settings
 from isees_uap.authentication.errors import AuthenticationError
 from isees_uap.api.application import (
-    process_studio_v1_configuration,
+    process_studio_v1_configuration, trusted_hosts_from_environment,
     studio_v1_application_lifespan,
 )
 from isees_uap.studio.v1.lifecycle import StudioV1LifecycleConfiguration
@@ -278,6 +279,9 @@ def create_application(
     frontend_directory: Path | str | None = None,
 ) -> FastAPI:
     """Construct the production API with injectable STUDIO deployment configuration."""
+    environment_values = os.environ if studio_v1_configuration is None or isinstance(
+        studio_v1_configuration, StudioV1LifecycleConfiguration) else studio_v1_configuration
+    trusted_hosts = trusted_hosts_from_environment(environment_values)
     if studio_v1_configuration is None:
         configuration = process_studio_v1_configuration()
     elif isinstance(studio_v1_configuration, StudioV1LifecycleConfiguration):
@@ -286,6 +290,7 @@ def create_application(
         from isees_uap.api.application import studio_v1_deployment_configuration
         configuration = studio_v1_deployment_configuration(studio_v1_configuration)
     application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
+    application.add_middleware(TrustedHostMiddleware, allowed_hosts=list(trusted_hosts))
     # Capture candidate access once during application construction. Invalid allowlist
     # input is represented by a fail-closed policy, so public and guest routes still start.
     startup_authentication_settings = authentication_settings()

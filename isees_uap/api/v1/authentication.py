@@ -41,6 +41,9 @@ def service(
         repo,
         session_ttl_seconds=config.session_ttl_seconds,
         candidate_access=config.candidate_access,
+        login_max_failures=config.login_max_failures,
+        login_window_seconds=config.login_window_seconds,
+        login_lockout_seconds=config.login_lockout_seconds,
     )
 
 

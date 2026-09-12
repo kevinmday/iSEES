@@ -29,3 +29,12 @@ class AuthenticatedSession:
     expires_at: datetime
     revoked_at: datetime | None
     last_used_at: datetime
+
+
+@dataclass(frozen=True)
+class LoginThrottle:
+    normalized_email: str
+    failure_count: int
+    window_started_at: datetime
+    locked_until: datetime | None
+    updated_at: datetime

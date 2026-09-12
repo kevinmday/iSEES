@@ -8,9 +8,13 @@ from pathlib import Path
 from typing import Callable
 
 from .errors import AuthenticationRepositoryUnavailable, DuplicateAccount
-from .models import AccountStatus, AuthenticatedSession, ResearcherAccount
+from .models import AccountStatus, AuthenticatedSession, LoginThrottle, ResearcherAccount
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+_MIGRATION_NAMES = {
+    1: "001_accounts_and_sessions.sql",
+    2: "002_login_throttling.sql",
+}
 
 
 def _utc_now() -> datetime:
@@ -91,8 +95,7 @@ class SQLiteAuthenticationRepository:
                     if version in versions:
                         continue
                     migration = Path(__file__).with_name("migrations").joinpath(
-                        f"{version:03d}_accounts_and_sessions.sql"
-                    ).read_text(encoding="utf-8")
+                        _MIGRATION_NAMES[version]).read_text(encoding="utf-8")
                     for statement in _statements(migration):
                         connection.execute(statement)
                     connection.execute(
@@ -257,3 +260,94 @@ class SQLiteAuthenticationRepository:
             raise AuthenticationRepositoryUnavailable(
                 "Authentication service is unavailable"
             ) from error
+
+    def login_throttle(self, *, normalized_email: str) -> LoginThrottle | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT * FROM login_throttle WHERE normalized_email=?",
+                    (normalized_email,),
+                ).fetchone()
+                return LoginThrottle(
+                    normalized_email=row["normalized_email"],
+                    failure_count=row["failure_count"],
+                    window_started_at=_datetime(row["window_started_at"]),
+                    locked_until=_datetime(row["locked_until"]),
+                    updated_at=_datetime(row["updated_at"]),
+                ) if row else None
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def record_login_failure(self, *, normalized_email: str, occurred_at: datetime,
+                             max_failures: int, window_seconds: int,
+                             lockout_seconds: int) -> LoginThrottle:
+        from datetime import timedelta
+        now_text = _utc_text(occurred_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    "DELETE FROM login_throttle WHERE updated_at < ?",
+                    (_utc_text(occurred_at - timedelta(
+                        seconds=max(window_seconds, lockout_seconds))),),
+                )
+                row = connection.execute(
+                    "SELECT * FROM login_throttle WHERE normalized_email=?",
+                    (normalized_email,),
+                ).fetchone()
+                window_start = occurred_at
+                count = 1
+                locked_until = None
+                if row and _datetime(row["window_started_at"]) + timedelta(
+                        seconds=window_seconds) > occurred_at:
+                    window_start = _datetime(row["window_started_at"])
+                    count = row["failure_count"] + 1
+                if count >= max_failures:
+                    locked_until = occurred_at + timedelta(seconds=lockout_seconds)
+                connection.execute(
+                    "INSERT INTO login_throttle VALUES (?,?,?,?,?) "
+                    "ON CONFLICT(normalized_email) DO UPDATE SET "
+                    "failure_count=excluded.failure_count, "
+                    "window_started_at=excluded.window_started_at, "
+                    "locked_until=excluded.locked_until, updated_at=excluded.updated_at",
+                    (normalized_email, count, _utc_text(window_start),
+                     _utc_text(locked_until) if locked_until else None, now_text),
+                )
+                connection.commit()
+                return self.login_throttle(normalized_email=normalized_email)
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def clear_login_throttle(self, *, normalized_email: str) -> None:
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute("DELETE FROM login_throttle WHERE normalized_email=?",
+                                   (normalized_email,))
+                connection.commit()
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def set_account_status(self, *, account_id: str, status: AccountStatus,
+                           occurred_at: datetime) -> ResearcherAccount:
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                cursor = connection.execute(
+                    "UPDATE researcher_account SET status=?, updated_at=? WHERE account_id=?",
+                    (status.value, _utc_text(occurred_at), account_id),
+                )
+                if cursor.rowcount != 1:
+                    connection.rollback()
+                    raise ValueError("Account identity is missing or ambiguous")
+                row = connection.execute(
+                    "SELECT * FROM researcher_account WHERE account_id=?", (account_id,)
+                ).fetchone()
+                connection.commit()
+                return self._account(row)
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error

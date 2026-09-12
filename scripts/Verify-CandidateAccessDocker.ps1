@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [string] $RepositoryRoot = (Split-Path $PSScriptRoot -Parent),
-    [string] $Image = 'isees-hf:p57-ops-hf-i3-i3'
+    [string] $Image = 'isees-hf:candidate-access',
+    [Parameter(Mandatory)] [ValidatePattern('^[0-9a-fA-F]{40}$')]
+    [string] $ExpectedHead
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,6 +22,7 @@ $password = 'Synthetic-P57-Password!47'
 $wrongPassword = 'Synthetic-Wrong-Password!83'
 $runtimeMarker = "synthetic-runtime-secret-$suffix"
 $baseUri = 'http://127.0.0.1:7860'
+$verifiedHost = 'candidate-access.isees.invalid'
 $results = [ordered]@{
     schema = 'p57-ops-hf-i3-i3/v1'; result = 'FAIL'; image = $Image; imageSha = $null
     guestSpa = 'FAIL'; approvedRegistration = 'FAIL'; unapprovedRegistration = 'FAIL'
@@ -71,7 +74,7 @@ function Assert-True([bool] $Condition, [string] $Message) {
 }
 
 function Invoke-Http([string] $Method, [string] $Path, [string] $Body = '', [string] $Cookie = '') {
-    $headers = @{}
+    $headers = @{ Host = $verifiedHost }
     if ($Cookie) { $headers.Cookie = $Cookie }
     $parameters = @{
         Uri = "$baseUri$Path"; Method = $Method; Headers = $headers
@@ -118,6 +121,7 @@ function Start-TestContainer([string] $Name, [string] $Allowlist) {
         'run', '--detach', '--name', $Name, '--publish', '127.0.0.1:7860:7860',
         '--mount', "type=volume,source=$volume,target=/data",
         '--env', 'PORT=7860', '--env', 'ISEES_AUTH_ENV=production',
+        '--env', "ISEES_TRUSTED_HOSTS=$verifiedHost",
         '--env', 'ISEES_CANDIDATE_ACCESS_MODE=enabled',
         '--env', "ISEES_APPROVED_TESTER_EMAILS=$Allowlist",
         '--env', "ISEES_RUNTIME_SECRET=$runtimeMarker", $Image
@@ -234,8 +238,7 @@ try {
     Assert-True ((git -C $RepositoryRoot branch --show-current) -eq 'hf-deploy') 'branch is not hf-deploy'
     $head = git -C $RepositoryRoot rev-parse HEAD
     $originHead = git -C $RepositoryRoot rev-parse origin/hf-deploy
-    Assert-True ($head -eq $originHead -and $head.StartsWith('ba85c62')) 'HEAD does not match the authoritative starting point'
-    Assert-True ((git -C $RepositoryRoot log -1 --format='%s') -eq 'P57-OPS-HF-I3-I2 enforce persistent account eligibility') 'latest commit subject is incorrect'
+    Assert-True ($head -eq $originHead -and $head -eq $ExpectedHead.ToLowerInvariant()) 'HEAD does not match the explicit source authority'
 
     Invoke-Docker -Operation 'build retained candidate-access image' -Arguments @('build', '--no-cache', '--pull=false', '--provenance=false', '--tag', $Image, $RepositoryRoot) | Out-Null
     $results.imageSha = (Invoke-Docker -Operation 'inspect retained image identifier' -Arguments @('image', 'inspect', $Image, '--format', '{{.Id}}')).Output.Trim()
