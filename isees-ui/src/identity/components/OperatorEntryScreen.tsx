@@ -36,7 +36,7 @@ export function OperatorEntryScreen() {
               Continue as Guest
             </button>
             <p id="isees-guest-detail" className="isees-entry__access-copy">
-              Enter the complete research application. Work is retained for the current browser session.
+              Bring your own case, create a structured candidate event, and compare it with System Canon. Guest work remains in the current browser session.
             </p>
           </div>
 

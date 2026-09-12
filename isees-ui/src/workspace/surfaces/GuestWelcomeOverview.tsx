@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { InvestigationLibraryStatus, OverviewFrontDoorManifestation, type OverviewFrontDoorProjection } from "../../investigation/frontDoor/FrontDoorProjectionTypes";
 import { CANON_PRESENTATION_VISUAL, OVERVIEW_REPOSITORIES, projectHydratedOverviewEvents, resolveOverviewCompositionKind, type OverviewCanonCard } from "./overview/OverviewEndStateModel";
 import { useOverviewSelection } from "./overview/OverviewSelectionContext";
 import "./GuestWelcomeOverview.css";
+import GuestCaseIntake from "./GuestCaseIntake";
 
 export interface GuestWelcomeOverviewProps { readonly projection: OverviewFrontDoorProjection | null; }
 const CANON_EVENTS = projectHydratedOverviewEvents();
 
 export default function GuestWelcomeOverview({ projection }: GuestWelcomeOverviewProps) {
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const overview = useOverviewSelection();
   const composition = resolveOverviewCompositionKind(projection);
   if (composition === "CLOSED") return <ClosedOverview />;
@@ -18,6 +21,7 @@ export default function GuestWelcomeOverview({ projection }: GuestWelcomeOvervie
     return <AccountLibraryOverview title="Investigation library unavailable" message="Owned work remains hidden until account authority and the library projection resolve." projection={projection} />;
   }
   const isAccount = projection.manifestation === OverviewFrontDoorManifestation.NEW_ACCOUNT;
+  if (!isAccount && intakeOpen) return <main className="guest-welcome"><GuestCaseIntake onCancel={() => setIntakeOpen(false)} /></main>;
   return (
     <main className="guest-welcome">
       <section className="guest-welcome__hero" aria-labelledby="overview-gateway-title">
@@ -25,6 +29,7 @@ export default function GuestWelcomeOverview({ projection }: GuestWelcomeOvervie
           <p className="guest-welcome__eyebrow">{isAccount ? "New Account / Research Gateway" : "Guest Overview / Public Research Gateway"}</p>
           <h1 id="overview-gateway-title">Investigate the record, preserve the source.</h1>
           <p className="guest-welcome__lead">iSEES is an inspectable research workstation for exploring canonical events, tracing source-grounded claims, and explicitly opening a case as an investigation when you are ready.</p>
+          {!isAccount && <div className="guest-welcome__bring-case"><button type="button" onClick={() => setIntakeOpen(true)}>Bring Your Own Case</button><p>Create a structured candidate event, then compare it with System Canon.</p></div>}
           <div className="guest-welcome__status-row" aria-label="Workspace status">
             <Status label="Investigation" value="No active investigation" />
             <Status label="Browsing" value="Read-only / non-mutating" />
@@ -60,7 +65,7 @@ export default function GuestWelcomeOverview({ projection }: GuestWelcomeOvervie
       <section className="guest-welcome__next" aria-labelledby="available-actions-title">
         <div><p className="guest-welcome__eyebrow">Operational Boundary</p><h2 id="available-actions-title">Available actions</h2></div>
         <p><strong>Live:</strong> browse and focus hydrated Canon records without changing a workspace. Use the existing Case Library for any explicit import.</p>
-        <button type="button" disabled>Create Empty Investigation <span>Planned</span></button>
+        {!isAccount && <button type="button" onClick={() => setIntakeOpen(true)}>Bring Your Own Case</button>}
       </section>
     </main>
   );

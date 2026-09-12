@@ -1135,6 +1135,28 @@ export class WorkspaceRuntime {
 
   }
 
+  /** Activates a session-only researcher candidate without canonical materialization. */
+  activateGuestCandidateInvestigation(investigation: Investigation): void {
+    const workspace = investigation.workspace;
+    const candidate = workspace.guest_candidate_event;
+    if (
+      investigation.status !== "DRAFT" || candidate === undefined ||
+      candidate.knowledgeClassification !== "CANDIDATE_KNOWLEDGE" ||
+      candidate.origin !== "RESEARCHER_SUPPLIED" || candidate.lifecycle !== "DRAFT" ||
+      candidate.objectType !== "EVENT" || candidate.operationalMaterialization !== "NONE" ||
+      candidate.systemCanonIdentity !== null || workspace.focused_event_id !== candidate.candidateId ||
+      workspace.imported_events.length !== 1 || workspace.imported_events[0]?.event_id !== candidate.candidateId ||
+      workspace.imported_events[0]?.source !== "RESEARCHER_SUPPLIED" || investigation.revisions.length !== 0
+    ) throw new Error("Guest candidate activation rejected a non-candidate or materialized payload.");
+
+    this.state = { ...this.state, status: "ACTIVE",
+      session: { workspace, investigation, focusedEvent: candidate.candidateId, artifacts: [] },
+      operator: { ...this.state.operator, activeMode: WorkspaceMode.COMPARE, layoutMode: WorkspaceLayoutMode.NORMAL, selection: undefined },
+      computational: { activeLayers: [], temporalContext: undefined, investigativeScale: undefined },
+      revision: this.state.revision + 1 };
+    this.notify();
+  }
+
   /**
    * Atomically activates a server-authorized, deliberately empty owned
    * Investigation. Empty ownership is not an operational graph revision and must

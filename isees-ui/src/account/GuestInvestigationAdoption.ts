@@ -26,6 +26,7 @@ export function captureGuestAdoptionCandidate(snapshot: GuestWorkspaceSessionSna
   const investigation = snapshot.workspace.investigation;
   if (!investigation) return null;
   const workspace = snapshot.workspace.workspace ?? investigation.workspace;
+  if (workspace.guest_candidate_event) throw new Error("Researcher-supplied guest candidates cannot cross the account adoption boundary in this increment.");
   const revision = investigation.revisions.find(item => item.id === investigation.currentRevisionId) ?? investigation.revisions.at(-1);
   const graphNodes = revision?.manifold.graph.nodes ?? [];
   const graphEdges = revision?.manifold.graph.edges ?? [];

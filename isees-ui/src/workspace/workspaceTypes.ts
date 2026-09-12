@@ -6,11 +6,26 @@
 import type {
   Artifact
 } from "../artifacts/artifactTypes";
+import type { NativeCaseDraftContent } from "../nativeCaseDraft/NativeCaseDraftTypes";
 
 export type WorkspaceReferenceSource =
   | "SYSTEM_CANON"
   | "RESEARCH_CANON"
-  | "LIVE_EVENT";
+  | "LIVE_EVENT"
+  | "RESEARCHER_SUPPLIED";
+
+export type GuestCandidateEvent = Readonly<{
+  candidateId: string;
+  knowledgeClassification: "CANDIDATE_KNOWLEDGE";
+  origin: "RESEARCHER_SUPPLIED";
+  lifecycle: "DRAFT";
+  objectType: "EVENT";
+  operationalMaterialization: "NONE";
+  systemCanonIdentity: null;
+  title: string;
+  content: NativeCaseDraftContent;
+  canonicalSerialization: string;
+}>;
 
 export type WorkspaceReference = {
 
@@ -44,6 +59,9 @@ export type Workspace = {
 
   focused_event_id:
     string | null;
+
+  guest_candidate_event?:
+    GuestCandidateEvent;
 
   investigations:
     WorkspaceInvestigation[];

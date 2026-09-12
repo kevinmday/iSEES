@@ -103,6 +103,9 @@ export default function OverviewWorkspace() {
     workspace?.focused_event_id ??
     null;
 
+  const guestCandidate =
+    workspace?.guest_candidate_event;
+
   const coherentSelection =
     resolveCoherentInvestigationSelection(
       investigation,
@@ -113,6 +116,12 @@ export default function OverviewWorkspace() {
   return (
 
     <div className="overview-workspace">
+
+      {guestCandidate && <section className="investigation-summary" aria-label="Temporary guest candidate">
+        <div className="summary-label">RESEARCHER SUPPLIED / CANDIDATE KNOWLEDGE</div>
+        <h2 className="summary-title">{guestCandidate.title}</h2>
+        <div className="summary-subtitle">DRAFT EVENT · Temporary guest research; it will not be saved after this session.</div>
+      </section>}
 
       <div className="overview-dashboard">
 

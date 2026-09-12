@@ -9,6 +9,7 @@ export interface StructuredObservationFormProps {
   readonly onFieldChange: (field: NativeCaseDraftFieldName, entry: NativeCaseDraftFormState[NativeCaseDraftFieldName]) => void;
   readonly onSubmit: () => void;
   readonly actions?: ReactNode;
+  readonly submitLabel?: string;
 }
 
 type InputKind = "text" | "textarea" | "date" | "time" | "timezone" | "integer" | "duration" | "privacy";
@@ -43,9 +44,10 @@ const FIELDS: readonly Definition[] = [
 ];
 
 const idFor = (field: NativeCaseDraftFieldName) => `native-case-draft-${field}`;
+// eslint-disable-next-line react-refresh/only-export-components -- established test-facing control identity helper
 export const nativeCaseDraftFieldControlId = idFor;
 
-export function StructuredObservationForm({ form, validation, busy, onFieldChange, onSubmit, actions }: StructuredObservationFormProps) {
+export function StructuredObservationForm({ form, validation, busy, onFieldChange, onSubmit, actions, submitLabel = "Save Draft" }: StructuredObservationFormProps) {
   const errors = new Map(validation.filter(result => !result.valid).map(result => [result.field, result.message]));
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onSubmit(); };
   return (
@@ -59,7 +61,7 @@ export function StructuredObservationForm({ form, validation, busy, onFieldChang
           </div>
         </section>
       ))}
-      <div className="native-case-draft__actions">{actions}<button className="native-case-draft__button native-case-draft__button--primary" type="submit" disabled={busy}>Save Draft</button></div>
+      <div className="native-case-draft__actions">{actions}<button className="native-case-draft__button native-case-draft__button--primary" type="submit" disabled={busy}>{submitLabel}</button></div>
     </form>
   );
 }

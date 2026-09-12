@@ -1,6 +1,9 @@
 import {
   useMemo,
+  useState,
 } from "react";
+import { projectGuestCandidateCanonOptions } from "../projection/GuestCandidateCompareProjection";
+import type { GuestCandidateEvent } from "../../workspace/workspaceTypes";
 
 import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
 import { publishCompareCandidateToResearch } from "../research/CompareCandidateResearchPublication";
@@ -289,6 +292,29 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { p
   );
 }
 
+function GuestCandidateWorkspace({ candidate, knowledgeObjects }: { readonly candidate: GuestCandidateEvent; readonly knowledgeObjects: ReturnType<typeof useKnowledgeObjects> }) {
+  const options = useMemo(() => projectGuestCandidateCanonOptions(candidate, knowledgeObjects), [candidate, knowledgeObjects]);
+  const [comparisonId, setComparisonId] = useState("");
+  const comparison = options.find(option => option.eventId === comparisonId);
+  const candidateFields = [
+    ["Title", candidate.content.workingTitle], ["Location", candidate.content.observationLocation], ["Local date", candidate.content.localObservationDate],
+    ["Local time", candidate.content.localObservationTime], ["Timezone", candidate.content.timezone], ["Narrative", candidate.content.observationNarrative],
+    ["Shape", candidate.content.objectShape], ["Movement", candidate.content.movementBehavior], ["Sound", candidate.content.soundCharacteristics],
+    ["Lighting / visibility", candidate.content.lightingVisibility], ["Observer context", candidate.content.observerContext], ["Witness count", candidate.content.witnessCount],
+    ["Environmental conditions", candidate.content.environmentalConditions], ["Duration", candidate.content.approximateDuration],
+  ] as const;
+  const displayCandidate = (entry: typeof candidateFields[number][1]) => entry.state === "UNKNOWN" ? "Unknown" : entry.state === "OMITTED" ? "Not answered" : "seconds" in entry ? `${entry.seconds} seconds` : "value" in entry ? String(entry.value) : "Not answered";
+  return <main className="compare-workspace"><div className="compare-workspace__content">
+    <header className="compare-workspace__pair-heading"><div className="compare-workspace__eyebrow">COMPARE / GUEST CANDIDATE</div><h2 className="compare-workspace__title">{candidate.title}</h2><p className="compare-workspace__subtitle"><strong>Choose a System Canon event to compare with your case.</strong> This is a descriptive side-by-side view only.</p></header>
+    <label className="compare-workspace__guest-target">System Canon comparison target<select value={comparisonId} onChange={event => setComparisonId(event.target.value)}><option value="">Select a Canon event</option>{options.map(option => <option key={option.eventId} value={option.eventId}>{option.title} ({option.eventId})</option>)}</select></label>
+    <section className="compare-workspace__cases" aria-label="Researcher candidate and System Canon comparison">
+      <article className="compare-workspace__case compare-workspace__case--a"><div className="compare-workspace__case-topline"><span className="compare-workspace__case-label">YOUR CASE</span><span className="compare-workspace__badge compare-workspace__badge--candidate">CANDIDATE KNOWLEDGE</span></div><div className="compare-workspace__case-role">RESEARCHER SUPPLIED / DRAFT</div><h3>{candidate.title}</h3><dl className="compare-workspace__identity-list">{candidateFields.map(([label, entry]) => <div key={label}><dt>{label}</dt><dd>{displayCandidate(entry)}</dd></div>)}</dl></article>
+      <article className="compare-workspace__case compare-workspace__case--b"><div className="compare-workspace__case-topline"><span className="compare-workspace__case-label">SYSTEM CANON CASE</span><span className="compare-workspace__badge compare-workspace__badge--canonical">SYSTEM CANON</span></div><div className="compare-workspace__case-role">COMPARISON EVENT</div><h3>{comparison?.title ?? "Select a Canon event"}</h3>{comparison && <><p>{comparison.eventId}</p><dl className="compare-workspace__identity-list">{comparison.fields.map(field => <div key={field.label}><dt>{field.label}</dt><dd>{field.value ?? "Unavailable in Canon record"}</dd></div>)}</dl></>}</article>
+    </section>
+    <section className="compare-workspace__boundary"><h2>Inspection, not assertion</h2><ul><li>The focused event remains researcher-supplied Candidate Knowledge.</li><li>The comparison target remains System Canon.</li><li>No similarity, relationship, confidence, or conclusion is asserted.</li><li>Guest research is temporary and will not be saved after this session.</li></ul></section>
+  </div></main>;
+}
+
 export default function CompareWorkspace() {
   const knowledgeObjects = useKnowledgeObjects();
   const resolveState = useResolveRuntimeState();
@@ -300,6 +326,7 @@ export default function CompareWorkspace() {
   const candidateEvaluations = currentExecution?.result?.candidateEvaluations;
   const investigationId = investigation?.id;
   const resolveExecutionId = currentExecution?.executionId;
+  const guestCandidate = workspace?.guest_candidate_event;
 
   const projectionState = useMemo<ProjectionState>(() => {
     if (candidateEvaluations === undefined) {
@@ -341,7 +368,11 @@ export default function CompareWorkspace() {
         reason: technicalReason(error),
       };
     }
-  }, [candidateEvaluations, knowledgeObjects, selection, workspace?.focused_event_id]);
+  }, [candidateEvaluations, knowledgeObjects, selection, workspace]);
+
+  if (guestCandidate) {
+    return <GuestCandidateWorkspace candidate={guestCandidate} knowledgeObjects={knowledgeObjects} />;
+  }
 
   if (
     candidateEvaluations === undefined &&
