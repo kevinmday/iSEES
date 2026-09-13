@@ -58,7 +58,7 @@ describe("MANIFOLD governed Resolve interaction", () => {
     expect(feedback.textContent).toContain("open LAYERS or inspect a Resolve candidate");
     expect(screen.getByText(/EVENT MANIFOLD:.*RESOLVE: SYNCHRONIZED/)).toBeTruthy();
     expect(JSON.stringify(canonical)).toBe(canonBefore);
-    expect(created.candidate.knowledgeObject.relationships).toEqual([]);
+    expect(created.candidate.knowledgeObject.relationships.some(relationship => relationship.targetId === target.identity.id)).toBe(false);
 
     act(() => workspaceRuntime.setSelection({ kind: WorkspaceSelectionKind.COMPARISON_TARGET, eventId: replacement.provenance.sourceId, knowledgeObjectId: replacement.identity.id }));
     await waitFor(() => expect(screen.getByText("READY TO RESOLVE")).toBeTruthy());

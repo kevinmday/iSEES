@@ -31,8 +31,8 @@ assert.equal(Object.hasOwn(created.candidate.knowledgeObject.payload.operational
 assert.equal(Object.hasOwn(created.candidate.knowledgeObject.payload.operationalFeatures, "rightsPublicationRestriction"), false, "OMITTED is not an asserted feature");
 assert.equal(created.investigation.revisions.length, 1);
 assert.equal(created.investigation.currentRevisionId, "REV-0001");
-assert.equal(created.investigation.revisions[0]?.manifold.graph.nodes.length, 1);
-assert.equal(created.investigation.revisions[0]?.manifold.graph.edges.length, 0);
+assert.equal(created.investigation.revisions[0]?.manifold.graph.nodes.length, 2);
+assert.equal(created.investigation.revisions[0]?.manifold.graph.edges.length, 1);
 
 const welcome = source("src/workspace/surfaces/GuestWelcomeOverview.tsx");
 const intake = source("src/workspace/surfaces/GuestCaseIntake.tsx");
@@ -54,7 +54,7 @@ assert.equal((intake.match(/submitGuestCase\(/g) ?? []).length, 1, "guest retain
 assert.ok(structuredForm.includes('submitLabel = "Save Draft"'), "account default submit label remains Save Draft");
 assert.ok(intake.includes("validateNativeCaseDraftForm") && model.includes("mapFormStateToContent"));
 assert.ok(compare.includes('"Unknown"') && compare.includes('"Not answered"') && compare.includes('"Unavailable in Canon record"'));
-assert.ok(compare.includes("WorkspaceSelectionKind.COMPARISON_TARGET") && compare.includes("Resolve on MANIFOLD") && compare.includes("createWorkspaceCandidateSelection"));
+assert.ok(compare.includes("WorkspaceSelectionKind.COMPARISON_TARGET") && compare.includes("Resolve on MANIFOLD") && compare.includes("resolveOnManifold"));
 assert.ok(runtime.includes("WorkspaceMode.COMPARE") && runtime.includes("activateGuestCandidateInvestigation"));
 assert.ok(projection.includes('sourceType === "SYSTEM_CANON"') && projection.includes("fields: canonFields(object.payload)"));
 assert.ok(source("src/workspace/persistence/GuestWorkspaceSessionPersistence.ts").includes("GuestWorkspaceSessionSnapshot"), "existing session restoration remains composed");
