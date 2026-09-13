@@ -137,6 +137,8 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
     const manifold = resolveActiveOperationalGraphProjection(created.investigation);
     expect(adapted.nodes).toEqual(manifold.nodes);
     expect(adapted.edges).toEqual(manifold.edges);
+    expect(manifold.nodes).toHaveLength(25);
+    expect(manifold.edges).toHaveLength(21);
     expect(guestObjects).toHaveLength(9);
     const guestEvent = guestObjects.find(object => object.identity.id === candidateId);
     expect(guestEvent?.type).toBe("EVENT");
@@ -189,6 +191,7 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
     expect(executeSpy).toHaveBeenCalledTimes(1);
     const resolveResult = executeSpy.mock.results[0]?.value;
     if (!resolveResult) throw new Error("Production Resolve command returned no result.");
+    expect(resolveResult.candidateEvaluations.evaluations).toHaveLength(6);
     expect(observedResolveState?.currentExecution?.result?.executionId).toBe(resolveResult.executionId);
     expect(screen.getByText(/RESOLVE: SYNCHRONIZED/)).toBeTruthy();
 

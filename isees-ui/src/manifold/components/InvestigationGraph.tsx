@@ -45,6 +45,9 @@ import ManifoldCameraInstrument, {
   type ManifoldCameraAction,
 } from "./ManifoldCameraInstrument";
 
+import ManifoldInstrumentLayer
+from "./ManifoldInstrumentLayer";
+
 import GraphNodes
 from "./GraphNodes";
 
@@ -889,7 +892,7 @@ function handleCollectEdge(
 
           return (
 
-            <>
+            <ManifoldInstrumentLayer viewport={{ width: viewportWidth, height: viewportHeight }} projectionMode={projectionMode}>
               {/* ============================================== */}
               {/* TOPOLOGY                                       */}
               {/* ============================================== */}
@@ -1075,7 +1078,7 @@ function handleCollectEdge(
 
             </div>
 
-          </>
+          </ManifoldInstrumentLayer>
 
         );
 

@@ -32,6 +32,11 @@ import {
   useState,
 } from "react";
 
+import {
+  clampInstrumentPoint,
+  useManifoldInstrumentLayer,
+} from "./ManifoldInstrumentLayer";
+
 import type {
   PointerEvent as ReactPointerEvent,
   ReactNode,
@@ -79,10 +84,11 @@ function clampInstrumentPosition(
   instrumentWidth: number,
   instrumentHeight: number,
 ): InstrumentPosition {
-  return {
-    x: Math.min(Math.max(0, position.x), Math.max(0, viewportWidth - instrumentWidth)),
-    y: Math.min(Math.max(0, position.y), Math.max(0, viewportHeight - instrumentHeight)),
-  };
+  return clampInstrumentPoint(
+    position,
+    { width: viewportWidth, height: viewportHeight },
+    { width: instrumentWidth, height: instrumentHeight },
+  );
 }
 
 // ============================================================
@@ -194,6 +200,12 @@ export default function ManifoldInstrumentPalette({
   width = 126,
 }: ManifoldInstrumentPaletteProps) {
 
+  const instrumentLayer = useManifoldInstrumentLayer();
+  const registerInstrument = instrumentLayer?.register;
+  const unregisterInstrument = instrumentLayer?.unregister;
+  const moveInstrument = instrumentLayer?.move;
+  const settleInstrument = instrumentLayer?.settle;
+
   const paletteRef =
     useRef<HTMLDivElement | null>(null);
 
@@ -222,6 +234,9 @@ export default function ManifoldInstrumentPalette({
     initialState.position
   );
 
+  const positionRef =
+    useRef(initialState.position);
+
   const [
     dragging,
     setDragging,
@@ -233,6 +248,9 @@ export default function ManifoldInstrumentPalette({
   ] = useState<InstrumentDockState>(
     initialState.dockState
   );
+
+  const dockStateRef =
+    useRef(initialState.dockState);
 
   const [instrumentHeight, setInstrumentHeight] =
     useState(80);
@@ -262,33 +280,49 @@ export default function ManifoldInstrumentPalette({
     if (!palette || !viewport) return;
 
     const contain = (): void => {
+      const current = positionRef.current;
+      const next = clampInstrumentPosition(
+        current,
+        viewport.clientWidth,
+        viewport.clientHeight,
+        palette.offsetWidth,
+        palette.offsetHeight,
+      );
+
       setInstrumentHeight(current =>
         current === palette.offsetHeight ? current : palette.offsetHeight,
       );
-      setPosition(current => {
-        const next = clampInstrumentPosition(
-          current,
-          viewport.clientWidth,
-          viewport.clientHeight,
-          palette.offsetWidth,
-          palette.offsetHeight,
-        );
 
-        if (next.x === current.x && next.y === current.y) return current;
+      registerInstrument?.(
+        instrumentId,
+        next,
+        { width: palette.offsetWidth, height: palette.offsetHeight },
+      );
 
-        if (dockState === "FLOATING") {
-          saveInstrumentState(instrumentId, { position: next, dockState });
-        }
-        return next;
-      });
+      if (next.x === current.x && next.y === current.y) return;
+      positionRef.current = next;
+      setPosition(next);
+
+      if (dockStateRef.current === "FLOATING") {
+        saveInstrumentState(instrumentId, {
+          position: next,
+          dockState: dockStateRef.current,
+        });
+      }
     };
 
     contain();
     const observer = new ResizeObserver(contain);
     observer.observe(viewport);
     observer.observe(palette);
-    return () => observer.disconnect();
-  }, [dockState, instrumentId]);
+    return () => {
+      observer.disconnect();
+      unregisterInstrument?.(instrumentId);
+    };
+  }, [dockState, instrumentId, registerInstrument, unregisterInstrument]);
+
+  const resolvedPosition =
+    instrumentLayer?.position(instrumentId, position) ?? position;
 
   // ==========================================================
   // DRAG START
@@ -389,12 +423,15 @@ export default function ManifoldInstrumentPalette({
       x: nextX,
       y: nextY,
     });
+    positionRef.current = { x: nextX, y: nextY };
+    moveInstrument?.(instrumentId, { x: nextX, y: nextY });
 
     if (
       nextX !== defaultPosition.x ||
       nextY !== defaultPosition.y
     ) {
       setDockState("FLOATING");
+      dockStateRef.current = "FLOATING";
     }
 
   }
@@ -442,10 +479,12 @@ export default function ManifoldInstrumentPalette({
       setPosition(
         nextState.position
       );
+      positionRef.current = nextState.position;
 
       setDockState(
         nextState.dockState
       );
+      dockStateRef.current = nextState.dockState;
 
       saveInstrumentState(
         instrumentId,
@@ -455,13 +494,14 @@ export default function ManifoldInstrumentPalette({
     } else {
 
       const nextState: PersistedInstrumentState = {
-        position,
+        position: resolvedPosition,
         dockState: "FLOATING",
       };
 
       setDockState(
         nextState.dockState
       );
+      dockStateRef.current = nextState.dockState;
 
       saveInstrumentState(
         instrumentId,
@@ -471,6 +511,7 @@ export default function ManifoldInstrumentPalette({
     }
 
     setDragging(false);
+    settleInstrument?.(instrumentId);
 
   }
   // ==========================================================
@@ -520,12 +561,14 @@ export default function ManifoldInstrumentPalette({
 
       <div
         ref={paletteRef}
+        data-manifold-instrument={instrumentId}
+        onPointerDownCapture={() => settleInstrument?.(instrumentId)}
         data-dock-state={dockState}
         style={{
           position: "absolute",
 
-          left: position.x,
-          top: position.y,
+          left: resolvedPosition.x,
+          top: resolvedPosition.y,
 
           width,
 
@@ -551,7 +594,7 @@ export default function ManifoldInstrumentPalette({
           pointerEvents: "auto",
 
           zIndex:
-            dragging
+            dragging || instrumentLayer?.isForeground(instrumentId)
               ? 3
               : 2,
         }}

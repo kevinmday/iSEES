@@ -21,6 +21,9 @@
 import ManifoldInstrumentPalette
 from "./ManifoldInstrumentPalette";
 
+import { useState }
+from "react";
+
 import { useResolveExecutionCommand }
 from "../../resolve/runtime/useResolveExecutionCommand";
 
@@ -47,6 +50,7 @@ interface InstrumentButtonProps {
     action: ManifoldToolbarAction,
   ) => void;
   disabled?: boolean;
+  beforeAction?: () => void;
 }
 
 function InstrumentButton({
@@ -55,6 +59,7 @@ function InstrumentButton({
   action,
   onAction,
   disabled = false,
+  beforeAction,
 }: InstrumentButtonProps) {
 
   return (
@@ -63,9 +68,10 @@ function InstrumentButton({
         type="button"
         disabled={disabled}
         title={tooltip}
-        onClick={() =>
-          onAction(action)
-        }
+        onClick={() => {
+          beforeAction?.();
+          onAction(action);
+        }}
         style={{
           width: "100%",
 
@@ -118,6 +124,9 @@ export default function ManifoldToolbar({
   const resolveCommand =
     useResolveExecutionCommand();
 
+  const [feedbackCollapsed, setFeedbackCollapsed] =
+    useState(false);
+
   return (
 
     <>
@@ -138,11 +147,13 @@ export default function ManifoldToolbar({
           label="Resolve"
           action="RESOLVE"
           onAction={() => resolveCommand.execute()}
+          beforeAction={() => setFeedbackCollapsed(false)}
           disabled={resolveCommand.disabled}
           tooltip="Execute Resolve-Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
         />
 
-        <div
+        {!feedbackCollapsed && <div
+          data-computation-feedback="true"
           role={resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "alert" : "status"}
           aria-live={resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "assertive" : "polite"}
           style={{ marginTop: 8, padding: 8, border: "1px solid rgba(125,211,252,.3)", borderRadius: 6, background: "rgba(2,6,23,.92)", color: resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "#fca5a5" : "#bae6fd", fontSize: 10, lineHeight: 1.5, pointerEvents: "auto" }}
@@ -154,7 +165,7 @@ export default function ManifoldToolbar({
             <div>Comparison case: {resolveCommand.feedback.comparisonLabel}</div>
             <div>Candidates produced: {resolveCommand.feedback.candidateCount}</div>
           </>}
-        </div>
+        </div>}
 
         <InstrumentButton
           label="Dissolve"
@@ -166,8 +177,8 @@ export default function ManifoldToolbar({
         <InstrumentButton
           label="Collapse"
           action="COLLAPSE"
-          onAction={onAction}
-          tooltip="Collapse the current Investigation Manifold according to the selected deterministic collapse strategy while preserving reproducibility."
+          onAction={() => setFeedbackCollapsed(true)}
+          tooltip="Collapse only the computation feedback instrument. The Investigation Manifold and its graph remain unchanged."
         />
 
       </ManifoldInstrumentPalette>

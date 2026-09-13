@@ -38,6 +38,19 @@ function renderOwnerPath() {
 }
 
 describe("MANIFOLD governed Resolve interaction", () => {
+  it("COLLAPSE hides only computation feedback and emits no graph action", async () => {
+    establishGuestPair();
+    const graphAction = vi.fn();
+    render(<KnowledgeObjectRuntimeProvider><WorkspaceRuntimeProvider><ResolveRuntimeProvider><ManifoldToolbar onAction={graphAction} /></ResolveRuntimeProvider></WorkspaceRuntimeProvider></KnowledgeObjectRuntimeProvider>);
+    const before = JSON.stringify(workspaceRuntime.getActiveInvestigation());
+    await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
+    expect(screen.queryByText("READY TO RESOLVE")).toBeNull();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "2D" })).toBeTruthy();
+    expect(graphAction).not.toHaveBeenCalled();
+    expect(JSON.stringify(workspaceRuntime.getActiveInvestigation())).toBe(before);
+  });
+
   it("completes the real toolbar owner after one click and rejects stale pair feedback", async () => {
     const { canonical, created, target, replacement } = establishGuestPair();
     const canonBefore = JSON.stringify(canonical);
