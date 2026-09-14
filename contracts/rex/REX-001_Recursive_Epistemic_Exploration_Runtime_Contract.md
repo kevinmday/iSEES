@@ -1,0 +1,112 @@
+# REX-001 — Recursive Epistemic Exploration Runtime Contract
+
+**Status:** Authoritative Contract
+
+**Version:** 1.0
+
+**Implements:** [SC-025 REX Recursive Epistemic Exploration and Deterministic Normalization](../../isees-ui/docs/computational-canon/SC-025_REX_Recursive_Epistemic_Exploration_and_Deterministic_Normalization.md)
+
+**Related:** [SC-026 REX Frontier Agents](../../isees-ui/docs/computational-canon/SC-026_REX_Frontier_Agents.md); [REX-002 Frontier Agent Runtime Contract](REX-002_Frontier_Agent_Runtime_Contract.md)
+
+## 1. Scope
+
+This contract defines the provider-independent execution, normalization, provenance, cost, and authority boundary for REX. It is an architecture contract, not a runtime implementation or deployment authorization.
+
+REX MAY execute when an Investigation Manifold is created, revised, or resolved, or when continuing exploration is explicitly assigned. Old investigations remain eligible: later events or newly available documents, people, organizations, places, systems, capabilities, limitations, contact information, and relationships may create a new frontier.
+
+## 2. Deterministic execution boundary
+
+AI MAY propose searches, discover candidate nodes and edges, extract candidate intelligence, and assist authoring. AI output MUST NOT directly mutate System Canon.
+
+Before execution, deterministic policy MUST verify authorization, immutable manifold revision, purpose and scope, risk and privacy, source eligibility, freshness, duplicate disposition, utility threshold, and remaining budget. Authorization MUST remain valid at dispatch. Failure of any mandatory gate denies execution.
+
+All discoveries MUST enter Candidate Knowledge with explicit provenance and AI-assistance annotations. Human authority governs admission. Contact discovery never authorizes contact. Versioned adapters MUST normalize heterogeneous source material into the canonical candidate schema while preserving raw source material, source spans or fields, content hashes, adapter version, and transformation lineage.
+
+Every candidate projection MUST be deterministically validated against its bound manifold revision, ontology, provenance requirements, and candidate schema. Projection validation does not establish truth or admit knowledge.
+
+## 3. Execution protocol
+
+Each execution MUST proceed through these durable phases:
+
+`ELIGIBILITY → POLICY GATE → BUDGET RESERVATION → DISPATCH → RETRIEVE → EXTRACT → NORMALIZE → QUARANTINE → VALIDATE → RECORD COST → RELEASE OR CHARGE RESERVATION → REVIEW`
+
+The runtime MUST use idempotency keys and deterministic duplicate checks. A retry MUST refer to the original execution and MUST NOT silently create a second charge or provenance root. Cache reuse and duplicate suppression MUST be recorded even when no provider request occurs.
+
+Execution MUST be bounded by time, request, token, byte, source-fee, and monetary or credit limits. Cancellation, timeout, policy revocation, circuit breaker activation, and budget exhaustion MUST stop further external work and preserve partial provenance.
+
+## 4. Search Execution Record
+
+Every attempted authorized execution, including cache hits, suppressed duplicates, partial failures, and zero-candidate results, MUST create one immutable Search Execution Record containing:
+
+- execution, agent, and assignment identity, where applicable;
+- immutable assignment revision, where applicable;
+- bound immutable manifold revision;
+- authorization and policy decision identity;
+- trigger and query identity, with sensitive query material protected by policy;
+- model, provider, and version;
+- input and output tokens;
+- source requests and source fees;
+- compute duration;
+- bytes retrieved, stored, and transferred;
+- estimated cost and actual cost;
+- budget identity and amount charged;
+- cache and duplicate disposition;
+- candidates produced, including node, edge, and candidate-update identities;
+- provenance, adapter, configuration, and content hashes;
+- execution outcome, errors, cancellation, or truncation state; and
+- later review and admission disposition, linked append-only without rewriting the execution record.
+
+Unknown actual costs MUST remain explicitly pending and later be reconciled through an append-only cost-ledger entry. Estimated cost MUST NOT be overwritten by actual cost.
+
+## 5. Cost model and utility gate
+
+For each execution:
+
+$$
+C_{run} = C_{compute} + C_{AI} + C_{source} + C_{storage} + C_{network}
+$$
+
+For an agent during period $T$:
+
+$$
+C_{agent}(T) = \sum_{r \in \operatorname{AuthorizedRuns}(T)} C_{run}(r)
+$$
+
+For the system:
+
+$$
+C_{system} = C_{base} + \sum C_{agent} + C_{review}
+$$
+
+The governed utility of proposed execution $a$ is:
+
+$$
+U(a) = w_I I(a) + w_B B(a) + w_F F(a) - \lambda \widehat{C}(a) - \mu R(a)
+$$
+
+Execution is permitted only when all of the following are true:
+
+- $U(a)$ meets its governed threshold;
+- estimated cost is within the remaining budget;
+- the query is not a duplicate;
+- freshness and source policies permit execution; and
+- authorization remains valid.
+
+Weights, estimates, thresholds, and risk classifications MUST be versioned governed configuration. A model may supply bounded inputs but MUST NOT grant itself execution authority.
+
+## 6. Operational and infrastructure requirements
+
+Public application serving and Frontier execution MUST be separable operational concerns. The execution plane MUST use a scheduler, durable queue, bounded workers, source adapters, provenance storage, and an append-only cost ledger. Workers SHOULD scale to zero when idle where supported. Uncontrolled perpetual polling loops are prohibited.
+
+The system MUST enforce circuit breakers per user, investigation, agent, source, and globally. Expensive sources MUST require explicit entitlement, credits, pass-through cost, or institution-provided credentials. Credentials and secrets MUST NOT appear in Candidate Knowledge, Search Execution Records, logs, or cost telemetry.
+
+## 7. Failure and authority invariants
+
+- Denied execution produces no external request.
+- Partial work produces no System Canon mutation.
+- Adapter failure quarantines input and emits no invalid candidate projection.
+- Provider success does not imply candidate validity.
+- Candidate validity does not imply admission.
+- Admission does not imply Canon promotion.
+- Contact discovery does not imply permission to contact.
+- Review disposition is attributable and preserves execution history.

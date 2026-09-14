@@ -2,17 +2,23 @@
 
 **Status:** Canonical
 
-**Version:** REX v0.2
+**Version:** REX v0.3
 
 **Category:** Computational Epistemology and Candidate Knowledge Architecture
 
 **Depends on:** SC-003 Investigation Manifold; SC-008 Deterministic Discovery and Investigative Expansion; SC-010 Investigative Provenance and Graph Revision; SC-018 Computational Provenance and Epistemic Lineage; SC-019 Computational Knowledge Curation and Promotion
 
+**Governed by:** [REX-001 Recursive Epistemic Exploration Runtime Contract](../../../contracts/rex/REX-001_Recursive_Epistemic_Exploration_Runtime_Contract.md)
+
+**Extended by:** [SC-026 REX Frontier Agents](SC-026_REX_Frontier_Agents.md); [REX-002 Frontier Agent Runtime Contract](../../../contracts/rex/REX-002_Frontier_Agent_Runtime_Contract.md)
+
 ## 1. Authority and scope
 
-This document is the authoritative System Canon for REX v0.2. REX means **Recursive Epistemic Exploration**.
+This document is the authoritative System Canon for REX v0.3. REX means **Recursive Epistemic Exploration**.
 
 REX combines probabilistic AI discovery, deterministic manifold computation, immutable provenance, researcher-governed admission, and strict separation between Candidate Knowledge and System Canon. It governs epistemic behavior; it does not define or authorize a REX runtime, provider contract, global relationship redesign, or confidence-model migration.
+
+REX seeks outward from the current Investigation Manifold. An investigation remains eligible for governed exploration after creation, revision, or resolution because later events and newly discoverable documents, people, organizations, places, systems, capabilities, limitations, contact information, and relationships may change its frontier. REX MAY also continue when a researcher or other authorized authority explicitly assigns continuing exploration.
 
 Its permanent principle is:
 
@@ -132,6 +138,8 @@ $$
 - $m_i$: retrieval method.
 - $\theta_i$: model and configuration, when applicable.
 - $\rho_i$: restrictions, including access, privacy, rights, and use constraints.
+
+An execution MUST bind one immutable manifold revision. Its Search Execution Record MUST additionally identify the governing assignment when one exists and carry the cost and disposition telemetry required by REX-001. Contact information is Candidate Knowledge subject to the same provenance, privacy, and review requirements as every other discovery. Discovering contact information never authorizes contacting a person or organization.
 
 ## 6. AI extraction and candidate quarantine
 
@@ -452,6 +460,9 @@ No arrow in this cycle implies truth, admission, relationship acceptance, or Can
 17. REX may broaden the research field but not its own authority.
 18. Normalization certainty and truth confidence are distinct.
 19. Stored and operational Candidate Knowledge cannot diverge semantically.
+20. Every execution is authorized by deterministic policy and bound to an immutable manifold revision.
+21. Every discovery enters Candidate Knowledge with explicit provenance and AI-assistance annotations.
+22. Contact discovery is not contact authorization.
 
 ## 24. Controlled terminology
 
@@ -471,4 +482,4 @@ The unqualified word “canonical” MUST NOT be used when one of these precise 
 
 ## 25. Deferred software contracts
 
-This Canon intentionally defers the REX runtime, provider/repository adapters, Search Execution Record storage contract, global relationship-lineage contract, aggregate-observer ontology type, global normalization-certainty/truth-confidence model, candidate admission workflow, and Canon-promotion workflow. Deferral grants no implementation permission and weakens none of the invariants above.
+The REX execution boundary and Search Execution Record are specified by REX-001. Persistent Frontier assignments are governed by SC-026 and REX-002. Provider/repository adapter implementations, the global relationship-lineage contract, aggregate-observer ontology type, global normalization-certainty/truth-confidence model, candidate admission workflow, and Canon-promotion workflow remain deferred. Deferral grants no implementation permission and weakens none of the invariants above.
