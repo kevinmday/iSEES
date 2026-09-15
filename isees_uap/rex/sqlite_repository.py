@@ -243,6 +243,44 @@ class SQLiteRexRepository:
         if canonical_hash(_json(r["context_payload"]))!=r["context_hash"]: raise ContentHashMismatch("Stored REX content hash does not match")
         return SearchExecutionRecord(r["execution_id"],r["authorization_decision_id"],r["semantic_duplicate_key"],ExecutionDisposition(r["disposition"]),ExecutionStatus(r["status"]),r["original_execution_id"],bytes(r["context_payload"]),r["context_hash"],r["created_at"])
 
+    def find_execution_by_semantic_key(self, semantic_key):
+        try:
+            with closing(self._connect()) as db:
+                row=db.execute("SELECT execution_id FROM rex_search_executions WHERE semantic_duplicate_key=? AND disposition='EXECUTABLE'",(semantic_key,)).fetchone()
+            return None if row is None else self.get_execution(row[0])
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def find_execution_for_assignment_context(self, assignment_id, manifold_revision_id, manifold_revision_hash):
+        try:
+            with closing(self._connect()) as db:
+                rows=db.execute("SELECT execution_id,context_payload FROM rex_search_executions WHERE disposition='EXECUTABLE' ORDER BY created_at").fetchall()
+            for row in rows:
+                context=_json(row["context_payload"])
+                manifold=context.get("manifold_revision", {})
+                if (context.get("assignment_id")==_id(assignment_id) and
+                    manifold.get("revision_id")==manifold_revision_id and
+                    manifold.get("revision_hash")==manifold_revision_hash):
+                    return self.get_execution(row["execution_id"])
+            return None
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def get_execution_context(self, execution_id, context_type):
+        try:
+            with closing(self._connect()) as db:
+                row=db.execute("SELECT job_id FROM rex_jobs WHERE execution_id=?",(_id(execution_id),)).fetchone()
+            if not row: raise RecordNotFound("REX execution was not found")
+            return self.get_job_execution_context(row[0], context_type)
+        except (RecordNotFound,ContentHashMismatch,InvalidStoredRecord): raise
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def job_id_for_execution(self, execution_id):
+        try:
+            with closing(self._connect()) as db: row=db.execute("SELECT job_id FROM rex_jobs WHERE execution_id=?",(_id(execution_id),)).fetchone()
+            if not row: raise RecordNotFound("REX job was not found")
+            return row[0]
+        except RecordNotFound: raise
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
     def claim_job_once(self,job_id,*,claimant_id,lease_id,claimed_at,lease_expires_at):
         try:
             with closing(self._connect()) as db:

@@ -219,12 +219,12 @@ def test_corrupt_and_unavailable_databases_expose_sanitized_errors(tmp_path):
     assert str(directory) not in str(caught.value)
 
 
-def test_import_is_inert_and_api_does_not_import_rex_in_fresh_process(tmp_path):
+def test_import_is_inert_and_composed_api_creates_no_rex_database_or_thread(tmp_path):
     marker = tmp_path / "must-not-exist.sqlite"
     code = "import json,sys,threading; before=set(t.ident for t in threading.enumerate()); import isees_uap.api; print(json.dumps({'threads':before==set(t.ident for t in threading.enumerate()),'api_rex':any(n.startswith('isees_uap.rex') for n in sys.modules)}))"
     env = os.environ | {"ISEES_PERSISTENT_ROOT": str(marker)}
     result = subprocess.run([sys.executable, "-c", code], cwd=os.getcwd(), env=env, text=True, capture_output=True, check=True)
-    assert json.loads(result.stdout) == {"threads": True, "api_rex": False} and not marker.exists()
+    assert json.loads(result.stdout) == {"threads": True, "api_rex": True} and not marker.exists()
 
 
 def test_fixture_and_candidate_hashes_are_stable_across_fresh_processes():
