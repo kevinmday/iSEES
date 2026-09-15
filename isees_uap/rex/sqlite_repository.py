@@ -17,7 +17,7 @@ from .fixture import (CandidateKnowledgeBundle, CandidateLineage, CandidateNode,
 from .lifecycle import transition_assignment
 from .models import *
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 def _now() -> datetime: return datetime.now(timezone.utc)
 def _text_time(value: datetime) -> str:
@@ -73,11 +73,15 @@ class SQLiteRexRepository:
                 if any(v<1 or v>SCHEMA_VERSION for v in versions): raise SchemaMismatch("REX database schema is incompatible")
                 if 1 in versions:
                     required={"rex_assignments","rex_assignment_revisions","rex_eligibility_events","rex_authorization_decisions","rex_search_executions","rex_jobs","rex_budget_reservations","rex_usage_ledger","rex_candidate_bundles","rex_candidate_lineage","rex_research_publications","rex_state_history"}
+                    if 2 in versions: required.add("rex_execution_receipts")
                     present={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
                     if not required <= present: raise SchemaMismatch("REX database schema is incomplete")
                 if 1 not in versions:
                     db.executescript(Path(__file__).with_name("migrations").joinpath("001_rex_foundation.sql").read_text(encoding="utf-8"))
                     db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(1,_text_time(self.clock())))
+                if 2 not in versions:
+                    db.executescript(Path(__file__).with_name("migrations").joinpath("002_rex_execution_receipts.sql").read_text(encoding="utf-8"))
+                    db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(2,_text_time(self.clock())))
                 db.commit()
         except SchemaMismatch: raise
         except (OSError,sqlite3.Error) as e: raise RepositoryUnavailable("REX repository is unavailable") from e
@@ -251,6 +255,107 @@ class SQLiteRexRepository:
             return ClaimedJob(job_id,r["execution_id"],r["attempt_number"],claimant_id,lease_id,r["lease_expires_at"])
         except JobUnavailable: raise
         except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def get_job_execution_context(self,job_id,context_type):
+        try:
+            with closing(self._connect()) as db:
+                row=db.execute("SELECT e.context_payload,e.context_hash,e.execution_id,d.assignment_revision_id,d.manifold_revision_id,d.manifold_revision_hash FROM rex_jobs j JOIN rex_search_executions e ON e.execution_id=j.execution_id JOIN rex_authorization_decisions d ON d.decision_id=e.authorization_decision_id WHERE j.job_id=?",(job_id,)).fetchone()
+            if not row: raise JobUnavailable("REX job is unavailable")
+            d=_json(row["context_payload"])
+            if canonical_hash(d)!=row["context_hash"]: raise ContentHashMismatch("Stored REX content hash does not match")
+            estimate=CostEstimate(**d["estimate"])
+            context=context_type(SearchExecutionId(d["execution_id"]["value"]),d["job_id"],d["assignment_id"],
+                FrontierAssignmentRevisionId(d["assignment_revision_id"]["value"]),_manifold(d["manifold_revision"]),
+                d["source_adapter_identity"],d["source_adapter_version"],d["normalizer_identity"],d["normalizer_version"],
+                CandidateKnowledgeBundleId(d["candidate_bundle_id"]["value"]),d["configuration_hash"],d["supplied_by"],
+                AiAssistanceStatus(d["ai_assistance_status"]),d["provider_identity"],d["model_identity"],ModelClass(d["model_class"]),estimate)
+            if (str(context.execution_id)!=row["execution_id"] or
+                str(context.assignment_revision_id)!=row["assignment_revision_id"] or
+                context.manifold_revision.revision_id!=row["manifold_revision_id"] or
+                context.manifold_revision.revision_hash!=row["manifold_revision_hash"]):
+                raise ContentHashMismatch("Stored REX execution bindings do not match")
+            return context
+        except (JobUnavailable,ContentHashMismatch): raise
+        except Exception as e: raise InvalidStoredRecord("Stored REX execution context is invalid") from e
+
+    def reserved_micros(self,execution_id):
+        with closing(self._connect()) as db:
+            row=db.execute("SELECT MAX(reserved_micros) FROM rex_budget_reservations WHERE execution_id=? AND status='RESERVED'",(_id(execution_id),)).fetchone()
+        if not row or row[0] is None: raise InvalidStoredRecord("REX reservation is unavailable")
+        return row[0]
+
+    def finalize_execution_success(self,*,bundle,usage,ledger_id,receipt,completed_at):
+        """Atomically store candidate, lineage, reconciliation, receipt, and terminal state."""
+        p=canonical_bytes(bundle); src=canonical_bytes(bundle.source_document)
+        up=canonical_bytes(usage); uh=canonical_hash(usage); rp=canonical_bytes(receipt)
+        r=usage.reconciliation
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                state=db.execute("SELECT e.status,j.status FROM rex_search_executions e JOIN rex_jobs j ON j.execution_id=e.execution_id WHERE e.execution_id=?",(_id(bundle.execution_id),)).fetchone()
+                if not state or tuple(state)!=("CLAIMED","CLAIMED"): raise JobUnavailable("REX execution is unavailable or terminal")
+                db.execute("INSERT INTO rex_candidate_bundles VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(_id(bundle.bundle_id),_id(bundle.execution_id),_id(bundle.assignment_revision_id),bundle.manifold_revision.revision_id,bundle.manifold_revision.revision_hash,src,bundle.source_content_hash,p,bundle.content_hash,"CANDIDATE_KNOWLEDGE","RESEARCHER_REVIEW_REQUIRED","NONE",bundle.ai_assistance_status.value,bundle.provider_identity,bundle.model_identity,_text_time(completed_at)))
+                for lineage in bundle.lineage:
+                    for order,f in enumerate(lineage.fields):
+                        lp=canonical_bytes(f); db.execute("INSERT INTO rex_candidate_lineage VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(_id(bundle.bundle_id),lineage.candidate_id,order,f.candidate_field,lineage.source_locator,lineage.source_version,f.source_field,f.exact_value,f.normalization_rule,bundle.adapter_version,bundle.normalizer_version,lp,canonical_hash(f)))
+                db.execute("INSERT INTO rex_usage_ledger VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(ledger_id,_id(usage.execution_id),r.estimated_micros,r.reserved_micros,r.actual_micros,r.charged_micros,r.released_micros,r.status.value,usage.estimate.estimator_version,_text_time(completed_at),up,uh))
+                changed=db.execute("UPDATE rex_budget_reservations SET status='RECONCILED',released_at=?,reconciled_at=? WHERE execution_id=? AND status='RESERVED'",(_text_time(completed_at),_text_time(completed_at),_id(bundle.execution_id))).rowcount
+                if changed==0: raise InvalidStoredRecord("REX reservation is unavailable")
+                db.execute("INSERT INTO rex_execution_receipts VALUES(?,?,?,?,?)",(_id(bundle.execution_id),rp,receipt.content_hash,_text_time(completed_at),_id(bundle.bundle_id)))
+                if db.execute("UPDATE rex_search_executions SET status='COMPLETED',completed_at=? WHERE execution_id=? AND status='CLAIMED'",(_text_time(completed_at),_id(bundle.execution_id))).rowcount!=1: raise JobUnavailable("REX execution is unavailable or terminal")
+                if db.execute("UPDATE rex_jobs SET status='COMPLETED',completed_at=? WHERE execution_id=? AND status='CLAIMED'",(_text_time(completed_at),_id(bundle.execution_id))).rowcount!=1: raise JobUnavailable("REX job is unavailable or terminal")
+                db.commit()
+            return receipt
+        except (JobUnavailable,InvalidStoredRecord): raise
+        except sqlite3.IntegrityError as e: raise DuplicateImmutableIdentity("Candidate bundle or receipt identity already exists") from e
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def finalize_execution_failure(self,execution_id,*,ledger_id,estimate,occurred_at,failure_category):
+        measurement=UsageMeasurement(0,0,0,0,0,0,0,0)
+        reserved=self.reserved_micros(execution_id)
+        reconciliation=CostReconciliation(SearchExecutionId(_id(execution_id)),estimate.total_micros,reserved,0,0,reserved,CostReconciliationStatus.RECONCILED,occurred_at)
+        usage=RexUsageRecord(SearchExecutionId(_id(execution_id)),estimate,measurement,reconciliation)
+        p=canonical_bytes(usage); h=canonical_hash(usage)
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                if db.execute("SELECT count(*) FROM rex_candidate_bundles WHERE execution_id=?",(_id(execution_id),)).fetchone()[0]: raise InvalidStoredRecord("A failed execution cannot retain a candidate bundle")
+                db.execute("INSERT INTO rex_usage_ledger VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(ledger_id,_id(execution_id),estimate.total_micros,reserved,0,0,reserved,"RECONCILED",estimate.estimator_version,_text_time(occurred_at),p,h))
+                db.execute("UPDATE rex_budget_reservations SET status='RECONCILED',released_at=?,reconciled_at=? WHERE execution_id=? AND status='RESERVED'",(_text_time(occurred_at),_text_time(occurred_at),_id(execution_id)))
+                if db.execute("UPDATE rex_search_executions SET status='FAILED',failed_at=?,failure_category=? WHERE execution_id=? AND status='CLAIMED'",(_text_time(occurred_at),failure_category,_id(execution_id))).rowcount!=1: raise JobUnavailable("REX execution is unavailable or terminal")
+                if db.execute("UPDATE rex_jobs SET status='FAILED',failed_at=?,failure_category=? WHERE execution_id=? AND status='CLAIMED'",(_text_time(occurred_at),failure_category,_id(execution_id))).rowcount!=1: raise JobUnavailable("REX job is unavailable or terminal")
+                db.commit()
+        except (InvalidStoredRecord,JobUnavailable): raise
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def fail_claimed_job(self,job_id,*,ledger_id,occurred_at,failure_category):
+        """Fail a claimed job whose immutable context cannot safely be decoded."""
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                row=db.execute("SELECT execution_id FROM rex_jobs WHERE job_id=? AND status='CLAIMED'",(job_id,)).fetchone()
+                if not row: raise JobUnavailable("REX job is unavailable or terminal")
+                execution_id=row[0]
+                reserved=db.execute("SELECT COALESCE(MAX(reserved_micros),0),COALESCE(MAX(estimated_micros),0),COALESCE(MAX(estimator_version),'unknown') FROM rex_budget_reservations WHERE execution_id=? AND status='RESERVED'",(execution_id,)).fetchone()
+                payload={"executionId":execution_id,"estimatedMicros":reserved[1],"reservedMicros":reserved[0],"actualMicros":0,"chargedMicros":0,"releasedMicros":reserved[0],"status":"RECONCILED"}
+                db.execute("INSERT INTO rex_usage_ledger VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(ledger_id,execution_id,reserved[1],reserved[0],0,0,reserved[0],"RECONCILED",reserved[2],_text_time(occurred_at),canonical_bytes(payload),canonical_hash(payload)))
+                db.execute("UPDATE rex_budget_reservations SET status='RECONCILED',released_at=?,reconciled_at=? WHERE execution_id=? AND status='RESERVED'",(_text_time(occurred_at),_text_time(occurred_at),execution_id))
+                db.execute("UPDATE rex_search_executions SET status='FAILED',failed_at=?,failure_category=? WHERE execution_id=? AND status='CLAIMED'",(_text_time(occurred_at),failure_category,execution_id))
+                db.execute("UPDATE rex_jobs SET status='FAILED',failed_at=?,failure_category=? WHERE job_id=? AND status='CLAIMED'",(_text_time(occurred_at),failure_category,job_id)); db.commit()
+        except JobUnavailable: raise
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def reconstruct_execution_receipt(self,execution_id):
+        from .service import ExecutionReceipt
+        try:
+            with closing(self._connect()) as db: row=db.execute("SELECT payload,content_hash FROM rex_execution_receipts WHERE execution_id=?",(_id(execution_id),)).fetchone()
+            if not row: raise RecordNotFound("REX execution receipt was not found")
+            d=_json(row["payload"])
+            if canonical_hash({k:v for k,v in d.items() if k!="content_hash"})!=row["content_hash"] or d["content_hash"]!=row["content_hash"]: raise ContentHashMismatch("Stored REX receipt hash does not match")
+            d["completed_at"]=_parse_time(d["completed_at"])
+            return ExecutionReceipt(**d)
+        except (RecordNotFound,ContentHashMismatch): raise
+        except Exception as e: raise InvalidStoredRecord("Stored REX receipt is invalid") from e
 
     def append_execution_outcome(self,execution_id,*,status,occurred_at,failure_category=None):
         if status not in ("COMPLETED","FAILED"): raise ValueError("invalid execution outcome")

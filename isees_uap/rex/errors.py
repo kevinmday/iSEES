@@ -27,3 +27,20 @@ class DuplicateSuppressed(RexRepositoryError):
         self.original_execution_id = original_execution_id
         self.suppressed_execution_id = suppressed_execution_id
 class JobUnavailable(RexRepositoryError): pass
+
+
+class RexExecutionError(RuntimeError):
+    """Typed, sanitized failure returned by the isolated execution service."""
+
+    category = "REX_EXECUTION_FAILED"
+
+    def __init__(self, message: str = "REX execution failed"):
+        super().__init__(message)
+
+
+class ExecutionContextInvalid(RexExecutionError): category = "INVALID_EXECUTION_CONTEXT"
+class PortResolutionFailed(RexExecutionError): category = "PORT_RESOLUTION_FAILED"
+class SourceAdapterFailed(RexExecutionError): category = "SOURCE_ADAPTER_FAILED"
+class CandidateNormalizationFailed(RexExecutionError): category = "CANDIDATE_NORMALIZATION_FAILED"
+class CandidateValidationFailed(RexExecutionError): category = "CANDIDATE_VALIDATION_FAILED"
+class ExecutionPersistenceFailed(RexExecutionError): category = "EXECUTION_PERSISTENCE_FAILED"
