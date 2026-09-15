@@ -1,12 +1,28 @@
 import { CanonicalFeatureDimension } from "../resolve/features/CanonicalKnowledgeFeatureTypes.ts";
 import { layersContributionId, LayersContributionSet, type LayersExperimentalPairProjection } from "../layers/projection/LayersExperimentalPairProjectionTypes.ts";
 import type { MetricBriefingTemplate, MetricIntelligenceDefinition, MetricIntelligenceSource, MetricSignificanceBriefing } from "./MetricIntelligenceTypes.ts";
+import { createIntelligenceRegistry } from "./IntelligenceRegistry.ts";
 
 export const TOPOLOGY_SIMILARITY_TEMPLATE = Object.freeze<MetricBriefingTemplate>({ id: "metric-briefing/topology-similarity", version: "v1", metricSemanticKind: "TOPOLOGY_SIMILARITY" });
 export const METRIC_BRIEFING_TEMPLATE_REGISTRY = Object.freeze([TOPOLOGY_SIMILARITY_TEMPLATE]);
 export const TOPOLOGY_SIMILARITY_DEFINITION = Object.freeze<MetricIntelligenceDefinition>({
+  definitionId: "layers.resolve-topology-state.similarity",
+  definitionVersion: "1.0.0",
   metricId: "layers.resolve-topology-state.similarity",
   label: "Resolve Topology State similarity",
+  intelligenceKind: "METRIC",
+  semanticProducer: Object.freeze({ id: "layers.experimental-pair-projection", version: "2.0.0" }),
+  eligibleContexts: Object.freeze(["LAYERS"]),
+  briefing: Object.freeze({ templateId: TOPOLOGY_SIMILARITY_TEMPLATE.id, version: "1.0.0", conciseTemplate: "The two frozen investigation structures are {displayValue} alike." }),
+  whyItMatters: Object.freeze(["Structural similarity can justify deeper comparison without implying probability, causation, proof, or a canonical relationship."]),
+  inclusionClassification: "INTERPRETIVE",
+  provenanceRequirements: Object.freeze(["investigationId", "pairId", "executionId", "inputProjectionId", "ordered endpoint snapshots", "evaluator identity", "normalization identity"]),
+  mathematicalDocumentationStatus: Object.freeze({ status: "DEFERRED_UNAVAILABLE", reason: "No authoritative topology-similarity equation is present in the governed projection source." }),
+  collectionEligible: true,
+  epistemicEffect: "DERIVED_NON_CANONICAL",
+  canonEffect: "NONE",
+  operationalGraphEffect: "NONE",
+  evaluatorLineage: Object.freeze({ implementationReference: "layers/projection:TOPOLOGY", version: "1.0.0" }),
   unit: "PERCENT",
   semanticKind: "TOPOLOGY_SIMILARITY",
   evaluator: Object.freeze({ key: "TOPOLOGY", version: "canonical-similarity/v1" }),
@@ -15,6 +31,8 @@ export const TOPOLOGY_SIMILARITY_DEFINITION = Object.freeze<MetricIntelligenceDe
   briefingTemplateId: TOPOLOGY_SIMILARITY_TEMPLATE.id,
   briefingTemplateVersion: TOPOLOGY_SIMILARITY_TEMPLATE.version,
 });
+
+export const METRIC_INTELLIGENCE_REGISTRY = createIntelligenceRegistry([TOPOLOGY_SIMILARITY_DEFINITION]);
 
 function canonical(value: unknown): string {
   if (value === undefined) return "undefined";

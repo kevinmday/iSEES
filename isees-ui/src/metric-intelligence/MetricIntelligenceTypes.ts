@@ -1,6 +1,43 @@
 export type MetricEpistemicClassification = "EXPERIMENTAL / DERIVED / NON-CANONICAL";
 
-export interface MetricIntelligenceDefinition {
+import type { EquationDocumentation } from "./EquationDocumentationTypes";
+
+export type IntelligenceKind = "METRIC" | "TERM";
+export type IntelligenceInclusionClassification = "INTERPRETIVE" | "EPISTEMIC_TERM" | "REFERENCE_ONLY";
+export type IntelligenceMutationEffect = "NONE";
+
+export interface IntelligenceDefinitionBase {
+  readonly definitionId: string;
+  readonly definitionVersion: string;
+  readonly label: string;
+  readonly intelligenceKind: IntelligenceKind;
+  readonly semanticProducer: Readonly<{ id: string; version: string }>;
+  readonly eligibleContexts: readonly string[];
+  readonly briefing: Readonly<{ templateId: string; version: string; conciseTemplate: string }>;
+  readonly whyItMatters: readonly string[];
+  readonly inclusionClassification: IntelligenceInclusionClassification;
+  readonly provenanceRequirements: readonly string[];
+  readonly mathematicalDocumentation?: EquationDocumentation;
+  readonly mathematicalDocumentationStatus: Readonly<{ status: "AVAILABLE" | "NOT_APPLICABLE" | "DEFERRED_UNAVAILABLE"; reason?: string }>;
+  readonly collectionEligible: boolean;
+  readonly epistemicEffect: "CONTEXT_ONLY" | "DERIVED_NON_CANONICAL";
+  readonly canonEffect: IntelligenceMutationEffect;
+  readonly operationalGraphEffect: IntelligenceMutationEffect;
+}
+
+export interface MetricDefinition extends IntelligenceDefinitionBase {
+  readonly intelligenceKind: "METRIC";
+  readonly evaluatorLineage: Readonly<{ implementationReference: string; version: string }>;
+}
+
+export interface TermDefinition extends IntelligenceDefinitionBase {
+  readonly intelligenceKind: "TERM";
+  readonly evaluatorLineage?: never;
+}
+
+export type IntelligenceDefinition = MetricDefinition | TermDefinition;
+
+export interface MetricIntelligenceDefinition extends MetricDefinition {
   readonly metricId: string;
   readonly label: string;
   readonly unit: "PERCENT";

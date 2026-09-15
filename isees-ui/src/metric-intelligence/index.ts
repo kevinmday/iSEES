@@ -1,4 +1,13 @@
 export * from "./MetricIntelligenceTypes";
+export type { EquationDocumentation, EquationInputSubstitution, EquationSymbolDefinition, EvaluatedMathematicalSnapshot, EquationVerificationStatus } from "./EquationDocumentationTypes";
+export { createEvaluatedMathematicalSnapshot } from "./EquationDocumentationTypes";
+export type { IntelligenceRegistry } from "./IntelligenceRegistry";
+export { createIntelligenceRegistry } from "./IntelligenceRegistry";
+export type { IntelligenceContextFacts, IntelligenceVisibility, RelevanceAssessment } from "./ContextualRelevance";
+export { assessContextualRelevance } from "./ContextualRelevance";
+export type { DensityCandidate, DensityDecision } from "./IntelligenceDensityPolicy";
+export { evaluateIntelligenceDensity } from "./IntelligenceDensityPolicy";
 export * from "./TopologySimilarityMetricIntelligence";
 export * from "./MetricFindingResearchPublication";
 export * from "./MetricIntelligenceTrigger";
+export * from "./ContextualIntelligencePresentation";
