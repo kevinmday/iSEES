@@ -9,6 +9,7 @@ const api = readFileSync(resolve(root, "src/account/AccountFrontDoorApi.ts"), "u
 const css = readFileSync(resolve(root, "src/account/AccountFrontDoor.css"), "utf8");
 const app = readFileSync(resolve(root, "src/App.tsx"), "utf8");
 const delivery = readFileSync(resolve(root, "../isees_uap/authentication/recovery_delivery.py"), "utf8");
+const resetCapability = readFileSync(resolve(root, "src/account/ResetCapability.ts"), "utf8");
 
 function has(source: string, value: string, label: string): void {
   assert.ok(source.includes(value), `Missing ${label}`);
@@ -25,13 +26,14 @@ has(ui, "Your iSEES login is the email address used to create your researcher ac
 has(ui, "pendingRef.current", "synchronous duplicate submission gate");
 has(ui, "controller.current?.abort()", "unmount abort");
 has(delivery, 'return f"{origin}/reset-password#token=', "backend-owned reset path and fragment");
-has(ui, 'const RESET_PATH = "/reset-password"', "matching frontend reset path");
-has(ui, 'window.location.hash', "fragment capture");
+has(resetCapability, 'RESET_PATH = "/reset-password"', "matching frontend reset path");
+has(resetCapability, "location.hash", "fragment capture");
 has(ui, 'window.history.replaceState(null, "", window.location.pathname)', "immediate fragment and noncanonical query scrub");
-has(ui, "let bootResetCapability = captureResetCapability()", "Strict Mode-safe pre-render capture");
+has(ui, "let bootResetCapability = captureResetCapability(window.location", "Strict Mode-safe pre-render capture");
 has(ui, "bootResetCapability = null", "bootstrap capability clearing");
 assert.doesNotMatch(ui + api, /(?:localStorage|sessionStorage)/, "recovery must not use browser storage");
 assert.doesNotMatch(ui + api, /[?&](?:token|recoveryToken)=|URLSearchParams/, "token must not use a query string");
+assert.doesNotMatch(ui, /return \(\) => \{[^}]*set(?:ResetCapability|Token)\(null\)/s, "Strict Mode cleanup must not erase captured capability state");
 const resetSurface = ui.slice(ui.indexOf("function PasswordResetDoor"));
 assert.doesNotMatch(resetSurface.slice(0, resetSurface.indexOf("async function submit")), /resetPassword\(/, "opening route must not consume capability");
 assert.equal((resetSurface.match(/resetPassword\(token, password/g) ?? []).length, 1, "reset occurs only in explicit form submission");

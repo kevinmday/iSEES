@@ -16,24 +16,18 @@ import {
   readCsrfCookie, requestPasswordRecovery, resetPassword, submitAccount, type OwnedInvestigationSummary,
 } from "./AccountFrontDoorApi";
 import { captureGuestAdoptionCandidate, GuestPreservationCoordinator, submitGuestAdoption } from "./GuestInvestigationAdoption";
+import { captureResetCapability, RESET_PATH } from "./ResetCapability";
 import IseesIntroductionGate from "../onboarding/components/IseesIntroductionGate";
 import { hasAcknowledgedIseesIntroduction } from "../onboarding/runtime/OnboardingAcknowledgement";
 import "./AccountFrontDoor.css";
 
 type Phase = "restoring" | "anonymous" | "loading-library" | "ready" | "working";
-const RESET_PATH = "/reset-password";
 const RESET_INVALID_MESSAGE = "This password reset link is invalid or has expired.";
 
-function captureResetCapability(): string | null {
-  if (window.location.pathname !== RESET_PATH) return null;
-  const fragment = window.location.hash;
-  window.history.replaceState(null, "", window.location.pathname);
-  const match = /^#token=([A-Za-z0-9_-]{43})$/.exec(fragment);
-  return match ? match[1] : null;
-}
-
 const BOOT_RESET_ROUTE = window.location.pathname === RESET_PATH;
-let bootResetCapability = captureResetCapability();
+let bootResetCapability = captureResetCapability(window.location, () => {
+  window.history.replaceState(null, "", window.location.pathname);
+});
 
 function errorMessage(error: unknown): string {
   return error instanceof AccountFrontDoorError ? error.message : "The request could not be completed. Please try again.";
@@ -120,7 +114,6 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
       bootResetCapability = null;
       return () => {
         mounted.current = false; generation.current += 1; requestController.current?.abort();
-        setResetCapability(null);
       };
     }
     if (identityState.status !== "READY") {
@@ -371,7 +364,7 @@ function PasswordResetDoor({ capability, onCancel, onComplete }: { capability: s
   const [password, setPassword] = useState(""); const [confirmation, setConfirmation] = useState("");
   const [pending, setPending] = useState(false); const [error, setError] = useState(token ? "" : RESET_INVALID_MESSAGE);
   const pendingRef = useRef(false); const controller = useRef<AbortController | undefined>(undefined); const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { heading.current?.focus(); return () => { controller.current?.abort(); setToken(null); setPassword(""); setConfirmation(""); }; }, []);
+  useEffect(() => { heading.current?.focus(); return () => { controller.current?.abort(); }; }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (pendingRef.current || !token) return;
     if (password !== confirmation) { setError("The passwords do not match."); return; }
