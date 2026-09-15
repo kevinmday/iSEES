@@ -171,4 +171,6 @@ def test_endpoint_inventory_is_mounted():
         ("/api/v1/auth/sessions", "POST"),
         ("/api/v1/auth/session", "GET"),
         ("/api/v1/auth/logout", "POST"),
+        ("/api/v1/auth/password-recovery/request", "POST"),
+        ("/api/v1/auth/password-recovery/reset", "POST"),
     } <= routes

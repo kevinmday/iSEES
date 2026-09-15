@@ -1,24 +1,54 @@
 from __future__ import annotations
 
+import hashlib
+import logging
 import uuid
 from datetime import datetime
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from isees_uap.authentication.candidate_access import normalize_email
 from isees_uap.authentication.config import AuthenticationSettings
-from isees_uap.authentication.errors import AuthenticationError
+from isees_uap.authentication.errors import (
+    AuthenticationError, AuthenticationRepositoryUnavailable, InvalidAccountInput,
+)
+from isees_uap.authentication.models import PasswordResetCommand, RecoveryRequestInput
 from isees_uap.authentication.principal import (
     AuthenticatedPrincipal, authentication_repository,
     require_authenticated_principal, require_csrf_protected_principal, settings,
 )
 from isees_uap.authentication.service import AuthenticationService
-from isees_uap.authentication.recovery_delivery import RecoveryDelivery, recovery_delivery_from_settings
+from isees_uap.authentication.recovery_delivery import (
+    RecoveryDelivery, RecoveryDeliveryError, recovery_delivery_from_settings,
+)
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
+logger = logging.getLogger(__name__)
+
+_RECOVERY_HEADERS = {
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+}
+_REQUEST_ACCEPTED = {
+    "schemaVersion": "isees-password-recovery-request/v1",
+    "status": "ACCEPTED",
+    "message": "If an account exists for that email, we sent recovery instructions.",
+}
+_RESET_COMPLETED = {
+    "schemaVersion": "isees-password-reset/v1",
+    "status": "COMPLETED",
+    "message": "Your password has been reset. Sign in with your new password.",
+}
+_RESET_INVALID = {
+    "schemaVersion": "isees-password-reset/v1",
+    "status": "INVALID",
+    "message": "This password reset link is invalid or has expired.",
+}
 
 
 class Credentials(BaseModel):
@@ -32,6 +62,49 @@ class SafeResearcherIdentity(BaseModel):
     researcherId: str
     email: str
     sessionExpiresAt: datetime
+
+
+class RecoveryRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254, repr=False)
+
+
+class PasswordResetBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(repr=False)
+    newPassword: str = Field(repr=False)
+
+
+def _recovery_response(status_code: int, content: dict[str, object]) -> JSONResponse:
+    return JSONResponse(status_code=status_code, content=content, headers=_RECOVERY_HEADERS)
+
+
+def _safe_failure(status_code: int, code: str, message: str) -> JSONResponse:
+    return _recovery_response(status_code, {"error": {"code": code, "message": message}})
+
+
+async def _recovery_json(request: Request, model: type[BaseModel]) -> BaseModel | JSONResponse:
+    content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if content_type != "application/json":
+        return _safe_failure(415, "JSON_REQUIRED", "A valid JSON request is required")
+    try:
+        payload = await request.json()
+        return model.model_validate(payload)
+    except (ValueError, TypeError, ValidationError):
+        return _safe_failure(400, "INVALID_REQUEST", "The request is invalid")
+
+
+def _authorize_recovery_request(
+    request: Request, config: AuthenticationSettings,
+) -> JSONResponse | bytes | None:
+    if not config.password_recovery_enabled or config.public_app_origin is None:
+        return _safe_failure(404, "NOT_FOUND", "The requested resource is unavailable")
+    origin = request.headers.get("origin")
+    if origin is None:
+        return None
+    if origin != config.public_app_origin:
+        return _safe_failure(403, "ORIGIN_REJECTED", "The request origin is not permitted")
+    return hashlib.sha256(origin.encode("ascii")).digest()
 
 
 def configured_recovery_delivery(
@@ -118,6 +191,68 @@ def logout(response: Response,
     repo.revoke_session(session_id=principal.session_id, revoked_at=datetime.now(timezone.utc))
     _clear_cookies(response, config)
     return {"status": "logged_out"}
+
+
+@router.post("/password-recovery/request", status_code=202)
+async def request_password_recovery(
+    request: Request,
+    config: AuthenticationSettings = Depends(settings),
+    svc: AuthenticationService = Depends(service),
+) -> JSONResponse:
+    origin = _authorize_recovery_request(request, config)
+    if isinstance(origin, JSONResponse):
+        return origin
+    body = await _recovery_json(request, RecoveryRequestBody)
+    if isinstance(body, JSONResponse):
+        return body
+    assert isinstance(body, RecoveryRequestBody)
+    try:
+        normalize_email(body.email)
+    except InvalidAccountInput:
+        return _safe_failure(400, "INVALID_REQUEST", "The request is invalid")
+    try:
+        svc.request_password_recovery(RecoveryRequestInput(
+            email=body.email, request_id=str(uuid.uuid4()), origin_digest=origin,
+        ))
+    except RecoveryDeliveryError:
+        logger.error("Password recovery delivery was not completed")
+    except AuthenticationRepositoryUnavailable:
+        logger.error("Password recovery repository operation failed")
+        return _safe_failure(503, "AUTHENTICATION_UNAVAILABLE", "Service is temporarily unavailable")
+    return _recovery_response(202, _REQUEST_ACCEPTED)
+
+
+@router.post("/password-recovery/reset")
+async def reset_password(
+    request: Request,
+    config: AuthenticationSettings = Depends(settings),
+    svc: AuthenticationService = Depends(service),
+) -> JSONResponse:
+    origin = _authorize_recovery_request(request, config)
+    if isinstance(origin, JSONResponse):
+        return origin
+    body = await _recovery_json(request, PasswordResetBody)
+    if isinstance(body, JSONResponse):
+        return body
+    assert isinstance(body, PasswordResetBody)
+    if not 12 <= len(body.newPassword) <= 1024:
+        return _safe_failure(
+            400, "PASSWORD_POLICY", "Password must be between 12 and 1024 characters",
+        )
+    try:
+        outcome = svc.reset_password(PasswordResetCommand(
+            token=body.token, new_password=body.newPassword,
+            request_id=str(uuid.uuid4()), origin_digest=origin,
+        ))
+    except InvalidAccountInput:
+        return _safe_failure(
+            400, "PASSWORD_POLICY", "Password must be between 12 and 1024 characters",
+        )
+    except AuthenticationRepositoryUnavailable:
+        logger.error("Password reset repository operation failed")
+        return _safe_failure(503, "AUTHENTICATION_UNAVAILABLE", "Service is temporarily unavailable")
+    return _recovery_response(200 if outcome.completed else 400,
+                              _RESET_COMPLETED if outcome.completed else _RESET_INVALID)
 
 
 def authentication_error_handler(request: Request, error: AuthenticationError) -> JSONResponse:
