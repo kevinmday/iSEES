@@ -50,6 +50,58 @@ export function readCsrfCookie(): string {
 
 export interface OwnedInvestigationSummary { readonly investigationId: string; readonly title: string; readonly modifiedAt: string; }
 
+export interface PasswordRecoveryAccepted {
+  readonly schemaVersion: "isees-password-recovery-request/v1";
+  readonly status: "ACCEPTED";
+  readonly message: "If an account exists for that email, we sent recovery instructions.";
+}
+
+export interface PasswordResetResult {
+  readonly schemaVersion: "isees-password-reset/v1";
+  readonly status: "COMPLETED" | "INVALID";
+  readonly message: "Your password has been reset. Sign in with your new password." | "This password reset link is invalid or has expired.";
+}
+
+const RECOVERY_MESSAGE = "If an account exists for that email, we sent recovery instructions." as const;
+const RESET_COMPLETE_MESSAGE = "Your password has been reset. Sign in with your new password." as const;
+const RESET_INVALID_MESSAGE = "This password reset link is invalid or has expired." as const;
+
+async function recoveryRequest(path: string, body: object, signal?: AbortSignal): Promise<{ response: Response; body: unknown }> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body), credentials: "include", signal,
+    });
+  } catch {
+    throw new AccountFrontDoorError("NETWORK", "The recovery service could not be reached. Please try again.");
+  }
+  return { response, body: await response.json().catch(() => null) };
+}
+
+export async function requestPasswordRecovery(email: string, signal?: AbortSignal): Promise<PasswordRecoveryAccepted> {
+  const result = await recoveryRequest("/api/v1/auth/password-recovery/request", { email }, signal);
+  const body = result.body as Partial<PasswordRecoveryAccepted> | null;
+  if (result.response.status !== 202 || body?.schemaVersion !== "isees-password-recovery-request/v1" ||
+      body.status !== "ACCEPTED" || body.message !== RECOVERY_MESSAGE) {
+    throw new AccountFrontDoorError("SERVER", "Recovery instructions could not be requested. Please try again.");
+  }
+  return Object.freeze({ schemaVersion: body.schemaVersion, status: body.status, message: body.message });
+}
+
+export async function resetPassword(token: string, newPassword: string, signal?: AbortSignal): Promise<PasswordResetResult> {
+  const result = await recoveryRequest("/api/v1/auth/password-recovery/reset", { token, newPassword }, signal);
+  const body = result.body as Partial<PasswordResetResult> | null;
+  const completed = result.response.status === 200 && body?.schemaVersion === "isees-password-reset/v1" &&
+    body.status === "COMPLETED" && body.message === RESET_COMPLETE_MESSAGE;
+  const invalid = result.response.status === 400 && body?.schemaVersion === "isees-password-reset/v1" &&
+    body.status === "INVALID" && body.message === RESET_INVALID_MESSAGE;
+  if (!completed && !invalid) {
+    throw new AccountFrontDoorError("SERVER", "The password could not be reset. Please try again.");
+  }
+  return Object.freeze({ schemaVersion: body!.schemaVersion!, status: body!.status!, message: body!.message! });
+}
+
 export async function listOwnedInvestigations(signal?: AbortSignal): Promise<readonly OwnedInvestigationSummary[]> {
   const body = await request("/api/v1/investigations", { method: "GET", signal }) as { items?: unknown };
   if (!Array.isArray(body?.items)) throw new AccountFrontDoorError("SERVER", "Your investigations could not be read.");

@@ -10,6 +10,12 @@
 .account-door form,.account-door label { display:grid; gap:.45rem }.account-door form { gap:1rem }.account-door input,.account-library input { padding:.7rem; border:1px solid #54788a; border-radius:4px; background:#03101a; color:white }
 .account-door__primary { padding:.75rem; border-radius:4px; cursor:pointer }.account-door button:focus-visible,.account-door input:focus-visible,.account-library button:focus-visible,.account-library input:focus-visible { outline:3px solid white; outline-offset:2px }
 .account-door__error { min-height:1.4em; color:#ffb7ae }
+.account-door__success { padding:.8rem; border:1px solid #52c98b; border-radius:4px; background:#08251a; color:#caffdf; font-weight:650; line-height:1.45 }
+.account-door__text-action,.account-door__secondary { justify-self:start; padding:.25rem 0; border:0; background:transparent; color:#9de5ff; text-decoration:underline; cursor:pointer }
+.account-door__secondary { margin-top:1rem }
+.account-door__guidance { margin-top:1.5rem; padding-top:1.2rem; border-top:1px solid #21495b; color:#c3dce6; line-height:1.5 }
+.account-door__guidance p { margin:.45rem 0 0 }
+.account-door__requirement { margin:0; color:#b8d3de }
 .account-door__guest { display:grid; gap:.45rem; margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid #21495b }
 .account-door__guest button { padding:.75rem; border:1px solid #75dcff; border-radius:4px; background:#071722; color:#d9f5ff; cursor:pointer }
 .account-door__guest p { margin:0; color:#a9c5d1; font-size:.9rem; line-height:1.45 }
@@ -23,4 +29,4 @@
 .account-library header { display:flex; align-items:center; justify-content:space-between; gap:1rem }.account-library header div { display:grid }.account-library header span,.account-library label { color:#7fcde9; font-size:.75rem; letter-spacing:.08em }.account-library details { margin-top:.5rem }.account-library summary { cursor:pointer; font-weight:700 }
 .account-library__create { margin:.75rem 0; display:grid; gap:.35rem }.account-library__create div { display:flex; gap:.5rem }.account-library__create input { flex:1 }.account-library ul { display:flex; gap:.5rem; padding:0; list-style:none; flex-wrap:wrap }.account-library li { display:flex; align-items:center; gap:.5rem; padding:.4rem; border:1px solid #21495b; border-radius:4px }
 .account-door button:disabled,.account-library button:disabled { cursor:not-allowed!important; opacity:.55 }
-@media(max-width:600px){.account-library__create div,.account-library header,.guest-session-bar{align-items:stretch;flex-direction:column}.account-library ul{display:grid}.account-library li{justify-content:space-between}}
+@media(max-width:600px){.account-door__card{padding:1.25rem}.account-door__card h1{font-size:1.8rem;overflow-wrap:anywhere}.account-library__create div,.account-library header,.guest-session-bar{align-items:stretch;flex-direction:column}.account-library ul{display:grid}.account-library li{justify-content:space-between}}

@@ -13,7 +13,7 @@ import { clearGuestWorkspaceSession, restoreGuestWorkspaceSession } from "../wor
 import { guestIdentityFromValidatedSnapshot } from "../workspace/persistence/GuestWorkspaceRestorationPolicy";
 import {
   AccountFrontDoorError, createOwnedInvestigation, listOwnedInvestigations,
-  readCsrfCookie, submitAccount, type OwnedInvestigationSummary,
+  readCsrfCookie, requestPasswordRecovery, resetPassword, submitAccount, type OwnedInvestigationSummary,
 } from "./AccountFrontDoorApi";
 import { captureGuestAdoptionCandidate, GuestPreservationCoordinator, submitGuestAdoption } from "./GuestInvestigationAdoption";
 import IseesIntroductionGate from "../onboarding/components/IseesIntroductionGate";
@@ -21,6 +21,19 @@ import { hasAcknowledgedIseesIntroduction } from "../onboarding/runtime/Onboardi
 import "./AccountFrontDoor.css";
 
 type Phase = "restoring" | "anonymous" | "loading-library" | "ready" | "working";
+const RESET_PATH = "/reset-password";
+const RESET_INVALID_MESSAGE = "This password reset link is invalid or has expired.";
+
+function captureResetCapability(): string | null {
+  if (window.location.pathname !== RESET_PATH) return null;
+  const fragment = window.location.hash;
+  window.history.replaceState(null, "", window.location.pathname);
+  const match = /^#token=([A-Za-z0-9_-]{43})$/.exec(fragment);
+  return match ? match[1] : null;
+}
+
+const BOOT_RESET_ROUTE = window.location.pathname === RESET_PATH;
+let bootResetCapability = captureResetCapability();
 
 function errorMessage(error: unknown): string {
   return error instanceof AccountFrontDoorError ? error.message : "The request could not be completed. Please try again.";
@@ -32,6 +45,10 @@ export interface AccountNavigationGuard {
 
 export function AccountFrontDoor({ children, navigationGuard }: { children: ReactNode; navigationGuard?: MutableRefObject<AccountNavigationGuard | null> }) {
   const identityState = useOperatorIdentity();
+  const [resetRoute, setResetRoute] = useState(BOOT_RESET_ROUTE);
+  const [resetCapability, setResetCapability] = useState<string | null>(bootResetCapability);
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [openRecovery, setOpenRecovery] = useState(false);
   const [anonymousMode, setAnonymousMode] = useState<"create" | "signin">("signin");
   const [phase, setPhase] = useState<Phase>("restoring");
   const [principal, setPrincipal] = useState<AccountSessionProjection | null>(null);
@@ -99,6 +116,13 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
 
   useEffect(() => {
     mounted.current = true;
+    if (resetRoute) {
+      bootResetCapability = null;
+      return () => {
+        mounted.current = false; generation.current += 1; requestController.current?.abort();
+        setResetCapability(null);
+      };
+    }
     if (identityState.status !== "READY") {
       return () => {
         mounted.current = false; generation.current += 1; requestController.current?.abort();
@@ -131,7 +155,7 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
       mounted.current = false; generation.current += 1; requestController.current?.abort();
       coordinator.cancelPendingRequests();
     };
-  }, [coordinator, identityState.status, identityState.identity?.kind]);
+  }, [coordinator, identityState.status, identityState.identity?.kind, resetRoute]);
 
   function continueAsGuest(): void {
     const { ticket } = beginRequest();
@@ -275,11 +299,23 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
     void loadLibrary(ticket, signal, true);
   }
 
+  function leaveReset(message = "", recover = false): void {
+    requestController.current?.abort();
+    setResetCapability(null);
+    window.history.replaceState(null, "", "/");
+    setResetRoute(false);
+    setAnonymousMode("signin");
+    setResetConfirmation(message);
+    setOpenRecovery(recover);
+    showAnonymous();
+  }
+
+  if (resetRoute) return <PasswordResetDoor capability={resetCapability} onCancel={() => leaveReset("", true)} onComplete={() => leaveReset("Your password has been reset. Sign in with your new password.")} />;
   if (phase === "restoring") return <main className="account-door account-door--center" aria-busy="true"><p role="status">Restoring your researcher account…</p></main>;
   if ((preservation.current.phase === "AWAITING_DECISION" || preservation.current.phase === "PRESERVING" || preservation.current.phase === "RECOVERABLE_ERROR") && principal)
     return <PreservationDecision headingRef={preservationHeading} phase={preservation.current.phase} onPreserve={preserveGuestInvestigation} onDiscard={finishWithoutPreserving} />;
   if (identityState.identity?.kind === "GUEST") return <IseesIntroductionGate identityKind="GUEST"><><GuestBar onAccountEntry={enterAccountDoorFromGuest} />{children}</></IseesIntroductionGate>;
-  if (!principal) return <AnonymousDoor key={anonymousMode} initialMode={anonymousMode} busy={phase === "working"} error={error} onSubmit={authenticate} onContinueAsGuest={preservation.current.candidate ? cancelAuthentication : continueAsGuest} />;
+  if (!principal) return <AnonymousDoor key={`${anonymousMode}-${openRecovery}`} initialMode={anonymousMode} initialRecovery={openRecovery} busy={phase === "working"} error={error} confirmation={resetConfirmation} onSubmit={authenticate} onContinueAsGuest={preservation.current.candidate ? cancelAuthentication : continueAsGuest} />;
   return <IseesIntroductionGate identityKind="ACCOUNT" onEntered={enterAccountWorkspace}><div className="account-authenticated-shell"><AccountBar principal={principal} items={items} activeInvestigationId={activeInvestigationId} phase={phase} error={error} onCreate={create} onOpen={open} onLogout={logout} /><div className="account-authenticated-shell__workspace">{children}</div></div></IseesIntroductionGate>;
 }
 
@@ -295,14 +331,60 @@ function PreservationDecision({ headingRef, phase, onPreserve, onDiscard }: { he
   </section></main>;
 }
 
-function AnonymousDoor({ initialMode, busy, error, onSubmit, onContinueAsGuest }: { initialMode: "create" | "signin"; busy: boolean; error: string; onSubmit(mode: "create" | "signin", email: string, password: string): Promise<void>; onContinueAsGuest(): void }) {
+function AnonymousDoor({ initialMode, initialRecovery, busy, error, confirmation, onSubmit, onContinueAsGuest }: { initialMode: "create" | "signin"; initialRecovery: boolean; busy: boolean; error: string; confirmation: string; onSubmit(mode: "create" | "signin", email: string, password: string): Promise<void>; onContinueAsGuest(): void }) {
   const [mode, setMode] = useState<"create" | "signin">(initialMode);
+  const [surface, setSurface] = useState<"account" | "recovery">(initialRecovery ? "recovery" : "account");
+  const [email, setEmail] = useState("");
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); }, [surface]);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (busy) return;
     const data = new FormData(event.currentTarget);
     void onSubmit(mode, String(data.get("email")), String(data.get("password")));
   }
-  return <main className="account-door"><section className="account-door__card" aria-labelledby="account-title"><p className="account-door__brand">iSEES</p><h1 id="account-title">Your research begins here.</h1><p>Sign in for private, durable investigations, create an account, or use the complete workspace as a guest.</p><div className="account-door__tabs"><button type="button" disabled={busy} aria-pressed={mode === "signin"} onClick={() => setMode("signin")}>Sign in</button><button type="button" disabled={busy} aria-pressed={mode === "create"} onClick={() => setMode("create")}>Create account</button></div><form onSubmit={submit} aria-busy={busy}><label>Email<input name="email" type="email" autoComplete="email" disabled={busy} required /></label><label>Password<input name="password" type="password" autoComplete={mode === "create" ? "new-password" : "current-password"} minLength={12} disabled={busy} required /></label><button className="account-door__primary" disabled={busy}>{busy ? "Please wait…" : mode === "create" ? "Create account" : "Sign in"}</button></form><div className="account-door__guest"><button type="button" disabled={busy} onClick={onContinueAsGuest}>Continue as guest</button><p>Explore the complete iSEES workspace. Your work will not be saved after this guest session.</p></div><p className="account-door__error" role="alert" aria-live="polite">{error}</p></section></main>;
+  if (surface === "recovery") return <RecoveryRequestDoor initialEmail={email} onBack={(preservedEmail) => { setEmail(preservedEmail); setSurface("account"); }} />;
+  return <main className="account-door"><section className="account-door__card" aria-labelledby="account-title"><p className="account-door__brand">iSEES</p><h1 id="account-title" ref={heading} tabIndex={-1}>Your research begins here.</h1>{confirmation && <p className="account-door__success" role="status">{confirmation}</p>}<p>Sign in for private, durable investigations, create an account, or use the complete workspace as a guest.</p><div className="account-door__tabs"><button type="button" disabled={busy} aria-pressed={mode === "signin"} onClick={() => setMode("signin")}>Sign in</button><button type="button" disabled={busy} aria-pressed={mode === "create"} onClick={() => setMode("create")}>Create account</button></div><form onSubmit={submit} aria-busy={busy}><label>Email<input name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} required /></label><label>Password<input name="password" type="password" autoComplete={mode === "create" ? "new-password" : "current-password"} minLength={12} disabled={busy} required /></label>{mode === "signin" && <button className="account-door__text-action" type="button" disabled={busy} onClick={() => setSurface("recovery")}>Forgot email or password?</button>}<button className="account-door__primary" disabled={busy}>{busy ? "Please wait…" : mode === "create" ? "Create account" : "Sign in"}</button></form><div className="account-door__guest"><button type="button" disabled={busy} onClick={onContinueAsGuest}>Continue as guest</button><p>Explore the complete iSEES workspace. Your work will not be saved after this guest session.</p></div><p className="account-door__error" role="alert" aria-live="polite">{error}</p></section></main>;
+}
+
+function RecoveryRequestDoor({ initialEmail, onBack }: { initialEmail: string; onBack(email: string): void }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const pendingRef = useRef(false);
+  const controller = useRef<AbortController | undefined>(undefined);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); return () => { controller.current?.abort(); setEmail(""); }; }, []);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (pendingRef.current) return;
+    pendingRef.current = true; setPending(true); setMessage(""); setError("");
+    controller.current = new AbortController();
+    try { const accepted = await requestPasswordRecovery(email, controller.current.signal); setMessage(accepted.message); }
+    catch { if (!controller.current.signal.aborted) setError("Recovery instructions could not be requested. Please try again."); }
+    finally { pendingRef.current = false; setPending(false); }
+  }
+  return <main className="account-door"><section className="account-door__card" aria-labelledby="recovery-title" aria-busy={pending}><p className="account-door__brand">iSEES</p><h1 id="recovery-title" ref={heading} tabIndex={-1}>Recover your iSEES account</h1><form onSubmit={submit}><label htmlFor="recovery-email">Email</label><input id="recovery-email" name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={pending} required /><button className="account-door__primary" disabled={pending}>{pending ? "Sending recovery instructions…" : "Send recovery instructions"}</button></form>{pending && <p role="status">Sending recovery instructions…</p>}{message && <p className="account-door__success" role="status">{message}</p>}<p className="account-door__error" role="alert">{error}</p><button className="account-door__secondary" type="button" disabled={pending} onClick={() => onBack(email)}>Back to sign in</button><div className="account-door__guidance"><strong>Forgot your email?</strong><p>Your iSEES login is the email address used to create your researcher account. If you do not remember it, use the same verified contact channel used for your tester invitation.</p></div></section></main>;
+}
+
+function PasswordResetDoor({ capability, onCancel, onComplete }: { capability: string | null; onCancel(): void; onComplete(): void }) {
+  const [token, setToken] = useState(capability);
+  const [password, setPassword] = useState(""); const [confirmation, setConfirmation] = useState("");
+  const [pending, setPending] = useState(false); const [error, setError] = useState(token ? "" : RESET_INVALID_MESSAGE);
+  const pendingRef = useRef(false); const controller = useRef<AbortController | undefined>(undefined); const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); return () => { controller.current?.abort(); setToken(null); setPassword(""); setConfirmation(""); }; }, []);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (pendingRef.current || !token) return;
+    if (password !== confirmation) { setError("The passwords do not match."); return; }
+    pendingRef.current = true; setPending(true); setError(""); controller.current = new AbortController();
+    try {
+      const result = await resetPassword(token, password, controller.current.signal);
+      if (result.status === "INVALID") { setToken(null); setPassword(""); setConfirmation(""); setError(RESET_INVALID_MESSAGE); }
+      else { setToken(null); setPassword(""); setConfirmation(""); onComplete(); }
+    } catch { if (!controller.current.signal.aborted) setError("The password could not be reset. Please try again."); }
+    finally { pendingRef.current = false; setPending(false); }
+  }
+  const invalid = !token;
+  return <main className="account-door"><section className="account-door__card" aria-labelledby="reset-title" aria-busy={pending}><p className="account-door__brand">iSEES</p><h1 id="reset-title" ref={heading} tabIndex={-1}>Reset your iSEES password</h1>{invalid ? <><p className="account-door__error" role="alert">{RESET_INVALID_MESSAGE}</p><button className="account-door__primary" type="button" onClick={onCancel}>Request another recovery email</button></> : <form onSubmit={submit}><p className="account-door__requirement">Use at least 12 characters.</p><label htmlFor="new-password">New password</label><input id="new-password" type="password" autoComplete="new-password" minLength={12} maxLength={1024} value={password} onChange={event => setPassword(event.target.value)} disabled={pending} required /><label htmlFor="confirm-new-password">Confirm new password</label><input id="confirm-new-password" type="password" autoComplete="new-password" minLength={12} maxLength={1024} value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={pending} required aria-describedby={error === "The passwords do not match." ? "reset-error" : undefined} aria-invalid={error === "The passwords do not match."} /><button className="account-door__primary" disabled={pending}>{pending ? "Resetting password…" : "Reset password"}</button><p id="reset-error" className="account-door__error" role="alert">{error}</p>{pending && <p role="status">Resetting password…</p>}</form>}</section></main>;
 }
 
 function GuestBar({ onAccountEntry }: { onAccountEntry(mode: "create" | "signin"): void }) {
