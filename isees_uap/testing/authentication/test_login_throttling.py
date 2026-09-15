@@ -95,7 +95,7 @@ def test_migration_is_idempotent_and_versioned(tmp_path):
     with sqlite3.connect(path) as connection:
         assert connection.execute(
             "SELECT version FROM authentication_schema_migrations ORDER BY version"
-        ).fetchall() == [(1,), (SCHEMA_VERSION,)]
+        ).fetchall() == [(version,) for version in range(1, SCHEMA_VERSION + 1)]
         assert connection.execute(
             "SELECT count(*) FROM sqlite_master WHERE name='login_throttle'"
         ).fetchone()[0] == 1

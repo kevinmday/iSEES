@@ -1,20 +1,32 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
+import uuid
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
 from .errors import AuthenticationRepositoryUnavailable, DuplicateAccount
-from .models import AccountStatus, AuthenticatedSession, LoginThrottle, ResearcherAccount
+from .models import (
+    AccountStatus, AuthenticatedSession, AuthenticationAuditEvent,
+    AuthenticationAuditEventType, LoginThrottle, RecoveryTokenRecord,
+    RecoveryThrottleScope, ResearcherAccount,
+)
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _MIGRATION_NAMES = {
     1: "001_accounts_and_sessions.sql",
     2: "002_login_throttling.sql",
+    3: "003_password_recovery.sql",
 }
+
+_FORBIDDEN_AUDIT_KEYS = frozenset({
+    "token", "raw_token", "token_digest", "password", "reset_url", "url",
+    "cookie", "csrf", "csrf_value", "provider_secret",
+})
 
 
 def _utc_now() -> datetime:
@@ -53,6 +65,23 @@ def _statements(script: str):
 
 def session_secret_digest(secret: str) -> bytes:
     return hashlib.sha256(secret.encode("ascii")).digest()
+
+
+def _sanitized_metadata(metadata: object) -> str:
+    def validate(value: object) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                normalized = str(key).strip().casefold().replace("-", "_")
+                if normalized in _FORBIDDEN_AUDIT_KEYS:
+                    raise ValueError("Authentication audit metadata contains a forbidden field")
+                validate(child)
+        elif isinstance(value, (list, tuple)):
+            for child in value:
+                validate(child)
+        elif value is not None and not isinstance(value, (str, int, float, bool)):
+            raise ValueError("Authentication audit metadata is not JSON-safe")
+    validate(metadata)
+    return json.dumps(metadata, sort_keys=True, separators=(",", ":"))
 
 
 class SQLiteAuthenticationRepository:
@@ -348,6 +377,176 @@ class SQLiteAuthenticationRepository:
                 ).fetchone()
                 connection.commit()
                 return self._account(row)
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    @staticmethod
+    def _recovery_token(row: sqlite3.Row) -> RecoveryTokenRecord:
+        return RecoveryTokenRecord(
+            token_id=row["token_id"], account_id=row["account_id"],
+            token_digest=row["token_digest"], created_at=_datetime(row["created_at"]),
+            expires_at=_datetime(row["expires_at"]), used_at=_datetime(row["used_at"]),
+            invalidated_at=_datetime(row["invalidated_at"]),
+            requested_origin_digest=row["requested_origin_digest"],
+        )
+
+    def issue_recovery_token(self, *, token_id: str, account_id: str,
+                             token_digest: bytes, created_at: datetime,
+                             expires_at: datetime,
+                             requested_origin_digest: bytes | None) -> RecoveryTokenRecord:
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    "DELETE FROM password_reset_token WHERE expires_at<=?",
+                    (_utc_text(created_at),),
+                )
+                connection.execute(
+                    "UPDATE password_reset_token SET invalidated_at=? WHERE account_id=? "
+                    "AND used_at IS NULL AND invalidated_at IS NULL AND expires_at>?",
+                    (_utc_text(created_at), account_id, _utc_text(created_at)),
+                )
+                connection.execute(
+                    "INSERT INTO password_reset_token VALUES (?,?,?,?,?,?,?,?)",
+                    (token_id, account_id, token_digest, _utc_text(created_at),
+                     _utc_text(expires_at), None, None, requested_origin_digest),
+                )
+                row = connection.execute(
+                    "SELECT * FROM password_reset_token WHERE token_id=?", (token_id,)
+                ).fetchone()
+                connection.commit()
+                return self._recovery_token(row)
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def find_recovery_token(self, *, token_digest: bytes) -> RecoveryTokenRecord | None:
+        try:
+            with closing(self._connect()) as connection:
+                row = connection.execute(
+                    "SELECT * FROM password_reset_token WHERE token_digest=?", (token_digest,)
+                ).fetchone()
+                return self._recovery_token(row) if row else None
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def allow_recovery_request(self, *, scope_type: RecoveryThrottleScope,
+                               scope_digest: bytes, occurred_at: datetime,
+                               max_requests: int, window_seconds: int,
+                               block_seconds: int) -> bool:
+        from datetime import timedelta
+        now_text = _utc_text(occurred_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    "DELETE FROM recovery_throttle WHERE updated_at<? "
+                    "AND (blocked_until IS NULL OR blocked_until<=?)",
+                    (_utc_text(occurred_at - timedelta(
+                        seconds=max(window_seconds, block_seconds))), now_text),
+                )
+                row = connection.execute(
+                    "SELECT * FROM recovery_throttle WHERE scope_type=? AND scope_digest=?",
+                    (scope_type.value, scope_digest),
+                ).fetchone()
+                if row is not None and row["blocked_until"] is not None \
+                        and _datetime(row["blocked_until"]) > occurred_at:
+                    connection.commit()
+                    return False
+                window_start = occurred_at
+                count = 1
+                if row is not None and _datetime(row["window_started_at"]) + timedelta(
+                        seconds=window_seconds) > occurred_at:
+                    window_start = _datetime(row["window_started_at"])
+                    count = row["request_count"] + 1
+                blocked_until = (occurred_at + timedelta(seconds=block_seconds)
+                                 if count > max_requests else None)
+                connection.execute(
+                    "INSERT INTO recovery_throttle VALUES (?,?,?,?,?,?) "
+                    "ON CONFLICT(scope_type,scope_digest) DO UPDATE SET "
+                    "request_count=excluded.request_count, "
+                    "window_started_at=excluded.window_started_at, "
+                    "blocked_until=excluded.blocked_until, updated_at=excluded.updated_at",
+                    (scope_type.value, scope_digest, count, _utc_text(window_start),
+                     _utc_text(blocked_until) if blocked_until else None, now_text),
+                )
+                connection.commit()
+                return blocked_until is None
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def record_authentication_audit_event(self, event: AuthenticationAuditEvent) -> None:
+        metadata_json = _sanitized_metadata(dict(event.metadata))
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    "INSERT INTO authentication_audit_event VALUES (?,?,?,?,?,?,?,?)",
+                    (event.event_id, event.account_id, event.event_type.value,
+                     _utc_text(event.occurred_at), event.request_id, event.origin_digest,
+                     event.outcome, metadata_json),
+                )
+                connection.commit()
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
+    def reset_password_atomically(self, *, token_digest: bytes, password_hash: str,
+                                  occurred_at: datetime, request_id: str | None = None,
+                                  origin_digest: bytes | None = None) -> bool:
+        metadata_json = _sanitized_metadata({})
+        now_text = _utc_text(occurred_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    row = connection.execute(
+                        "SELECT * FROM password_reset_token WHERE token_digest=?",
+                        (token_digest,),
+                    ).fetchone()
+                    valid = row is not None and row["used_at"] is None \
+                        and row["invalidated_at"] is None \
+                        and _datetime(row["expires_at"]) > occurred_at
+                    if not valid:
+                        connection.rollback()
+                        return False
+                    consumed = connection.execute(
+                        "UPDATE password_reset_token SET used_at=? WHERE token_id=? "
+                        "AND used_at IS NULL AND invalidated_at IS NULL AND expires_at>?",
+                        (now_text, row["token_id"], now_text),
+                    )
+                    if consumed.rowcount != 1:
+                        connection.rollback()
+                        return False
+                    account_id = row["account_id"]
+                    if connection.execute(
+                        "UPDATE researcher_account SET password_hash=?, updated_at=? "
+                        "WHERE account_id=?", (password_hash, now_text, account_id),
+                    ).rowcount != 1:
+                        raise sqlite3.IntegrityError("Recovery account unavailable")
+                    connection.execute(
+                        "UPDATE authenticated_session SET revoked_at=? WHERE account_id=? "
+                        "AND revoked_at IS NULL", (now_text, account_id),
+                    )
+                    connection.execute(
+                        "UPDATE password_reset_token SET invalidated_at=? WHERE account_id=? "
+                        "AND token_id<>? AND used_at IS NULL AND invalidated_at IS NULL",
+                        (now_text, account_id, row["token_id"]),
+                    )
+                    connection.execute(
+                        "INSERT INTO authentication_audit_event VALUES (?,?,?,?,?,?,?,?)",
+                        (f"aevt_{uuid.uuid4().hex}", account_id,
+                         AuthenticationAuditEventType.PASSWORD_RESET_COMPLETED.value,
+                         now_text, request_id, origin_digest, "COMPLETED", metadata_json),
+                    )
+                    connection.commit()
+                    return True
+                except Exception:
+                    connection.rollback()
+                    raise
         except sqlite3.Error as error:
             raise AuthenticationRepositoryUnavailable(
                 "Authentication service is unavailable") from error
