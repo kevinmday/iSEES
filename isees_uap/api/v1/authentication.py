@@ -214,8 +214,10 @@ async def request_password_recovery(
         svc.request_password_recovery(RecoveryRequestInput(
             email=body.email, request_id=str(uuid.uuid4()), origin_digest=origin,
         ))
-    except RecoveryDeliveryError:
-        logger.error("Password recovery delivery was not completed")
+    except RecoveryDeliveryError as error:
+        logger.error(
+            "Password recovery delivery was not completed (category=%s)", error.category,
+        )
     except AuthenticationRepositoryUnavailable:
         logger.error("Password recovery repository operation failed")
         return _safe_failure(503, "AUTHENTICATION_UNAVAILABLE", "Service is temporarily unavailable")

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import socket
+import ssl
+import threading
 from datetime import datetime, timedelta, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.error import URLError
 
 import pytest
 
@@ -67,6 +72,47 @@ def adapter(transport: FakeTransport) -> ResendRecoveryDelivery:
         from_email="onboarding@resend.dev", from_name="iSEES Research",
         token_ttl_seconds=1800, transport=transport,
     )
+
+
+@pytest.fixture
+def loopback_resend(monkeypatch):
+    exchanges = []
+    responses = []
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_POST(self):
+            length = int(self.headers["Content-Length"])
+            exchanges.append({
+                "method": self.command, "path": self.path,
+                "authorization_present": bool(self.headers.get("Authorization")),
+                "content_type": self.headers.get("Content-Type"),
+                "content_length": length, "body": self.rfile.read(length),
+            })
+            status, body = responses.pop(0)
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, format, *args):
+            del format, args
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setattr(
+        "isees_uap.authentication.recovery_delivery.RESEND_EMAIL_ENDPOINT",
+        f"http://127.0.0.1:{server.server_port}/emails",
+    )
+    try:
+        yield responses, exchanges
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
 
 
 def test_recovery_is_disabled_by_default_and_requires_no_provider_configuration():
@@ -149,6 +195,46 @@ def test_resend_request_contract_and_safe_content():
         assert "utm_" not in body
 
 
+@pytest.mark.parametrize("status", [200, 201, 202, 299])
+def test_default_transport_serializes_and_reads_every_2xx(status, loopback_resend):
+    responses, exchanges = loopback_resend
+    responses.append((status, b'{"id":"loopback-message"}'))
+    adapter(None).deliver(record())
+    assert len(exchanges) == 1
+    exchange = exchanges[0]
+    assert exchange["method"] == "POST" and exchange["path"] == "/emails"
+    assert exchange["authorization_present"] is True
+    assert exchange["content_type"] == "application/json"
+    assert exchange["content_length"] == len(exchange["body"])
+    payload = json.loads(exchange["body"])
+    assert payload["from"] == "iSEES Research <onboarding@resend.dev>"
+    assert payload["to"] == [DESTINATION]
+    assert payload["subject"] == "Reset your iSEES password"
+    assert "Reset your password:" in payload["text"]
+    assert '<a href="https://app.example.test/reset-password#token=' in payload["html"]
+
+
+@pytest.mark.parametrize("status", [400, 429, 500])
+def test_default_transport_normalizes_http_error_contract(status, loopback_resend):
+    responses, exchanges = loopback_resend
+    responses.append((status, b'{"message":"provider secret body"}'))
+    with pytest.raises(RecoveryDeliveryError) as raised:
+        adapter(None).deliver(record())
+    assert raised.value.category == "http_rejection"
+    assert "provider secret body" not in str(raised.value)
+    assert len(exchanges) == 1
+
+
+def test_default_transport_rejects_malformed_success_and_closes_response(loopback_resend):
+    responses, exchanges = loopback_resend
+    responses.extend([(200, b'{"id":"  "}'), (200, b'{"id":"second"}')])
+    with pytest.raises(RecoveryDeliveryError) as raised:
+        adapter(None).deliver(record())
+    assert raised.value.category == "malformed_response"
+    adapter(None).deliver(record())
+    assert len(exchanges) == 2
+
+
 @pytest.mark.parametrize("response", [
     (400, b'{"message":"provider detail"}'),
     (500, b'{"message":"provider detail"}'),
@@ -172,6 +258,27 @@ def test_timeout_and_network_failures_are_sanitized(failure):
     diagnostic = str(raised.value) + repr(adapter(FakeTransport()))
     for sensitive in (SYNTHETIC_KEY, DESTINATION, SYNTHETIC_TOKEN, "https://app.example.test"):
         assert sensitive not in diagnostic
+
+
+@pytest.mark.parametrize(("failure", "category"), [
+    (URLError(ssl.SSLError("synthetic tls detail")), "tls"),
+    (URLError(socket.gaierror("synthetic dns detail")), "dns"),
+    (URLError(ConnectionRefusedError("synthetic connection detail")), "connection"),
+    (URLError(TimeoutError("synthetic timeout detail")), "timeout"),
+])
+def test_transport_failure_categories_are_safe(failure, category):
+    with pytest.raises(RecoveryDeliveryError) as raised:
+        adapter(FakeTransport(failure=failure)).deliver(record())
+    assert raised.value.category == category
+    diagnostic = str(raised.value) + repr(raised.value)
+    assert "synthetic" not in diagnostic
+
+
+@pytest.mark.parametrize("response", [None, (200,), ("200", b'{}'), (200, "{}")])
+def test_injected_transport_contract_failures_are_classified(response):
+    with pytest.raises(RecoveryDeliveryError) as raised:
+        adapter(FakeTransport(response=response)).deliver(record())
+    assert raised.value.category == "internal_adapter_contract"
 
 
 def test_test_sender_is_replaceable_and_never_redirects_recipient():

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import html
 import json
+import socket
+import ssl
 from email.utils import formataddr
 from typing import Mapping, Protocol
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -17,6 +20,14 @@ RESEND_TIMEOUT_SECONDS = 10.0
 class RecoveryDeliveryError(RuntimeError):
     """Sanitized provider-independent delivery failure."""
 
+    def __init__(self, category: str):
+        super().__init__("Password recovery delivery failed")
+        allowed = {
+            "configuration", "tls", "dns", "connection", "timeout",
+            "http_rejection", "malformed_response", "internal_adapter_contract",
+        }
+        self.category = category if category in allowed else "internal_adapter_contract"
+
 
 class HttpTransport(Protocol):
     def request(self, *, method: str, url: str, headers: Mapping[str, str],
@@ -27,8 +38,27 @@ class UrllibHttpTransport:
     def request(self, *, method: str, url: str, headers: Mapping[str, str],
                 body: bytes, timeout: float) -> tuple[int, bytes]:
         request = Request(url, data=body, headers=dict(headers), method=method)
-        with urlopen(request, timeout=timeout) as response:
-            return response.status, response.read()
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                return response.status, response.read()
+        except HTTPError as response:
+            # urllib represents HTTP rejection as an exception, while injected
+            # transports represent it as a normal (status, body) result.
+            with response:
+                return response.code, response.read()
+
+
+def _transport_failure_category(error: Exception) -> str:
+    reason = error.reason if isinstance(error, URLError) else error
+    if isinstance(reason, ssl.SSLError):
+        return "tls"
+    if isinstance(reason, socket.gaierror):
+        return "dns"
+    if isinstance(reason, (TimeoutError, socket.timeout)):
+        return "timeout"
+    if isinstance(reason, (ConnectionError, OSError)):
+        return "connection"
+    return "internal_adapter_contract"
 
 
 def build_reset_url(public_app_origin: str, raw_token: str,
@@ -58,37 +88,39 @@ class ResendRecoveryDelivery:
         return "ResendRecoveryDelivery(<redacted>)"
 
     def deliver(self, record: RecoveryDeliveryRecord) -> None:
-        reset_url = build_reset_url(
-            self.public_app_origin, record.capability.raw_token,
-        )
-        if self.token_ttl_seconds % 60 == 0:
-            expiry = f"{self.token_ttl_seconds // 60} minutes"
-        else:
-            expiry = f"{self.token_ttl_seconds} seconds"
-        text_body = (
-            "A password reset was requested for your iSEES researcher account.\n\n"
-            f"Reset your password: {reset_url}\n\n"
-            f"This link expires in {expiry} and works once. If you did not request "
-            "this reset, you can ignore this message. iSEES will never email your password."
-        )
-        escaped_url = html.escape(reset_url, quote=True)
-        html_body = (
-            "<p>A password reset was requested for your iSEES researcher account.</p>"
-            f'<p><a href="{escaped_url}">Reset your password</a></p>'
-            f"<p>This link expires in {expiry} and works once.</p>"
-            "<p>If you did not request this reset, you can ignore this message.</p>"
-            "<p>iSEES will never email your password.</p>"
-        )
-        payload = json.dumps({
-            "from": formataddr((self.from_name, self.from_email)),
-            "to": [record.destination],
-            "subject": "Reset your iSEES password",
-            "text": text_body,
-            "html": html_body,
-        }, separators=(",", ":")).encode("utf-8")
-        valid_response = False
         try:
-            status, response_body = self.transport.request(
+            reset_url = build_reset_url(
+                self.public_app_origin, record.capability.raw_token,
+            )
+            if self.token_ttl_seconds % 60 == 0:
+                expiry = f"{self.token_ttl_seconds // 60} minutes"
+            else:
+                expiry = f"{self.token_ttl_seconds} seconds"
+            text_body = (
+                "A password reset was requested for your iSEES researcher account.\n\n"
+                f"Reset your password: {reset_url}\n\n"
+                f"This link expires in {expiry} and works once. If you did not request "
+                "this reset, you can ignore this message. iSEES will never email your password."
+            )
+            escaped_url = html.escape(reset_url, quote=True)
+            html_body = (
+                "<p>A password reset was requested for your iSEES researcher account.</p>"
+                f'<p><a href="{escaped_url}">Reset your password</a></p>'
+                f"<p>This link expires in {expiry} and works once.</p>"
+                "<p>If you did not request this reset, you can ignore this message.</p>"
+                "<p>iSEES will never email your password.</p>"
+            )
+            payload = json.dumps({
+                "from": formataddr((self.from_name, self.from_email)),
+                "to": [record.destination],
+                "subject": "Reset your iSEES password",
+                "text": text_body,
+                "html": html_body,
+            }, separators=(",", ":")).encode("utf-8")
+        except Exception:
+            raise RecoveryDeliveryError("configuration") from None
+        try:
+            result = self.transport.request(
                 method="POST", url=RESEND_EMAIL_ENDPOINT,
                 headers={
                     "Authorization": f"Bearer {self.__api_key}",
@@ -96,15 +128,25 @@ class ResendRecoveryDelivery:
                 },
                 body=payload, timeout=self.timeout,
             )
+        except Exception as error:
+            raise RecoveryDeliveryError(_transport_failure_category(error)) from None
+        try:
+            status, response_body = result
+            if not isinstance(status, int) or isinstance(status, bool):
+                raise TypeError
+            if not isinstance(response_body, bytes):
+                raise TypeError
+        except (TypeError, ValueError):
+            raise RecoveryDeliveryError("internal_adapter_contract") from None
+        if not 200 <= status < 300:
+            raise RecoveryDeliveryError("http_rejection") from None
+        try:
             response = json.loads(response_body.decode("utf-8"))
-            valid_response = (
-                200 <= status < 300 and isinstance(response, dict)
-                and isinstance(response.get("id"), str) and bool(response["id"])
-            )
         except Exception:
-            pass
-        if not valid_response:
-            raise RecoveryDeliveryError("Password recovery delivery failed")
+            response = None
+        if not (isinstance(response, dict) and isinstance(response.get("id"), str)
+                and bool(response["id"].strip())):
+            raise RecoveryDeliveryError("malformed_response") from None
 
 
 def recovery_delivery_from_settings(

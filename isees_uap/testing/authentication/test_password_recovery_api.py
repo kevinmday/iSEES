@@ -128,6 +128,7 @@ def test_delivery_failure_is_neutral_and_logs_only_fixed_text(recovery_api, capl
     assert response.status_code == 202 and response.json() == ACCEPTED
     logs = caplog.text
     assert "Password recovery delivery was not completed" in logs
+    assert "category=internal_adapter_contract" in logs
     assert secret_email not in logs and "provider-secret-detail" not in logs
     _assert_safe_headers(response)
 
