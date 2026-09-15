@@ -18,6 +18,7 @@ from isees_uap.authentication.models import IssuedRecoveryCapability, RecoveryDe
 from isees_uap.authentication.recovery_delivery import (
     RESEND_EMAIL_ENDPOINT,
     RESEND_TIMEOUT_SECONDS,
+    RESEND_USER_AGENT,
     RecoveryDeliveryError,
     ResendRecoveryDelivery,
     build_reset_url,
@@ -87,7 +88,9 @@ def loopback_resend(monkeypatch):
             exchanges.append({
                 "method": self.command, "path": self.path,
                 "authorization_present": bool(self.headers.get("Authorization")),
+                "accept": self.headers.get("Accept"),
                 "content_type": self.headers.get("Content-Type"),
+                "user_agent": self.headers.get("User-Agent"),
                 "content_length": length, "body": self.rfile.read(length),
             })
             status, body = responses.pop(0)
@@ -180,8 +183,14 @@ def test_resend_request_contract_and_safe_content():
         "POST", RESEND_EMAIL_ENDPOINT, RESEND_TIMEOUT_SECONDS,
     )
     assert call["headers"] == {
-        "Authorization": f"Bearer {SYNTHETIC_KEY}", "Content-Type": "application/json",
+        "Authorization": f"Bearer {SYNTHETIC_KEY}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": RESEND_USER_AGENT,
     }
+    assert RESEND_USER_AGENT == "iSEES-UAP/0.9"
+    for sensitive in (SYNTHETIC_KEY, DESTINATION, SYNTHETIC_TOKEN):
+        assert sensitive not in call["headers"]["User-Agent"]
     payload = json.loads(call["body"])
     assert payload["from"] == "iSEES Research <onboarding@resend.dev>"
     assert payload["to"] == [DESTINATION]
@@ -204,7 +213,9 @@ def test_default_transport_serializes_and_reads_every_2xx(status, loopback_resen
     exchange = exchanges[0]
     assert exchange["method"] == "POST" and exchange["path"] == "/emails"
     assert exchange["authorization_present"] is True
+    assert exchange["accept"] == "application/json"
     assert exchange["content_type"] == "application/json"
+    assert exchange["user_agent"] == "iSEES-UAP/0.9"
     assert exchange["content_length"] == len(exchange["body"])
     payload = json.loads(exchange["body"])
     assert payload["from"] == "iSEES Research <onboarding@resend.dev>"

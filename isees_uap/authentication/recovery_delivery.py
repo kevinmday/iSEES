@@ -15,6 +15,7 @@ from .models import RecoveryDeliveryRecord
 
 RESEND_EMAIL_ENDPOINT = "https://api.resend.com/emails"
 RESEND_TIMEOUT_SECONDS = 10.0
+RESEND_USER_AGENT = "iSEES-UAP/0.9"
 
 
 class RecoveryDeliveryError(RuntimeError):
@@ -124,7 +125,9 @@ class ResendRecoveryDelivery:
                 method="POST", url=RESEND_EMAIL_ENDPOINT,
                 headers={
                     "Authorization": f"Bearer {self.__api_key}",
+                    "Accept": "application/json",
                     "Content-Type": "application/json",
+                    "User-Agent": RESEND_USER_AGENT,
                 },
                 body=payload, timeout=self.timeout,
             )
