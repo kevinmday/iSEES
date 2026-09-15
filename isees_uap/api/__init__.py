@@ -308,7 +308,11 @@ def create_application(
     application.add_middleware(TrustedHostMiddleware, allowed_hosts=list(trusted_hosts))
     # Capture candidate access once during application construction. Invalid allowlist
     # input is represented by a fail-closed policy, so public and guest routes still start.
-    startup_authentication_settings = authentication_settings()
+    authentication_environment = (
+        environment_values if environment_values is os.environ
+        else {**os.environ, **environment_values}
+    )
+    startup_authentication_settings = authentication_settings(authentication_environment)
     application.dependency_overrides[authentication_api_settings] = (
         lambda: startup_authentication_settings
     )

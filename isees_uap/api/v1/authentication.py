@@ -15,6 +15,7 @@ from isees_uap.authentication.principal import (
     require_authenticated_principal, require_csrf_protected_principal, settings,
 )
 from isees_uap.authentication.service import AuthenticationService
+from isees_uap.authentication.recovery_delivery import RecoveryDelivery, recovery_delivery_from_settings
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
@@ -33,9 +34,16 @@ class SafeResearcherIdentity(BaseModel):
     sessionExpiresAt: datetime
 
 
+def configured_recovery_delivery(
+    config: AuthenticationSettings = Depends(settings),
+) -> RecoveryDelivery | None:
+    return recovery_delivery_from_settings(config)
+
+
 def service(
     repo: SQLiteAuthenticationRepository = Depends(authentication_repository),
     config: AuthenticationSettings = Depends(settings),
+    recovery_delivery: RecoveryDelivery | None = Depends(configured_recovery_delivery),
 ) -> AuthenticationService:
     return AuthenticationService(
         repo,
@@ -44,6 +52,8 @@ def service(
         login_max_failures=config.login_max_failures,
         login_window_seconds=config.login_window_seconds,
         login_lockout_seconds=config.login_lockout_seconds,
+        recovery_delivery=recovery_delivery,
+        recovery_ttl_seconds=config.recovery_token_ttl_seconds,
     )
 
 
