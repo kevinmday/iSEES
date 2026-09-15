@@ -34,6 +34,7 @@ import { createAuthorReferenceFromResearchAnchor } from "../../studio/sources/Re
 
 import type {
   ResearchAnchor,
+  RexResearchDiscoveryAnchor,
 } from "../../research/researchBridgeTypes";
 
 import {
@@ -125,6 +126,7 @@ export default function ResearchInboxInstrument({
 
     setConfirmation(message);
     setPulse(true);
+    if (researchMutation.anchor.sourceWorkspace === "REX") onExpandedChange(true);
 
     const timeout = window.setTimeout(() => {
       setConfirmation(undefined);
@@ -132,7 +134,7 @@ export default function ResearchInboxInstrument({
     }, 2400);
 
     return () => window.clearTimeout(timeout);
-  }, [activeInvestigation?.id, researchMutation]);
+  }, [activeInvestigation?.id, onExpandedChange, researchMutation]);
 
   function handleInsert(
     entry:
@@ -466,6 +468,11 @@ export default function ResearchInboxInstrument({
                         if (entry.anchor.kind === "METRIC_FINDING") {
                           const finding = entry.anchor.metricFinding;
                           return <details key={entry.anchor.anchorId} className="research-inbox-experiment"><summary><span className="research-inbox-experiment__metric">TOPOLOGY · {finding.displayValue}</span><strong className="research-inbox-experiment__pair">{finding.pairDisplay}</strong><span className="research-inbox-experiment__metadata"><span>Experimental metric finding</span><em>NON-CANONICAL</em></span></summary><div className="research-inbox-experiment__detail"><p>{finding.whyItMatters}</p><strong>Research question</strong><p>{finding.researchQuestion}</p><strong>Provenance</strong><p>{finding.deterministicBasisSummary}</p></div></details>;
+                        }
+
+                        if (entry.anchor.sourceWorkspace === "REX" && "rexDiscovery" in entry.anchor) {
+                          const discovery = (entry.anchor as RexResearchDiscoveryAnchor).rexDiscovery;
+                          return <details key={entry.anchor.anchorId} className="research-inbox-experiment"><summary><span className="research-inbox-experiment__metric">REX · CANDIDATE {discovery.candidateKind}</span><strong className="research-inbox-experiment__pair">{discovery.candidateLabel}</strong><span className="research-inbox-experiment__metadata"><span>Researcher Review Required</span><em>CANON EFFECT: NONE</em></span></summary><div className="research-inbox-experiment__detail"><p>{entry.anchor.display.summary}</p><strong>Selected source</strong><p>{discovery.selectedSource.kind} · {discovery.selectedSource.identity}</p>{discovery.proposedRelationship&&<><strong>Proposed relationship</strong><p>{discovery.proposedEndpoints?.sourceCandidateId} — {discovery.proposedRelationship} → {discovery.proposedEndpoints?.targetCandidateId}</p></>}<strong>Source and execution lineage</strong><p>{discovery.sourceClassification} · {discovery.sourceLocator} · version {discovery.sourceVersion}<br />Receipt {discovery.receiptContentHash}<br />Bundle {discovery.candidateBundleId}<br />Execution {discovery.executionId}</p><strong>Normalization</strong><p>{discovery.adapterIdentity} {discovery.adapterVersion}<br />{discovery.normalizerIdentity} {discovery.normalizerVersion}</p><strong>AI assistance</strong><p>{discovery.aiAssistanceStatus} · provider {discovery.providerIdentity} · model {discovery.modelIdentity}</p><strong>Field-level lineage</strong>{discovery.fieldLineage.map(field=><p key={`${field.candidateField}:${field.sourceField}`}>{field.candidateField} ← {field.sourceField} · {field.normalizationRule}<br />“{field.exactValue}”</p>)}<p>Candidate Knowledge only. No accepted relationship or canonical MANIFOLD change was created.</p></div></details>;
                         }
 
                         if (entry.anchor.kind !== "COMPARE_CANDIDATE") {

@@ -91,6 +91,7 @@ import {
   resolveCoherentInvestigationSelection,
   resolveCurrentInvestigationExecution,
 } from "../intelligence/selection/InvestigationSelectionCoherence";
+import { RexExploreControl } from "../rex/RexExploreControl.tsx";
 
 // ============================================================
 // COMPONENT
@@ -277,6 +278,8 @@ export default function RightPanel() {
           </>
         )
       }
+
+      <RexExploreControl />
 
     </div>
   );

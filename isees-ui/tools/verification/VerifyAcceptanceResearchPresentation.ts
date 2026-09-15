@@ -64,7 +64,9 @@ assert(inboxCss.includes("prefers-reduced-motion: reduce"), "reduced-motion feed
 assert(inboxCss.includes("#86efac"), "feedback uses established green success color");
 assert.equal((workspaceSurface.match(/<ResearchInboxInstrument\b/g) ?? []).length, 1, "one shared ResearchInboxInstrument remains mounted");
 assert(workspaceSurface.includes("useState(false)"), "Research Inbox remains collapsed by default");
-assert(!inbox.includes("onExpandedChange(true)"), "collection feedback never expands Research Inbox");
+assert(inbox.includes('researchMutation.anchor.sourceWorkspace === "REX"') && inbox.includes("onExpandedChange(true)"), "only explicit REX publication expands Research Inbox");
+assert.equal((inbox.match(/onExpandedChange\(true\)/g) ?? []).length, 1, "Research Inbox has exactly one guarded automatic expansion path");
+assert(!/if\s*\([^)]*sourceWorkspace\s*!==\s*["']REX["'][^)]*\)\s*onExpandedChange\(true\)/.test(inbox), "non-REX collection feedback never expands Research Inbox");
 
 const orderedCardFields = ["Narrative", "Observability", "Infrastructure", "Topology", "Geography"];
 let previous = -1;

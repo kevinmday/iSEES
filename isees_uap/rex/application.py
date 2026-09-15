@@ -151,6 +151,19 @@ class RexApiApplicationService:
         self._owned(assignment, subject_id, investigation_id)
         return value
 
+    def completed_discoveries(self, *, subject_id: str, investigation_id: str):
+        """Read completed durable bundles without scheduling or executing work."""
+        discoveries = []
+        for bundle_id in self.repository.list_completed_candidate_bundle_ids(
+                investigation_id, subject_id):
+            bundle = self.bundle(subject_id=subject_id,
+                investigation_id=investigation_id, bundle_id=bundle_id)
+            assignment = self.repository.get_assignment_revision(bundle.assignment_revision_id)
+            receipt = self.receipt(subject_id=subject_id,
+                investigation_id=investigation_id, execution_id=str(bundle.execution_id))
+            discoveries.append((assignment, receipt, bundle))
+        return tuple(discoveries)
+
     @staticmethod
     def _owned(value, subject_id, investigation_id):
         if value.owner_subject_id != subject_id or value.investigation_id != investigation_id:

@@ -242,6 +242,21 @@ export class ResearchBridgeRuntime {
 
   }
 
+  createAnchorsAtomically(anchors: readonly ResearchAnchor[]): Readonly<{ added: number; alreadyPresent: number }> {
+    const qualified = anchors.map(anchor => migrateResearchAnchor(anchor));
+    const identities = new Set<string>();
+    for (const anchor of qualified) {
+      if (identities.has(anchor.anchorId)) throw new Error("Atomic Research publication contains a duplicate identity.");
+      identities.add(anchor.anchorId);
+    }
+    const additions = qualified.filter(anchor => !this.desk.entries.some(entry => entry.anchor.anchorId === anchor.anchorId));
+    if (additions.length === 0) return Object.freeze({ added: 0, alreadyPresent: qualified.length });
+    const offset = this.desk.entries.length;
+    this.desk = { ...this.desk, entries: [...this.desk.entries, ...additions.map((anchor, index) => ({ anchor, order: offset + index }))] };
+    for (const anchor of additions) this.notify({ kind: "CREATE", anchor });
+    return Object.freeze({ added: additions.length, alreadyPresent: qualified.length - additions.length });
+  }
+
   clearAccountState(): void {
     this.clearDesk();
   }

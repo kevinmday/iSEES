@@ -429,6 +429,22 @@ class SQLiteRexRepository:
         if row["source_hash"] != bundle.source_document.content_hash: raise ContentHashMismatch("Stored REX source content hash does not match")
         return bundle
 
+    def list_completed_candidate_bundle_ids(self, investigation_id, owner_subject_id):
+        """List durable completed results through their assignment ownership chain."""
+        try:
+            with closing(self._connect()) as db:
+                rows=db.execute("""SELECT b.bundle_id
+                    FROM rex_candidate_bundles b
+                    JOIN rex_search_executions e ON e.execution_id=b.execution_id
+                    JOIN rex_assignment_revisions r ON r.revision_id=b.assignment_revision_id
+                    JOIN rex_assignments a ON a.assignment_id=r.assignment_id
+                    WHERE a.investigation_id=? AND a.owner_subject_id=?
+                      AND e.disposition='EXECUTABLE' AND e.status='COMPLETED'
+                    ORDER BY b.created_at,b.bundle_id""",
+                    (investigation_id,owner_subject_id)).fetchall()
+            return tuple(row[0] for row in rows)
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
     def create_research_publication(self,publication:ResearchPublication):
         p=canonical_bytes(publication.payload)
         if publication.review_status!="RESEARCHER_REVIEW_REQUIRED" or publication.canon_effect!="NONE": raise InvalidStoredRecord("REX publication must remain quarantined")

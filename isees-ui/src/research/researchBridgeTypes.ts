@@ -12,7 +12,7 @@ export const ResearchAnchorKind = {
   INTENTION_DERIVATION: "INTENTION_DERIVATION", INTENTION_HYPOTHESIS: "INTENTION_HYPOTHESIS",
 } as const;
 export type ResearchAnchorKind = typeof ResearchAnchorKind[keyof typeof ResearchAnchorKind];
-export type ResearchSourceWorkspace = "MANIFOLD" | "COMPARE" | "LAYERS" | "EVIDENCE" | "MEDIA" | "NARRATIVE" | "TIMELINE" | "INTENTION";
+export type ResearchSourceWorkspace = "MANIFOLD" | "COMPARE" | "LAYERS" | "EVIDENCE" | "MEDIA" | "NARRATIVE" | "TIMELINE" | "INTENTION" | "REX";
 export type ResearchSourceClassification = "CANONICAL" | "RESEARCHER_GENERATED" | "UNDETERMINED";
 export type ResearchInsertability = Readonly<{ state: "INSERTABLE" | "INSPECTION_ONLY"; reason: string }>;
 export type ResearchDisplayProjection = Readonly<{ title: string; summary: string }>;
@@ -42,6 +42,8 @@ export interface ResearchTimelineMomentAnchor extends ResearchAnchorBase<"TIMELI
 export interface ResearchTimelineCorrespondenceAnchor extends ResearchAnchorBase<"TIMELINE_CORRESPONDENCE"> { readonly correspondence: TypedSourcePayload }
 export interface ResearchIntentionDerivationAnchor extends ResearchAnchorBase<"INTENTION_DERIVATION"> { readonly derivation: TypedSourcePayload }
 export interface ResearchIntentionHypothesisAnchor extends ResearchAnchorBase<"INTENTION_HYPOTHESIS"> { readonly hypothesis: TypedSourcePayload }
+export interface RexDiscoveryPayload { readonly investigationId:string; readonly selectedSource:Readonly<{kind:"NODE"|"EDGE";identity:string}>; readonly assignmentId:string; readonly assignmentRevisionId:string; readonly executionId:string; readonly receiptContentHash:string; readonly candidateBundleId:string; readonly candidateId:string; readonly candidateKind:"NODE"|"EDGE"; readonly candidateLabel:string; readonly proposedRelationship?:string; readonly proposedEndpoints?:Readonly<{sourceCandidateId:string;targetCandidateId:string}>; readonly sourceLocator:string; readonly sourceVersion:string; readonly sourceClassification:string; readonly sourceContentHash:string; readonly candidateContentHash:string; readonly fieldLineage:readonly Readonly<{candidateField:string;sourceField:string;exactValue:string;normalizationRule:string}>[]; readonly epistemicClassification:"CANDIDATE_KNOWLEDGE"; readonly reviewStatus:"RESEARCHER_REVIEW_REQUIRED"; readonly canonEffect:"NONE"; readonly aiAssistanceStatus:"NONE"|"ASSISTED"; readonly providerIdentity:string; readonly modelIdentity:string; readonly adapterIdentity:string; readonly adapterVersion:string; readonly normalizerIdentity:string; readonly normalizerVersion:string; readonly createdAt:string; readonly completedAt:string }
+export interface RexResearchDiscoveryAnchor extends ResearchEvidenceAnchor { readonly rexDiscovery:RexDiscoveryPayload }
 export type ResearchAnchor = ResearchGraphAnchor | ResearchCandidateAnchor | ResearchExperimentAnchor | ResearchMetricFindingAnchor | ResearchEvidenceAnchor | ResearchMediaAnchor | ResearchNarrativePassageAnchor | ResearchTimelineMomentAnchor | ResearchTimelineCorrespondenceAnchor | ResearchIntentionDerivationAnchor | ResearchIntentionHypothesisAnchor;
 export interface ResearchDeskEntry { anchor: ResearchAnchor; order: number }
 export interface ResearchDesk { entries: ResearchDeskEntry[] }

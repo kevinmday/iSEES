@@ -117,6 +117,7 @@ import {
 import {
   ResearchBridgeProvider,
 } from "./research/ResearchBridgeContext";
+import { RexResearchInboxHydrator } from "./rex/RexResearchInboxHydrator";
 
 import {
 
@@ -234,6 +235,26 @@ function GuestWorkspaceSessionLifecycleBridge() {
 
 }
 
+function OwnershipAwareWorkspaceRestorationBoundary({ children }: { children: ReactNode }) {
+  const identityState = useOperatorIdentity();
+
+  // Cookie-restored account identity and its server-authorized activation own
+  // this tree. Stale Guest browser state must not classify it as Guest work.
+  if (
+    identityState.status === "READY" &&
+    identityState.identity?.kind === "ACCOUNT" &&
+    identityState.persistence === "PERSISTENT"
+  ) {
+    return children;
+  }
+
+  return (
+    <GuestWorkspaceRestorationBoundary>
+      {children}
+    </GuestWorkspaceRestorationBoundary>
+  );
+}
+
 
 // ============================================================
 // OPERATOR UI
@@ -268,6 +289,8 @@ function OperatorUI({ routeSurface }: { routeSurface?: ReactNode }) {
                 <LayersExperimentRuntimeProvider>
 
                 <ResearchBridgeProvider>
+
+                  <RexResearchInboxHydrator />
 
                   <AuthorDocumentRuntimeProvider>
 
@@ -357,9 +380,9 @@ function OperatorApplication({ nativeDraftRoute = false }: { nativeDraftRoute?: 
           the optional ref only exposes the active /report discard guard to it. */}
       <AccountFrontDoor navigationGuard={nativeDraftRoute ? navigationGuard : undefined}>
         <OperatorEntryGate>
-          <GuestWorkspaceRestorationBoundary>
+          <OwnershipAwareWorkspaceRestorationBoundary>
             <OperatorUI routeSurface={nativeDraftRoute ? <NativeCaseDraftWorkspace navigationGuard={navigationGuard} /> : undefined} />
-          </GuestWorkspaceRestorationBoundary>
+          </OwnershipAwareWorkspaceRestorationBoundary>
         </OperatorEntryGate>
       </AccountFrontDoor>
     </OperatorIdentityRuntimeProvider>

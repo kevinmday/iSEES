@@ -569,3 +569,11 @@
     max-width: 280px;
   }
 }
+.rex-explore { display: grid; gap: 8px; }
+.rex-explore p { margin: 0; color: #94a3b8; font-size: 11px; line-height: 1.45; }
+.rex-explore button { border: 1px solid rgba(56,189,248,.42); border-radius: 6px; padding: 8px 10px; background: rgba(14,116,144,.22); color: #e0f2fe; cursor: pointer; font: inherit; font-weight: 700; }
+.rex-explore button:disabled { cursor: not-allowed; opacity: .48; }
+.rex-explore__status { display: grid; gap: 3px; color: #94a3b8; font-size: 10px; overflow-wrap: anywhere; }
+.rex-explore__status strong { color: #7dd3fc; letter-spacing: .08em; }
+.rex-explore__status--failed strong { color: #fca5a5; }
+.rex-explore__status--completed strong { color: #86efac; }

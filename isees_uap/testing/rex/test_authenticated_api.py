@@ -77,6 +77,35 @@ def test_candidate_is_quarantined_and_ai_free(api):
     body=api[0].get(f"/api/v1/investigations/i1/rex/candidate-bundles/{bid}").json()
     assert (body["candidateClassification"],body["reviewStatus"],body["canonEffect"],body["aiAssistanceStatus"],body["providerIdentity"],body["modelIdentity"])==("CANDIDATE_KNOWLEDGE","RESEARCHER_REVIEW_REQUIRED","NONE","NONE","NONE","NONE")
 
+def test_completed_discovery_read_restores_stable_target_aware_bundle_without_execution(api):
+    client,_,adapter,normalizer=api[:4]
+    assignment,_,executed=workflow(client)
+    before=(adapter.calls,normalizer.calls)
+    first=client.get("/api/v1/investigations/i1/rex/completed-discoveries")
+    second=client.get("/api/v1/investigations/i1/rex/completed-discoveries")
+    assert first.status_code==second.status_code==200
+    assert first.json()==second.json()
+    discoveries=first.json()["discoveries"]
+    assert len(discoveries)==1
+    restored=discoveries[0]
+    assert restored["assignmentId"]==assignment
+    assert restored["selectedSource"]=={"kind":"NODE","identity":"node-1"}
+    assert restored["receipt"]["executionId"]==executed["receipt"]["executionId"]
+    assert restored["bundle"]["nodes"][0]["label"]=="Reported blue indicator"
+    assert (restored["bundle"]["reviewStatus"],restored["bundle"]["canonEffect"])==("RESEARCHER_REVIEW_REQUIRED","NONE")
+    assert (adapter.calls,normalizer.calls)==before,"hydration reads must never execute adapters"
+    with sqlite3.connect(api[1].path) as db:
+        assert db.execute("select count(*) from rex_search_executions where disposition='EXECUTABLE'").fetchone()[0]==1
+        assert db.execute("select count(*) from rex_candidate_bundles").fetchone()[0]==1
+
+def test_completed_discovery_read_is_investigation_scoped(api):
+    client,_,_,_,owner=api
+    workflow(client)
+    dependency=client.app.dependency_overrides[investigation_repository]()
+    dependency.create(investigation_id="i2",owner_principal_id=owner,title="Other owned investigation")
+    response=client.get("/api/v1/investigations/i2/rex/completed-discoveries")
+    assert response.status_code==200 and response.json()=={"discoveries":[]}
+
 @pytest.mark.parametrize("route",["assign","prepare","execute"])
 def test_missing_csrf_performs_no_rex_mutation(api,route):
     client,repo=api[0],api[1]
@@ -98,7 +127,11 @@ def test_unauthenticated_and_guest_rejected(tmp_path):
         response=client.post("/api/v1/investigations/i1/rex/assignments",json={"targetId":"n","targetKind":"NODE","objective":"x"})
     assert response.status_code==401 and response.json()["error"]["code"]=="AUTHENTICATION_REQUIRED"
 
-@pytest.mark.parametrize("resource",["assignment","preparation","execution","receipt","bundle"])
+    with TestClient(app) as client:
+        restored=client.get("/api/v1/investigations/i1/rex/completed-discoveries")
+    assert restored.status_code==401 and restored.json()["error"]["code"]=="AUTHENTICATION_REQUIRED"
+
+@pytest.mark.parametrize("resource",["assignment","preparation","execution","receipt","bundle","discoveries"])
 def test_cross_user_access_is_non_enumerating(api,resource):
     client=api[0]; assignment,prepared,executed=workflow(client); bundle=executed["receipt"]["candidateBundleId"]
     client.post("/api/v1/auth/accounts",json={"email":"other@example.test","password":"correct horse battery staple"})
@@ -106,7 +139,8 @@ def test_cross_user_access_is_non_enumerating(api,resource):
     elif resource=="preparation": response=prepare(client,assignment)
     elif resource=="execution": response=client.post(f"/api/v1/investigations/i1/rex/jobs/{prepared['jobId']}/executions",headers=csrf(client))
     elif resource=="receipt": response=client.get(f"/api/v1/investigations/i1/rex/executions/{prepared['executionId']}/receipt")
-    else: response=client.get(f"/api/v1/investigations/i1/rex/candidate-bundles/{bundle}")
+    elif resource=="bundle": response=client.get(f"/api/v1/investigations/i1/rex/candidate-bundles/{bundle}")
+    else: response=client.get("/api/v1/investigations/i1/rex/completed-discoveries")
     assert response.status_code==404 and response.json()["error"]["code"]=="INVESTIGATION_NOT_FOUND"
 
 @pytest.mark.parametrize("resource",["investigation","assignment","execution","job","bundle"])
@@ -150,4 +184,4 @@ def test_no_network_canon_or_research_publication(api,monkeypatch):
 
 def test_openapi_contains_exact_rex_surface(api):
     paths={p for p in api[0].get("/openapi.json").json()["paths"] if "/rex" in p}
-    assert paths=={"/api/v1/investigations/{investigation_id}/rex/assignments","/api/v1/investigations/{investigation_id}/rex/execution-preparations","/api/v1/investigations/{investigation_id}/rex/jobs/{job_id}/executions","/api/v1/investigations/{investigation_id}/rex/executions/{execution_id}/receipt","/api/v1/investigations/{investigation_id}/rex/candidate-bundles/{bundle_id}"}
+    assert paths=={"/api/v1/investigations/{investigation_id}/rex/assignments","/api/v1/investigations/{investigation_id}/rex/execution-preparations","/api/v1/investigations/{investigation_id}/rex/jobs/{job_id}/executions","/api/v1/investigations/{investigation_id}/rex/executions/{execution_id}/receipt","/api/v1/investigations/{investigation_id}/rex/candidate-bundles/{bundle_id}","/api/v1/investigations/{investigation_id}/rex/completed-discoveries"}

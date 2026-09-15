@@ -14,6 +14,7 @@ from isees_uap.api.v1.investigations import repository as investigation_reposito
 from isees_uap.authentication.principal import AuthenticatedPrincipal, require_authenticated_principal, require_csrf_protected_principal
 from isees_uap.investigations.authority import PersistedInvestigationAuthority
 from isees_uap.rex.application import RexApiApplicationService
+from isees_uap.rex.canonical import canonical_hash
 from isees_uap.persistence import database_path
 from isees_uap.rex.contracts import TargetKind
 from isees_uap.rex.errors import RexExecutionError, RexRepositoryError
@@ -57,20 +58,33 @@ def owned_read(investigation_id: IdentityPath, principal: AuthenticatedPrincipal
 def owned_mutation(investigation_id: IdentityPath, principal: AuthenticatedPrincipal=Depends(require_csrf_protected_principal), parent_repo=Depends(investigation_repository)):
     return _owned(investigation_id,principal,parent_repo)
 
-def _assignment(value,replayed):
+def _manifold_binding(parent_repo, owner: str, investigation_id: str):
+    aggregate = parent_repo.get_empty_aggregate(
+        investigation_id=investigation_id, owner_principal_id=owner)
+    if aggregate is None:
+        raise RexApiError("REX_INVESTIGATION_UNAVAILABLE", "The saved investigation is unavailable", 404)
+    payload = {"schemaVersion": aggregate.schema_version, "state": aggregate.state,
+               "revision": aggregate.revision, "payload": aggregate.payload}
+    return f"investigation-aggregate:{aggregate.revision}", canonical_hash(payload)
+
+
+def _assignment(value,replayed,manifold_revision_id,manifold_revision_hash):
     return {"assignmentId":str(value.assignment_id),"investigationId":value.investigation_id,
         "targetId":value.target_id,"targetKind":value.target_kind.value,"lifecycle":value.lifecycle.value,
         "currentRevisionId":str(value.revision_id),"createdAt":value.created_at,"updatedAt":value.effective_at,
-        "idempotencyDisposition":"REPLAYED" if replayed else "CREATED"}
+        "idempotencyDisposition":"REPLAYED" if replayed else "CREATED",
+        "manifoldRevisionId":manifold_revision_id,"manifoldRevisionHash":manifold_revision_hash}
 
 @router.post("/assignments",status_code=201)
-def create_assignment(investigation_id:IdentityPath,command:AssignmentCommand,owner=Depends(owned_mutation),svc=Depends(service)):
+def create_assignment(investigation_id:IdentityPath,command:AssignmentCommand,owner=Depends(owned_mutation),svc=Depends(service),parent_repo=Depends(investigation_repository)):
     value,replayed=svc.assignment(subject_id=owner,investigation_id=investigation_id,target_id=command.targetId,target_kind=command.targetKind,objective=command.objective)
-    return JSONResponse(status_code=200 if replayed else 201,content=AssignmentResponse(**_assignment(value,replayed)).model_dump(mode="json"))
+    revision_id,revision_hash=_manifold_binding(parent_repo,owner,investigation_id)
+    return JSONResponse(status_code=200 if replayed else 201,content=AssignmentResponse(**_assignment(value,replayed,revision_id,revision_hash)).model_dump(mode="json"))
 
 class AssignmentResponse(BaseModel):
     assignmentId:str; investigationId:str; targetId:str; targetKind:str; lifecycle:str
     currentRevisionId:str; createdAt:datetime; updatedAt:datetime; idempotencyDisposition:str
+    manifoldRevisionId:str; manifoldRevisionHash:str
 
 @router.post("/execution-preparations")
 def prepare(investigation_id:IdentityPath,command:PreparationCommand,owner=Depends(owned_mutation),svc=Depends(service)):
@@ -106,12 +120,30 @@ def receipt(investigation_id:IdentityPath,execution_id:IdentityPath,owner=Depend
 @router.get("/candidate-bundles/{bundle_id}")
 def bundle(investigation_id:IdentityPath,bundle_id:IdentityPath,owner=Depends(owned_read),svc=Depends(service)):
     value=svc.bundle(subject_id=owner,investigation_id=investigation_id,bundle_id=bundle_id)
-    return {"candidateBundleId":str(value.bundle_id),"sourceContentHash":value.source_content_hash,"candidateContentHash":value.content_hash,
+    return _bundle(value)
+
+def _bundle(value):
+    return {"candidateBundleId":str(value.bundle_id),"investigationId":value.manifold_revision.investigation_id,
+        "assignmentRevisionId":str(value.assignment_revision_id),"executionId":str(value.execution_id),
+        "manifoldRevisionId":value.manifold_revision.revision_id,"manifoldRevisionHash":value.manifold_revision.revision_hash,
+        "sourceLocator":value.source_locator,"sourceVersion":value.source_version,
+        "sourceClassification":value.source_document.source_class.value,
+        "adapterIdentity":value.adapter_identity,"adapterVersion":value.adapter_version,
+        "normalizerIdentity":value.normalizer_identity,"normalizerVersion":value.normalizer_version,
+        "sourceContentHash":value.source_content_hash,"candidateContentHash":value.content_hash,
         "candidateClassification":"CANDIDATE_KNOWLEDGE","reviewStatus":"RESEARCHER_REVIEW_REQUIRED","canonEffect":"NONE",
         "aiAssistanceStatus":value.ai_assistance_status.value,"providerIdentity":value.provider_identity,"modelIdentity":value.model_identity,
-        "nodes":[{"candidateId":n.candidate_id,"kind":n.kind,"label":n.label,"claim":n.claim} for n in value.candidates],"edges":[],
+        "modelClass":value.model_class.value,
+        "nodes":[{"candidateId":n.candidate_id,"kind":n.kind,"label":n.label,"claim":n.claim,
+            "candidateContentHash":canonical_hash({"candidateId":n.candidate_id,"kind":n.kind,"label":n.label,"claim":n.claim})} for n in value.candidates],"edges":[],
         "fieldLineage":[{"candidateId":line.candidate_id,"sourceLocator":line.source_locator,"sourceVersion":line.source_version,
             "fields":[{"candidateField":f.candidate_field,"sourceField":f.source_field,"exactValue":f.exact_value,"normalizationRule":f.normalization_rule} for f in line.fields]} for line in value.lineage]}
+
+@router.get("/completed-discoveries")
+def completed_discoveries(investigation_id:IdentityPath,owner=Depends(owned_read),svc=Depends(service)):
+    return {"discoveries":[{"selectedSource":{"kind":assignment.target_kind.value,"identity":assignment.target_id},
+        "assignmentId":str(assignment.assignment_id),"receipt":_receipt(receipt),"bundle":_bundle(bundle)}
+        for assignment,receipt,bundle in svc.completed_discoveries(subject_id=owner,investigation_id=investigation_id)]}
 
 def rex_error_handler(request:Request,error:Exception):
     request_id=request.headers.get("X-Request-Id") or str(uuid.uuid4())
