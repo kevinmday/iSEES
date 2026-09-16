@@ -2,7 +2,7 @@
 
 **Status:** Canonical
 
-**Version:** REX v0.3
+**Version:** REX v0.4
 
 **Category:** Computational Epistemology and Candidate Knowledge Architecture
 
@@ -483,3 +483,68 @@ The unqualified word “canonical” MUST NOT be used when one of these precise 
 ## 25. Deferred software contracts
 
 The REX execution boundary and Search Execution Record are specified by REX-001. Persistent Frontier assignments are governed by SC-026 and REX-002. Provider/repository adapter implementations, the global relationship-lineage contract, aggregate-observer ontology type, global normalization-certainty/truth-confidence model, candidate admission workflow, and Canon-promotion workflow remain deferred. Deferral grants no implementation permission and weakens none of the invariants above.
+
+## 26. Discovery scales and attention
+
+REX operates at three governed scales:
+
+- **Investigation scale:** initial, source-bounded discovery establishes a first candidate representation for an investigation and its declared objective.
+- **Mutation scale:** after a committed Manifold revision, deterministic research-condition evaluation decides whether changed dependencies merit focused or Manifold-wide discovery attention.
+- **Selection scale:** a selected node or edge may receive bounded, context-sensitive discovery directed by the active investigation and selection.
+
+Mutation is an attention signal, not an execution command. REX MUST prefer delta-based discovery over automatic full rediscovery. The affected dependency closure, freshness state, unresolved questions, contradictions, and governed policy determine whether no work, focused work, or Manifold-wide work is eligible. Full rediscovery is permitted only when the governed dependency analysis or equivalence requirements require it.
+
+Researchers control attention through governed policies. `MANUAL` permits only explicitly initiated work. `FOCUSED` limits eligible work to named selections or dependency closures. `GOVERNED_ACTIVE` permits deterministic trigger evaluation within explicit authorization, cost, capability, privacy, and stopping boundaries. None of these policies grants publication or Canon authority.
+
+The bounded objective of discovery is:
+
+> The fullest source-bounded, time-qualified, publicly discoverable candidate representation obtainable within the authorized scope, capabilities, cost boundary, privacy boundary, and stopping rules.
+
+REX does not produce complete or absolute reality. Absence from a bounded result is not evidence of nonexistence.
+
+## 27. REX Entity Discovery and Known Object Detection
+
+**REX Entity Discovery** is REX discovery directed at a research object or relationship, including a selected or proposed node or edge. It applies a versioned Discovery Profile and Objective Pack to identify potentially relevant observations, sources, objects, relationships, contradictions, exclusions, refresh needs, and Research Vectors. It remains part of Recursive Epistemic Exploration; it is not an independent discovery subsystem.
+
+**KOD** retains one authoritative meaning: **Known Object Detection**. Known Object Detection deterministically deconflicts event observations and governed inputs against authorized known-object candidates, including aircraft, satellites, astronomical objects, balloons, drones, and other governed candidate classes. It evaluates known-object explanations; it does not perform REX Entity Discovery and MUST NOT be expanded to mean “Knowledge Object Discovery.”
+
+The canonical responsibility boundary is:
+
+> REX discovers what may matter.
+> Known Object Detection deconflicts known explanations.
+> iSEES deterministic engines evaluate applicability and structure.
+> Selection Intelligence explains the result.
+> The researcher governs candidacy and publication.
+
+Selection Intelligence is the existing read-only consumer and inspection boundary for the current selection, not a discovery runtime or second selection owner. Its projections MUST be capable of distinguishing `KNOWN_LOCALLY`, `REX_DISCOVERED`, `DETERMINISTICALLY_DERIVED`, and `RESEARCH_VECTOR` material and of exposing execution and provenance. This requirement creates no second right panel or parallel Selection Intelligence subsystem.
+
+## 28. Candidate discovery vocabulary
+
+Entity Discovery may emit the following quarantined candidate output families:
+
+- **Candidate observations:** source-faithful observations preserved before claim normalization.
+- **Candidate sources:** potentially relevant source locators and source records with retrieval and restriction metadata.
+- **Candidate nodes:** proposed research objects with identity evidence and deduplication hints.
+- **Candidate edges:** proposed relationships with endpoints, direction, time qualification, and provenance.
+- **Contradiction candidates:** preserved competing claims or observations requiring review.
+- **Exclusion candidates:** evidence-backed proposals that a candidate explanation, source, node, edge, or scope should be excluded; exclusion is not automatic deletion.
+- **Refresh candidates:** proposals to reacquire or reevaluate information because freshness, source, or dependency conditions changed.
+- **Research Vectors:** revision-bound, non-canonical proposed investigative directions derived from gaps, contradictions, unresolved identities or relationships, temporal discontinuities, or expected information gain.
+
+Candidate output is merely eligible for researcher review when it satisfies its exact Discovery Profile, Objective Pack, provenance, source, privacy, schema, and validation requirements. **Candidacy eligibility is not candidacy, admission, publication, truth, or Canon.**
+
+## 29. Revision binding, invalidation, and publication
+
+Every plan, execution, candidate output, and projection MUST bind the exact investigation identity and immutable Manifold revision used to produce it. Where applicable it MUST also bind the selection, target node or edge, Discovery Profile, Objective Pack, dependency declaration, input fingerprint, evaluator and adapter versions, execution identity, and retrieval-as-of time.
+
+A committed Manifold revision requires deterministic evaluation of research conditions. Changed declared dependencies invalidate affected current projections and MAY cancel affected pending work. Unaffected results may be reused only when deterministic dependency analysis proves applicability to the new revision. A completion whose revision, input fingerprint, target, or dependency binding no longer matches the active context MUST be rejected from the current projection, even when its durable execution record and result bundle remain historically inspectable.
+
+The following states are distinct:
+
+1. **Durable operational execution records:** assignments, executions, receipts, governed result bundles, costs, dispositions, and restoration history retained for audit and governed restoration.
+2. **Current Selection Intelligence:** a revision-qualified projection that explains the active selection from applicable local, discovered, derived, vector, execution, and provenance material.
+3. **Published Candidate Knowledge:** candidate material created only by an explicit, attributable publication or admission operation.
+
+Persistence does not make discovered information Canon, publish Candidate Knowledge, or make stale information current. Research Inbox insertion remains explicit. Candidate Knowledge publication remains explicit. Historical records may remain durable while current projection is stale, invalid, superseded, unpublished, or non-canonical.
+
+Researcher authority governs candidacy, individual finding publication, relationship acceptance, exclusions, refresh requests, and stopping. REX has zero automatic System Canon mutation. No execution, persistence operation, restoration, ranking, validation, or projection may promote content into System Canon.

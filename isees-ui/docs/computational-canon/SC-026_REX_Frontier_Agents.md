@@ -2,7 +2,7 @@
 
 **Status:** Canonical
 
-**Version:** REX v0.1
+**Version:** REX v0.2
 
 **Category:** Computational Epistemology and Governed Exploration Architecture
 
@@ -121,3 +121,25 @@ This Canon specifies architecture and authority. It does not implement a schedul
 8. Suspension preserves investigation state, provenance, and history.
 9. Budget or entitlement cannot change epistemic status.
 10. No agent runs an uncontrolled perpetual polling loop.
+
+## 9. Revision-triggered attention and assignment scope
+
+A committed Manifold revision MAY create an attention trigger. Before agent execution, deterministic attention evaluation MUST identify the changed dependency closure, freshness and duplicate state, unresolved frontier, authorization, and applicable attention policy. A trigger that produces no eligible delta MUST NOT dispatch an agent.
+
+Assignments MAY have investigation, mutation, or selection scope and MAY target a node, edge, cluster, investigation, Research Vector, focused dependency closure, or the Manifold as a whole. Mutation-triggered assignments SHOULD be delta-based. Manifold-wide work is permitted only when governed attention evaluation establishes that focused work is insufficient or cannot be proven equivalent.
+
+Researcher-controlled attention policies are:
+
+- `MANUAL`: only explicit researcher initiation may create eligible execution.
+- `FOCUSED`: eligibility is restricted to named targets or affected dependency closures.
+- `GOVERNED_ACTIVE`: authorized triggers may create eligibility within declared policy and budget boundaries.
+
+Every assignment MUST declare cost, provider capability, privacy, source, and stopping boundaries. These boundaries fail closed and cannot be relaxed by a model or source adapter. SC-025 governs the epistemic doctrine, candidate output families, REX Entity Discovery, and publication boundary.
+
+## 10. Cancellation, invalidation, and completion
+
+Dependency declarations MUST permit a later committed Manifold revision, policy revocation, target removal, or authorization change to cancel pending work or invalidate affected current projections. Cancellation stops further external work where safe and preserves the durable assignment, execution, receipt, partial provenance, and cost history required by REX-001 and REX-002.
+
+A completion MUST be rejected from the current projection when its assignment revision, Manifold revision, input fingerprint, target, or declared dependency state no longer matches the active context. Rejection from the current projection does not erase historical execution records.
+
+Frontier Agent execution MUST NOT automatically publish to Research Inbox, create Published Candidate Knowledge, accept a candidate node or edge, or promote content to System Canon.

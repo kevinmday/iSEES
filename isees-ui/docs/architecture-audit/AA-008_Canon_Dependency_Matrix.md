@@ -10,7 +10,7 @@
 
 \*\*Classification:\*\* Canonical Architecture Audit  
 
-\*\*Revision:\*\* 0.1 (Foundation)
+\*\*Revision:\*\* 0.2 (Governance reconciliation)
 
 
 
@@ -975,4 +975,30 @@ This document establishes the dependency relationships between every System Cano
 
 
 Ultimately, this document should serve as the master dependency map of the iSEES architecture, allowing future engineering work to identify precisely which architectural concepts are affected by any proposed change.
+
+
+
+\---
+
+
+
+\# Reconciled REX and Engineering Governance Dependencies
+
+
+
+The following are actual authority dependencies established by the current Canon and contracts. They supplement the incomplete foundation inventory above without changing its historical entries.
+
+
+
+| Authority | Upstream dependencies | Downstream consumers | Relationship |
+|---|---|---|---|
+| SC-025 REX | SC-003; SC-008; SC-010; SC-018; SC-019 | SC-026; REX-001; Selection Intelligence as inspection consumer | REX discovery, normalization, candidacy, revision binding, and publication doctrine |
+| SC-026 Frontier Agents | SC-003; SC-008; SC-010; SC-018; SC-019; SC-025 | REX-002 | Persistent assignment, trigger, attention, cancellation, and resumption doctrine |
+| REX-001 | SC-025 | REX runtime; REX-002; Selection Intelligence and explicit publication consumers | Provider-neutral durable execution and Entity Discovery contract |
+| REX-002 | SC-026; REX-001 | Frontier Agent execution implementations | Assignment lifecycle and execution-trigger contract |
+| EA-002 Engineering Change Governance | Knowledge Architecture; Knowledge Document Classification Standard; Knowledge Governance; AA-004; AA-008 | Engineering packages and final change handoffs | Existing-code-first discovery, ownership, mutation, verification, and Git-authority gates |
+
+
+
+These dependencies create no new REX Canon, REX contract, owner registry, runtime, or implementation. SC-025 remains the epistemic owner, SC-026 remains the Frontier assignment owner, REX-001 remains the execution contract, REX-002 remains the Frontier runtime contract, AA-004 remains the ownership matrix, and EA-002 governs engineering change procedure.
 

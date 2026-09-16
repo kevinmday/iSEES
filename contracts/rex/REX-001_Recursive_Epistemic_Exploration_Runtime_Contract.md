@@ -2,7 +2,7 @@
 
 **Status:** Authoritative Contract
 
-**Version:** 1.0
+**Version:** 1.1
 
 **Implements:** [SC-025 REX Recursive Epistemic Exploration and Deterministic Normalization](../../isees-ui/docs/computational-canon/SC-025_REX_Recursive_Epistemic_Exploration_and_Deterministic_Normalization.md)
 
@@ -110,3 +110,57 @@ The system MUST enforce circuit breakers per user, investigation, agent, source,
 - Admission does not imply Canon promotion.
 - Contact discovery does not imply permission to contact.
 - Review disposition is attributable and preserves execution history.
+
+## 8. Discovery configuration and scale
+
+Each execution MUST declare one scale: `INVESTIGATION`, `MUTATION`, or `SELECTION`.
+
+- `INVESTIGATION` performs bounded initial discovery for an investigation objective.
+- `MUTATION` evaluates and explores a committed Manifold delta and its affected dependency closure.
+- `SELECTION` performs focused discovery for an exact selected node or edge in investigation context.
+
+Entity-specific execution remains REX execution under this contract. A versioned **Discovery Profile** selects the applicable subject classifications, source and safety policy, temporal views, completion criteria, and versioned **Objective Packs**. An Objective Pack specifies questions, required output families, query guidance, and stop conditions without predetermining factual conclusions. Executions MUST carry the exact profile and pack identities and versions.
+
+Targets MUST support investigation, node, and edge identity. An edge target MUST bind both endpoint identities, the asserted relationship, direction when known, and temporal scope without treating graph presence as proof.
+
+## 9. Candidate output and provenance contract
+
+Permitted output families are candidate observations, candidate sources, candidate nodes, candidate edges, contradiction candidates, exclusion candidates, refresh candidates, and Research Vectors. Output types MUST remain distinguishable through normalization, validation, projection, and review.
+
+Each output MUST identify its execution, subject or target, exact investigation and Manifold revision, source observation or source record, source locator and provider-neutral acquisition method, retrieval time, content hash where content was retrieved, temporal qualification, applicable restrictions, adapter and evaluator versions, and claim or field lineage. Copied or syndicated material MUST NOT be counted as independent corroboration without an explicit independence assessment. Missing or inaccessible information is a valid result and MUST NOT be replaced by unsupported inference.
+
+An output is `INELIGIBLE`, `ELIGIBLE_FOR_REVIEW`, `PUBLISHED_CANDIDATE`, `REJECTED`, `SUPERSEDED`, or `WITHDRAWN` according to an attributable governed transition. `ELIGIBLE_FOR_REVIEW` is the default maximum status an execution may assign. Only an explicit researcher publication or admission operation may create `PUBLISHED_CANDIDATE` status.
+
+## 10. Binding and execution fingerprint
+
+Every plan, route, execution, result bundle, and current projection MUST bind the exact investigation identity and immutable Manifold revision. Selection-scale work MUST additionally bind the selected node or edge. The binding MUST include the Discovery Profile and Objective Pack versions, declared dependencies, contract and evaluator versions, source-policy version, and retrieval-as-of time where retrieval occurs.
+
+The runtime MUST derive a deterministic execution fingerprint from all authority-bearing inputs, including investigation, revision, scale, target, objective, profile, packs, dependency set, policy versions, evaluator and adapter versions, and normalized query plan. Equivalent governed inputs MUST yield an equivalent fingerprint. The fingerprint is an idempotency and applicability control; it is not an epistemic claim.
+
+Dependency declarations MUST identify the Manifold objects, fields, source cursors, policies, and versions whose change can affect the result. Mutation-scale planning MUST evaluate the changed dependency closure and prefer a delta execution. Manifold-wide execution is allowed only when policy requires it or deterministic equivalence of focused work cannot be established.
+
+## 11. Staleness, invalidation, cancellation, and late results
+
+A result becomes stale when its revision, fingerprint, target, temporal qualification, freshness policy, or declared dependency state no longer matches the active context. Staleness MUST be explicit and MUST prevent use in the current projection.
+
+Invalidation marks an affected plan, result, or projection inapplicable without deleting its durable history. Cancellation MUST stop pending or executing external work where safe after authorization loss, policy revocation, dependency invalidation, target removal, timeout, circuit breaker activation, or researcher cancellation. Cancellation MUST preserve the execution record, receipts, partial provenance, and reconciled costs.
+
+Late or stale completions MUST be recorded against their original execution and rejected from the current projection. They MUST NOT overwrite, merge into, or impersonate a result for the active revision.
+
+## 12. Durable history, current projection, and publication
+
+The runtime MUST distinguish:
+
+- durable operational execution records, including assignments, executions, receipts, governed result bundles, costs, dispositions, and restoration history;
+- the current revision-qualified Selection Intelligence projection; and
+- Published Candidate Knowledge created through an explicit publication or admission operation.
+
+A durable execution record or result bundle may remain historically inspectable while being stale, invalid, superseded, unpublished, or non-canonical. Durability does not establish current applicability, Candidate Knowledge publication, truth, admission, or Canon status. Restoration MUST restore historical identity and status; it MUST NOT silently restore stale content into a current projection.
+
+Research Inbox insertion and Candidate Knowledge publication require separate explicit, attributable, idempotent operations with ownership, revision, provenance, eligibility, and effect validation. REX execution itself has zero automatic Research Inbox, operational Manifold, or System Canon mutation.
+
+## 13. Provider-neutral boundaries and bounded execution
+
+Capability requirements MUST be expressed independently of a named model, search provider, source repository, framework, or storage engine. Source adapters retrieve and preserve source material; they possess no authority to perform topology ownership, candidacy decisions, publication, or Canon promotion.
+
+Every execution MUST declare and enforce cost, capability, privacy, source, temporal, and stopping policies. Stopping rules MUST cover completion criteria, marginal utility, duplication, time, request, token, byte, source-fee, monetary or credit, privacy, risk, cancellation, and researcher stop. Provider success cannot relax any boundary.
