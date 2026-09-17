@@ -4,6 +4,7 @@ from datetime import date, time
 from typing import Annotated, Any, Literal
 import re
 import unicodedata
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
@@ -53,6 +54,80 @@ class BaseCreate(StrictModel):
 class SubmissionCreate(BaseCreate):
     submissionIdentity: Identity
     submittedLocator: str | None = None
+
+
+class ResearcherIntakeCreate(StrictModel):
+    schemaVersion: Literal["candidate-evidence-intake/v1"]
+    investigationId: Identity
+    expectedInvestigationRevision: int = Field(ge=0)
+    manifoldRevisionId: Identity
+    pathway: Literal["DIRECT_URL", "RESEARCHER_NOTE", "WEB_DISCOVERY"]
+    operationId: Identity
+    idempotencyKey: IdempotencyKey
+    submittedUrl: str | None = Field(default=None, min_length=1, max_length=4096)
+    title: str | None = Field(default=None, max_length=500)
+    noteText: str | None = Field(default=None, min_length=1, max_length=20_000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_text(cls, data):
+        if not isinstance(data, dict):
+            return data
+        return {**data, **{
+            key: _normalize_text(data[key])
+            for key in ("submittedUrl", "title", "noteText") if key in data
+        }}
+
+    @model_validator(mode="after")
+    def validate_pathway_payload(self):
+        if self.pathway in ("DIRECT_URL", "WEB_DISCOVERY"):
+            if self.submittedUrl is None or self.noteText is not None:
+                raise ValueError(f"{self.pathway} requires submittedUrl and cannot carry noteText")
+            self.normalized_url()
+        elif self.noteText is None or self.submittedUrl is not None:
+            raise ValueError("RESEARCHER_NOTE requires noteText and cannot carry submittedUrl")
+        return self
+
+    def normalized_url(self) -> str | None:
+        if self.submittedUrl is None:
+            return None
+        try:
+            parsed = urlsplit(self.submittedUrl)
+            port = parsed.port
+        except ValueError as error:
+            raise ValueError("submittedUrl is malformed") from error
+        if parsed.scheme.lower() not in ("http", "https"):
+            raise ValueError("submittedUrl must use http or https")
+        if not parsed.hostname or parsed.username is not None or parsed.password is not None:
+            raise ValueError("submittedUrl must have a host and cannot contain credentials")
+        host = parsed.hostname.encode("idna").decode("ascii").lower()
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        scheme = parsed.scheme.lower()
+        netloc = host if port is None or (scheme == "http" and port == 80) or (scheme == "https" and port == 443) else f"{host}:{port}"
+        path = quote(unquote(parsed.path or "/"), safe="/%:@!$&'()*+,;=-._~")
+        return urlunsplit((scheme, netloc, path, parsed.query, ""))
+
+
+class DirectUploadCreate(StrictModel):
+    schemaVersion: Literal["candidate-evidence-upload/v1"]
+    investigationId: Identity
+    expectedInvestigationRevision: int = Field(ge=0)
+    manifoldRevisionId: Identity
+    operationId: Identity
+    idempotencyKey: IdempotencyKey
+    title: str | None = Field(default=None, max_length=500)
+    noteText: str | None = Field(default=None, max_length=20_000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_text(cls, data):
+        if not isinstance(data, dict):
+            return data
+        return {**data, **{
+            key: _normalize_text(data[key])
+            for key in ("title", "noteText") if key in data and data[key] not in (None, "")
+        }}
 
 
 class QuerySpecification(StrictModel):

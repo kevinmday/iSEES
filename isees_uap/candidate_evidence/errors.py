@@ -37,6 +37,20 @@ class InvalidCursor(CandidateEvidenceError):
     code = "INVALID_CURSOR"
 
 
+class InvalidUpload(CandidateEvidenceError):
+    code = "INVALID_UPLOAD"
+    status_code = 422
+
+
+class UnsupportedUpload(InvalidUpload):
+    code = "UNSUPPORTED_UPLOAD"
+
+
+class UploadTooLarge(InvalidUpload):
+    code = "UPLOAD_TOO_LARGE"
+    status_code = 413
+
+
 class NativeCaseDraftNotFound(NotFound):
     code = "NATIVE_CASE_DRAFT_NOT_FOUND"
 

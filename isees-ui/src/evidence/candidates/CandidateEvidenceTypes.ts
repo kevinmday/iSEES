@@ -1,5 +1,6 @@
 export type CandidateId = string;
 export type CandidateOrigin = "DISCOVERY" | "SUBMISSION";
+export type CandidateIntakePathway = "LEGACY" | "DIRECT_URL" | "RESEARCHER_NOTE" | "WEB_DISCOVERY" | "DIRECT_UPLOAD";
 export type CandidateLifecycleState =
   | "DISCOVERED"
   | "SUBMITTED"
@@ -94,6 +95,10 @@ export interface CandidateProvenanceEvent {
 export interface CandidateEvidence {
   readonly candidateId: CandidateId;
   readonly investigationId: string;
+  readonly manifoldRevisionId?: string;
+  readonly intakePathway?: CandidateIntakePathway;
+  readonly publicationState?: "NOT_REQUESTED";
+  readonly operationId?: string;
   readonly revision: number;
   readonly origin: CandidateOrigin;
   readonly originIdentity: string;
@@ -118,4 +123,3 @@ export interface CreateCandidateEvidenceInput {
   readonly source?: CandidateSourceDescription;
   readonly association?: ExactCanonicalAssociation;
 }
-

@@ -11,7 +11,7 @@ from typing import Any
 from .errors import IdempotencyConflict, InvalidCursor, OriginConflict, RevisionConflict
 from .lifecycle import require_transition
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 
 
 def _canonical(value: Any) -> str:
@@ -52,9 +52,11 @@ class SQLiteCandidateEvidenceRepository:
             for version in range(1, SCHEMA_VERSION + 1):
                 if version in versions:
                     continue
-                sql = Path(__file__).with_name("migrations").joinpath(
-                    f"{version:03d}_candidate_evidence.sql"
-                ).read_text(encoding="utf-8")
+                migration_directory = Path(__file__).with_name("migrations")
+                migrations = list(migration_directory.glob(f"{version:03d}_candidate_evidence*.sql"))
+                if len(migrations) != 1:
+                    raise RuntimeError(f"Expected exactly one Candidate Evidence migration for version {version}")
+                sql = migrations[0].read_text(encoding="utf-8")
                 if version == 2:
                     connection.execute("PRAGMA foreign_keys=OFF")
                 connection.execute("BEGIN IMMEDIATE")
@@ -82,6 +84,11 @@ class SQLiteCandidateEvidenceRepository:
         result: dict[str, Any] = {
             "candidateId": row["candidate_id"], "investigationId": row["investigation_id"],
             "revision": row["revision"], "origin": row["origin"], "originIdentity": row["origin_identity"],
+            "manifoldRevisionId": row["manifold_revision_id"], "intakePathway": row["intake_pathway"],
+            "publicationState": row["publication_state"], "operationId": row["operation_id"],
+            "normalizationVersion": row["normalization_version"],
+            "investigationAggregateRevision": row["investigation_aggregate_revision"],
+            "principalOwnership": row["created_by_principal_id"],
             "lineage": json.loads(row["lineage_json"]), "source": json.loads(row["source_json"]),
             "lifecycleState": row["lifecycle_state"], "acquisitionState": row["acquisition_state"],
             "archiveState": row["archive_state"], "availability": row["availability"],
@@ -95,7 +102,21 @@ class SQLiteCandidateEvidenceRepository:
                 "priorLifecycleState": event["prior_lifecycle_state"],
                 "resultingLifecycleState": event["resulting_lifecycle_state"],
             } for event in events],
+            "admitted": row["lifecycle_state"] == "ADMITTED",
+            "canonicalMaterialization": None,
+            "graphEffect": "NONE",
+            "researchInboxEffect": "NONE",
         }
+        if row["intake_pathway"] == "DIRECT_UPLOAD":
+            result["upload"] = {
+                "originalFilename": row["original_filename"],
+                "displayFilename": row["display_filename"],
+                "byteSize": row["byte_size"],
+                "detectedMediaType": row["detected_media_type"],
+                "mediaCategory": row["media_category"],
+                "contentHash": {"algorithm": "SHA-256", "digest": row["content_sha256"]},
+                "storageIdentity": row["storage_identity"],
+            }
         for key, column in (("association", "association_json"), ("reviewDecision", "review_decision_json")):
             if row[column] is not None:
                 result[key] = json.loads(row[column])
@@ -153,7 +174,12 @@ class SQLiteCandidateEvidenceRepository:
                 self._store_idempotency(connection, scope, request_hash, response)
                 connection.commit()
                 return response, True
-            candidate_id, occurred_at = str(uuid.uuid4()), _now()
+            intake_pathway = command.get("intakePathway", "LEGACY")
+            candidate_id = (str(uuid.uuid5(uuid.NAMESPACE_URL, _canonical({
+                "principalId": principal_id, "investigationId": investigation_id,
+                "origin": origin, "originIdentity": origin_identity,
+            }))) if intake_pathway != "LEGACY" else str(uuid.uuid4()))
+            occurred_at = _now()
             lifecycle = {"SUBMISSION": "SUBMITTED", "DISCOVERY": "DISCOVERED",
                          "CURATED_REPOSITORY": "REFERENCED"}[origin]
             if origin == "SUBMISSION":
@@ -161,6 +187,8 @@ class SQLiteCandidateEvidenceRepository:
                            "submissionIdentity": command["submissionIdentity"]}
                 if command.get("submittedLocator") is not None:
                     lineage["submittedLocator"] = command["submittedLocator"]
+                if command.get("intakeProvenance") is not None:
+                    lineage["intakeProvenance"] = command["intakeProvenance"]
             elif origin == "DISCOVERY":
                 query = command["querySpecification"]
                 query_id = "query:" + _hash(query)
@@ -171,6 +199,8 @@ class SQLiteCandidateEvidenceRepository:
                 )
                 lineage = {"kind": "DISCOVERY", "discoveredAt": occurred_at, "querySpecification": query,
                            "connector": command["connector"], "connectorVersion": command["connectorVersion"]}
+                if command.get("intakeProvenance") is not None:
+                    lineage["intakeProvenance"] = command["intakeProvenance"]
             else:
                 lineage = {
                     "kind": "CURATED_REPOSITORY", "referencedAt": occurred_at,
@@ -179,10 +209,16 @@ class SQLiteCandidateEvidenceRepository:
                     "ownership": "CURATED_REPOSITORY",
                 }
             connection.execute(
-                "INSERT INTO candidate_evidence (candidate_id,investigation_id,revision,origin,origin_identity,lineage_json,source_json,association_json,lifecycle_state,created_at,updated_at,created_by_principal_id,create_fingerprint) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO candidate_evidence (candidate_id,investigation_id,revision,origin,origin_identity,lineage_json,source_json,association_json,lifecycle_state,acquisition_state,availability,created_at,updated_at,created_by_principal_id,create_fingerprint,manifold_revision_id,intake_pathway,publication_state,operation_id,normalization_version,investigation_aggregate_revision,original_filename,display_filename,byte_size,detected_media_type,media_category,content_sha256,storage_identity,object_reference) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (candidate_id, investigation_id, 0, origin, origin_identity, _canonical(lineage), _canonical(command["source"]),
-                 _canonical(command["association"]) if command.get("association") else None, lifecycle, occurred_at,
-                 occurred_at, principal_id, create_fingerprint),
+                 _canonical(command["association"]) if command.get("association") else None, lifecycle,
+                 command.get("acquisitionState", "NOT_REQUESTED"), command.get("availability", "UNKNOWN"),
+                 occurred_at, occurred_at, principal_id, create_fingerprint, command.get("manifoldRevisionId"),
+                 intake_pathway, "NOT_REQUESTED", command.get("operationId"), command.get("normalizationVersion"),
+                 command.get("investigationAggregateRevision"), command.get("originalFilename"),
+                 command.get("displayFilename"), command.get("byteSize"), command.get("detectedMediaType"),
+                 command.get("mediaCategory"), command.get("contentSha256"), command.get("storageIdentity"),
+                 command.get("objectReference")),
             )
             connection.execute(
                 "INSERT INTO candidate_provenance_event VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
