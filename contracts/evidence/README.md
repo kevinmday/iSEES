@@ -10,4 +10,6 @@ The governing progression is `Discovery → Candidate Evidence → Researcher Re
 
 The principal implementation owners remain the existing frontend Candidate Evidence/EVIDENCE modules, backend `isees_uap/candidate_evidence/` boundary, Research Bridge with `isees_uap/research_sources/` as the durable Research Inbox publication owner, and the existing operational graph revision owner. Implementations MUST extend them in place. Parallel Evidence, Candidate Evidence, Research Inbox, Candidate Knowledge, object identity, or revision systems are prohibited.
 
-Live providers and automatic publication are not authorized. EVIDENCE-001 is current contract authority; the capabilities it specifies remain future implementation until separately authorized, implemented, and verified.
+Web Discovery V1 is authenticated-only, provider-neutral, metadata-only, and split into ephemeral search plus explicit server-session-authorized capture. Capture reuses review-only Candidate Evidence as `DISCOVERY` / `WEB_DISCOVERY` / `WEB_DISCOVERED`; neither operation fetches result webpages or affects downstream owners. A deterministic offline fixture precedes any live adapter. Production provider selection and guest Web Discovery remain deferred.
+
+Live providers and automatic publication are not authorized. EVIDENCE-001 is current contract authority; the capabilities it specifies remain future implementation until separately authorized, implemented, and verified. P57-EVIDENCE-WEB-I4A changes contract and verification only; runtime behavior is unchanged.
