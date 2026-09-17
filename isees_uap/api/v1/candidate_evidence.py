@@ -30,6 +30,12 @@ from isees_uap.authentication.principal import (
 from isees_uap.investigations.authority import PersistedInvestigationAuthority
 from isees_uap.api.v1.investigations import repository as investigation_repository
 from isees_uap.candidate_evidence.upload_policy import sanitize_display_filename, validate_media
+from isees_uap.candidate_evidence.web_discovery_runtime import (
+    WebDiscoveryRuntimeError, WebDiscoverySearchRuntime,
+)
+from isees_uap.candidate_evidence.web_discovery_schemas import (
+    WebDiscoverySearchCommand, WebDiscoverySearchResponse,
+)
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/candidate-evidence", tags=["candidate-evidence"])
 native_case_router = APIRouter(prefix="/api/v1/native-case-drafts", tags=["native-case-drafts"])
@@ -75,6 +81,12 @@ def native_case_service(
     return NativeCaseDraftService(repo)
 
 
+@lru_cache(maxsize=1)
+def web_discovery_runtime() -> WebDiscoverySearchRuntime:
+    """Process-owned ephemeral search authority; overrideable/resettable in tests."""
+    return WebDiscoverySearchRuntime()
+
+
 def _require_optional_owned_investigation(
     investigation_id: str | None, principal_id: str, parent_repo,
 ) -> None:
@@ -104,6 +116,40 @@ def owned_mutation_principal(investigation_id: InvestigationPath,
 
 def _response(candidate: dict, replayed: bool) -> JSONResponse:
     return JSONResponse(status_code=200 if replayed else 201, content=candidate)
+
+
+@router.post("/web-discovery/searches", response_model=WebDiscoverySearchResponse)
+def search_web_discovery(
+    investigation_id: InvestigationPath,
+    command: WebDiscoverySearchCommand,
+    owner: str = Depends(owned_mutation_principal),
+    parent_repo=Depends(investigation_repository),
+    runtime: WebDiscoverySearchRuntime = Depends(web_discovery_runtime),
+):
+    if command.investigationId != investigation_id:
+        return _web_discovery_error("INVESTIGATION_MISMATCH", "Path and command Investigation IDs differ", 412)
+    aggregate = parent_repo.get_empty_aggregate(
+        investigation_id=investigation_id, owner_principal_id=owner)
+    if aggregate is None:
+        from isees_uap.investigations.errors import InvestigationNotFound
+        raise InvestigationNotFound("Investigation was not found")
+    expected_manifold = f"investigation-aggregate:{aggregate.revision}"
+    if command.expectedInvestigationRevision != aggregate.revision:
+        return _web_discovery_error("REVISION_CONFLICT", "Expected Investigation revision is stale", 409)
+    if command.manifoldRevisionId != expected_manifold:
+        return _web_discovery_error("REVISION_CONFLICT", "Manifold revision is stale", 409)
+    try:
+        result = runtime.search(principal_id=owner, command=command)
+    except WebDiscoveryRuntimeError as error:
+        return _web_discovery_error(error.code, str(error), error.status_code)
+    return JSONResponse(
+        status_code=result.status_code,
+        content=result.response.model_dump(mode="json", exclude_none=False),
+    )
+
+
+def _web_discovery_error(code: str, message: str, status_code: int) -> JSONResponse:
+    return JSONResponse(status_code=status_code, content={"error": {"code": code, "message": message}})
 
 
 @router.post("/submissions")
