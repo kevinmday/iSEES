@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { buildKnowledgeBootstrapPopulation } from "../../src/knowledge/ingestion/KnowledgeRuntimeBootstrap.ts";
 import { buildCanonicalInvestigationGraph } from "../../src/intelligence/selection/CanonicalInvestigationGraph.ts";
 import { resolveCanonicalSelectionIntelligence } from "../../src/intelligence/selection/CanonicalSelectionIntelligence.ts";
-import { resolveSelectionIntelligence } from "../../src/manifold/selection/selectionIntelligenceResolver.ts";
+import { formatMetricAvailability, resolveSelectionIntelligence } from "../../src/manifold/selection/selectionIntelligenceResolver.ts";
 import type { InvestigationGraph } from "../../src/manifold/graphTypes.ts";
 import type { WorkspaceSelection } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
 
@@ -31,7 +31,7 @@ const edgeSelection: WorkspaceSelection = { kind: "EDGE", edgeId: firstEdge.id }
 const missingNodeSelection: WorkspaceSelection = { kind: "NODE", nodeId: "missing:canonical:node" };
 const missingEdgeSelection: WorkspaceSelection = { kind: "EDGE", edgeId: "missing:canonical:edge" };
 
-const noneIntelligence = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: noneSelection });
+const noneIntelligence = resolveCanonicalSelectionIntelligence({ graph, selection: noneSelection });
 assert(noneIntelligence.kind === "NONE", "NONE selection must resolve NONE intelligence.");
 assert(noneIntelligence.availability.status === "AVAILABLE", "Intentional NONE must remain available NONE.");
 console.log("PASS 2 — NONE selection remains NONE");
@@ -44,7 +44,7 @@ assert(contextFreeCluster.kind === "CLUSTER", "Context-free CLUSTER must preserv
 assert(contextFreeCluster.clusterId === "cluster:compatibility", "Context-free CLUSTER identity must be preserved.");
 assert(contextFreeCluster.binding === undefined, "Omitted context must not fabricate a CLUSTER binding.");
 
-const nodeIntelligence = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: nodeSelection });
+const nodeIntelligence = resolveCanonicalSelectionIntelligence({ graph, selection: nodeSelection });
 assert(nodeIntelligence.kind === "NODE", "Context-free canonical NODE must preserve established resolution.");
 assert(nodeIntelligence.binding === undefined, "Omitted context must not suppress NODE intelligence or fabricate a binding.");
 assert(nodeIntelligence.intelligence.nodeId === firstNode.id, "Resolved node identity must equal the selected node.");
@@ -53,7 +53,7 @@ const expectedConnectionCount = graph.edges.filter(edge => edge.source === first
 assert(nodeIntelligence.intelligence.connectionCount === expectedConnectionCount, "Node connections must derive from topology.");
 console.log("PASS 3 — context-free NODE preserves identity, label, and topology-derived connections");
 
-const edgeIntelligence = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: edgeSelection });
+const edgeIntelligence = resolveCanonicalSelectionIntelligence({ graph, selection: edgeSelection });
 assert(edgeIntelligence.kind === "EDGE", "Context-free canonical EDGE must preserve established resolution.");
 assert(edgeIntelligence.binding === undefined, "Omitted context must not suppress EDGE intelligence or fabricate a binding.");
 assert(edgeIntelligence.intelligence.edgeId === firstEdge.id, "Resolved edge identity must equal the selected edge.");
@@ -65,12 +65,12 @@ for (const field of ["confidence", "narrative", "observability", "infrastructure
 }
 console.log("PASS 4 — context-free EDGE preserves identity, endpoints, relationship, and numeric metrics");
 
-const missingNode = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: missingNodeSelection });
+const missingNode = resolveCanonicalSelectionIntelligence({ graph, selection: missingNodeSelection });
 assert(missingNode.kind === "NONE", "Missing canonical node must safely resolve NONE.");
 assert(missingNode.availability.status === "UNAVAILABLE" && missingNode.availability.reason === "SELECTION_NOT_FOUND", "Missing node must not be available.");
 console.log("PASS 5 — missing NODE safely resolves truthful unavailable NONE");
 
-const missingEdge = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: missingEdgeSelection });
+const missingEdge = resolveCanonicalSelectionIntelligence({ graph, selection: missingEdgeSelection });
 assert(missingEdge.kind === "NONE", "Missing canonical edge must safely resolve NONE.");
 assert(missingEdge.availability.status === "UNAVAILABLE" && missingEdge.availability.reason === "SELECTION_NOT_FOUND", "Missing edge must not be available.");
 console.log("PASS 6 — missing EDGE safely resolves truthful unavailable NONE");
@@ -88,16 +88,16 @@ const directMissingEdge = resolveSelectionIntelligence(
 assert(directMissingNode.kind === "NONE" && directMissingNode.availability.status === "UNAVAILABLE" && directMissingNode.availability.reason === "SELECTION_NOT_FOUND", "Direct missing NODE must remain truthfully unavailable.");
 assert(directMissingEdge.kind === "NONE" && directMissingEdge.availability.status === "UNAVAILABLE" && directMissingEdge.availability.reason === "SELECTION_NOT_FOUND", "Direct missing EDGE must remain truthfully unavailable.");
 
-const repeatedNode = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: nodeSelection });
-const repeatedEdge = resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: edgeSelection });
+const repeatedNode = resolveCanonicalSelectionIntelligence({ graph, selection: nodeSelection });
+const repeatedEdge = resolveCanonicalSelectionIntelligence({ graph, selection: edgeSelection });
 assert(serialize(nodeIntelligence) === serialize(repeatedNode), "Repeated NODE resolution must be byte-equivalent.");
 assert(serialize(edgeIntelligence) === serialize(repeatedEdge), "Repeated EDGE resolution must be byte-equivalent.");
 console.log("PASS 7 — repeated context-free NODE and EDGE resolution is deterministic");
 
 const reversedKnowledgeObjects = [...knowledgeObjects].reverse();
 const reversedGraph = buildCanonicalInvestigationGraph(reversedKnowledgeObjects);
-const reversedNode = resolveCanonicalSelectionIntelligence({ knowledgeObjects: reversedKnowledgeObjects, selection: nodeSelection });
-const reversedEdge = resolveCanonicalSelectionIntelligence({ knowledgeObjects: reversedKnowledgeObjects, selection: edgeSelection });
+const reversedNode = resolveCanonicalSelectionIntelligence({ graph: reversedGraph, selection: nodeSelection });
+const reversedEdge = resolveCanonicalSelectionIntelligence({ graph: reversedGraph, selection: edgeSelection });
 assert(serialize(graph) === serialize(reversedGraph), "Equivalent reordered Knowledge must produce the same graph.");
 assert(serialize(nodeIntelligence) === serialize(reversedNode), "Knowledge order must not change NODE intelligence.");
 assert(serialize(edgeIntelligence) === serialize(reversedEdge), "Knowledge order must not change EDGE intelligence.");
@@ -109,8 +109,8 @@ assert(serialize(graph) === originalGraph, "Resolution must not mutate the graph
 console.log("PASS 9 — canonical Knowledge ordering, Knowledge data, and graph remain unmodified");
 
 const context = { investigationId: "INV-SELECTION-VERIFY", manifoldRevisionId: "REV-IMMUTABLE-0001" } as const;
-const resolveBoundNode = () => resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: nodeSelection, ...context });
-const resolveBoundEdge = () => resolveCanonicalSelectionIntelligence({ knowledgeObjects, selection: edgeSelection, ...context });
+const resolveBoundNode = () => resolveCanonicalSelectionIntelligence({ graph, selection: nodeSelection, ...context });
+const resolveBoundEdge = () => resolveCanonicalSelectionIntelligence({ graph, selection: edgeSelection, ...context });
 const boundNode = resolveBoundNode();
 const boundEdge = resolveBoundEdge();
 assert(boundNode.kind === "NODE", "Context-bound NODE must resolve.");
@@ -137,7 +137,7 @@ assert(serialize(boundEdge) === serialize(repeatedBoundEdge), "Repeated bound ED
 assert(repeatedBoundNode.kind === "NODE" && repeatedBoundNode.binding?.projectionFingerprint === boundNode.binding.projectionFingerprint, "NODE fingerprint must be stable.");
 assert(repeatedBoundEdge.kind === "EDGE" && repeatedBoundEdge.binding?.projectionFingerprint === boundEdge.binding.projectionFingerprint, "EDGE fingerprint must be stable.");
 const reboundNode = resolveCanonicalSelectionIntelligence({
-  knowledgeObjects,
+  graph,
   selection: nodeSelection,
   investigationId: context.investigationId,
   manifoldRevisionId: "REV-IMMUTABLE-0002",
@@ -159,8 +159,73 @@ assert(metricResult.intelligence.geo === 0, "Unavailable geo must retain its leg
 assert(metricResult.metricAvailability.confidence.status === "AVAILABLE" && metricResult.metricAvailability.confidence.value === 0, "Genuine confidence zero must be available.");
 assert(metricResult.metricAvailability.narrative.status === "AVAILABLE" && metricResult.metricAvailability.narrative.value === 0, "Genuine narrative zero must be available.");
 assert(metricResult.metricAvailability.geo.status === "UNAVAILABLE", "Defaulted geo zero must be distinguished as unavailable.");
+assert(formatMetricAvailability(metricResult.metricAvailability.geo) === "NOT COMPUTED", "Unavailable metric must project as NOT COMPUTED.");
+assert(formatMetricAvailability(metricResult.metricAvailability.geo) !== "0.0%", "Unavailable metric must never format as zero.");
+assert(formatMetricAvailability(metricResult.metricAvailability.confidence) === "0.0%", "Genuine available zero must remain 0.0%.");
+assert(formatMetricAvailability({ status: "AVAILABLE", value: 0.96 }) === "96.0%", "Available nonzero metric must remain correctly formatted.");
+assert(formatMetricAvailability({ status: "UNAVAILABLE", reason: "NOT_SUPPLIED" }) !== "NaN%", "Unavailable metric must never format as NaN%.");
 assert(serialize(metricGraph) === metricGraphBefore, "Metric graph must remain immutable.");
 console.log("PASS 11 — unavailable metrics and genuine numeric zero remain truthfully distinguishable and compatible");
+
+const revisionGraph: InvestigationGraph = {
+  nodes: [
+    { id: "revision-node", label: "Revision Label", type: "EVENT", metadata: { source: "REVISION", confidence: 0.73, marker: "revision" } },
+    { id: "revision-target", label: "Revision Target", type: "LOCATION" },
+    { id: "revision-extra", label: "Revision Extra", type: "ARTIFACT" },
+  ],
+  edges: [
+    { id: "revision-edge", source: "revision-target", target: "revision-node", relationship: "SUPPORTS", weight: 0.61, metrics: { confidence: 0.91, narrative: 0.81, observability: 0.71, infrastructure: 0.51, topology: 0.41, geo: 0.31 }, rationale: ["revision rationale"] },
+    { id: "revision-incident", source: "revision-node", target: "revision-extra", relationship: "REFERENCES", weight: 0.2, rationale: [] },
+  ],
+  statistics: { nodeCount: 3, edgeCount: 2, eventCount: 1, facilityCount: 0, artifactCount: 1, personCount: 0, organizationCount: 0, locationCount: 1, narrativeCount: 0, hypothesisCount: 0 },
+};
+const knowledgeGraph: InvestigationGraph = {
+  nodes: [
+    { id: "revision-node", label: "Knowledge Label", type: "EVENT", metadata: { source: "KNOWLEDGE", confidence: 0.1, marker: "knowledge" } },
+    { id: "knowledge-target", label: "Knowledge Target", type: "PERSON" },
+    { id: "knowledge-only-node", label: "Knowledge Only", type: "NARRATIVE" },
+  ],
+  edges: [
+    { id: "revision-edge", source: "revision-node", target: "knowledge-target", relationship: "CONTRADICTS", weight: 0.12, metrics: { confidence: 0.11, narrative: 0.21 }, rationale: ["knowledge rationale"] },
+    { id: "knowledge-only-edge", source: "revision-node", target: "knowledge-only-node", relationship: "ASSOCIATED_WITH", weight: 0.3, rationale: [] },
+  ],
+  statistics: { nodeCount: 3, edgeCount: 2, eventCount: 1, facilityCount: 0, artifactCount: 0, personCount: 1, organizationCount: 0, locationCount: 0, narrativeCount: 1, hypothesisCount: 0 },
+};
+const olderRevisionGraph: InvestigationGraph = {
+  ...revisionGraph,
+  nodes: [...revisionGraph.nodes, { id: "older-only-node", label: "Older Only", type: "HYPOTHESIS" }],
+  edges: [...revisionGraph.edges, { id: "older-only-edge", source: "revision-node", target: "older-only-node", relationship: "INVESTIGATES", weight: 0.4, rationale: [] }],
+};
+const revisionBefore = serialize(revisionGraph);
+const knowledgeGraphBefore = serialize(knowledgeGraph);
+const revisionNodeSelection = { kind: "NODE" as const, nodeId: "revision-node" };
+const revisionEdgeSelection = { kind: "EDGE" as const, edgeId: "revision-edge" };
+const revisionNode = resolveCanonicalSelectionIntelligence({ graph: revisionGraph, selection: revisionNodeSelection, ...context });
+const revisionEdge = resolveCanonicalSelectionIntelligence({ graph: revisionGraph, selection: revisionEdgeSelection, ...context });
+const revisionWeightEdge = resolveCanonicalSelectionIntelligence({ graph: revisionGraph, selection: { kind: "EDGE", edgeId: "revision-incident" }, ...context });
+assert(revisionNode.kind === "NODE" && revisionNode.intelligence.title === "Revision Label" && revisionNode.intelligence.metadata?.marker === "revision", "Supplied revision node label and metadata must win over divergent Knowledge.");
+assert(revisionNode.kind === "NODE" && revisionNode.intelligence.connectionCount === 2, "Supplied revision incident edges must determine connection count.");
+assert(revisionEdge.kind === "EDGE" && revisionEdge.intelligence.sourceId === "revision-target" && revisionEdge.intelligence.targetId === "revision-node", "Supplied revision edge endpoints must win.");
+assert(revisionEdge.kind === "EDGE" && revisionEdge.intelligence.relationship === "SUPPORTS", "Supplied revision edge relationship must win.");
+assert(revisionEdge.kind === "EDGE" && revisionEdge.intelligence.rationale[0] === "revision rationale" && revisionEdge.intelligence.confidence === 0.91 && revisionEdge.intelligence.narrative === 0.81 && revisionEdge.intelligence.geo === 0.31, "Supplied revision rationale, weight-derived contract, and metrics must win.");
+assert(revisionWeightEdge.kind === "EDGE" && revisionWeightEdge.intelligence.confidence === 0.2, "Supplied revision edge weight must win when no confidence metric is present.");
+for (const selection of [
+  { kind: "NODE" as const, nodeId: "knowledge-only-node" },
+  { kind: "EDGE" as const, edgeId: "knowledge-only-edge" },
+  { kind: "NODE" as const, nodeId: "older-only-node" },
+  { kind: "EDGE" as const, edgeId: "older-only-edge" },
+]) {
+  const unavailable = resolveCanonicalSelectionIntelligence({ graph: revisionGraph, selection, ...context });
+  assert(unavailable.kind === "NONE" && unavailable.availability.status === "UNAVAILABLE", `${selection.kind} outside the supplied current revision must fail closed.`);
+}
+const sameRevisionAfterKnowledgeChange = resolveCanonicalSelectionIntelligence({ graph: revisionGraph, selection: revisionEdgeSelection, ...context });
+assert(serialize(sameRevisionAfterKnowledgeChange) === serialize(revisionEdge), "Changing broader Knowledge while preserving the revision graph must not change intelligence.");
+const knowledgeProjection = resolveCanonicalSelectionIntelligence({ graph: knowledgeGraph, selection: revisionEdgeSelection, ...context });
+assert(knowledgeProjection.kind === "EDGE" && revisionEdge.kind === "EDGE" && knowledgeProjection.binding?.projectionFingerprint !== revisionEdge.binding?.projectionFingerprint, "Changing the supplied revision graph must change applicable intelligence and its fingerprint.");
+const revisionIdentityChanged = resolveCanonicalSelectionIntelligence({ graph: revisionGraph, selection: revisionEdgeSelection, investigationId: context.investigationId, manifoldRevisionId: "REV-DIVERGENT-2" });
+assert(revisionIdentityChanged.kind === "EDGE" && revisionEdge.kind === "EDGE" && revisionIdentityChanged.binding?.projectionFingerprint !== revisionEdge.binding?.projectionFingerprint, "Fingerprint must derive from supplied revision graph projection and revision identity.");
+assert(serialize(revisionGraph) === revisionBefore && serialize(knowledgeGraph) === knowledgeGraphBefore && olderRevisionGraph.nodes.length === 4, "Divergent graph inputs must remain immutable.");
+console.log("PASS 12 — supplied immutable revision graph exclusively owns NODE, EDGE, availability, and fingerprints");
 
 const implementationSource = `${readFileSync("src/manifold/selection/selectionIntelligenceResolver.ts", "utf8")}\n${readFileSync("src/intelligence/selection/CanonicalSelectionIntelligence.ts", "utf8")}`;
 for (const capability of ["fetch(", "XMLHttpRequest", "WebSocket", "navigator.sendBeacon", "localStorage", "sessionStorage", "indexedDB", "RexApi", "invokeRex", "publishResearch", "setSelection(", "writeFile", "buildKnowledgeBootstrapPopulation"]) {
@@ -168,7 +233,7 @@ for (const capability of ["fetch(", "XMLHttpRequest", "WebSocket", "navigator.se
 }
 assert(serialize(knowledgeObjects) === originalKnowledge, "No research mutation may occur.");
 assert(serialize(graph) === originalGraph, "No graph mutation may occur.");
-console.log("PASS 12 — no REX invocation, publication, graph/research mutation, persistence, or network effects");
+console.log("PASS 13 — no REX invocation, publication, graph/research mutation, persistence, or network effects");
 console.log("\n============================================================");
 console.log("CANONICAL SELECTION INTELLIGENCE VERIFIED");
 console.log("============================================================");

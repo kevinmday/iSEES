@@ -33,11 +33,8 @@
 // ============================================================
 
 import type {
-  KnowledgeObject,
-} from "../../knowledge/model/KnowledgeObject";
-
-import type {
   GraphSelection,
+  InvestigationGraph,
 } from "../../manifold/graphTypes";
 
 import type {
@@ -53,23 +50,16 @@ import type {
   SelectionIntelligenceContext,
 } from "../../manifold/selection/selectionIntelligenceResolver";
 
-import {
-  buildCanonicalInvestigationGraph,
-} from "./CanonicalInvestigationGraph";
-
 // ============================================================
 // REQUEST
 // ============================================================
 
 export interface CanonicalSelectionIntelligenceRequest {
-  readonly knowledgeObjects:
-    readonly KnowledgeObject[];
+  readonly graph:
+    InvestigationGraph;
 
   readonly selection:
     WorkspaceSelection | undefined;
-
-  readonly centerNodeId?:
-    string;
 
   readonly investigationId?: string;
 
@@ -84,11 +74,7 @@ export function resolveCanonicalSelectionIntelligence(
   request:
     CanonicalSelectionIntelligenceRequest,
 ): SelectionIntelligence {
-  const graph =
-    buildCanonicalInvestigationGraph(
-      request.knowledgeObjects,
-      request.centerNodeId,
-    );
+  const graph = request.graph;
 
   const graphSelection:
   GraphSelection = (() => {
@@ -127,7 +113,11 @@ export function resolveCanonicalSelectionIntelligence(
         candidate.id === edgeId,
     );
 
-    return edge === undefined
+    const endpointsExist = edge !== undefined &&
+      graph.nodes.some(node => node.id === edge.source) &&
+      graph.nodes.some(node => node.id === edge.target);
+
+    return edge === undefined || !endpointsExist
       ? { kind: "NONE" }
       : {
           kind: "EDGE",

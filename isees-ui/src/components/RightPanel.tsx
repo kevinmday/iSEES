@@ -67,6 +67,15 @@ import {
 import {
   useWorkspaceRuntime,
 } from "../workspace/runtime/WorkspaceRuntimeContext";
+import {
+  WorkspaceMode,
+} from "../workspace/runtime/WorkspaceRuntimeTypes";
+import Tooltip from "./Tooltip";
+import {
+  formatMetricAvailability,
+  type EdgeMetricAvailability,
+  type MetricAvailability,
+} from "../manifold/selection/selectionIntelligenceResolver";
 
 import {
   resolveCandidateIntelligenceCollection,
@@ -91,6 +100,9 @@ import {
   resolveCoherentInvestigationSelection,
   resolveCurrentInvestigationExecution,
 } from "../intelligence/selection/InvestigationSelectionCoherence";
+import {
+  resolveCurrentOperationalRevision,
+} from "../investigation/revision/OperationalGraphRevision";
 import { RexExploreControl } from "../rex/RexExploreControl.tsx";
 
 // ============================================================
@@ -121,20 +133,71 @@ export default function RightPanel() {
       workspaceRuntime.getSelection(),
     );
 
+  const currentRevision =
+    useMemo(
+      () => {
+        if (!investigation) return undefined;
+        try {
+          return resolveCurrentOperationalRevision(investigation);
+        } catch {
+          return undefined;
+        }
+      },
+      [
+        investigation,
+      ],
+    );
+
   // ==========================================================
   // ESTABLISHED CANONICAL GRAPH INTELLIGENCE
   // ==========================================================
 
+  const investigationId =
+    investigation?.id;
+
+  const currentRevisionId =
+    currentRevision?.id;
+
+  const currentRevisionGraph =
+    currentRevision?.manifold.graph;
+
   const graphIntelligence =
     useMemo(
       () =>
-        resolveCanonicalSelectionIntelligence({
-          knowledgeObjects,
-          selection:
-            workspaceSelection,
-        }),
+        investigation === undefined ||
+        currentRevisionGraph === undefined ||
+        investigationId === undefined ||
+        currentRevisionId === undefined
+          ? resolveCanonicalSelectionIntelligence({
+              graph: {
+                nodes: [],
+                edges: [],
+                statistics: {
+                  nodeCount: 0,
+                  edgeCount: 0,
+                  eventCount: 0,
+                  facilityCount: 0,
+                  artifactCount: 0,
+                  personCount: 0,
+                  organizationCount: 0,
+                  locationCount: 0,
+                  narrativeCount: 0,
+                  hypothesisCount: 0,
+                },
+              },
+              selection: workspaceSelection,
+            })
+          : resolveCanonicalSelectionIntelligence({
+              graph: currentRevisionGraph,
+              selection: workspaceSelection,
+              investigationId,
+              manifoldRevisionId: currentRevisionId,
+            }),
       [
-        knowledgeObjects,
+        investigation,
+        investigationId,
+        currentRevisionId,
+        currentRevisionGraph,
         workspaceSelection,
       ],
     );
@@ -260,6 +323,14 @@ export default function RightPanel() {
                 <EdgeInspector
                   intelligence={
                     graphIntelligence.intelligence
+                  }
+                  metricAvailability={graphIntelligence.metricAvailability}
+                  hasCompletedResolve={
+                    currentExecution?.result !== undefined &&
+                    currentExecution.completedAt !== undefined
+                  }
+                  goToCompare={() =>
+                    workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)
                   }
                 />
               )
@@ -876,6 +947,9 @@ function NodeInspector({
 
 function EdgeInspector({
   intelligence,
+  metricAvailability,
+  hasCompletedResolve,
+  goToCompare,
 }: {
   intelligence: {
     edgeId: string;
@@ -892,7 +966,25 @@ function EdgeInspector({
     geo: number;
     rationale: string[];
   };
+  metricAvailability: EdgeMetricAvailability;
+  hasCompletedResolve: boolean;
+  goToCompare: () => void;
 }) {
+  const metrics = [
+    ["Confidence", metricAvailability.confidence],
+    ["Narrative", metricAvailability.narrative],
+    ["Observability", metricAvailability.observability],
+    ["Infrastructure", metricAvailability.infrastructure],
+    ["Topology", metricAvailability.topology],
+    ["Geo", metricAvailability.geo],
+  ] as const;
+  const hasUnavailableMetrics = metrics.some(([, availability]) =>
+    availability.status === "UNAVAILABLE"
+  );
+  const unavailableExplanation = hasCompletedResolve
+    ? "This metric is unavailable, not zero. An applicable metric input was not supplied for this relationship. No automatic action is safe."
+    : "This metric is unavailable, not zero. No completed Resolve computation exists for the active investigation revision. Select a comparison candidate and run Resolve.";
+
   return (
     <div
       className={
@@ -975,48 +1067,32 @@ function EdgeInspector({
 
       <InspectorSection title="Metrics">
         <div className="selection-intelligence__rows">
-          <PercentRow
-            label="Confidence"
-            value={
-              intelligence.confidence
-            }
-          />
-
-          <PercentRow
-            label="Narrative"
-            value={
-              intelligence.narrative
-            }
-          />
-
-          <PercentRow
-            label="Observability"
-            value={
-              intelligence.observability
-            }
-          />
-
-          <PercentRow
-            label="Infrastructure"
-            value={
-              intelligence.infrastructure
-            }
-          />
-
-          <PercentRow
-            label="Topology"
-            value={
-              intelligence.topology
-            }
-          />
-
-          <PercentRow
-            label="Geo"
-            value={
-              intelligence.geo
-            }
-          />
+          {metrics.map(([label, availability]) => (
+            <MetricAvailabilityRow
+              key={label}
+              label={label}
+              availability={availability}
+              unavailableExplanation={unavailableExplanation}
+            />
+          ))}
         </div>
+        {hasUnavailableMetrics && (
+          <div className="selection-intelligence__empty">
+            <div className="selection-intelligence__empty-title">
+              Metric intelligence incomplete
+            </div>
+            <div className="selection-intelligence__empty-copy">
+              {hasCompletedResolve
+                ? "This edge contains canonical relationship information, but one or more applicable metric inputs are unavailable for the active Manifold revision."
+                : "This edge contains canonical relationship information, but applicable metrics have not been computed for the active Manifold revision. Select a comparison candidate and run Resolve."}
+            </div>
+            {!hasCompletedResolve && (
+              <button type="button" onClick={goToCompare}>
+                Go to Compare
+              </button>
+            )}
+          </div>
+        )}
       </InspectorSection>
 
       <InspectorSection title="Rationale">
@@ -1058,6 +1134,35 @@ function EdgeInspector({
         </div>
       </InspectorSection>
     </div>
+  );
+}
+
+function MetricAvailabilityRow({
+  label,
+  availability,
+  unavailableExplanation,
+}: {
+  label: string;
+  availability: MetricAvailability;
+  unavailableExplanation: string;
+}) {
+  if (availability.status === "AVAILABLE") {
+    return <IntelRow label={label} value={formatMetricAvailability(availability)} />;
+  }
+
+  const accessibleName = `Explain unavailable ${label} metric. ${unavailableExplanation}`;
+  return (
+    <IntelRow
+      label={label}
+      value={(
+        <>
+          {formatMetricAvailability(availability)}{" "}
+          <Tooltip text={unavailableExplanation} placement="left">
+            <button type="button" aria-label={accessibleName}>i</button>
+          </Tooltip>
+        </>
+      )}
+    />
   );
 }
 
@@ -1223,7 +1328,8 @@ function IntelRow({
   label: string;
   value:
     string |
-    number;
+    number |
+    ReactNode;
 }) {
   return (
     <div className="selection-intelligence__row">
@@ -1240,7 +1346,9 @@ function IntelRow({
           "selection-intelligence__row-value"
         }
       >
-        {String(value)}
+        {typeof value === "string" || typeof value === "number"
+          ? String(value)
+          : value}
       </div>
     </div>
   );

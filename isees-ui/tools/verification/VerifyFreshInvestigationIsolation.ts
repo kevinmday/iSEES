@@ -5,8 +5,10 @@ import {
   resolveCoherentInvestigationSelection,
   resolveCurrentInvestigationExecution,
 } from "../../src/intelligence/selection/InvestigationSelectionCoherence";
+import { resolveCanonicalSelectionIntelligence } from "../../src/intelligence/selection/CanonicalSelectionIntelligence";
 import { DEFAULT_INVESTIGATION } from "../../src/investigation/defaultInvestigation";
 import { WorkspaceRuntime } from "../../src/workspace/runtime/WorkspaceRuntime";
+import { WorkspaceMode } from "../../src/workspace/runtime/WorkspaceRuntimeTypes";
 import type { Investigation } from "../../src/investigation/investigationTypes";
 import type { ResolveExecutionRecord } from "../../src/resolve/runtime/ResolveRuntimeTypes";
 import {
@@ -23,6 +25,13 @@ let passes = 0;
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(`VERIFICATION FAILED: ${message}`);
   console.log(`PASS ${++passes} — ${message}`);
+}
+function freeze<T>(value: T): T {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const child of Object.values(value as Record<string, unknown>)) freeze(child);
+    Object.freeze(value);
+  }
+  return value;
 }
 
 const source = (path: string) => readFileSync(path, "utf8");
@@ -122,6 +131,19 @@ const nextInvestigation = materializeInitialOperationalRevision(
 );
 runtime.activateInvestigation(nextInvestigation);
 assert(runtime.getSelection() === undefined, "different-Investigation activation clears transient Workspace selection");
+for (const staleSelection of [rafSelection, focusedEdgeSelection]) {
+  const atomicRuntime = new WorkspaceRuntime();
+  atomicRuntime.activateInvestigation(operationalInvestigation);
+  atomicRuntime.setSelection(staleSelection);
+  const observations: Array<{ investigationId: string | undefined; selection: unknown }> = [];
+  atomicRuntime.subscribe(() => observations.push({
+    investigationId: atomicRuntime.getActiveInvestigation()?.id,
+    selection: atomicRuntime.getSelection(),
+  }));
+  atomicRuntime.activateInvestigation(nextInvestigation);
+  assert(atomicRuntime.getSelection() === undefined, `new Investigation atomically clears stale ${staleSelection.kind} selection`);
+  assert(!observations.some(observation => observation.investigationId === nextInvestigation.id && observation.selection !== undefined), `subscribers never observe the new Investigation with old ${staleSelection.kind} selection`);
+}
 assert(workspaceRuntimeSource.includes("selection:") && !workspaceRuntimeSource.includes("deleteKnowledge") && !workspaceRuntimeSource.includes("KnowledgeObjectRuntime"), "activation clears no canonical Knowledge");
 assert(!workspaceRuntimeSource.includes("ResearchBridge") && !workspaceRuntimeSource.includes("AuthorDocument"), "activation clears neither Research nor Author state");
 assert(restorer.includes("restoreResearch") && restorer.includes("restoreAuthoring") && snapshotFactory.includes("Interaction-only state is deliberately excluded"), "Guest restoration preserves Research/Author state and does not restore transient selection");
@@ -179,6 +201,13 @@ validateOperationalRevisionInvestigation(restoredInvestigation!);
 const restoredCurrentRevision = resolveCurrentOperationalRevision(restoredInvestigation!);
 assert(restoredCurrentRevision.id === restoredInvestigation!.currentRevisionId, "browser-restored current operational revision passes validation");
 assert(restoredCurrentRevision.manifold.graph.nodes.filter(node => node.id === rafSelection.nodeId).length === 1, "RAF Bentwaters exists exactly once in the browser-restored current revision");
+const restoredIntelligence = resolveCanonicalSelectionIntelligence({
+  graph: restoredCurrentRevision.manifold.graph,
+  selection: rafSelection,
+  investigationId: restoredInvestigation!.id,
+  manifoldRevisionId: restoredCurrentRevision.id,
+});
+assert(restoredIntelligence.kind === "NODE", "restored Investigation resolves intelligence from its currentRevisionId graph");
 assert(JSON.stringify(restoredResearchRuntime.getDesk()) === sourceResearchDesk, "browser-restored Research Inbox state remains intact");
 assert(restoredResearchRuntime.projectInvestigation({ investigationId: operationalInvestigation.id }).entries.length === 1, "reopened Investigation restores its Research projection");
 assert(restoredResearchRuntime.projectInvestigation({ investigationId: nextInvestigation.id }).entries.length === 0, "fresh Investigation sees no prior Research anchors");
@@ -188,6 +217,87 @@ assert(restoredResearchRuntime.projectInvestigation({}).status === "NO_ACTIVE_IN
 const oldExecution = { input: { investigation: { ...investigation, id: "investigation:old" } } } as ResolveExecutionRecord;
 assert(resolveCurrentInvestigationExecution(investigation, oldExecution) === undefined, "prior Investigation Resolve product is dormant before a fresh Resolve run");
 assert(rightPanel.includes("resolveCoherentInvestigationSelection") && rightPanel.includes("resolveCurrentInvestigationExecution"), "Selection Intelligence enforces Investigation and Resolve coherence");
+assert(rightPanel.includes('"NOT COMPUTED"') || source("src/manifold/selection/selectionIntelligenceResolver.ts").includes('"NOT COMPUTED"'), "unavailable edge metrics project as NOT COMPUTED");
+assert(rightPanel.includes("metricAvailability.confidence") && rightPanel.includes("metricAvailability.geo"), "each edge metric consumes its own structured availability entry");
+assert(rightPanel.includes("aria-label={accessibleName}") && rightPanel.includes('<Tooltip text={unavailableExplanation} placement="left">'), "unavailable metric information control is keyboard named and requests leftward placement from the established tooltip primitive");
+const tooltip = source("src/components/Tooltip.tsx");
+assert(tooltip.includes('placement = "right"') && tooltip.includes('placement?: "left" | "right"'), "shared Tooltip preserves its existing rightward behavior by default");
+assert(tooltip.includes("onMouseEnter={() => setHovered(true)}") && tooltip.includes("onMouseLeave={() => setHovered(false)}") && tooltip.includes("onFocus={() => setFocused(true)}") && tooltip.includes("onBlur={() => setFocused(false)}") && tooltip.includes("hovered || focused"), "shared Tooltip remains visible for pointer hover or keyboard focus and closes after both leave");
+assert(tooltip.includes("width: opensLeft ? 232 : 340") && tooltip.includes('whiteSpace: "normal"') && tooltip.includes('overflowWrap: "anywhere"'), "leftward Tooltip uses a contained 232px width with normal, safe text wrapping");
+assert(tooltip.includes('right: opensLeft ? 0 : "auto"'), "leftward Tooltip remains right-anchored to its information control");
+assert(!tooltip.includes("createPortal") && !tooltip.includes("ReactDOM"), "shared Tooltip remains inline and introduces no portal");
+for (const forbidden of ["setTimeout", "setInterval", "addEventListener", "removeEventListener", "getBoundingClientRect", "ResizeObserver", "MutationObserver", "fetch(", "XMLHttpRequest", "WebSocket", "localStorage", "sessionStorage", "indexedDB", "setSelection", "runResolve", "executeResolve", "invokeRex", "publishResearch"]) {
+  assert(!tooltip.includes(forbidden), `shared Tooltip exposes no ${forbidden} capability`);
+}
+assert(rightPanel.includes("This metric is unavailable, not zero.") && rightPanel.includes("No completed Resolve computation exists for the active investigation revision."), "unavailable metric guidance distinguishes absent computation from zero with a deterministic reason");
+assert(rightPanel.includes("hasUnavailableMetrics &&") && rightPanel.includes("Metric intelligence incomplete"), "metric regrounding message renders only when an edge metric is unavailable");
+assert(rightPanel.includes("workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)") && !rightPanel.includes("setActiveMode(WorkspaceMode.COMPARE);"), "Go to Compare uses the established Workspace mode authority without automatic switching");
+
+const compareRuntime = new WorkspaceRuntime();
+compareRuntime.activateInvestigation(operationalInvestigation);
+compareRuntime.setSelection(focusedEdgeSelection);
+const compareInvestigationBefore = JSON.stringify(compareRuntime.getActiveInvestigation());
+const compareSelectionBefore = compareRuntime.getSelection();
+const compareResearchBefore = JSON.stringify(sourceResearchRuntime.getDesk());
+compareRuntime.setActiveMode(WorkspaceMode.COMPARE);
+assert(compareRuntime.getState().operator.activeMode === WorkspaceMode.COMPARE, "Go to Compare authority changes only the established Workspace mode");
+assert(compareRuntime.getSelection() === compareSelectionBefore && JSON.stringify(compareRuntime.getActiveInvestigation()) === compareInvestigationBefore, "Go to Compare authority preserves selection, graph, and Investigation state");
+assert(JSON.stringify(sourceResearchRuntime.getDesk()) === compareResearchBefore, "Go to Compare authority performs no Research mutation");
+const edgeInspectorSource = rightPanel.slice(rightPanel.indexOf("function EdgeInspector"), rightPanel.indexOf("function InspectorSection"));
+for (const forbidden of ["runResolve", "executeResolve", "setSelection", "invokeRex", "publishResearch", "fetch(", "localStorage", "sessionStorage", "indexedDB"]) {
+  assert(!edgeInspectorSource.includes(forbidden), `Go to Compare and metric feedback expose no ${forbidden} capability`);
+}
+
+const currentGraph = operationalInvestigation.revisions[0]!.manifold.graph;
+const retainedEdge = currentGraph.edges.find(edge => edge.source === focusedNode.id || edge.target === focusedNode.id)!;
+const retainedIds = new Set([retainedEdge.source, retainedEdge.target]);
+const staleNode = currentGraph.nodes.find(node => !retainedIds.has(node.id))!;
+const staleEdge = currentGraph.edges.find(edge => edge.id !== retainedEdge.id)!;
+const narrowedGraph = freeze({
+  nodes: currentGraph.nodes.filter(node => retainedIds.has(node.id)),
+  edges: [retainedEdge],
+  statistics: { ...currentGraph.statistics, nodeCount: 2, edgeCount: 1 },
+});
+const priorRevision = operationalInvestigation.revisions[0]!;
+const laterRevision = freeze({
+  id: "REV-0002",
+  revisionNumber: 2,
+  timestamp: "2026-09-17T12:00:00.000Z",
+  operator: "SYSTEM",
+  parentRevisionId: priorRevision.id,
+  branch: "MAIN" as const,
+  message: "Validated narrowed operational graph",
+  manifold: {
+    ...priorRevision.manifold,
+    id: `operational:${encodeURIComponent(operationalInvestigation.id)}:REV-0002`,
+    timestamp: "2026-09-17T12:00:00.000Z",
+    graph: narrowedGraph,
+  },
+});
+const laterInvestigation = freeze({
+  ...operationalInvestigation,
+  currentRevisionId: laterRevision.id,
+  revisions: [priorRevision, laterRevision],
+});
+validateOperationalRevisionInvestigation(laterInvestigation);
+const revisionRuntime = new WorkspaceRuntime();
+revisionRuntime.activateInvestigation(operationalInvestigation);
+revisionRuntime.setSelection(rafSelection);
+revisionRuntime.activateInvestigation(laterInvestigation);
+assert(revisionRuntime.getSelection() === undefined, "later validated revision activation clears prior selection");
+assert(resolveCoherentInvestigationSelection(laterInvestigation, knowledgeObjects, { kind: "NODE", nodeId: staleNode.id }) === undefined, "reintroduced stale NODE from an older revision fails closed");
+assert(resolveCoherentInvestigationSelection(laterInvestigation, knowledgeObjects, { kind: "EDGE", edgeId: staleEdge.id }) === undefined, "reintroduced stale EDGE from an older revision fails closed");
+const retainedNodeSelection = { kind: "NODE" as const, nodeId: retainedEdge.source };
+const retainedEdgeSelection = { kind: "EDGE" as const, edgeId: retainedEdge.id };
+assert(resolveCoherentInvestigationSelection(laterInvestigation, knowledgeObjects, retainedNodeSelection) === retainedNodeSelection, "retained NODE resolves from the new revision");
+assert(resolveCoherentInvestigationSelection(laterInvestigation, knowledgeObjects, retainedEdgeSelection) === retainedEdgeSelection, "retained EDGE resolves from the new revision");
+
+const revisionSpecific = resolveCanonicalSelectionIntelligence({ graph: narrowedGraph, selection: retainedNodeSelection, investigationId: laterInvestigation.id, manifoldRevisionId: laterRevision.id });
+const priorSpecific = resolveCanonicalSelectionIntelligence({ graph: currentGraph, selection: retainedNodeSelection, investigationId: laterInvestigation.id, manifoldRevisionId: priorRevision.id });
+assert(revisionSpecific.kind === "NODE" && priorSpecific.kind === "NODE" && revisionSpecific.intelligence.connectionCount !== priorSpecific.intelligence.connectionCount, "same Knowledge plus different revision graph produces revision-specific intelligence");
+const unchangedByKnowledge = resolveCanonicalSelectionIntelligence({ graph: narrowedGraph, selection: retainedNodeSelection, investigationId: laterInvestigation.id, manifoldRevisionId: laterRevision.id });
+assert(JSON.stringify(unchangedByKnowledge) === JSON.stringify(revisionSpecific), "different Knowledge plus the same revision graph cannot change selection intelligence");
+assert(resolveCoherentInvestigationSelection(investigation, knowledgeObjects, retainedNodeSelection) === undefined, "revisionless Investigation produces no graph intelligence");
 
 for (const path of ["src/investigationControl/ExplorePanel.tsx", "src/intelligence/selection/InvestigationSelectionCoherence.ts", "src/components/RightPanel.tsx", "src/components/workspace/ManifoldProjectionStatus.tsx", "src/compare/components/CompareSetController.tsx", "src/compare/components/CompareWorkspace.tsx", "src/manifold/components/PrimaryInvestigationManifold.tsx", "src/workspace/surfaces/OverviewWorkspace.tsx"]) {
   const text = source(path);

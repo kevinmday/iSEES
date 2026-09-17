@@ -61,9 +61,17 @@ export type SelectionIntelligence =
   | (AvailableResult & { readonly kind: "CLUSTER"; readonly clusterId: string });
 
 function metric(value: number | undefined): MetricAvailability {
-  return value === undefined
+  return value === undefined || !Number.isFinite(value)
     ? { status: "UNAVAILABLE", reason: "NOT_SUPPLIED" }
     : { status: "AVAILABLE", value };
+}
+
+export function formatMetricAvailability(
+  availability: MetricAvailability,
+): string {
+  return availability.status === "AVAILABLE"
+    ? `${(availability.value * 100).toFixed(1)}%`
+    : "NOT COMPUTED";
 }
 
 function stableValue(value: unknown): string {

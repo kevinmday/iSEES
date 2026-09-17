@@ -15,14 +15,20 @@ import type { ReactNode } from "react";
 interface TooltipProps {
   text: string;
   children: ReactNode;
+  placement?: "left" | "right";
 }
 
 export default function Tooltip({
   text,
   children,
+  placement = "right",
 }: TooltipProps) {
-  const [visible, setVisible] =
+  const [hovered, setHovered] =
     useState(false);
+  const [focused, setFocused] =
+    useState(false);
+  const visible = hovered || focused;
+  const opensLeft = placement === "left";
 
   return (
     <div
@@ -30,8 +36,10 @@ export default function Tooltip({
         position: "relative",
         display: "inline-flex",
       }}
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
     >
       {children}
 
@@ -41,9 +49,19 @@ export default function Tooltip({
 
           bottom: "calc(100% + 14px)",
 
-          left: "0",
+          left: opensLeft ? "auto" : 0,
 
-          width: 340,
+          right: opensLeft ? 0 : "auto",
+
+          width: opensLeft ? 232 : 340,
+
+          maxWidth: "calc(100vw - 32px)",
+
+          boxSizing: "border-box",
+
+          whiteSpace: "normal",
+
+          overflowWrap: "anywhere",
 
           padding: "12px 14px",
 
@@ -90,7 +108,9 @@ export default function Tooltip({
 
             top: "100%",
 
-            left: 22,
+            left: opensLeft ? "auto" : 22,
+
+            right: opensLeft ? 22 : "auto",
 
             width: 0,
             height: 0,

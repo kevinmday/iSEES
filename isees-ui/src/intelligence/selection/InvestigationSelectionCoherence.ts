@@ -7,7 +7,6 @@ import {
   WorkspaceSelectionKind,
   type WorkspaceSelection,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
-import { buildCanonicalInvestigationGraph } from "./CanonicalInvestigationGraph";
 
 const SYSTEM_CANON_SOURCE_TYPE = "SYSTEM_CANON";
 
@@ -49,17 +48,17 @@ export function resolveCoherentInvestigationSelection(
     return undefined;
   }
 
+  let revision;
+  try {
+    revision = resolveCurrentOperationalRevision(investigation);
+  } catch {
+    return undefined;
+  }
+  const graph = revision.manifold.graph;
+
   if (selection.kind === WorkspaceSelectionKind.NODE) {
-    try {
-      const revision = resolveCurrentOperationalRevision(investigation);
-      const node = revision.manifold.graph.nodes.find(
-        candidate => candidate.id === selection.nodeId,
-      );
-      if (!node) return undefined;
-      return selection;
-    } catch {
-      return undefined;
-    }
+    const node = graph.nodes.find(candidate => candidate.id === selection.nodeId);
+    return node ? selection : undefined;
   }
 
   const focusedNodeId = focusedEventKnowledgeObjectId(investigation, knowledgeObjects);
@@ -74,7 +73,7 @@ export function resolveCoherentInvestigationSelection(
 
   if (selection.kind === WorkspaceSelectionKind.COMPARISON_TARGET) return undefined;
 
-  const graph = buildCanonicalInvestigationGraph(knowledgeObjects, focusedNodeId);
+  if (!graph.nodes.some(node => node.id === focusedNodeId)) return undefined;
   const connected = new Set<string>([focusedNodeId]);
   let changed = true;
   while (changed) {
@@ -91,7 +90,10 @@ export function resolveCoherentInvestigationSelection(
   }
 
   const edge = graph.edges.find(candidate => candidate.id === selection.edgeId);
-  return edge && connected.has(edge.source) && connected.has(edge.target)
+  const endpointsExist = edge !== undefined &&
+    graph.nodes.some(node => node.id === edge.source) &&
+    graph.nodes.some(node => node.id === edge.target);
+  return edge && endpointsExist && connected.has(edge.source) && connected.has(edge.target)
     ? selection
     : undefined;
 }
