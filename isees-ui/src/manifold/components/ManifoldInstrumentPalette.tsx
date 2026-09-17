@@ -34,6 +34,7 @@ import {
 
 import {
   clampInstrumentPoint,
+  resolveInstrumentHomePosition,
   useManifoldInstrumentLayer,
 } from "./ManifoldInstrumentLayer";
 
@@ -41,6 +42,7 @@ import type {
   PointerEvent as ReactPointerEvent,
   ReactNode,
 } from "react";
+import type { InstrumentHomePosition } from "./ManifoldInstrumentLayer";
 
 // ============================================================
 // TYPES
@@ -67,7 +69,7 @@ interface ManifoldInstrumentPaletteProps {
   instrumentId: string;
   title: string;
   children: ReactNode;
-  defaultPosition: InstrumentPosition;
+  defaultPosition: InstrumentHomePosition;
   width?: number;
 }
 
@@ -200,6 +202,14 @@ export default function ManifoldInstrumentPalette({
   width = 126,
 }: ManifoldInstrumentPaletteProps) {
 
+  const defaultRight = "right" in defaultPosition ? defaultPosition.right : undefined;
+  const defaultX = "x" in defaultPosition ? defaultPosition.x : undefined;
+  const defaultY = "top" in defaultPosition ? defaultPosition.top : defaultPosition.y;
+  const initialHomePosition =
+    defaultRight === undefined
+      ? { x: defaultX ?? 0, y: defaultY }
+      : { x: 0, y: defaultY };
+
   const instrumentLayer = useManifoldInstrumentLayer();
   const registerInstrument = instrumentLayer?.register;
   const unregisterInstrument = instrumentLayer?.unregister;
@@ -223,7 +233,7 @@ export default function ManifoldInstrumentPalette({
     useState<PersistedInstrumentState>(() =>
       loadInstrumentState(
         instrumentId,
-        defaultPosition,
+        initialHomePosition,
       ),
     );
 
@@ -236,6 +246,9 @@ export default function ManifoldInstrumentPalette({
 
   const positionRef =
     useRef(initialState.position);
+
+  const [homePosition, setHomePosition] =
+    useState(initialHomePosition);
 
   const [
     dragging,
@@ -262,9 +275,9 @@ export default function ManifoldInstrumentPalette({
   const distanceFromDock =
     Math.hypot(
       position.x -
-        defaultPosition.x,
+        homePosition.x,
       position.y -
-        defaultPosition.y
+        homePosition.y
     );
 
   const nearDock =
@@ -281,8 +294,15 @@ export default function ManifoldInstrumentPalette({
 
     const contain = (): void => {
       const current = positionRef.current;
+      const home = resolveInstrumentHomePosition(
+        defaultRight === undefined
+          ? { x: defaultX ?? 0, y: defaultY }
+          : { right: defaultRight, top: defaultY },
+        viewport.clientWidth,
+        palette.offsetWidth,
+      );
       const next = clampInstrumentPosition(
-        current,
+        dockStateRef.current === "DOCKED" ? home : current,
         viewport.clientWidth,
         viewport.clientHeight,
         palette.offsetWidth,
@@ -291,6 +311,9 @@ export default function ManifoldInstrumentPalette({
 
       setInstrumentHeight(current =>
         current === palette.offsetHeight ? current : palette.offsetHeight,
+      );
+      setHomePosition(current =>
+        current.x === home.x && current.y === home.y ? current : home,
       );
 
       registerInstrument?.(
@@ -319,7 +342,7 @@ export default function ManifoldInstrumentPalette({
       observer.disconnect();
       unregisterInstrument?.(instrumentId);
     };
-  }, [dockState, instrumentId, registerInstrument, unregisterInstrument]);
+  }, [defaultRight, defaultX, defaultY, dockState, instrumentId, registerInstrument, unregisterInstrument]);
 
   const resolvedPosition =
     instrumentLayer?.position(instrumentId, position) ?? position;
@@ -427,8 +450,8 @@ export default function ManifoldInstrumentPalette({
     moveInstrument?.(instrumentId, { x: nextX, y: nextY });
 
     if (
-      nextX !== defaultPosition.x ||
-      nextY !== defaultPosition.y
+      nextX !== homePosition.x ||
+      nextY !== homePosition.y
     ) {
       setDockState("FLOATING");
       dockStateRef.current = "FLOATING";
@@ -464,15 +487,15 @@ export default function ManifoldInstrumentPalette({
     const shouldDock =
       Math.hypot(
         position.x -
-          defaultPosition.x,
+          homePosition.x,
         position.y -
-          defaultPosition.y
+          homePosition.y
       ) <= DOCK_SNAP_TOLERANCE;
 
        if (shouldDock) {
 
       const nextState: PersistedInstrumentState = {
-        position: defaultPosition,
+        position: homePosition,
         dockState: "DOCKED",
       };
 
@@ -532,8 +555,8 @@ export default function ManifoldInstrumentPalette({
           style={{
             position: "absolute",
 
-            left: defaultPosition.x,
-            top: defaultPosition.y,
+            left: homePosition.x,
+            top: homePosition.y,
 
             width: width + 16,
             height:

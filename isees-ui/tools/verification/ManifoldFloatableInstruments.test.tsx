@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import ManifoldInstrumentLayer, {
   instrumentRectsIntersect,
+  resolveInstrumentHomePosition,
   resolveInstrumentLayout,
 } from "../../src/manifold/components/ManifoldInstrumentLayer";
 import ManifoldInstrumentPalette from "../../src/manifold/components/ManifoldInstrumentPalette";
@@ -20,6 +21,19 @@ function rectangles(layout: Readonly<Record<string, { x: number; y: number }>>) 
 }
 
 describe("MANIFOLD shared floatable instrument placement", () => {
+  it("right-anchors Camera responsively with a safe inset", () => {
+    expect(resolveInstrumentHomePosition({ right: 12, top: 12 }, 900, sizes.camera.width))
+      .toEqual({ x: 746, y: 12 });
+    expect(resolveInstrumentHomePosition({ right: 12, top: 12 }, 360, sizes.camera.width))
+      .toEqual({ x: 206, y: 12 });
+    expect(resolveInstrumentHomePosition({ right: 12, top: 12 }, 120, sizes.camera.width))
+      .toEqual({ x: 0, y: 12 });
+    expect(resolveInstrumentHomePosition({ x: 12, y: 12 }, 900, sizes.computation.width))
+      .toEqual({ x: 12, y: 12 });
+    expect(resolveInstrumentHomePosition({ x: 12, y: 154 }, 900, sizes.projection.width))
+      .toEqual({ x: 12, y: 154 });
+  });
+
   it("places expanded Resolve feedback, projection, camera, and minimap without intersection", () => {
     const instruments = [
       { id: "computation", preferred: { x: 12, y: 12 }, size: sizes.computation },

@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 export interface InstrumentPoint { x: number; y: number }
 export interface InstrumentSize { width: number; height: number }
 export interface InstrumentRect extends InstrumentPoint, InstrumentSize { id: string }
+export type InstrumentHomePosition = InstrumentPoint | { right: number; top: number };
 
 const INSTRUMENT_GAP = 8;
 
@@ -31,6 +32,21 @@ export function clampInstrumentPoint(
     x: Math.min(Math.max(0, point.x), Math.max(0, viewport.width - size.width)),
     y: Math.min(Math.max(0, point.y), Math.max(0, viewport.height - size.height)),
   };
+}
+
+export function resolveInstrumentHomePosition(
+  position: InstrumentHomePosition,
+  viewportWidth: number,
+  instrumentWidth: number,
+): InstrumentPoint {
+  if ("right" in position) {
+    return {
+      x: Math.max(0, viewportWidth - instrumentWidth - position.right),
+      y: position.top,
+    };
+  }
+
+  return position;
 }
 
 function candidatePoints(

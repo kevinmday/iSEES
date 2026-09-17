@@ -119,8 +119,8 @@ export default function ManifoldCameraInstrument({
       instrumentId="camera"
       title="Camera"
       defaultPosition={{
-        x: 166,
-        y: 12,
+        right: 12,
+        top: 12,
       }}
     >
 

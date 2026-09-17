@@ -7,6 +7,7 @@ const read = (path: string): string => readFileSync(`${root}${path}`, "utf8");
 
 const camera = read("src/manifold/components/ManifoldCameraInstrument.tsx");
 const palette = read("src/manifold/components/ManifoldInstrumentPalette.tsx");
+const layer = read("src/manifold/components/ManifoldInstrumentLayer.tsx");
 const toolbar = read("src/manifold/components/ManifoldToolbar.tsx");
 const graph2D = read("src/manifold/components/InvestigationGraph.tsx");
 const graph3D = read("src/manifold/components/InvestigationGraph3D.tsx");
@@ -18,14 +19,14 @@ assert.match(
 );
 assert.match(
   camera,
-  /<ManifoldInstrumentPalette\s+instrumentId="camera"\s+title="Camera"\s+defaultPosition=\{\{\s*x: 166,\s*y: 12,\s*\}\}/,
-  "Camera renders the shared palette with canonical identity and default position",
+  /<ManifoldInstrumentPalette\s+instrumentId="camera"\s+title="Camera"\s+defaultPosition=\{\{\s*right: 12,\s*top: 12,\s*\}\}/,
+  "Camera renders the shared palette with a safely inset right-anchored home position",
 );
 
 const cameraRender = camera.slice(camera.indexOf("export default function"));
 assert.doesNotMatch(
   cameraRender,
-  /position:\s*"absolute"|\btop:\s*12|\bleft:\s*166|zIndex:\s*100/,
+  /position:\s*"absolute"|\bleft:\s*166|zIndex:\s*100/,
   "Camera has no duplicated absolute outer frame",
 );
 assert.equal(
@@ -54,6 +55,8 @@ assert.doesNotMatch(
 assert.match(palette, />\s*⠿\s*</, "shared palette provides the standard six-dot drag handle");
 assert.match(palette, /setPointerCapture/, "shared palette owns pointer capture");
 assert.match(palette, /clampInstrumentPosition/, "shared palette owns bounds clamping");
+assert.match(layer, /resolveInstrumentHomePosition/, "shared layer defines responsive home-position resolution");
+assert.match(palette, /resolveInstrumentHomePosition/, "shared palette resolves responsive home positions");
 assert.match(palette, /localStorage\.setItem/, "shared palette owns position persistence");
 
 assert.match(
