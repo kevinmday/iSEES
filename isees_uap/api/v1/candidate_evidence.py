@@ -33,7 +33,9 @@ from isees_uap.candidate_evidence.upload_policy import sanitize_display_filename
 from isees_uap.candidate_evidence.web_discovery_runtime import (
     WebDiscoveryRuntimeError, WebDiscoverySearchRuntime,
 )
+from isees_uap.candidate_evidence.web_discovery_capture import WebDiscoveryCaptureService
 from isees_uap.candidate_evidence.web_discovery_schemas import (
+    WebDiscoveryCaptureCommand, WebDiscoveryCaptureResponse,
     WebDiscoverySearchCommand, WebDiscoverySearchResponse,
 )
 
@@ -85,6 +87,13 @@ def native_case_service(
 def web_discovery_runtime() -> WebDiscoverySearchRuntime:
     """Process-owned ephemeral search authority; overrideable/resettable in tests."""
     return WebDiscoverySearchRuntime()
+
+
+def web_discovery_capture_service(
+    svc: CandidateEvidenceService = Depends(service),
+    runtime: WebDiscoverySearchRuntime = Depends(web_discovery_runtime),
+) -> WebDiscoveryCaptureService:
+    return WebDiscoveryCaptureService(svc, runtime)
 
 
 def _require_optional_owned_investigation(
@@ -145,6 +154,35 @@ def search_web_discovery(
     return JSONResponse(
         status_code=result.status_code,
         content=result.response.model_dump(mode="json", exclude_none=False),
+    )
+
+
+@router.post("/web-discovery/captures", response_model=WebDiscoveryCaptureResponse)
+def capture_web_discovery(
+    investigation_id: InvestigationPath,
+    command: WebDiscoveryCaptureCommand,
+    owner: str = Depends(owned_mutation_principal),
+    parent_repo=Depends(investigation_repository),
+    capture_service: WebDiscoveryCaptureService = Depends(web_discovery_capture_service),
+):
+    if command.investigationId != investigation_id:
+        return _web_discovery_error("INVESTIGATION_MISMATCH", "Path and command Investigation IDs differ", 412)
+    aggregate = parent_repo.get_empty_aggregate(
+        investigation_id=investigation_id, owner_principal_id=owner)
+    if aggregate is None:
+        from isees_uap.investigations.errors import InvestigationNotFound
+        raise InvestigationNotFound("Investigation was not found")
+    if command.expectedInvestigationRevision != aggregate.revision:
+        return _web_discovery_error("REVISION_CONFLICT", "Expected Investigation revision is stale", 409)
+    if command.manifoldRevisionId != f"investigation-aggregate:{aggregate.revision}":
+        return _web_discovery_error("REVISION_CONFLICT", "Manifold revision is stale", 409)
+    try:
+        result, replayed = capture_service.capture(principal_id=owner, command=command)
+    except WebDiscoveryRuntimeError as error:
+        return _web_discovery_error(error.code, str(error), error.status_code)
+    return JSONResponse(
+        status_code=200 if replayed else 201,
+        content=result.model_dump(mode="json", exclude_none=False),
     )
 
 

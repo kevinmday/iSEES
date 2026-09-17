@@ -347,6 +347,7 @@ class _SessionRecord:
     request: SearchRequest
     outcome: SearchOutcome
     fingerprint: str
+    captured_results: dict[str, str] = field(default_factory=dict)
 
 
 class InMemoryWebDiscoverySessions:
@@ -410,8 +411,36 @@ class InMemoryWebDiscoverySessions:
             request.manifold_revision_id, request.adapter_id, request.adapter_version,
             request.normalized_query, request.query_normalization_version, request.idempotency_key,
             request.created_at, request.expires_at, request.selected_object_context,
-            outcome.status, outcome.result_count, 0, outcome.error, outcome.receipt,
+            outcome.status, outcome.result_count, len(record.captured_results), outcome.error, outcome.receipt,
         )
+
+    def resolve_capture(self, *, search_session_id: str, result_id: str, principal_id: str,
+                        investigation_id: str, expected_investigation_revision: int,
+                        manifold_revision_id: str) -> tuple[SessionProjection, SearchResult]:
+        result = self.resolve_result(
+            search_session_id=search_session_id, result_id=result_id,
+            principal_id=principal_id, investigation_id=investigation_id,
+            expected_investigation_revision=expected_investigation_revision,
+            manifold_revision_id=manifold_revision_id,
+        )
+        return self.project(
+            search_session_id=search_session_id, principal_id=principal_id,
+            investigation_id=investigation_id,
+            expected_investigation_revision=expected_investigation_revision,
+            manifold_revision_id=manifold_revision_id,
+        ), result
+
+    def mark_captured(self, *, search_session_id: str, result_id: str, candidate_id: str,
+                      principal_id: str, investigation_id: str,
+                      expected_investigation_revision: int, manifold_revision_id: str) -> None:
+        record = self._authorize(search_session_id, principal_id, investigation_id,
+                                 expected_investigation_revision, manifold_revision_id)
+        if not any(item.result_id == result_id for item in record.outcome.results):
+            raise WebDiscoveryError(WebDiscoveryErrorCode.RESULT_NOT_FOUND, "result is not in the authoritative session")
+        prior = record.captured_results.get(result_id)
+        if prior is not None and prior != candidate_id:
+            raise WebDiscoveryError(WebDiscoveryErrorCode.RESULT_MISMATCH, "result is bound to another candidate")
+        record.captured_results[result_id] = candidate_id
 
     def resolve_result(self, *, search_session_id: str, result_id: str, principal_id: str,
                        investigation_id: str, expected_investigation_revision: int,

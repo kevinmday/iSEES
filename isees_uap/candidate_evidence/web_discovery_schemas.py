@@ -1,4 +1,4 @@
-"""Strict HTTP projections for authenticated Web Discovery search only."""
+"""Strict HTTP projections for authenticated Web Discovery search and capture."""
 
 from __future__ import annotations
 
@@ -118,3 +118,86 @@ class WebDiscoverySearchResponse(StrictWebDiscoveryModel):
     warnings: list[str]
     error: WebDiscoveryStableErrorProjection | None = None
     receipt: WebDiscoveryZeroEffectReceiptProjection
+
+
+class WebDiscoveryCaptureCommand(StrictWebDiscoveryModel):
+    schemaVersion: Literal["web-discovery-capture/v1"]
+    investigationId: Identity
+    expectedInvestigationRevision: int = Field(ge=0)
+    manifoldRevisionId: Identity
+    searchSessionId: Identity
+    resultId: Identity
+    operationId: Identity
+    idempotencyKey: Identity
+    researcherConfirmation: Literal[True]
+    researcherNote: Annotated[str, StringConstraints(
+        strip_whitespace=True, min_length=1, max_length=20_000,
+    )] | None = None
+
+
+class WebDiscoveryCaptureSourceProjection(StrictWebDiscoveryModel):
+    title: str
+    providerReturnedUrl: str
+    normalizedUrl: str
+    sourceDomain: str
+    snippet: str
+    mediaType: str | None = None
+    attribution: str
+    retentionRestrictions: list[str]
+    providerMetadata: dict[str, str]
+
+
+class WebDiscoveryCaptureReceiptProjection(StrictWebDiscoveryModel):
+    schemaVersion: Literal["web-discovery-capture-receipt/v1"]
+    operationId: str
+    searchSessionId: str
+    resultId: str
+    candidateId: str
+    principalAuthority: str
+    investigationId: str
+    expectedInvestigationRevision: int
+    manifoldRevisionId: str
+    providerAdapterId: str
+    providerAdapterVersion: str
+    providerResultId: str | None = None
+    normalizedQuery: str
+    queryNormalizationVersion: str
+    resultRank: int
+    providerReturnedUrl: str
+    normalizedUrl: str
+    capturedAt: datetime
+    idempotencyDisposition: Literal["CREATED", "REPLAYED"]
+    aiAssistance: Literal["NONE"]
+    rexExecution: Literal["NONE"]
+    estimatedProviderCost: Literal[0]
+    actualProviderCost: Literal[0]
+    finalCharge: Literal[0]
+    researchInboxEffect: Literal["NONE"]
+    publicationEffect: Literal["NONE"]
+    candidateKnowledgeEffect: Literal["NONE"]
+    canonEffect: Literal["NONE"]
+    graphEffect: Literal["NONE"]
+    manifoldEffect: Literal["NONE"]
+    resolveEffect: Literal["NONE"]
+
+
+class WebDiscoveryCaptureResponse(StrictWebDiscoveryModel):
+    schemaVersion: Literal["web-discovery-capture-outcome/v1"]
+    operationId: str
+    searchSessionId: str
+    resultId: str
+    investigationId: str
+    expectedInvestigationRevision: int
+    manifoldRevisionId: str
+    candidateId: str
+    candidateRevision: int
+    origin: Literal["DISCOVERY"]
+    intakePathway: Literal["WEB_DISCOVERY"]
+    visibleOrigin: Literal["WEB_DISCOVERED"]
+    lifecycleState: Literal["DISCOVERED", "REFERENCED", "IN_REVIEW", "DEFERRED", "EXCLUDED"]
+    acquisitionState: Literal["NOT_REQUESTED"]
+    publicationState: Literal["NOT_PUBLISHED"]
+    idempotencyDisposition: Literal["CREATED", "REPLAYED"]
+    capturedAt: datetime
+    source: WebDiscoveryCaptureSourceProjection
+    receipt: WebDiscoveryCaptureReceiptProjection

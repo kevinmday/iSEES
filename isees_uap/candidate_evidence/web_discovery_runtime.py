@@ -135,6 +135,34 @@ class WebDiscoverySearchRuntime:
         status_codes = {"UNAVAILABLE": 503, "RATE_LIMITED": 429, "FAILED": 502, "CANCELLED": 409}
         return RuntimeSearchResult(response, status_codes.get(outcome.status.value, 200))
 
+    def resolve_capture(self, *, principal_id: str, investigation_id: str,
+                        expected_investigation_revision: int, manifold_revision_id: str,
+                        search_session_id: str, result_id: str):
+        self._authority_now = self._clock()
+        try:
+            return self._sessions.resolve_capture(
+                search_session_id=search_session_id, result_id=result_id,
+                principal_id=principal_id, investigation_id=investigation_id,
+                expected_investigation_revision=expected_investigation_revision,
+                manifold_revision_id=manifold_revision_id,
+            )
+        except WebDiscoveryError as error:
+            raise self._translate(error) from error
+
+    def mark_captured(self, *, principal_id: str, investigation_id: str,
+                      expected_investigation_revision: int, manifold_revision_id: str,
+                      search_session_id: str, result_id: str, candidate_id: str) -> None:
+        self._authority_now = self._clock()
+        try:
+            self._sessions.mark_captured(
+                search_session_id=search_session_id, result_id=result_id, candidate_id=candidate_id,
+                principal_id=principal_id, investigation_id=investigation_id,
+                expected_investigation_revision=expected_investigation_revision,
+                manifold_revision_id=manifold_revision_id,
+            )
+        except WebDiscoveryError as error:
+            raise self._translate(error) from error
+
     @staticmethod
     def _translate(error: WebDiscoveryError) -> WebDiscoveryRuntimeError:
         statuses = {

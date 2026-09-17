@@ -95,6 +95,9 @@ class CandidateEvidenceService:
         }
         return self.repository.create(command=internal, principal_id=principal_id, origin="SUBMISSION")
 
+    def capture_web_discovery(self, command: dict[str, Any], principal_id: str):
+        return self.repository.create(command=command, principal_id=principal_id, origin="DISCOVERY")
+
     def get(self, investigation_id: str, candidate_id: str, principal_id: str) -> dict[str, Any]:
         candidate = self.repository.get(investigation_id=investigation_id, candidate_id=candidate_id, principal_id=principal_id)
         if candidate is None:

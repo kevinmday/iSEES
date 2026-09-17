@@ -201,6 +201,11 @@ class SQLiteCandidateEvidenceRepository:
                            "connector": command["connector"], "connectorVersion": command["connectorVersion"]}
                 if command.get("intakeProvenance") is not None:
                     lineage["intakeProvenance"] = command["intakeProvenance"]
+                if command.get("captureReceipt") is not None:
+                    lineage["captureReceipt"] = {
+                        **command["captureReceipt"], "candidateId": candidate_id,
+                        "capturedAt": occurred_at, "idempotencyDisposition": "CREATED",
+                    }
             else:
                 lineage = {
                     "kind": "CURATED_REPOSITORY", "referencedAt": occurred_at,
@@ -214,7 +219,7 @@ class SQLiteCandidateEvidenceRepository:
                  _canonical(command["association"]) if command.get("association") else None, lifecycle,
                  command.get("acquisitionState", "NOT_REQUESTED"), command.get("availability", "UNKNOWN"),
                  occurred_at, occurred_at, principal_id, create_fingerprint, command.get("manifoldRevisionId"),
-                 intake_pathway, "NOT_REQUESTED", command.get("operationId"), command.get("normalizationVersion"),
+                 intake_pathway, command.get("publicationState", "NOT_REQUESTED"), command.get("operationId"), command.get("normalizationVersion"),
                  command.get("investigationAggregateRevision"), command.get("originalFilename"),
                  command.get("displayFilename"), command.get("byteSize"), command.get("detectedMediaType"),
                  command.get("mediaCategory"), command.get("contentSha256"), command.get("storageIdentity"),
@@ -223,7 +228,8 @@ class SQLiteCandidateEvidenceRepository:
             connection.execute(
                 "INSERT INTO candidate_provenance_event VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (str(uuid.uuid4()), candidate_id, investigation_id, 0, f"CREATED_{origin}", principal_id,
-                 "AUTOMATION" if origin == "DISCOVERY" else "HUMAN", occurred_at, 0, 0, lifecycle, lifecycle),
+                 "HUMAN" if command.get("researcherConfirmed") else ("AUTOMATION" if origin == "DISCOVERY" else "HUMAN"),
+                 occurred_at, 0, 0, lifecycle, lifecycle),
             )
             if origin == "CURATED_REPOSITORY":
                 connection.execute("UPDATE candidate_evidence SET availability=? WHERE candidate_id=?",
