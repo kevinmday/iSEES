@@ -50,6 +50,7 @@ import {
 
 import type {
   SelectionIntelligence,
+  SelectionIntelligenceContext,
 } from "../../manifold/selection/selectionIntelligenceResolver";
 
 import {
@@ -69,6 +70,10 @@ export interface CanonicalSelectionIntelligenceRequest {
 
   readonly centerNodeId?:
     string;
+
+  readonly investigationId?: string;
+
+  readonly manifoldRevisionId?: string;
 }
 
 // ============================================================
@@ -132,9 +137,45 @@ export function resolveCanonicalSelectionIntelligence(
         };
   })();
 
+  if (
+    request.selection?.kind === "NODE" &&
+    graphSelection.kind === "NONE"
+  ) {
+    return {
+      kind: "NONE",
+      availability: {
+        status: "UNAVAILABLE",
+        reason: "SELECTION_NOT_FOUND",
+      },
+    };
+  }
+
+  if (
+    request.selection?.kind === "EDGE" &&
+    graphSelection.kind === "NONE"
+  ) {
+    return {
+      kind: "NONE",
+      availability: {
+        status: "UNAVAILABLE",
+        reason: "SELECTION_NOT_FOUND",
+      },
+    };
+  }
+
+  const context: SelectionIntelligenceContext | undefined =
+    request.investigationId !== undefined &&
+    request.manifoldRevisionId !== undefined
+      ? {
+          investigationId: request.investigationId,
+          manifoldRevisionId: request.manifoldRevisionId,
+        }
+      : undefined;
+
   return resolveSelectionIntelligence(
     graphSelection,
     graph,
+    context,
   );
 }
 
