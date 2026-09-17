@@ -4,10 +4,11 @@ from datetime import date, time
 from typing import Annotated, Any, Literal
 import re
 import unicodedata
-from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+
+from .url_normalization import UrlNormalizationError, normalize_http_url
 
 
 Identity = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -92,21 +93,9 @@ class ResearcherIntakeCreate(StrictModel):
         if self.submittedUrl is None:
             return None
         try:
-            parsed = urlsplit(self.submittedUrl)
-            port = parsed.port
-        except ValueError as error:
-            raise ValueError("submittedUrl is malformed") from error
-        if parsed.scheme.lower() not in ("http", "https"):
-            raise ValueError("submittedUrl must use http or https")
-        if not parsed.hostname or parsed.username is not None or parsed.password is not None:
-            raise ValueError("submittedUrl must have a host and cannot contain credentials")
-        host = parsed.hostname.encode("idna").decode("ascii").lower()
-        if ":" in host and not host.startswith("["):
-            host = f"[{host}]"
-        scheme = parsed.scheme.lower()
-        netloc = host if port is None or (scheme == "http" and port == 80) or (scheme == "https" and port == 443) else f"{host}:{port}"
-        path = quote(unquote(parsed.path or "/"), safe="/%:@!$&'()*+,;=-._~")
-        return urlunsplit((scheme, netloc, path, parsed.query, ""))
+            return normalize_http_url(self.submittedUrl).normalized_url
+        except UrlNormalizationError as error:
+            raise ValueError(f"submittedUrl is invalid: {error}") from error
 
 
 class DirectUploadCreate(StrictModel):
