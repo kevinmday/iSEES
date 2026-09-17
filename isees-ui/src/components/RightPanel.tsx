@@ -350,7 +350,7 @@ export default function RightPanel() {
         )
       }
 
-      <RexExploreControl />
+      <RexExploreControl selectionBinding={graphIntelligence.kind === "NONE" ? undefined : graphIntelligence.binding} />
 
     </div>
   );
