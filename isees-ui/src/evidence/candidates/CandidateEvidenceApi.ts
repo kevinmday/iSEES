@@ -12,7 +12,7 @@ export interface SubmissionCommand { readonly schemaVersion: "candidate-evidence
 export interface ResearcherIntakeCommand { readonly schemaVersion: "candidate-evidence-intake/v1"; readonly investigationId: string; readonly expectedInvestigationRevision: number; readonly manifoldRevisionId: string; readonly pathway: "DIRECT_URL" | "RESEARCHER_NOTE" | "WEB_DISCOVERY"; readonly operationId: string; readonly submittedUrl?: string; readonly title?: string; readonly noteText?: string; readonly idempotencyKey: string }
 export interface DirectUploadCommand { readonly schemaVersion: "candidate-evidence-upload/v1"; readonly investigationId: string; readonly expectedInvestigationRevision: number; readonly manifoldRevisionId: string; readonly operationId: string; readonly idempotencyKey: string; readonly title?: string; readonly noteText?: string; readonly file: File }
 export interface LifecycleCommand { readonly schemaVersion: "candidate-evidence-command/v1"; readonly investigationId: string; readonly expectedRevision: number; readonly to: Exclude<ApiCandidateLifecycle, "DISCOVERED" | "SUBMITTED">; readonly reviewDecision?: { readonly decision: "DEFERRED" | "EXCLUDED"; readonly reason: string }; readonly idempotencyKey: string }
-export interface CandidateEvidenceBackendError { readonly code: string; readonly message: string; readonly requestId?: string }
+export interface CandidateEvidenceBackendError { readonly code: string; readonly message: string; readonly requestId?: string; readonly existingCandidateId?: string }
 export class CandidateEvidenceHttpError extends Error {
   readonly status: number;
   readonly backendError?: CandidateEvidenceBackendError;
@@ -32,9 +32,9 @@ function backendError(value: unknown): CandidateEvidenceBackendError | undefined
   if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
   const envelope = (value as { readonly error?: unknown }).error;
   if (envelope === null || typeof envelope !== "object" || Array.isArray(envelope)) return undefined;
-  const error = envelope as { readonly code?: unknown; readonly message?: unknown; readonly requestId?: unknown };
+  const error = envelope as { readonly code?: unknown; readonly message?: unknown; readonly requestId?: unknown; readonly existingCandidateId?: unknown };
   if (typeof error.code !== "string" || typeof error.message !== "string") return undefined;
-  return Object.freeze({ code: error.code, message: error.message, ...(typeof error.requestId === "string" ? { requestId: error.requestId } : {}) });
+  return Object.freeze({ code: error.code, message: error.message, ...(typeof error.requestId === "string" ? { requestId: error.requestId } : {}), ...(typeof error.existingCandidateId === "string" ? { existingCandidateId: error.existingCandidateId } : {}) });
 }
 export function createCandidateEvidenceRequester(options: CandidateEvidenceRequestOptions = {}) {
   const baseUrl = (options.baseUrl ?? CANDIDATE_EVIDENCE_API_BASE_URL).replace(/\/$/, "");

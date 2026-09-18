@@ -28,6 +28,18 @@ class IdempotencyConflict(Conflict):
 class OriginConflict(Conflict):
     code = "ORIGIN_IDENTITY_CONFLICT"
 
+    def __init__(self, message: str, *, existing_candidate_id: str | None = None):
+        super().__init__(message)
+        self.existing_candidate_id = existing_candidate_id
+
+
+class WebDiscoveryAlreadyCaptured(Conflict):
+    code = "WEB_DISCOVERY_ALREADY_CAPTURED"
+
+    def __init__(self, existing_candidate_id: str):
+        super().__init__("Web Discovery result is already captured")
+        self.existing_candidate_id = existing_candidate_id
+
 
 class ProhibitedTransition(Conflict):
     code = "PROHIBITED_TRANSITION"

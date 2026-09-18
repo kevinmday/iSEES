@@ -232,6 +232,43 @@ def test_idempotent_replay_and_changed_governed_input(capture_session):
         manifold_revision_id="investigation-aggregate:0").capture_count == 1
 
 
+def test_repeated_search_duplicate_returns_stable_candidate_identity_without_other_effects(capture_session):
+    session, candidates, runtime, _ = capture_session
+    before = session.investigations.get_empty_aggregate(
+        investigation_id="investigation-a", owner_principal_id=session.account_id)
+    with sqlite3.connect(session.investigations.path) as connection:
+        inbox_before = connection.execute(
+            "SELECT count(*) FROM investigation_research_inbox").fetchone()[0]
+
+    first_search = searched(capture_session)
+    first = post(session, CAPTURE, capture_command(first_search["results"][0]["resultId"]))
+    assert first.status_code == 201
+    second_search = searched(capture_session, command=search_command(
+        "session-2", "search-2", "search-key-2"))
+    duplicate = post(session, CAPTURE, capture_command(
+        second_search["results"][0]["resultId"], session="session-2",
+        key="capture-key-2", operationId="capture-2"))
+
+    assert duplicate.status_code == 409
+    assert duplicate.json() == {"error": {
+        "code": "WEB_DISCOVERY_ALREADY_CAPTURED",
+        "message": "Web Discovery result is already captured",
+        "existingCandidateId": first.json()["candidateId"],
+    }}
+    items, _ = candidates.list(investigation_id="investigation-a",
+                               principal_id=session.account_id, limit=10, cursor=None)
+    assert len(items) == 1 and items[0]["candidateId"] == first.json()["candidateId"]
+    assert session.investigations.get_empty_aggregate(
+        investigation_id="investigation-a", owner_principal_id=session.account_id) == before
+    with sqlite3.connect(session.investigations.path) as connection:
+        assert connection.execute(
+            "SELECT count(*) FROM investigation_research_inbox").fetchone()[0] == inbox_before
+    assert runtime._sessions.project(
+        search_session_id="session-2", principal_id=session.account_id,
+        investigation_id="investigation-a", expected_investigation_revision=0,
+        manifold_revision_id="investigation-aggregate:0").capture_count == 0
+
+
 def test_capture_candidate_uses_existing_review_lifecycle(capture_session):
     session, _, _, _ = capture_session
     result_id = searched(capture_session)["results"][0]["resultId"]

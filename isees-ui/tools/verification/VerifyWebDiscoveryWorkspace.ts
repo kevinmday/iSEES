@@ -38,6 +38,10 @@ for (const forbidden of ["title", "providerReturnedUrl", "normalizedUrl", "snipp
 includes(component, 'captured.disposition === "CREATED"', "created capture outcome has distinct feedback");
 includes(component, "Already captured / replayed", "replayed capture outcome has distinct feedback");
 includes(controller, "await onCandidateCaptured(outcome.candidateId)", "successful capture invokes only Candidate Evidence refresh callback");
+includes(controller, "webDiscoveryAlreadyCaptured(caught)", "authoritative duplicate conflict is recognized as a governed replay");
+includes(controller, "[resultId]: replayed", "duplicate replay visibly binds the stable Candidate Evidence identity to the result");
+check((controller.match(/setConfirmation\(undefined\)/g) ?? []).length >= 4, "duplicate replay deterministically completes the confirmation modal");
+includes(controller, "await onCandidateCaptured(replayed.candidateId)", "duplicate replay refreshes and selects the existing Candidate Evidence projection");
 for (const forbidden of ["ResearchInbox", "ResearchBridge", "CuratedContext", "CandidateKnowledge", "Canon", "GraphRuntime", "ManifoldRuntime", "Resolve", "Studio", "Rex", "AI", "charge", "cost"]) check(!controller.includes(forbidden), `controller has no downstream ${forbidden} integration`);
 includes(controller, "setResponse(undefined)", "authority binding changes clear ephemeral results");
 for (const state of ["authenticated session has expired", "not available to the authenticated account", "revision changed", "discovery session expired"]) includes(controller, state, `recoverable ${state} message exists`);

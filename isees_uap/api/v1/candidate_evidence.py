@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from isees_uap.candidate_evidence.blob_storage import DEFAULT_MAX_UPLOAD_BYTES, LocalContentAddressedBlobStore
 from isees_uap.candidate_evidence.config import candidate_blob_root, candidate_database_path
-from isees_uap.candidate_evidence.errors import CandidateEvidenceError, UploadTooLarge
+from isees_uap.candidate_evidence.errors import CandidateEvidenceError, UploadTooLarge, WebDiscoveryAlreadyCaptured
 from isees_uap.candidate_evidence.schemas import (
     CuratedRepositoryCreate, DiscoveryCreate, LifecycleTransition,
     NativeCaseDraftCreate, NativeCaseDraftList, NativeCaseDraftProjection,
@@ -178,6 +178,11 @@ def capture_web_discovery(
         return _web_discovery_error("REVISION_CONFLICT", "Manifold revision is stale", 409)
     try:
         result, replayed = capture_service.capture(principal_id=owner, command=command)
+    except WebDiscoveryAlreadyCaptured as error:
+        return _web_discovery_error(
+            error.code, str(error),
+            409, existing_candidate_id=error.existing_candidate_id,
+        )
     except WebDiscoveryRuntimeError as error:
         return _web_discovery_error(error.code, str(error), error.status_code)
     return JSONResponse(
@@ -186,8 +191,13 @@ def capture_web_discovery(
     )
 
 
-def _web_discovery_error(code: str, message: str, status_code: int) -> JSONResponse:
-    return JSONResponse(status_code=status_code, content={"error": {"code": code, "message": message}})
+def _web_discovery_error(
+    code: str, message: str, status_code: int, *, existing_candidate_id: str | None = None,
+) -> JSONResponse:
+    error = {"code": code, "message": message}
+    if existing_candidate_id is not None:
+        error["existingCandidateId"] = existing_candidate_id
+    return JSONResponse(status_code=status_code, content={"error": error})
 
 
 @router.post("/submissions")

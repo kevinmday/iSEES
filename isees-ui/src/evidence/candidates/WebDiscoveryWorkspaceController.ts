@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CandidateEvidenceApiScope, CandidateEvidenceHttpError } from "./CandidateEvidenceApi";
-import { buildWebDiscoveryCaptureCommand, buildWebDiscoverySearchCommand, webDiscoveryApi } from "./WebDiscoveryApi";
+import { buildWebDiscoveryCaptureCommand, buildWebDiscoverySearchCommand, webDiscoveryAlreadyCaptured, webDiscoveryApi } from "./WebDiscoveryApi";
 import type { WebDiscoveryCaptureDisposition, WebDiscoverySearchResponse, WebDiscoverySearchResult } from "./WebDiscoveryApi";
 
 export const WEB_DISCOVERY_ADAPTER = Object.freeze({ id: "offline-web-discovery-fixture", version: "1.0.0" });
@@ -62,7 +62,14 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
       setCaptured((current) => ({ ...current, [resultId]: { candidateId: outcome.candidateId, disposition: outcome.idempotencyDisposition } }));
       setConfirmation(undefined); setResearcherNote("");
       await onCandidateCaptured(outcome.candidateId);
-    } catch (caught) { setError(visibleError(caught, "capture")); }
+    } catch (caught) {
+      const replayed = webDiscoveryAlreadyCaptured(caught);
+      if (replayed) {
+        setCaptured((current) => ({ ...current, [resultId]: replayed }));
+        setConfirmation(undefined); setResearcherNote("");
+        await onCandidateCaptured(replayed.candidateId);
+      } else setError(visibleError(caught, "capture"));
+    }
     finally { setCapturePending(undefined); }
   }, [binding, capturePending, confirmation, onCandidateCaptured, researcherNote, response, scope]);
 

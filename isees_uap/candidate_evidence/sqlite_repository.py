@@ -169,7 +169,10 @@ class SQLiteCandidateEvidenceRepository:
             if existing is not None:
                 if existing["create_fingerprint"] != create_fingerprint:
                     connection.rollback()
-                    raise OriginConflict("Origin identity is already bound to different candidate metadata")
+                    raise OriginConflict(
+                        "Origin identity is already bound to different candidate metadata",
+                        existing_candidate_id=existing["candidate_id"],
+                    )
                 response = self._candidate(connection, existing)
                 self._store_idempotency(connection, scope, request_hash, response)
                 connection.commit()

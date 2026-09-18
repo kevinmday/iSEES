@@ -1,7 +1,14 @@
 import {
+  CandidateEvidenceHttpError,
   candidateEvidenceRequest,
   type CandidateEvidenceApiScope,
 } from "./CandidateEvidenceApi.ts";
+
+export interface WebDiscoveryAlreadyCapturedOutcome { readonly disposition: "REPLAYED"; readonly candidateId: string }
+export function webDiscoveryAlreadyCaptured(error: unknown): WebDiscoveryAlreadyCapturedOutcome | undefined {
+  if (!(error instanceof CandidateEvidenceHttpError) || error.status !== 409 || error.backendError?.code !== "WEB_DISCOVERY_ALREADY_CAPTURED" || !error.backendError.existingCandidateId) return undefined;
+  return Object.freeze({ disposition: "REPLAYED", candidateId: error.backendError.existingCandidateId });
+}
 
 export interface WebDiscoverySelectedObjectContext { readonly objectType: string; readonly objectId: string; readonly objectRevision?: string | null }
 export interface WebDiscoveryExecutionPolicy { readonly metadataOnly: true; readonly aiAssistance: "NONE"; readonly rexExecution: "NONE"; readonly authorizedSpend: 0 }

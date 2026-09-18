@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .errors import OriginConflict, WebDiscoveryAlreadyCaptured
 from .service import CandidateEvidenceService
 from .web_discovery_runtime import WebDiscoverySearchRuntime
 from .web_discovery_schemas import WebDiscoveryCaptureCommand, WebDiscoveryCaptureResponse
@@ -81,7 +82,17 @@ class WebDiscoveryCaptureService:
             },
             "captureReceipt": receipt,
         }
-        candidate, replayed = self._candidates.capture_web_discovery(internal, principal_id)
+        try:
+            candidate, replayed = self._candidates.capture_web_discovery(internal, principal_id)
+        except OriginConflict as error:
+            if error.existing_candidate_id is None:
+                raise
+            existing = self._candidates.get(
+                command.investigationId, error.existing_candidate_id, principal_id)
+            existing_receipt = existing["lineage"].get("captureReceipt", {})
+            if existing_receipt.get("searchSessionId") == command.searchSessionId:
+                raise
+            raise WebDiscoveryAlreadyCaptured(error.existing_candidate_id) from error
         self._runtime.mark_captured(
             principal_id=principal_id, investigation_id=command.investigationId,
             expected_investigation_revision=command.expectedInvestigationRevision,

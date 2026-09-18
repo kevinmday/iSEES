@@ -9,6 +9,7 @@ import {
   buildWebDiscoveryCaptureCommand,
   buildWebDiscoverySearchCommand,
   createWebDiscoveryApi,
+  webDiscoveryAlreadyCaptured,
 } from "../../src/evidence/candidates/WebDiscoveryApi.ts";
 
 let passCount = 0;
@@ -66,9 +67,20 @@ try{await api.capture(scope,captureCommand);}catch(error){if(error instanceof Ca
 equal(structured?.status,409,"structured error status");
 deepEqual(structured?.backendError,{code:"REVISION_CONFLICT",message:"Expected Investigation revision is stale",requestId:"request-1"},"structured error envelope");
 
+nextBody={error:{code:"WEB_DISCOVERY_ALREADY_CAPTURED",message:"Web Discovery result is already captured",existingCandidateId:"candidate-1"}};nextStatus=409;
+let duplicate:CandidateEvidenceHttpError|undefined;
+try{await api.capture(scope,captureCommand);}catch(error){if(error instanceof CandidateEvidenceHttpError)duplicate=error;}
+deepEqual(webDiscoveryAlreadyCaptured(duplicate),{disposition:"REPLAYED",candidateId:"candidate-1"},"duplicate conflict becomes typed governed replay outcome");
+equal(duplicate?.backendError?.existingCandidateId,"candidate-1","stable existing Candidate Evidence identity retained");
+
+nextBody={error:{code:"ORIGIN_IDENTITY_CONFLICT",message:"Unrelated origin conflict"}};nextStatus=409;
+let unrelated:CandidateEvidenceHttpError|undefined;
+try{await api.capture(scope,captureCommand);}catch(error){if(error instanceof CandidateEvidenceHttpError)unrelated=error;}
+equal(webDiscoveryAlreadyCaptured(unrelated),undefined,"unrelated conflicts are not converted to replay outcomes");
+
 const source=readFileSync("src/evidence/candidates/WebDiscoveryApi.ts","utf8");
 for(const forbidden of ["CandidateEvidenceRuntime","ResearchInboxStore","publishRex","createAnchorsAtomically","GraphRuntime","ManifoldRuntime","ResolveRuntime","RexApi","AiApi","provider.search","chargeAccount"])check(!source.includes(forbidden),`client has no ${forbidden} side-effect integration`);
-equal(calls.length,5,"only explicit search/capture HTTP calls occurred");
+equal(calls.length,7,"only explicit search/capture HTTP calls occurred");
 check(Object.isFrozen(searched)&&Object.isFrozen(searched.results),"ephemeral search projection is immutable ordinary response data");
 
 console.log(`PASS VerifyWebDiscoveryApiClient — ${passCount} focused assertions passed`);
