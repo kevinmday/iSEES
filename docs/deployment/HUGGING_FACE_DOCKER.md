@@ -27,6 +27,8 @@ Disabling also revokes all active sessions. Output is limited to account ID, nor
 
 MarketMind directories, local databases, outputs, secrets, environment files, backups, patches, discovery reports, caches, and Git data are excluded. Canonical runtime source under `isees_uap/candidate_evidence`, including its Python modules and SQL migrations, remains included even when a source filename contains `discovery`; mutable Candidate Evidence blobs remain excluded under `runtime/candidate_evidence_blobs`. Dockerfile `COPY` boundaries are explicit. Review the effective build context and run `scripts/Verify-HfDockerContract.ps1` before release.
 
+Web Discovery is disabled unless the server explicitly sets `ISEES_WEB_DISCOVERY_MODE`. Supported values are `TAVILY`, `OFFLINE_FIXTURE`, and `DISABLED`; omission is equivalent to `DISABLED`. `TAVILY` also requires a valid server secret named `ISEES_TAVILY_API_KEY`. Never expose that secret to the Space browser environment or commit it to an environment file. `OFFLINE_FIXTURE` is deterministic degraded/offline operation and never a fallback after a Tavily failure.
+
 Run the candidate-access Docker verifier with explicit immutable source authority; it also requires `HEAD` to equal `origin/hf-deploy`:
 
 ```powershell

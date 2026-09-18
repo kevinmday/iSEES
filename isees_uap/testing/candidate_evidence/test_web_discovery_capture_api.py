@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from isees_uap.api import app
 from isees_uap.api.v1.candidate_evidence import repository, web_discovery_runtime
 from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEvidenceRepository
-from isees_uap.candidate_evidence.web_discovery_fixture import FIXTURE_ADAPTER_ID, FIXTURE_ADAPTER_VERSION
+from isees_uap.candidate_evidence.web_discovery_fixture import DeterministicWebDiscoveryFixture
 from isees_uap.candidate_evidence.web_discovery_runtime import WebDiscoverySearchRuntime
 from isees_uap.testing.authenticated_route_support import TEST_PASSWORD, authenticated_route_session
 
@@ -33,8 +33,7 @@ def search_command(session="session-1", operation="search-1", key="search-key-1"
         "schemaVersion": "web-discovery-search/v1", "investigationId": "investigation-a",
         "expectedInvestigationRevision": 0, "manifoldRevisionId": "investigation-aggregate:0",
         "searchSessionId": session, "operationId": operation, "query": "multiple",
-        "resultLimit": 10, "adapterId": FIXTURE_ADAPTER_ID,
-        "adapterVersion": FIXTURE_ADAPTER_VERSION, "idempotencyKey": key,
+        "resultLimit": 10, "idempotencyKey": key,
         "executionPolicy": {"metadataOnly": True, "aiAssistance": "NONE",
                             "rexExecution": "NONE", "authorizedSpend": 0},
     }
@@ -58,7 +57,9 @@ def capture_command(result_id="opaque-result", session="session-1", key="capture
 def capture_session(tmp_path):
     candidates = SQLiteCandidateEvidenceRepository(tmp_path / "candidates.sqlite3")
     clock = Clock()
-    runtime = WebDiscoverySearchRuntime(clock=clock, lifetime_seconds=60)
+    runtime = WebDiscoverySearchRuntime(
+        clock=clock, lifetime_seconds=60,
+        adapter=DeterministicWebDiscoveryFixture())
     app.dependency_overrides[repository] = lambda: candidates
     app.dependency_overrides[web_discovery_runtime] = lambda: runtime
     try:

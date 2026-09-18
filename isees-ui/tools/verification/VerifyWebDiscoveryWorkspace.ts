@@ -45,8 +45,11 @@ includes(controller, "await onCandidateCaptured(replayed.candidateId)", "duplica
 for (const forbidden of ["ResearchInbox", "ResearchBridge", "CuratedContext", "CandidateKnowledge", "Canon", "GraphRuntime", "ManifoldRuntime", "Resolve", "Studio", "Rex", "AI", "charge", "cost"]) check(!controller.includes(forbidden), `controller has no downstream ${forbidden} integration`);
 includes(controller, "setResponse(undefined)", "authority binding changes clear ephemeral results");
 for (const state of ["authenticated session has expired", "not available to the authenticated account", "revision changed", "discovery session expired"]) includes(controller, state, `recoverable ${state} message exists`);
-includes(component, "Deterministic offline fixture", "provider attribution is honest");
-includes(component, "does not search the live internet", "fixture is not represented as live internet access");
+includes(component, "server-authorized Web Discovery runtime", "search presentation preserves server provider authority");
+includes(component, "Browser commands contain no provider choice or credential", "browser has no provider-selection authority");
+for (const runtime of ["Live Tavily Web Discovery", "Explicit offline fixture · no live web access", "Web Discovery unavailable · server configuration disabled or invalid", "Live Tavily · bounded provider failure"]) includes(component, runtime, `runtime presentation includes ${runtime}`);
+for (const status of ["OFFLINE_FIXTURE", "UNAVAILABLE", "RATE_LIMITED", "FAILED"]) includes(component, status, `runtime presentation handles ${status}`);
+check(!controller.includes("adapterId") && !controller.includes("adapterVersion"), "browser search command contains no provider metadata");
 includes(component, 'target="_blank" rel="noopener noreferrer"', "external sources use safe new-tab behavior");
 includes(component, 'aria-live="polite"', "search state is announced");
 includes(component, 'role="alert"', "structured errors are announced");

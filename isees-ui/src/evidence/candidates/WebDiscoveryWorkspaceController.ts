@@ -3,7 +3,6 @@ import type { CandidateEvidenceApiScope, CandidateEvidenceHttpError } from "./Ca
 import { buildWebDiscoveryCaptureCommand, buildWebDiscoverySearchCommand, webDiscoveryAlreadyCaptured, webDiscoveryApi } from "./WebDiscoveryApi";
 import type { WebDiscoveryCaptureDisposition, WebDiscoverySearchResponse, WebDiscoverySearchResult } from "./WebDiscoveryApi";
 
-export const WEB_DISCOVERY_ADAPTER = Object.freeze({ id: "offline-web-discovery-fixture", version: "1.0.0" });
 export interface WebDiscoveryRevisionBinding { readonly investigationAggregateRevision: number; readonly manifoldRevisionId: string }
 interface CaptureConfirmation { readonly result: WebDiscoverySearchResult; readonly operationId: string; readonly idempotencyKey: string }
 export interface CapturedResult { readonly candidateId: string; readonly disposition: WebDiscoveryCaptureDisposition }
@@ -40,7 +39,7 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
     const idempotencyKey = commandIdentity("search-idempotency");
     setSearching(true); setError(undefined); setConfirmation(undefined); setCaptured({});
     try {
-      const outcome = await webDiscoveryApi.search(scope, buildWebDiscoverySearchCommand({ investigationId: scope.investigationId, expectedInvestigationRevision: binding.investigationAggregateRevision, manifoldRevisionId: binding.manifoldRevisionId, searchSessionId, operationId, query: normalized, resultLimit: 10, adapterId: WEB_DISCOVERY_ADAPTER.id, adapterVersion: WEB_DISCOVERY_ADAPTER.version, idempotencyKey }));
+      const outcome = await webDiscoveryApi.search(scope, buildWebDiscoverySearchCommand({ investigationId: scope.investigationId, expectedInvestigationRevision: binding.investigationAggregateRevision, manifoldRevisionId: binding.manifoldRevisionId, searchSessionId, operationId, query: normalized, resultLimit: 10, idempotencyKey }));
       setResponse(outcome);
       if (outcome.error) setError(`${outcome.error.code}: ${outcome.error.message}`);
     } catch (caught) { setError(visibleError(caught, "search")); setResponse(undefined); }

@@ -41,8 +41,6 @@ class WebDiscoverySearchCommand(StrictWebDiscoveryModel):
     )]
     selectedObjectContext: SelectedObjectContextCommand | None = None
     resultLimit: int = Field(ge=1, le=50)
-    adapterId: Identity
-    adapterVersion: Identity
     idempotencyKey: Identity
     executionPolicy: WebDiscoveryExecutionPolicy
 
@@ -110,6 +108,7 @@ class WebDiscoverySearchResponse(StrictWebDiscoveryModel):
     manifoldRevisionId: str
     normalizedQuery: str
     queryNormalizationVersion: str
+    runtimeStatus: Literal["LIVE_WEB_DISCOVERY", "OFFLINE_FIXTURE", "UNAVAILABLE"]
     adapterId: str
     adapterVersion: str
     status: Literal["COMPLETED", "ZERO_RESULTS", "CANCELLED", "UNAVAILABLE", "RATE_LIMITED", "FAILED"]

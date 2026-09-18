@@ -11,9 +11,7 @@ from isees_uap.api.v1.candidate_evidence import (
     repository, web_discovery_runtime,
 )
 from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEvidenceRepository
-from isees_uap.candidate_evidence.web_discovery_fixture import (
-    FIXTURE_ADAPTER_ID, FIXTURE_ADAPTER_VERSION,
-)
+from isees_uap.candidate_evidence.web_discovery_fixture import DeterministicWebDiscoveryFixture
 from isees_uap.candidate_evidence.web_discovery_runtime import WebDiscoverySearchRuntime
 from isees_uap.testing.authenticated_route_support import (
     TEST_PASSWORD, authenticated_route_session,
@@ -33,8 +31,6 @@ def command(query="one", **changes):
         "operationId": "search-operation-1",
         "query": query,
         "resultLimit": 10,
-        "adapterId": FIXTURE_ADAPTER_ID,
-        "adapterVersion": FIXTURE_ADAPTER_VERSION,
         "idempotencyKey": "search-key-1",
         "executionPolicy": {
             "metadataOnly": True, "aiAssistance": "NONE",
@@ -48,7 +44,7 @@ def command(query="one", **changes):
 @pytest.fixture
 def search_session(tmp_path):
     candidates = SQLiteCandidateEvidenceRepository(tmp_path / "candidates.sqlite3")
-    runtime = WebDiscoverySearchRuntime()
+    runtime = WebDiscoverySearchRuntime(adapter=DeterministicWebDiscoveryFixture())
     app.dependency_overrides[repository] = lambda: candidates
     app.dependency_overrides[web_discovery_runtime] = lambda: runtime
     try:
@@ -143,14 +139,13 @@ def test_identity_revision_adapter_csrf_and_validation_fail_before_search(search
         (command(investigationId="other"), 412, "INVESTIGATION_MISMATCH"),
         (command(expectedInvestigationRevision=9), 409, "REVISION_CONFLICT"),
         (command(manifoldRevisionId="investigation-aggregate:9"), 409, "REVISION_CONFLICT"),
-        (command(adapterId="live-provider"), 422, "WEB_DISCOVERY_UNSUPPORTED_ADAPTER"),
-        (command(adapterVersion="2.0.0"), 422, "WEB_DISCOVERY_UNSUPPORTED_ADAPTER"),
     ]
     for body, status, code in cases:
         response = post(session, body)
         assert response.status_code == status
         assert response.json()["error"]["code"] == code
     assert post(session, command(), headers={}).status_code == 403
+    assert post(session, {**command(), "adapterId": "browser-choice"}).status_code == 422
     assert post(session, {**command(), "principalId": "browser-authority"}).status_code == 422
     assert post(session, command(query="x" * 2001)).status_code == 422
     assert post(session, command(resultLimit=51)).status_code == 422

@@ -21,7 +21,7 @@ from .web_discovery import (
     WebDiscoveryAdapter,
 )
 from .web_discovery_schemas import WebDiscoverySearchCommand, WebDiscoverySearchResponse
-from .web_discovery_providers import WebDiscoveryProviderRegistry
+from .web_discovery_providers import WebDiscoveryProviderRegistry, WebDiscoveryRuntimeStatus
 
 
 DEFAULT_SESSION_LIFETIME_SECONDS = 900
@@ -75,7 +75,10 @@ class WebDiscoverySearchRuntime:
             capacity=capacity, lifetime=self._lifetime, clock=lambda: self._authority_now)
         if adapter is not None and provider_registry is not None:
             raise ValueError("adapter and provider_registry are mutually exclusive")
-        self._adapter = adapter or (provider_registry or WebDiscoveryProviderRegistry()).adapter
+        registry = provider_registry or (None if adapter is not None else WebDiscoveryProviderRegistry())
+        self._adapter = adapter or registry.adapter
+        self._runtime_status = (registry.runtime_status if registry is not None
+                                else WebDiscoveryRuntimeStatus.OFFLINE_FIXTURE)
         self._requests: OrderedDict[tuple[str, str, str], SearchRequest] = OrderedDict()
 
     @property
@@ -88,10 +91,6 @@ class WebDiscoverySearchRuntime:
         return self._adapter.execution_count
 
     def search(self, *, principal_id: str, command: WebDiscoverySearchCommand) -> RuntimeSearchResult:
-        if (command.adapterId, command.adapterVersion) != (
-                self._adapter.adapter_id, self._adapter.adapter_version):
-            raise WebDiscoveryRuntimeError(
-                "WEB_DISCOVERY_UNSUPPORTED_ADAPTER", "The requested Web Discovery adapter is not authorized", 422)
         key = (principal_id, command.investigationId, command.idempotencyKey)
         now = self._clock()
         if now.tzinfo is None or now.utcoffset() is None:
@@ -115,8 +114,8 @@ class WebDiscoverySearchRuntime:
             selected_object_context=SelectedObjectContext(
                 context.objectType, context.objectId, context.objectRevision) if context else None,
             requested_result_limit=command.resultLimit,
-            adapter_id=command.adapterId,
-            adapter_version=command.adapterVersion,
+            adapter_id=self._adapter.adapter_id,
+            adapter_version=self._adapter.adapter_version,
             idempotency_key=command.idempotencyKey,
             metadata_only=command.executionPolicy.metadataOnly,
             zero_spend_authorized=command.executionPolicy.authorizedSpend == 0,
@@ -134,7 +133,7 @@ class WebDiscoverySearchRuntime:
             if key in self._requests and self._sessions.session_count == 0:
                 self._requests.pop(key, None)
             raise self._translate(error) from error
-        response = self._response(request, outcome)
+        response = self._response(request, outcome, self._runtime_status)
         status_codes = {"UNAVAILABLE": 503, "RATE_LIMITED": 429, "FAILED": 502, "CANCELLED": 409}
         return RuntimeSearchResult(response, status_codes.get(outcome.status.value, 200))
 
@@ -177,7 +176,7 @@ class WebDiscoverySearchRuntime:
         return WebDiscoveryRuntimeError(code, str(error), status)
 
     @staticmethod
-    def _response(request, outcome) -> WebDiscoverySearchResponse:
+    def _response(request, outcome, runtime_status: WebDiscoveryRuntimeStatus) -> WebDiscoverySearchResponse:
         results = [{
             "resultId": item.result_id, "providerResultId": item.provider_result_id,
             "rank": item.rank, "title": item.title,
@@ -197,6 +196,7 @@ class WebDiscoverySearchRuntime:
             "manifoldRevisionId": request.manifold_revision_id,
             "normalizedQuery": request.normalized_query,
             "queryNormalizationVersion": request.query_normalization_version,
+            "runtimeStatus": runtime_status.value,
             "adapterId": outcome.adapter_id, "adapterVersion": outcome.adapter_version,
             "status": outcome.status.value, "startedAt": outcome.started_at,
             "completedAt": outcome.completed_at, "expiresAt": request.expires_at,

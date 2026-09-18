@@ -22,7 +22,7 @@ The contract makes operationally precise a free researcher-directed path for upl
 
 ## 3. Scope
 
-In scope are implementation-neutral commands, records, ports, states, guards, receipts, UI capabilities, deterministic fixtures, and ownership. Live provider selection, provider credentials, production quotas, migrations, runtime code, and deployment are outside this documentation increment and require later authority.
+In scope are implementation-neutral commands, records, ports, states, guards, receipts, UI capabilities, deterministic fixtures, and ownership. Tavily is the approved V1 live provider. Provider selection and credentials are server-owned runtime configuration; the browser neither selects a provider nor receives its credential.
 
 ## 4. Normative terminology
 
@@ -102,7 +102,7 @@ search(request, cancellation) -> outcome
 
 The bounded request MUST contain schema version, search-session ID, operation ID, principal ID, Investigation ID, expected Investigation aggregate revision, Manifold revision ID, normalized query and query-normalization version, requested result limit, provider-adapter ID and version, idempotency key, creation and expiration timestamps, and an explicit metadata-only/zero-spend policy. The bounded outcome MUST contain schema version, session and operation IDs, adapter and upstream-provider attribution, start and completion timestamps, status, result count, results, receipt, restrictions, warnings, and an optional stable error. Status is one of completed, zero results, cancelled, unavailable, rate limited, or failed. Each bounded result MUST contain an opaque session-scoped result ID, provider result ID when supplied, rank, provider-attributed title and snippet, provider-returned URL, normalized URL, display domain, attribution, restrictions, and only allowlisted provider metadata. Unknown facts remain unknown. Errors MUST be stable, bounded, and secret-free.
 
-Adapters MUST NOT receive Candidate Evidence repositories, Research Inbox services, publication services, graph or Manifold services, REX execution services, or frontier-agent services. Initial verification MUST use a deterministic, offline, versioned fixture unable to contact a live provider. Tavily Search is the approved V1 live external discovery-reference provider. It is not an evidence authority, inference authority, acquisition service, research agent, or epistemic decision-maker. Live adapter activation and provider response mapping remain separately governed work.
+Adapters MUST NOT receive Candidate Evidence repositories, Research Inbox services, publication services, graph or Manifold services, REX execution services, or frontier-agent services. Initial verification MUST use a deterministic, offline, versioned fixture unable to contact a live provider. Tavily Search is the approved V1 live external discovery-reference provider. It is not an evidence authority, inference authority, acquisition service, research agent, or epistemic decision-maker. Runtime activation MUST be explicit: `TAVILY` requires a valid server-held key, `OFFLINE_FIXTURE` selects only the deterministic fixture, and `DISABLED` or unavailable configuration dispatches no provider request. A Tavily failure MUST NOT fall back to the fixture. Responses expose only `LIVE_WEB_DISCOVERY`, `OFFLINE_FIXTURE`, or `UNAVAILABLE` runtime status; credentials and internal transport details remain server-secret.
 
 ## 15. Search session structure
 
@@ -320,7 +320,7 @@ P57-EVIDENCE-WEB-I4A freezes only this Web Discovery contract and verification. 
 8. Investigation, revision, principal/session, provenance, contradictions, receipts, costs, versions, and idempotency remain inspectable.
 9. Guest volatility and durable-account boundaries are obvious before loss or persistence-dependent action.
 10. Uploads are bounded, content-addressed through an abstract port, cancellable, and never automatically admitted or published.
-11. Live providers remain unauthorized until separate review; deterministic fixtures prove the initial behavior.
+11. Tavily is the approved V1 live provider and is activated only by valid server-owned configuration; deterministic fixtures remain explicit offline/degraded operation and are never a live-failure fallback.
 12. REX is a later producer through EVIDENCE, not the owner, and automatic hydration remains prohibited.
 13. No operation silently mutates Canon; paid processing conveys no epistemic authority.
 14. KOD means Known Object Detection only.

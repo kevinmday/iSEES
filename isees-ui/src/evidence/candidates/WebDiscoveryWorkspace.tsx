@@ -1,21 +1,28 @@
 import type { FormEvent } from "react";
 import type { CandidateEvidenceApiScope } from "./CandidateEvidenceApi";
-import { WEB_DISCOVERY_ADAPTER, useWebDiscoveryWorkspaceController } from "./WebDiscoveryWorkspaceController";
+import { useWebDiscoveryWorkspaceController } from "./WebDiscoveryWorkspaceController";
 import type { WebDiscoveryRevisionBinding } from "./WebDiscoveryWorkspaceController";
 
 interface Props { readonly authenticated: boolean; readonly scope?: CandidateEvidenceApiScope; readonly binding?: WebDiscoveryRevisionBinding; readonly onCandidateCaptured: (candidateId: string) => Promise<void> }
 const metadata = (value: Readonly<Record<string, string | undefined>>): string[] => Object.entries(value).filter((entry): entry is [string, string] => Boolean(entry[1])).map(([key, item]) => `${key}: ${item}`);
+const runtimePresentation = (response: ReturnType<typeof useWebDiscoveryWorkspaceController>["response"]): string => {
+  if (!response) return "Server-managed runtime";
+  if (response.runtimeStatus === "OFFLINE_FIXTURE") return "Explicit offline fixture · no live web access";
+  if (response.runtimeStatus === "UNAVAILABLE") return "Web Discovery unavailable · server configuration disabled or invalid";
+  if (response.status === "UNAVAILABLE" || response.status === "RATE_LIMITED" || response.status === "FAILED") return "Live Tavily · bounded provider failure";
+  return "Live Tavily Web Discovery";
+};
 
 export default function WebDiscoveryWorkspace({ authenticated, scope, binding, onCandidateCaptured }: Props) {
   const discovery = useWebDiscoveryWorkspaceController(scope, binding, onCandidateCaptured);
   function submit(event: FormEvent) { event.preventDefault(); void discovery.search(); }
   const available = authenticated && scope !== undefined && binding !== undefined;
   return <section className="web-discovery" aria-labelledby="web-discovery-title">
-    <header className="web-discovery__header"><div><p className="evidence-eyebrow">SEARCH · REVIEW · CAPTURE</p><h2 id="web-discovery-title">Web Discovery</h2></div><span className="web-discovery__runtime">Offline fixture · no live web access</span></header>
+    <header className="web-discovery__header"><div><p className="evidence-eyebrow">SEARCH · REVIEW · CAPTURE</p><h2 id="web-discovery-title">Web Discovery</h2></div><span className="web-discovery__runtime">{runtimePresentation(discovery.response)}</span></header>
     <p className="web-discovery__boundary">Search results are discovery references—not evidence. Capture only the results you want reviewed as Candidate Evidence.</p>
-    <p className="web-discovery__provider">Current provider runtime: <strong>Deterministic offline fixture</strong> (<code>{WEB_DISCOVERY_ADAPTER.id}@{WEB_DISCOVERY_ADAPTER.version}</code>). It returns local test references and does not search the live internet.</p>
+    <p className="web-discovery__provider">The Web Discovery provider is selected and authenticated by the server. Browser commands contain no provider choice or credential.</p>
     <form className="web-discovery__search" onSubmit={submit}><label htmlFor="web-discovery-query">Web Discovery query</label><div><input id="web-discovery-query" type="search" value={discovery.query} onChange={(event) => discovery.setQuery(event.target.value)} disabled={!available || discovery.searching} placeholder="Enter a deliberate research query"/><button type="submit" disabled={!available || discovery.searching || !discovery.query.trim()}>{discovery.searching ? "Searching…" : "Search Web"}</button></div></form>
-    <div className="web-discovery__state" aria-live="polite">{!authenticated ? "Web Discovery unavailable: sign in with an authenticated account." : !binding ? "Web Discovery unavailable while authoritative Investigation revisions are loading." : discovery.searching ? "Searching the deterministic offline fixture…" : discovery.response ? `${discovery.response.resultCount} ephemeral discovery reference${discovery.response.resultCount === 1 ? "" : "s"}. No Candidate Evidence was created by search.` : "Ready for an explicit researcher-directed search."}</div>
+    <div className="web-discovery__state" aria-live="polite">{!authenticated ? "Web Discovery unavailable: sign in with an authenticated account." : !binding ? "Web Discovery unavailable while authoritative Investigation revisions are loading." : discovery.searching ? "Searching the server-authorized Web Discovery runtime…" : discovery.response ? `${discovery.response.resultCount} ephemeral discovery reference${discovery.response.resultCount === 1 ? "" : "s"}. No Candidate Evidence was created by search.` : "Ready for an explicit researcher-directed search."}</div>
     {discovery.error && <p className="evidence-api-error" role="alert">{discovery.error}</p>}
     {discovery.response && <section className="web-discovery__review" aria-label="Ephemeral Web Discovery results"><div className="web-discovery__review-heading"><div><span>REVIEW · EPHEMERAL</span><strong>{discovery.response.providerAttribution}</strong></div><p>Status: {discovery.response.status} · expires {new Date(discovery.response.expiresAt).toLocaleString()}</p></div>
       {discovery.response.restrictions.length > 0 && <p className="web-discovery__restrictions">Session restrictions: {discovery.response.restrictions.join(" · ")}</p>}{discovery.response.warnings.map((warning) => <p className="web-discovery__warning" key={warning}>{warning}</p>)}
