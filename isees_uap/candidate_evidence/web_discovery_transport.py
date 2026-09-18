@@ -49,6 +49,7 @@ class TransportErrorCode(str, Enum):
     CONCURRENCY_LIMITED = "CONCURRENCY_LIMITED"
     CIRCUIT_OPEN = "CIRCUIT_OPEN"
     CONNECT_TIMEOUT = "CONNECT_TIMEOUT"
+    CONNECT_FAILURE = "CONNECT_FAILURE"
     READ_TIMEOUT = "READ_TIMEOUT"
     TOTAL_TIMEOUT = "TOTAL_TIMEOUT"
     CANCELLED = "CANCELLED"
@@ -73,6 +74,7 @@ class TransportResult:
     body: bytes
     accounting: TransportAccounting
     diagnostic: str = "request_completed"
+    content_type: str | None = None
 
 
 class TransportError(Exception):
@@ -90,6 +92,7 @@ class CancellationBoundary(Protocol):
 
 class StreamingResponse(Protocol):
     status_code: int
+    headers: Mapping[str, str]
     def iter_bytes(self) -> Iterable[bytes]: ...
 
 
@@ -200,12 +203,16 @@ class WebDiscoveryTransport:
                     if self._clock() - started > TOTAL_DEADLINE_SECONDS:
                         raise TransportError(TransportErrorCode.TOTAL_TIMEOUT, "total_deadline_exceeded", accounting)
                     actual = TransportAccounting(1, CreditUsage.ACTUAL)
-                    result = TransportResult(response.status_code, b"".join(chunks), actual)
+                    content_type = getattr(response, "headers", {}).get("content-type")
+                    result = TransportResult(response.status_code, b"".join(chunks), actual,
+                                             content_type=content_type)
                     if response.status_code == 429 or response.status_code >= 500:
                         raise TransportError(TransportErrorCode.PROVIDER_FAILURE,
-                                             "provider_status_failure", actual)
+                                             f"provider_status_{response.status_code}", actual)
             except httpx.ConnectTimeout:
                 raise TransportError(TransportErrorCode.CONNECT_TIMEOUT, "connect_timeout", accounting) from None
+            except (httpx.ConnectError, httpx.ProxyError):
+                raise TransportError(TransportErrorCode.CONNECT_FAILURE, "connect_failure", accounting) from None
             except httpx.ReadTimeout:
                 raise TransportError(TransportErrorCode.READ_TIMEOUT, "read_timeout", accounting) from None
             except AmbiguousDispatchError:
@@ -217,7 +224,8 @@ class WebDiscoveryTransport:
                 raise TransportError(TransportErrorCode.PROVIDER_FAILURE, "provider_transport_failure", accounting) from None
         except TransportError as error:
             if error.code in (TransportErrorCode.RESPONSE_TOO_LARGE,
-                              TransportErrorCode.CONNECT_TIMEOUT, TransportErrorCode.READ_TIMEOUT,
+                              TransportErrorCode.CONNECT_TIMEOUT, TransportErrorCode.CONNECT_FAILURE,
+                              TransportErrorCode.READ_TIMEOUT,
                               TransportErrorCode.TOTAL_TIMEOUT, TransportErrorCode.PROVIDER_FAILURE):
                 self._record_failure(self._clock(), probe)
             elif probe:

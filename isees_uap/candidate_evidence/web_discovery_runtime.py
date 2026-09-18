@@ -18,11 +18,10 @@ from .web_discovery import (
     Cancellation, InMemoryWebDiscoverySessions, QUERY_NORMALIZATION_VERSION,
     SEARCH_SCHEMA_VERSION, SearchRequest, SelectedObjectContext,
     WebDiscoveryError, WebDiscoveryErrorCode, normalize_query,
-)
-from .web_discovery_fixture import (
-    DeterministicWebDiscoveryFixture, FIXTURE_ADAPTER_ID, FIXTURE_ADAPTER_VERSION,
+    WebDiscoveryAdapter,
 )
 from .web_discovery_schemas import WebDiscoverySearchCommand, WebDiscoverySearchResponse
+from .web_discovery_providers import WebDiscoveryProviderRegistry
 
 
 DEFAULT_SESSION_LIFETIME_SECONDS = 900
@@ -60,7 +59,8 @@ class WebDiscoverySearchRuntime:
 
     def __init__(self, *, lifetime_seconds: int | None = None, capacity: int | None = None,
                  clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
-                 adapter: DeterministicWebDiscoveryFixture | None = None):
+                 adapter: WebDiscoveryAdapter | None = None,
+                 provider_registry: WebDiscoveryProviderRegistry | None = None):
         lifetime_seconds = lifetime_seconds if lifetime_seconds is not None else _positive_environment_integer(
             "ISEES_WEB_DISCOVERY_SESSION_LIFETIME_SECONDS", DEFAULT_SESSION_LIFETIME_SECONDS)
         capacity = capacity if capacity is not None else _positive_environment_integer(
@@ -73,7 +73,9 @@ class WebDiscoverySearchRuntime:
         self._authority_now = datetime(1970, 1, 1, tzinfo=timezone.utc)
         self._sessions = InMemoryWebDiscoverySessions(
             capacity=capacity, lifetime=self._lifetime, clock=lambda: self._authority_now)
-        self._adapter = adapter or DeterministicWebDiscoveryFixture()
+        if adapter is not None and provider_registry is not None:
+            raise ValueError("adapter and provider_registry are mutually exclusive")
+        self._adapter = adapter or (provider_registry or WebDiscoveryProviderRegistry()).adapter
         self._requests: OrderedDict[tuple[str, str, str], SearchRequest] = OrderedDict()
 
     @property
@@ -86,7 +88,8 @@ class WebDiscoverySearchRuntime:
         return self._adapter.execution_count
 
     def search(self, *, principal_id: str, command: WebDiscoverySearchCommand) -> RuntimeSearchResult:
-        if (command.adapterId, command.adapterVersion) != (FIXTURE_ADAPTER_ID, FIXTURE_ADAPTER_VERSION):
+        if (command.adapterId, command.adapterVersion) != (
+                self._adapter.adapter_id, self._adapter.adapter_version):
             raise WebDiscoveryRuntimeError(
                 "WEB_DISCOVERY_UNSUPPORTED_ADAPTER", "The requested Web Discovery adapter is not authorized", 422)
         key = (principal_id, command.investigationId, command.idempotencyKey)
