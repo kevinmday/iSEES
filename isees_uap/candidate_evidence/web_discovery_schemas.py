@@ -87,6 +87,11 @@ class WebDiscoveryZeroEffectReceiptProjection(StrictWebDiscoveryModel):
     estimatedProviderCost: Literal[0]
     actualProviderCost: Literal[0]
     finalCharge: Literal[0]
+    providerCreditsConsumed: Literal[0, 1] = 0
+    providerCreditUsage: Literal["ZERO", "ESTIMATED", "ACTUAL", "UNKNOWN"] = "ZERO"
+    monetaryCost: Literal["0.00"] = "0.00"
+    researcherCharge: Literal["0.00"] = "0.00"
+    billingTriggered: Literal[False] = False
     researchInboxEffect: Literal["NONE"]
     publicationEffect: Literal["NONE"]
     candidateKnowledgeEffect: Literal["NONE"]

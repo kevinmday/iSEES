@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import ipaddress
+import re
 import unicodedata
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
+
+import idna
 
 
 URL_NORMALIZATION_VERSION = "evidence-url-normalization/v1"
 WEB_DISCOVERY_ALLOWED_PORTS = frozenset((80, 443))
+_LOCAL_SUFFIXES = ("localhost", "local", "internal", "home", "lan")
+_AMBIGUOUS_NUMERIC = re.compile(r"^(?:0[xX][0-9a-fA-F]+|[0-9]+)(?:\.(?:0[xX][0-9a-fA-F]+|[0-9]+)){0,3}$")
 
 
 class UrlNormalizationError(ValueError):
@@ -49,10 +55,23 @@ def normalize_http_url(
         raise UrlNormalizationError("URL must have a host and cannot contain credentials")
     if allowed_ports is not None and port is not None and port not in allowed_ports:
         raise UrlNormalizationError("URL port is not permitted")
+    raw_host = parsed.hostname
+    if "%" in raw_host:
+        raise UrlNormalizationError("URL host cannot contain an IPv6 zone identifier")
     try:
-        ascii_host = parsed.hostname.encode("idna").decode("ascii").lower()
-    except UnicodeError as error:
-        raise UrlNormalizationError("URL host is malformed") from error
+        literal = ipaddress.ip_address(raw_host)
+    except ValueError:
+        try:
+            ascii_host = idna.encode(raw_host, uts46=True, std3_rules=True).decode("ascii").lower()
+            unicode_host = idna.decode(ascii_host, uts46=True, std3_rules=True)
+            if idna.encode(unicode_host, uts46=True, std3_rules=True).decode("ascii").lower() != ascii_host:
+                raise idna.IDNAError("IDNA round trip failed")
+        except (UnicodeError, idna.IDNAError) as error:
+            raise UrlNormalizationError("URL host is malformed") from error
+    else:
+        ascii_host = literal.compressed
+    if not ascii_host:
+        raise UrlNormalizationError("URL host is malformed")
     if (any(character.isspace() for character in ascii_host) or not ascii_host
             or "%" in ascii_host or ".." in ascii_host or ascii_host.startswith(".")
             or ascii_host.endswith(".")):
@@ -68,4 +87,19 @@ def normalize_http_url(
 
 
 def normalize_web_discovery_url(original_url: str) -> NormalizedUrl:
-    return normalize_http_url(original_url, allowed_ports=WEB_DISCOVERY_ALLOWED_PORTS)
+    normalized = normalize_http_url(original_url, allowed_ports=WEB_DISCOVERY_ALLOWED_PORTS)
+    host = normalized.display_domain
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        labels = host.split(".")
+        if len(labels) < 2 or any(host == suffix or host.endswith(f".{suffix}") for suffix in _LOCAL_SUFFIXES):
+            raise UrlNormalizationError("Web Discovery requires a public multi-label host")
+        if _AMBIGUOUS_NUMERIC.fullmatch(host):
+            raise UrlNormalizationError("Ambiguous numeric hosts are not permitted")
+    else:
+        if (not address.is_global or address.is_multicast or address.is_unspecified
+                or address.is_loopback or address.is_link_local or address.is_private
+                or address.is_reserved):
+            raise UrlNormalizationError("Non-global IP literals are not permitted")
+    return normalized

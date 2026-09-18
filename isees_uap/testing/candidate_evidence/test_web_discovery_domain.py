@@ -253,6 +253,31 @@ def test_web_url_policy_rejects_malformed_unsafe_or_disallowed_urls(url):
         normalize_web_discovery_url(url)
 
 
+@pytest.mark.parametrize("url", [
+    "http://localhost", "https://a.localhost/x", "https://printer", "https://a.local/x",
+    "https://a.internal/x", "https://a.home/x", "https://a.lan/x",
+    "http://127.0.0.1", "http://10.0.0.1", "http://172.16.0.1", "http://192.168.0.1",
+    "http://169.254.1.1", "http://224.0.0.1", "http://0.0.0.0", "http://100.64.0.1",
+    "http://192.0.2.1", "http://198.18.0.1", "http://240.0.0.1",
+    "http://[::1]", "http://[fe80::1]", "http://[ff02::1]", "http://[::]",
+    "http://[2001:db8::1]", "http://2130706433", "http://0177.0.0.1", "http://0x7f.0.0.1",
+    "http://[fe80::1%25eth0]", "http://[::1", "http://example.com:443:80",
+    "https://xn--invalid-.com", "https://xn--a.com",
+])
+def test_web_url_policy_rejects_local_private_reserved_and_ambiguous_authorities(url):
+    with pytest.raises(UrlNormalizationError):
+        normalize_web_discovery_url(url)
+
+
+def test_public_ip_and_strict_idna_normalization_pass_without_network(monkeypatch):
+    import socket
+    monkeypatch.setattr(socket, "getaddrinfo", lambda *args, **kwargs: pytest.fail("DNS attempted"))
+    assert normalize_web_discovery_url("https://93.184.216.34/a").display_domain == "93.184.216.34"
+    first = normalize_web_discovery_url("HTTPS://BÜCHER.example:443/a#x")
+    second = normalize_web_discovery_url("https://xn--bcher-kva.example/a")
+    assert first.normalized_url == second.normalized_url == "https://xn--bcher-kva.example/a"
+
+
 def test_shared_url_normalizer_preserves_original_and_direct_intake_port_semantics():
     value = "HTTPS://Example.COM:443/a/../source?q=1#fragment"
     normalized = normalize_web_discovery_url(value)
@@ -274,6 +299,10 @@ def test_receipt_proves_zero_ai_rex_cost_and_all_downstream_effects():
     receipt = search()[2].receipt
     assert receipt.ai_assistance == receipt.rex_execution == "NONE"
     assert (receipt.estimated_provider_cost, receipt.actual_provider_cost, receipt.final_charge) == (0, 0, 0)
+    assert receipt.provider_credits_consumed == 0
+    assert receipt.provider_credit_usage.value == "ZERO"
+    assert receipt.monetary_cost == receipt.researcher_charge == "0.00"
+    assert receipt.billing_triggered is False
     assert {receipt.research_inbox_effect, receipt.publication_effect,
             receipt.candidate_knowledge_effect, receipt.canon_effect, receipt.graph_effect,
             receipt.manifold_effect, receipt.resolve_effect} == {"NONE"}

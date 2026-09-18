@@ -58,6 +58,13 @@ class SearchStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class ProviderCreditUsage(str, Enum):
+    ZERO = "ZERO"
+    ESTIMATED = "ESTIMATED"
+    ACTUAL = "ACTUAL"
+    UNKNOWN = "UNKNOWN"
+
+
 class WebDiscoveryErrorCode(str, Enum):
     UNAVAILABLE = "WEB_DISCOVERY_UNAVAILABLE"
     RATE_LIMITED = "WEB_DISCOVERY_RATE_LIMITED"
@@ -221,6 +228,11 @@ class OperationReceipt:
     estimated_provider_cost: int = 0
     actual_provider_cost: int = 0
     final_charge: int = 0
+    provider_credits_consumed: int = 0
+    provider_credit_usage: ProviderCreditUsage = ProviderCreditUsage.ZERO
+    monetary_cost: str = "0.00"
+    researcher_charge: str = "0.00"
+    billing_triggered: bool = False
     research_inbox_effect: str = "NONE"
     publication_effect: str = "NONE"
     candidate_knowledge_effect: str = "NONE"
@@ -236,8 +248,12 @@ class OperationReceipt:
         effects = (self.ai_assistance, self.rex_execution, self.research_inbox_effect,
                    self.publication_effect, self.candidate_knowledge_effect, self.canon_effect,
                    self.graph_effect, self.manifold_effect, self.resolve_effect)
-        if zero != (0, 0, 0) or any(value != "NONE" for value in effects):
+        if (zero != (0, 0, 0) or self.provider_credits_consumed not in (0, 1)
+                or self.monetary_cost != "0.00" or self.researcher_charge != "0.00"
+                or self.billing_triggered or any(value != "NONE" for value in effects)):
             raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "Web Discovery receipt must have zero effects")
+        if ((self.provider_credits_consumed == 0) != (self.provider_credit_usage == ProviderCreditUsage.ZERO)):
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "provider credit accounting is inconsistent")
 
 
 @dataclass(frozen=True, slots=True)

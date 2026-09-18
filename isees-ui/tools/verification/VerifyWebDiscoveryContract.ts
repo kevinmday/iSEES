@@ -34,7 +34,8 @@ const required = [
   "deterministic, offline, versioned fixture",
   "POST /api/v1/investigations/{investigation_id}/candidate-evidence/web-discovery/searches",
   "POST /api/v1/investigations/{investigation_id}/candidate-evidence/web-discovery/captures",
-  "Production provider selection remains unresolved",
+  "Tavily Search is the approved V1 live external discovery-reference provider",
+  "Paid overages and automatic retries are prohibited",
   "implements no route, service, repository, migration, provider client, UI behavior, webpage fetching, REX integration, or live search",
 ] as const;
 

@@ -78,6 +78,7 @@ function Invoke-Contract([string] $Root) {
     $ignore = Get-Content -Raw -LiteralPath (Join-Path $Root '.dockerignore')
     $readme = Get-Content -Raw -LiteralPath (Join-Path $Root 'README.md')
     $candidateApi = Get-Content -Raw -LiteralPath (Join-Path $Root 'isees-ui/src/evidence/candidates/CandidateEvidenceApi.ts')
+    $apiOrigin = Get-Content -Raw -LiteralPath (Join-Path $Root 'isees-ui/src/api/ApiOrigin.ts')
 
 Require-Match $dockerfile 'FROM node:24\.7\.0-bookworm-slim AS frontend-build' 'node-base-not-pinned'
 Require-Match $dockerfile 'FROM python:3\.12\.11-slim-bookworm AS runtime' 'python-base-not-pinned'
@@ -98,7 +99,9 @@ Require-Match $ignore '(?im)^\.env$' 'environment-files-not-excluded'
 Reject-Match $ignore '(?im)^\*\*/\*(?:token|auth|key|secret|credential)\*\s*$' 'security-name-source-wildcard'
 Require-Match $readme '(?m)^sdk: docker$' 'readme-not-docker-sdk'
 Require-Match $readme '(?m)^app_port: 7860$' 'readme-port-mismatch'
-Require-Match $candidateApi 'resolveApiBaseUrl\(import\.meta\.env\.VITE_CANDIDATE_EVIDENCE_API_BASE_URL' 'candidate-evidence-not-same-origin'
+Require-Match $candidateApi 'const\s+environment\s*=\s*\(import\.meta\s+as\s+ImportMeta' 'candidate-evidence-environment-not-owned-by-vite'
+Require-Match $candidateApi 'resolveApiBaseUrl\(environment\?\.VITE_CANDIDATE_EVIDENCE_API_BASE_URL\)' 'candidate-evidence-not-same-origin'
+Require-Match $apiOrigin 'override\s*\?\?\s*environment\?\.VITE_API_BASE_URL\s*\?\?\s*""' 'api-origin-default-not-same-origin'
 Require-Match $candidateApi 'credentials: "include"' 'candidate-evidence-cookies-missing'
 Reject-Match $candidateApi '127\.0\.0\.1:8001' 'candidate-evidence-localhost-default'
 
@@ -108,6 +111,17 @@ Reject-Match $candidateApi '127\.0\.0\.1:8001' 'candidate-evidence-localhost-def
     $excludedRuntimePython = @($runtimePython | Where-Object { Test-DockerIgnored $_ $ignore })
     if ($excludedRuntimePython.Count -gt 0) {
         $script:failures.Add(('tracked-runtime-python-excluded:' + ($excludedRuntimePython -join ',')))
+    }
+
+    $candidateSourceRoot = Join-Path $Root 'isees_uap/candidate_evidence'
+    $candidateRuntimeSources = @(
+        Get-ChildItem -LiteralPath $candidateSourceRoot -Recurse -File |
+            Where-Object { $_.Extension -eq '.py' -or ($_.Extension -eq '.sql' -and $_.DirectoryName -eq (Join-Path $candidateSourceRoot 'migrations')) } |
+            ForEach-Object { [IO.Path]::GetRelativePath($Root, $_.FullName).Replace('\', '/') }
+    )
+    $excludedCandidateSources = @($candidateRuntimeSources | Where-Object { Test-DockerIgnored $_ $ignore })
+    if ($excludedCandidateSources.Count -gt 0) {
+        $script:failures.Add(('candidate-evidence-runtime-source-excluded:' + ($excludedCandidateSources -join ',')))
     }
 
     foreach ($requiredSource in @(
@@ -147,6 +161,8 @@ Reject-Match $candidateApi '127\.0\.0\.1:8001' 'candidate-evidence-localhost-def
         result = $(if ($script:failures.Count -eq 0) { 'PASS' } else { 'FAIL' })
         trackedRuntimePython = $runtimePython.Count
         excludedRuntimePython = $excludedRuntimePython.Count
+        candidateRuntimeSources = $candidateRuntimeSources.Count
+        excludedCandidateSources = $excludedCandidateSources.Count
         failures = @($script:failures)
     }
 }
@@ -161,20 +177,22 @@ if ($SelfTest) {
         @{ name = 'token-wildcard'; file = '.dockerignore'; pattern = "`n**/*token*`n" },
         @{ name = 'broad-copy'; file = 'Dockerfile'; pattern = "`nCOPY . /app`n" },
         @{ name = 'missing-env-exclusion'; file = '.dockerignore'; replace = @{ from = "`n.env`n"; to = "`n# removed-env-rule`n" } },
-        @{ name = 'missing-capture-boundary'; file = 'Dockerfile'; replace = @{ from = 'COPY isees-ui/isees-capture-extension/icons/isees-capture.svg ./isees-capture-extension/icons/isees-capture.svg'; to = '# removed-capture-boundary' } }
+        @{ name = 'missing-capture-boundary'; file = 'Dockerfile'; replace = @{ from = 'COPY isees-ui/isees-capture-extension/icons/isees-capture.svg ./isees-capture-extension/icons/isees-capture.svg'; to = '# removed-capture-boundary' } },
+        @{ name = 'candidate-source-exclusion'; file = '.dockerignore'; pattern = "`n**/*discovery*`n" },
+        @{ name = 'candidate-cross-origin'; file = 'isees-ui/src/evidence/candidates/CandidateEvidenceApi.ts'; replace = @{ from = 'resolveApiBaseUrl(environment?.VITE_CANDIDATE_EVIDENCE_API_BASE_URL)'; to = '"https://candidate.invalid"' } }
     )
     $selfTestFailures = [Collections.Generic.List[string]]::new()
     foreach ($mutation in $mutations) {
         $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ('hf-contract-' + [guid]::NewGuid().ToString('N'))
         try {
             New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
-            foreach ($relative in @('.dockerignore', 'Dockerfile', 'README.md', 'isees-ui/src/evidence/candidates/CandidateEvidenceApi.ts')) {
+            foreach ($relative in @('.dockerignore', 'Dockerfile', 'README.md', 'isees-ui/src/api/ApiOrigin.ts', 'isees-ui/src/evidence/candidates/CandidateEvidenceApi.ts', 'isees_uap/candidate_evidence/web_discovery.py')) {
                 $destination = Join-Path $temporaryRoot $relative
                 New-Item -ItemType Directory -Path (Split-Path $destination -Parent) -Force | Out-Null
                 Copy-Item -LiteralPath (Join-Path $RepositoryRoot $relative) -Destination $destination
             }
             & git -C $temporaryRoot init --quiet
-            & git -C $temporaryRoot add -- '.dockerignore' 'Dockerfile' 'README.md' 'isees-ui/src/evidence/candidates/CandidateEvidenceApi.ts'
+            & git -C $temporaryRoot add -- '.dockerignore' 'Dockerfile' 'README.md' 'isees-ui/src/api/ApiOrigin.ts' 'isees-ui/src/evidence/candidates/CandidateEvidenceApi.ts' 'isees_uap/candidate_evidence/web_discovery.py'
             $target = Join-Path $temporaryRoot $mutation.file
             if ($mutation.ContainsKey('pattern')) {
                 Add-Content -LiteralPath $target -Value $mutation.pattern

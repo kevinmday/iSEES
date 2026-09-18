@@ -23,6 +23,10 @@ MarketMindAI_ARCHIVE/**
 **/*BACKUP*
 **/*backup*
 **/*discovery*
+# Canonical Candidate Evidence application source is runtime code, not generated
+# discovery output. Keep its Python modules and schema migrations in the context.
+!isees_uap/candidate_evidence/**/*.py
+!isees_uap/candidate_evidence/migrations/*.sql
 **/*.patch
 **/*.diff
 **/*.bak

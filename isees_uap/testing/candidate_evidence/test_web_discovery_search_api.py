@@ -92,6 +92,10 @@ def test_authenticated_search_projects_ephemeral_metadata_and_zero_effects(searc
     assert [receipt[name] for name in (
         "estimatedProviderCost", "actualProviderCost", "finalCharge",
     )] == [0, 0, 0]
+    assert receipt["providerCreditsConsumed"] == 0
+    assert receipt["providerCreditUsage"] == "ZERO"
+    assert receipt["monetaryCost"] == receipt["researcherCharge"] == "0.00"
+    assert receipt["billingTriggered"] is False
     assert candidates.list(
         investigation_id="investigation-a", principal_id=session.account_id,
         limit=10, cursor=None,

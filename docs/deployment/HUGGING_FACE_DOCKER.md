@@ -25,7 +25,7 @@ Account control is local/operator-only and creates no HTTP route. Supply either 
 
 Disabling also revokes all active sessions. Output is limited to account ID, normalized email, final status, and mutation session count; it never displays passwords or session secrets. Stop if the path is missing/relative, identity is absent, confirmation differs, the repository is unavailable, or the output contains unexpected sensitive data.
 
-MarketMind directories, local databases, outputs, secrets, environment files, backups, patches, discoveries, caches, and Git data are excluded. Dockerfile `COPY` boundaries are explicit. Review the effective build context and run `scripts/Verify-HfDockerContract.ps1` before release.
+MarketMind directories, local databases, outputs, secrets, environment files, backups, patches, discovery reports, caches, and Git data are excluded. Canonical runtime source under `isees_uap/candidate_evidence`, including its Python modules and SQL migrations, remains included even when a source filename contains `discovery`; mutable Candidate Evidence blobs remain excluded under `runtime/candidate_evidence_blobs`. Dockerfile `COPY` boundaries are explicit. Review the effective build context and run `scripts/Verify-HfDockerContract.ps1` before release.
 
 Run the candidate-access Docker verifier with explicit immutable source authority; it also requires `HEAD` to equal `origin/hf-deploy`:
 
