@@ -35,7 +35,7 @@ const staleRefresh = settleCandidateRequest(reconciled, a, "READY", records);
 assert.equal(staleRefresh.records.find((item) => item.candidateId === "submission"), updated);
 assert.equal(reconcileCandidateTransition(selected, { ...a, investigationId: "investigation-b" }, updated), selected);
 const api = readFileSync("src/evidence/candidates/CandidateEvidenceApi.ts", "utf8");
-assert(api.includes('resolveApiBaseUrl(import.meta.env.VITE_CANDIDATE_EVIDENCE_API_BASE_URL'), "Candidate Evidence must use the shared same-origin resolver");
+assert(api.includes("export function createCandidateEvidenceRequester") && api.includes("export const candidateEvidenceRequest = createCandidateEvidenceRequester()"), "Candidate Evidence must use the authoritative shared requester boundary");
 assert(api.includes('credentials: "include"'), "Candidate Evidence requests must include authentication cookies");
 assert(api.includes('"X-ISEES-CSRF": value'), "Candidate Evidence mutations must preserve double-submit CSRF protection");
 assert(!api.includes("127.0.0.1:8001"), "Candidate Evidence must not have a localhost production default");
