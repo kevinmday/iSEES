@@ -8,9 +8,12 @@ from fastapi.testclient import TestClient
 
 from isees_uap.api import create_application
 from isees_uap.api.application import studio_v1_deployment_configuration
+from isees_uap.api.v1.rex import repository as rex_repository
+from isees_uap.candidate_evidence.config import candidate_blob_root
 from isees_uap.persistence import (
     PreflightClassification, StoreSpec, database_path, inspect_store, output_path,
 )
+from isees_uap.rex.application import RexApiApplicationService
 
 
 INDIVIDUAL = {
@@ -34,6 +37,7 @@ def test_local_defaults_and_persistent_derivation(tmp_path: Path) -> None:
     for variable, filename in INDIVIDUAL.items():
         assert database_path(variable, filename, "unused", {"ISEES_PERSISTENT_ROOT": str(root)}) == root / "databases" / filename
     assert output_path("ISEES_STUDIO_OUTPUT_ROOT", "unused", {"ISEES_PERSISTENT_ROOT": str(root)}) == root / "studio-outputs"
+    assert candidate_blob_root({"ISEES_PERSISTENT_ROOT": str(root)}) == root / "candidate-evidence-blobs"
 
 
 def test_individual_overrides_win_and_derived_paths_are_contained(tmp_path: Path) -> None:
@@ -83,11 +87,15 @@ def test_health_and_readiness_are_non_mutating_and_redacted(tmp_path: Path, monk
     output = root / "studio-outputs"
     output.mkdir(parents=True)
     monkeypatch.setenv("ISEES_PERSISTENT_ROOT", str(root))
+    rex_database = root / "databases" / "rex.sqlite3"
     app = create_application(disabled(), tmp_path / "no-frontend")
+    assert not rex_database.exists()
     before = sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*"))
     with TestClient(app) as client:
         health = client.get("/health")
+        assert not rex_database.exists()
         ready = client.get("/ready")
+        assert not rex_database.exists()
     after = sorted(str(path.relative_to(tmp_path)) for path in tmp_path.rglob("*"))
     assert health.status_code == 200
     assert health.json() == {"schemaVersion": "isees-health/v1", "status": "live"}
@@ -96,6 +104,25 @@ def test_health_and_readiness_are_non_mutating_and_redacted(tmp_path: Path, monk
     serialized = json.dumps(ready.json())
     assert str(tmp_path) not in serialized and "sqlite3" not in serialized
     assert before == after
+
+
+def test_rex_repository_dependency_initializes_persistence_on_demand(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "persistent"
+    monkeypatch.setenv("ISEES_PERSISTENT_ROOT", str(root))
+    rex_database = root / "databases" / "rex.sqlite3"
+    rex_repository.cache_clear()
+    try:
+        repository = rex_repository()
+        assert not rex_database.exists()
+        RexApiApplicationService(repository)
+        assert repository.path == rex_database
+        assert rex_database.is_file()
+        with sqlite3.connect(rex_database) as database:
+            assert database.execute(
+                "SELECT MAX(version) FROM rex_schema_migrations"
+            ).fetchone() == (2,)
+    finally:
+        rex_repository.cache_clear()
 
 
 def test_readiness_fails_closed_without_mutation(tmp_path: Path, monkeypatch) -> None:

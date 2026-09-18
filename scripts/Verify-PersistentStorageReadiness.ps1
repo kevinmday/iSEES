@@ -18,7 +18,8 @@ function Invoke-I2Contract([string] $Root) {
     }
 
     Need 'Dockerfile' 'ISEES_PERSISTENT_ROOT=/data/isees' 'persistent-root-env-missing'
-    Need 'Dockerfile' 'install -d -o 1000 -g 1000 /data/isees/databases /data/isees/studio-outputs /data/isees/backups' 'persistent-directories-missing'
+    Need 'Dockerfile' 'install -d -o 1000 -g 1000 /data/isees/databases /data/isees/studio-outputs /data/isees/candidate-evidence-blobs /data/isees/backups' 'persistent-directories-missing'
+    Need 'isees_uap/candidate_evidence/config.py' 'root / "candidate-evidence-blobs"' 'candidate-blob-persistent-derivation-missing'
     Need 'Dockerfile' '--workers 1' 'uvicorn-worker-count'
     Reject 'Dockerfile' '(?im)^COPY[^\r\n]*(?:\.db|\.sqlite|runtime)' 'database-copy-found'
     Reject 'Dockerfile' '(?i)market.?mind' 'marketmind-in-dockerfile'
@@ -31,7 +32,8 @@ function Invoke-I2Contract([string] $Root) {
     Need 'isees_uap/api/__init__.py' '@application\.get\("/ready"' 'ready-route-missing'
     Need 'isees_uap/api/frontend.py' '"health", "ready"' 'spa-exclusions-missing'
     foreach ($variable in @('ISEES_AUTH_DB_PATH','ISEES_INVESTIGATION_DB_PATH','ISEES_CANDIDATE_DB_PATH',
-            'ISEES_RESEARCH_SOURCE_DB_PATH','ISEES_STUDIO_DB_PATH','ISEES_STUDIO_OUTPUT_ROOT','ISEES_STUDIO_V1_DATABASE_PATH')) {
+            'ISEES_RESEARCH_SOURCE_DB_PATH','ISEES_STUDIO_DB_PATH','ISEES_STUDIO_OUTPUT_ROOT','ISEES_STUDIO_V1_DATABASE_PATH',
+            'ISEES_CANDIDATE_BLOB_ROOT')) {
         $matches = @(Get-ChildItem -LiteralPath (Join-Path $Root 'isees_uap') -Recurse -File -Filter '*.py' |
             Select-String -SimpleMatch $variable)
         if ($matches.Count -eq 0) { $failures.Add(('override-missing:' + $variable)) }
@@ -42,7 +44,7 @@ function Invoke-I2Contract([string] $Root) {
     [pscustomobject]@{
         schema = 'p57-ops-hf-i2/v1'
         result = $(if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' })
-        assertions = 22
+        assertions = 24
         trackedDatabases = $trackedDatabases.Count
         failures = @($failures)
     }
@@ -53,6 +55,8 @@ if ($SelfTest) {
     if ($baseline.result -ne 'PASS') { $baseline | ConvertTo-Json -Compress; exit 1 }
     $mutations = @(
         @{ name='persistent-root'; file='Dockerfile'; from='ISEES_PERSISTENT_ROOT=/data/isees'; to='ISEES_PERSISTENT_ROOT=/tmp' },
+        @{ name='candidate-blob-directory'; file='Dockerfile'; from='/data/isees/candidate-evidence-blobs '; to='' },
+        @{ name='candidate-blob-derivation'; file='isees_uap/candidate_evidence/config.py'; from='root / "candidate-evidence-blobs"'; to='root / "blobs"' },
         @{ name='read-only'; file='isees_uap/persistence.py'; from='mode=ro'; to='mode=rw' },
         @{ name='health'; file='isees_uap/api/__init__.py'; from='@application.get("/health"'; to='@application.get("/alive"' },
         @{ name='spa-ready'; file='isees_uap/api/frontend.py'; from='"health", "ready"'; to='"health"' }

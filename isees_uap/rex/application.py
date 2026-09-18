@@ -23,6 +23,7 @@ class RexApiApplicationService:
     def __init__(self, repository, *, clock: Callable[[], datetime] | None = None,
                  adapter=None, normalizer=None):
         self.repository = repository
+        self.repository.initialize()
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.adapter = adapter or LocalFixtureSourceAdapter()
         self.normalizer = normalizer or FixtureCandidateNormalizer()

@@ -43,9 +43,7 @@ from isees_uap.studio.v1.lifecycle import StudioV1LifecycleConfiguration
 from isees_uap.api.v1.studio_v1 import (
     router as studio_v1_router, StudioV1ApiError, studio_v1_error_handler,
 )
-from isees_uap.api.v1.rex import (
-    repository as rex_repository, rex_error_handler, router as rex_router,
-)
+from isees_uap.api.v1.rex import rex_error_handler, router as rex_router
 from isees_uap.rex.errors import RexExecutionError, RexRepositoryError
 from isees_uap.studio.v1.persistence import StudioV1Failure
 from isees_uap.persistence import readiness_report
@@ -293,18 +291,7 @@ def create_application(
     else:
         from isees_uap.api.application import studio_v1_deployment_configuration
         configuration = studio_v1_deployment_configuration(studio_v1_configuration)
-    studio_lifespan = studio_v1_application_lifespan(configuration)
-
-    from contextlib import asynccontextmanager
-    @asynccontextmanager
-    async def application_lifespan(application: FastAPI):
-        async with studio_lifespan(application):
-            # REX initialization is explicit lifecycle work; importing its router is inert.
-            repository_instance = application.dependency_overrides.get(rex_repository, rex_repository)()
-            repository_instance.initialize()
-            yield
-
-    application = FastAPI(lifespan=application_lifespan)
+    application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
     application.add_middleware(TrustedHostMiddleware, allowed_hosts=list(trusted_hosts))
     # Capture candidate access once during application construction. Invalid allowlist
     # input is represented by a fail-closed policy, so public and guest routes still start.
