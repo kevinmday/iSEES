@@ -8,6 +8,7 @@ from typing import Mapping, Sequence
 
 from isees_uap.authentication.candidate_access import normalize_email
 from isees_uap.authentication.models import AccountStatus
+from isees_uap.authentication.passwords import hash_password
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
 
 
@@ -38,7 +39,22 @@ def manage_account(arguments: argparse.Namespace,
         if arguments.confirm_email != normalized or arguments.confirm_action != arguments.action:
             raise ValueError("mutation confirmation does not match the account and action")
         now = datetime.now(timezone.utc)
-        if arguments.action in {"disable", "enable"}:
+        if arguments.action == "reset-password":
+            password = values.get("ISEES_OWNER_RESET_PASSWORD")
+            if password is None:
+                raise ValueError("the owner reset password secret is required")
+            request_id = arguments.request_id or values.get("ISEES_OWNER_RESET_REQUEST_ID")
+            if not request_id or len(request_id) > 200:
+                raise ValueError("a bounded owner reset request id is required")
+            outcome = repository.reset_owner_password_once(
+                normalized_email=normalized, password_hash=hash_password(password),
+                request_id=request_id, occurred_at=now)
+            if outcome is None:
+                raise ValueError("the owner reset request was already consumed")
+            reset_account_id, revoked = outcome
+            if reset_account_id != account.account_id:
+                raise ValueError("the reset account identity did not match")
+        elif arguments.action in {"disable", "enable"}:
             status = (AccountStatus.DISABLED if arguments.action == "disable"
                       else AccountStatus.ACTIVE)
             account = repository.set_account_status(
@@ -59,13 +75,14 @@ def manage_account(arguments: argparse.Namespace,
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description="Manage one iSEES pilot account locally")
-    result.add_argument("action", choices=("lookup", "disable", "enable", "revoke"))
+    result.add_argument("action", choices=("lookup", "disable", "enable", "revoke", "reset-password"))
     result.add_argument("--email", required=True)
     location = result.add_mutually_exclusive_group()
     location.add_argument("--database-path")
     location.add_argument("--persistent-root")
     result.add_argument("--confirm-email")
-    result.add_argument("--confirm-action", choices=("disable", "enable", "revoke"))
+    result.add_argument("--confirm-action", choices=("disable", "enable", "revoke", "reset-password"))
+    result.add_argument("--request-id")
     return result
 
 

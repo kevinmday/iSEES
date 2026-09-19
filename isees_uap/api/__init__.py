@@ -283,6 +283,10 @@ def create_application(
     """Construct the production API with injectable STUDIO deployment configuration."""
     environment_values = os.environ if studio_v1_configuration is None or isinstance(
         studio_v1_configuration, StudioV1LifecycleConfiguration) else studio_v1_configuration
+    if (environment_values.get("ISEES_OWNER_RESET_PASSWORD") is not None
+            and environment_values.get("ISEES_OWNER_RESET_REQUEST_ID")):
+        from isees_uap.operations.owner_password_reset_startup import run_owner_password_reset
+        run_owner_password_reset(environment_values)
     trusted_hosts = trusted_hosts_from_environment(environment_values)
     if studio_v1_configuration is None:
         configuration = process_studio_v1_configuration()

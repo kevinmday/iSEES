@@ -381,6 +381,58 @@ class SQLiteAuthenticationRepository:
             raise AuthenticationRepositoryUnavailable(
                 "Authentication service is unavailable") from error
 
+    def reset_owner_password_once(self, *, normalized_email: str, password_hash: str,
+                                  request_id: str, occurred_at: datetime) -> tuple[str, int] | None:
+        """Atomically reset one exact account once and revoke its active sessions."""
+        now_text = _utc_text(occurred_at)
+        metadata_json = _sanitized_metadata({"operation": "owner_password_reset"})
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    if connection.execute(
+                        "SELECT 1 FROM authentication_audit_event WHERE event_type=? "
+                        "AND request_id=? LIMIT 1",
+                        (AuthenticationAuditEventType.OWNER_PASSWORD_RESET_COMPLETED.value,
+                         request_id),
+                    ).fetchone() is not None:
+                        connection.rollback()
+                        return None
+                    rows = connection.execute(
+                        "SELECT account_id FROM researcher_account WHERE normalized_email=?",
+                        (normalized_email,),
+                    ).fetchall()
+                    if len(rows) != 1:
+                        connection.rollback()
+                        raise ValueError("Account identity is missing or ambiguous")
+                    account_id = rows[0]["account_id"]
+                    updated = connection.execute(
+                        "UPDATE researcher_account SET password_hash=?, updated_at=? "
+                        "WHERE account_id=? AND normalized_email=?",
+                        (password_hash, now_text, account_id, normalized_email),
+                    )
+                    if updated.rowcount != 1:
+                        connection.rollback()
+                        raise ValueError("Account identity is missing or ambiguous")
+                    revoked = connection.execute(
+                        "UPDATE authenticated_session SET revoked_at=? WHERE account_id=? "
+                        "AND revoked_at IS NULL", (now_text, account_id),
+                    ).rowcount
+                    connection.execute(
+                        "INSERT INTO authentication_audit_event VALUES (?,?,?,?,?,?,?,?)",
+                        (f"aevt_{uuid.uuid4().hex}", account_id,
+                         AuthenticationAuditEventType.OWNER_PASSWORD_RESET_COMPLETED.value,
+                         now_text, request_id, None, "COMPLETED", metadata_json),
+                    )
+                    connection.commit()
+                    return account_id, revoked
+                except Exception:
+                    connection.rollback()
+                    raise
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication service is unavailable") from error
+
     @staticmethod
     def _recovery_token(row: sqlite3.Row) -> RecoveryTokenRecord:
         return RecoveryTokenRecord(
