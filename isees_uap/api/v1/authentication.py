@@ -215,8 +215,15 @@ async def request_password_recovery(
             email=body.email, request_id=str(uuid.uuid4()), origin_digest=origin,
         ))
     except RecoveryDeliveryError as error:
+        rejected = (error.category == "http_rejection"
+                    and error.http_status is not None and error.http_status < 500)
+        operational_status = "DELIVERY_REJECTED" if rejected else "PROVIDER_UNAVAILABLE"
         logger.error(
-            "Password recovery delivery was not completed (category=%s)", error.category,
+            "Password recovery operational status=%s category=%s provider_http_status=%s "
+            "provider_error_code=%s",
+            operational_status, error.category,
+            error.http_status if error.http_status is not None else "unavailable",
+            error.provider_error_code or "unavailable",
         )
     except AuthenticationRepositoryUnavailable:
         logger.error("Password recovery repository operation failed")

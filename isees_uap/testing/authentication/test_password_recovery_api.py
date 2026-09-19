@@ -127,10 +127,45 @@ def test_delivery_failure_is_neutral_and_logs_only_fixed_text(recovery_api, capl
         response = _request(client, secret_email)
     assert response.status_code == 202 and response.json() == ACCEPTED
     logs = caplog.text
-    assert "Password recovery delivery was not completed" in logs
+    assert "operational status=PROVIDER_UNAVAILABLE" in logs
     assert "category=internal_adapter_contract" in logs
+    assert "provider_http_status=unavailable" in logs
+    assert "provider_error_code=unavailable" in logs
     assert secret_email not in logs and "provider-secret-detail" not in logs
     _assert_safe_headers(response)
+
+
+def test_provider_rejection_logs_only_sanitized_diagnostics(recovery_api, caplog):
+    client, svc, _, _, _, _ = recovery_api
+    secret_email = "sensitive@example.test"
+    svc.create_account(email=secret_email, password=OLD_PASSWORD)
+
+    class RejectedDelivery:
+        def deliver(self, record) -> None:
+            del record
+            raise RecoveryDeliveryError(
+                "http_rejection", http_status=403,
+                provider_error_code="validation_error",
+            )
+
+    svc.recovery_delivery = RejectedDelivery()
+    with caplog.at_level(logging.INFO):
+        response = _request(client, secret_email)
+    assert response.status_code == 202 and response.json() == ACCEPTED
+    assert "operational status=TOKEN_CREATED" in caplog.text
+    assert "operational status=DELIVERY_REJECTED" in caplog.text
+    assert "provider_http_status=403" in caplog.text
+    assert "provider_error_code=validation_error" in caplog.text
+    assert secret_email not in caplog.text
+
+
+def test_missing_account_logs_fixed_operational_status(recovery_api, caplog):
+    client, *_ = recovery_api
+    with caplog.at_level(logging.INFO):
+        response = _request(client, "missing@example.test")
+    assert response.status_code == 202 and response.json() == ACCEPTED
+    assert "operational status=ACCOUNT_NOT_FOUND" in caplog.text
+    assert "missing@example.test" not in caplog.text
 
 
 @pytest.mark.parametrize("body", ["{", "[]", '{"email":"invalid"}', '{"email":"x@y.z","extra":1}'])

@@ -232,8 +232,20 @@ def test_default_transport_normalizes_http_error_contract(status, loopback_resen
     with pytest.raises(RecoveryDeliveryError) as raised:
         adapter(None).deliver(record())
     assert raised.value.category == "http_rejection"
+    assert raised.value.http_status == status
+    assert raised.value.provider_error_code is None
     assert "provider secret body" not in str(raised.value)
     assert len(exchanges) == 1
+
+
+def test_provider_error_code_is_safely_extracted(loopback_resend):
+    responses, _ = loopback_resend
+    responses.append((403, b'{"name":"validation_error","message":"private detail"}'))
+    with pytest.raises(RecoveryDeliveryError) as raised:
+        adapter(None).deliver(record())
+    assert raised.value.http_status == 403
+    assert raised.value.provider_error_code == "validation_error"
+    assert "private detail" not in str(raised.value)
 
 
 def test_default_transport_rejects_malformed_success_and_closes_response(loopback_resend):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import socket
 import ssl
 from email.utils import formataddr
@@ -18,16 +19,27 @@ RESEND_TIMEOUT_SECONDS = 10.0
 RESEND_USER_AGENT = "iSEES-UAP/0.9"
 
 
+_PROVIDER_ERROR_CODE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
 class RecoveryDeliveryError(RuntimeError):
     """Sanitized provider-independent delivery failure."""
 
-    def __init__(self, category: str):
+    def __init__(self, category: str, *, http_status: int | None = None,
+                 provider_error_code: str | None = None):
         super().__init__("Password recovery delivery failed")
         allowed = {
             "configuration", "tls", "dns", "connection", "timeout",
             "http_rejection", "malformed_response", "internal_adapter_contract",
         }
         self.category = category if category in allowed else "internal_adapter_contract"
+        self.http_status = (http_status if isinstance(http_status, int)
+                            and not isinstance(http_status, bool)
+                            and 100 <= http_status <= 599 else None)
+        self.provider_error_code = (
+            provider_error_code if isinstance(provider_error_code, str)
+            and _PROVIDER_ERROR_CODE.fullmatch(provider_error_code) else None
+        )
 
 
 class HttpTransport(Protocol):
@@ -142,7 +154,15 @@ class ResendRecoveryDelivery:
         except (TypeError, ValueError):
             raise RecoveryDeliveryError("internal_adapter_contract") from None
         if not 200 <= status < 300:
-            raise RecoveryDeliveryError("http_rejection") from None
+            try:
+                rejected = json.loads(response_body.decode("utf-8"))
+                provider_code = rejected.get("name") if isinstance(rejected, dict) else None
+            except Exception:
+                provider_code = None
+            raise RecoveryDeliveryError(
+                "http_rejection", http_status=status,
+                provider_error_code=provider_code,
+            ) from None
         try:
             response = json.loads(response_body.decode("utf-8"))
         except Exception:

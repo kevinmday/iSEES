@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import secrets
 import uuid
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ _UNKNOWN_IDENTITY_THROTTLE_KEY = "__unknown_identity__"
 _UNKNOWN_RECOVERY_SCOPE_DIGEST = hashlib.sha256(b"recovery:unknown:global").digest()
 RECOVERY_TOKEN_BYTES = 32
 RECOVERY_TOKEN_TTL_SECONDS = 30 * 60
+logger = logging.getLogger(__name__)
 
 
 def _utc_now() -> datetime:
@@ -177,6 +179,7 @@ class AuthenticationService:
             request_id=request.request_id, origin_digest=request.origin_digest,
         )
         if not eligible:
+            logger.warning("Password recovery operational status=ACCOUNT_NOT_FOUND")
             return RecoveryRequestOutcome()
         entropy = self.recovery_entropy(RECOVERY_TOKEN_BYTES)
         if not isinstance(entropy, bytes) or len(entropy) < RECOVERY_TOKEN_BYTES:
@@ -193,6 +196,7 @@ class AuthenticationService:
             created_at=now, expires_at=capability.expires_at,
             requested_origin_digest=request.origin_digest,
         )
+        logger.warning("Password recovery operational status=TOKEN_CREATED")
         if self.recovery_delivery is None:
             raise RuntimeError("Recovery delivery is unavailable")
         self._audit(
@@ -204,6 +208,7 @@ class AuthenticationService:
             account_id=account.account_id, destination=account.email,
             capability=capability,
         ))
+        logger.warning("Password recovery operational status=DELIVERY_ACCEPTED")
         return RecoveryRequestOutcome()
 
     @staticmethod
