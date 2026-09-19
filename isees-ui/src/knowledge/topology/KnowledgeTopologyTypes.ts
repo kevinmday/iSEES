@@ -88,6 +88,14 @@ export type KnowledgeTopologyNodeType =
 export type KnowledgeTopologyRelationshipType =
   string;
 
+export interface GovernedEntityDossierReference {
+  readonly schemaVersion: string;
+  readonly entityId: string;
+  readonly globalDossierRevisionId: string;
+  readonly investigationOverlayRevisionId?: string;
+  readonly effectiveDossierHash: string;
+}
+
 // ============================================================
 // TOPOLOGY NODE
 // ============================================================
@@ -150,6 +158,8 @@ export interface KnowledgeTopologyNode {
   // ----------------------------------------------------------
 
   sourceType: string;
+
+  dossierReference?: GovernedEntityDossierReference;
 
   // ----------------------------------------------------------
   // METADATA

@@ -227,13 +227,85 @@ assert(revisionIdentityChanged.kind === "EDGE" && revisionEdge.kind === "EDGE" &
 assert(serialize(revisionGraph) === revisionBefore && serialize(knowledgeGraph) === knowledgeGraphBefore && olderRevisionGraph.nodes.length === 4, "Divergent graph inputs must remain immutable.");
 console.log("PASS 12 — supplied immutable revision graph exclusively owns NODE, EDGE, availability, and fingerprints");
 
+const familyNodes: InvestigationGraph["nodes"] = [
+  { id: "candidate-evidence", label: "Candidate Evidence", type: "ARTIFACT", iconType: "DOCUMENT", metadata: { canonicalKnowledgeType: "EVIDENCE", sourceId: "source:candidate", knowledgeSourceType: "RESEARCHER_SUPPLIED", sourceRevision: 3, revision: 7, lineage: { adapter: "fixture/v1" }, knowledgeClassification: "CANDIDATE_KNOWLEDGE", epistemicStatus: "UNVERIFIED", reviewStatus: "RESEARCHER_REVIEW_REQUIRED", canonEffect: "NONE" } },
+  { id: "isolated-person", label: "Isolated Person", type: "PERSON" },
+  ...Array.from({ length: 10 }, (_, index) => ({ id: `neighbor-${String(index).padStart(2, "0")}`, label: `Neighbor ${index}`, type: index % 2 === 0 ? "EVENT" as const : "LOCATION" as const })),
+];
+const familyEdges: InvestigationGraph["edges"] = Array.from({ length: 10 }, (_, index) => ({
+  id: `edge-${String(9 - index).padStart(2, "0")}`,
+  source: index % 2 === 0 ? "candidate-evidence" : `neighbor-${String(index).padStart(2, "0")}`,
+  target: index % 2 === 0 ? `neighbor-${String(index).padStart(2, "0")}` : "candidate-evidence",
+  relationship: index % 2 === 0 ? "SUPPORTS" as const : "REFERENCES" as const,
+  weight: index === 0 ? 0 : index / 10,
+  metrics: index === 0 ? { confidence: 0 } : undefined,
+  rationale: index === 0 ? ["zeta", "alpha", "alpha"] : [],
+}));
+const familyGraph: InvestigationGraph = {
+  nodes: familyNodes,
+  edges: familyEdges,
+  statistics: { nodeCount: familyNodes.length, edgeCount: familyEdges.length, eventCount: 5, facilityCount: 0, artifactCount: 1, personCount: 1, organizationCount: 0, locationCount: 5, narrativeCount: 0, hypothesisCount: 0 },
+};
+const familyBefore = serialize(familyGraph);
+const candidateNode = resolveSelectionIntelligence({ kind: "NODE", nodeId: "candidate-evidence", nodeType: "ARTIFACT" }, familyGraph, context);
+const isolatedPerson = resolveSelectionIntelligence({ kind: "NODE", nodeId: "isolated-person", nodeType: "PERSON" }, familyGraph, context);
+assert(candidateNode.kind === "NODE" && isolatedPerson.kind === "NODE", "Representative ARTIFACT and PERSON families must resolve.");
+if (candidateNode.kind !== "NODE" || isolatedPerson.kind !== "NODE") throw new Error("unreachable");
+const entity = candidateNode.intelligence.entitySpecific;
+assert(entity.identity.id === "candidate-evidence" && entity.identity.label === "Candidate Evidence", "NODE entity identity must be explicit.");
+assert(entity.classification.projectedType === "ARTIFACT" && entity.classification.canonicalType.status === "AVAILABLE" && entity.classification.canonicalType.value === "EVIDENCE", "Projected and canonical entity classifications must remain distinct.");
+assert(entity.investigationRole === "HUB" && isolatedPerson.intelligence.entitySpecific.investigationRole === "ISOLATED", "Investigation role must derive only from supplied topology.");
+assert(entity.provenance.sourceId.status === "AVAILABLE" && entity.provenance.sourceRevision.status === "AVAILABLE" && entity.provenance.lineage.status === "AVAILABLE", "Actually supplied NODE provenance and lineage must remain available.");
+assert(isolatedPerson.intelligence.entitySpecific.provenance.sourceId.status === "UNAVAILABLE" && isolatedPerson.intelligence.entitySpecific.evidence.knowledgeClassification.status === "UNAVAILABLE", "Absent provenance and evidence must remain explicitly unavailable.");
+assert(entity.evidence.candidateEvidenceBoundary === "NON_CANONICAL_REVIEW_ONLY", "Graph-identified Candidate Evidence must remain non-canonical and review-only.");
+assert(entity.relationships.totalCount === 10 && entity.relationships.returnedCount === 8 && entity.relationships.truncated, "NODE relationship summaries must be bounded at eight while preserving totals.");
+assert(entity.relationships.incomingCount === 5 && entity.relationships.outgoingCount === 5, "NODE relationship direction counts must derive from supplied edges.");
+assert(serialize(entity.relationships.items.map(item => item.edgeId)) === serialize([...entity.relationships.items.map(item => item.edgeId)].sort()), "Bounded relationships must use deterministic canonical ordering.");
+assert(Object.isFrozen(entity) && Object.isFrozen(entity.relationships) && Object.isFrozen(entity.relationships.items), "Entity-specific NODE projections must be immutable.");
+console.log("PASS 13 — representative NODE families expose immutable identity, classification, role, truthful provenance/evidence, and bounded deterministic relationships");
+
+const projectedEdge = resolveSelectionIntelligence({ kind: "EDGE", edgeId: "edge-09", sourceId: "candidate-evidence", targetId: "neighbor-00" }, familyGraph, context);
+assert(projectedEdge.kind === "EDGE", "Representative entity-specific EDGE must resolve.");
+if (projectedEdge.kind !== "EDGE") throw new Error("unreachable");
+const edgeEntity = projectedEdge.intelligence.entitySpecific;
+assert(edgeEntity.endpoints[0].role === "SOURCE" && edgeEntity.endpoints[0].identity.id === projectedEdge.intelligence.sourceId, "EDGE source endpoint profile must preserve source identity.");
+assert(edgeEntity.endpoints[1].role === "TARGET" && edgeEntity.endpoints[1].identity.id === projectedEdge.intelligence.targetId, "EDGE target endpoint profile must preserve target identity.");
+assert(edgeEntity.direction.kind === "DIRECTED" && edgeEntity.direction.sourceId === "candidate-evidence" && edgeEntity.direction.targetId === "neighbor-00", "EDGE direction must be explicit and topology-owned.");
+assert(edgeEntity.semantics.relationship === "SUPPORTS", "EDGE relationship semantics must be explicit.");
+assert(edgeEntity.weight.status === "AVAILABLE" && edgeEntity.weight.value === 0, "A supplied zero edge weight must remain an available zero.");
+assert(projectedEdge.metricAvailability.confidence.status === "AVAILABLE" && projectedEdge.metricAvailability.confidence.value === 0, "A supplied zero metric must remain available.");
+assert(projectedEdge.metricAvailability.geo.status === "UNAVAILABLE", "An absent metric must remain unavailable rather than becoming zero.");
+assert(edgeEntity.provenance.sourceId.status === "UNAVAILABLE" && edgeEntity.evidence.knowledgeClassification.status === "UNAVAILABLE", "EDGE provenance/evidence absent from the supplied graph must remain unavailable.");
+assert(serialize(edgeEntity.rationale) === serialize(["alpha", "zeta"]), "EDGE rationale must be deduplicated and deterministically ordered.");
+assert(Object.isFrozen(edgeEntity) && Object.isFrozen(edgeEntity.endpoints) && Object.isFrozen(edgeEntity.rationale), "Entity-specific EDGE projections must be immutable.");
+assert(serialize(familyGraph) === familyBefore, "Entity-specific projection must not mutate its graph fixture.");
+const reorderedFamilyGraph: InvestigationGraph = { ...familyGraph, nodes: [...familyGraph.nodes].reverse(), edges: [...familyGraph.edges].reverse() };
+const reorderedCandidate = resolveSelectionIntelligence({ kind: "NODE", nodeId: "candidate-evidence", nodeType: "ARTIFACT" }, reorderedFamilyGraph, context);
+assert(reorderedCandidate.kind === "NODE" && serialize(reorderedCandidate.intelligence.entitySpecific.relationships) === serialize(entity.relationships), "Graph array order must not change the deterministic relationship summary.");
+assert(reorderedCandidate.kind === "NODE" && reorderedCandidate.binding?.projectionFingerprint === candidateNode.binding?.projectionFingerprint, "Equivalent reordered graph input must preserve the projection fingerprint.");
+const missingEndpointGraph: InvestigationGraph = { ...familyGraph, nodes: familyGraph.nodes.filter(node => node.id !== "neighbor-00") };
+const missingEndpoint = resolveSelectionIntelligence({ kind: "EDGE", edgeId: "edge-09", sourceId: "candidate-evidence", targetId: "neighbor-00" }, missingEndpointGraph, context);
+assert(missingEndpoint.kind === "NONE" && missingEndpoint.availability.status === "UNAVAILABLE", "EDGE projection must fail closed when either endpoint is absent.");
+console.log("PASS 14 — EDGE profiles preserve endpoint integrity, direction, semantics, zero/unavailable distinctions, deterministic rationale, fingerprint stability, and input immutability");
+
+const princeton = graph.nodes.find(node => node.id === "system:entity:uss-princeton");
+assert(princeton !== undefined, "USS Princeton governed NODE must exist.");
+const princetonProjection = resolveCanonicalSelectionIntelligence({ graph, selection: { kind: "NODE", nodeId: princeton.id }, ...context });
+assert(princetonProjection.kind === "NODE" && princetonProjection.intelligence.entitySpecific.governedDossier.availability === "AVAILABLE", "Only the coherent selected governed NODE must expose its dossier projection.");
+if (princetonProjection.kind !== "NODE" || princetonProjection.intelligence.entitySpecific.governedDossier.availability !== "AVAILABLE") throw new Error("unreachable");
+assert(princetonProjection.intelligence.entitySpecific.governedDossier.binding.nodeId === princeton.id, "Governed dossier binding must pin selected node identity.");
+assert(princetonProjection.intelligence.entitySpecific.governedDossier.dossierRevisionId === "dossier-revision:system:entity:uss-princeton:2" && princetonProjection.intelligence.entitySpecific.governedDossier.operationalProfile.profileId === "NAVAL_VESSEL", "Governed NODE must expose exact revision 2 NAVAL_VESSEL profile.");
+assert(candidateNode.intelligence.entitySpecific.governedDossier.availability === "UNAVAILABLE" && isolatedPerson.intelligence.entitySpecific.governedDossier.availability === "UNAVAILABLE", "Non-dossier NODE behavior must remain unchanged and explicitly unavailable.");
+assert(projectedEdge.kind === "EDGE" && !("governedDossier" in projectedEdge.intelligence.entitySpecific), "EDGE intelligence must not gain a governed dossier projection.");
+console.log("PASS 15 — coherent governed NODE exclusively exposes exact dossier projection while other selection families remain unchanged");
+
 const implementationSource = `${readFileSync("src/manifold/selection/selectionIntelligenceResolver.ts", "utf8")}\n${readFileSync("src/intelligence/selection/CanonicalSelectionIntelligence.ts", "utf8")}`;
 for (const capability of ["fetch(", "XMLHttpRequest", "WebSocket", "navigator.sendBeacon", "localStorage", "sessionStorage", "indexedDB", "RexApi", "invokeRex", "publishResearch", "setSelection(", "writeFile", "buildKnowledgeBootstrapPopulation"]) {
   assert(!implementationSource.includes(capability), `Projection must have zero side-effect capability: ${capability}`);
 }
 assert(serialize(knowledgeObjects) === originalKnowledge, "No research mutation may occur.");
 assert(serialize(graph) === originalGraph, "No graph mutation may occur.");
-console.log("PASS 13 — no REX invocation, publication, graph/research mutation, persistence, or network effects");
+console.log("PASS 16 — no REX invocation, publication, graph/research mutation, persistence, or network effects");
 console.log("\n============================================================");
 console.log("CANONICAL SELECTION INTELLIGENCE VERIFIED");
 console.log("============================================================");

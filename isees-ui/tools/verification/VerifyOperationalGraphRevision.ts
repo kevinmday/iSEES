@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { CANONICAL_EVENTS } from "../../src/canonical/runtimeCorpus.ts";
 import { adaptSystemCanonToKnowledge } from "../../src/knowledge/ingestion/SystemCanonKnowledgeAdapter.ts";
+import { USS_PRINCETON_DOSSIER_REVISION_2 } from "../../src/knowledge/dossier/SystemCanonEntityDossierRegistry.ts";
 import type { Investigation, InvestigationRevision } from "../../src/investigation/investigationTypes.ts";
 import { createRevision } from "../../src/investigation/engine/revisionEngine.ts";
 import {
@@ -61,6 +62,17 @@ assert.equal(graph.edges.length, 13);
 assert.ok(graph.nodes.some(node => node.id === "system:event:E-TICTAC-2004" && node.metadata?.sourceId === "E-TICTAC-2004"));
 assert.equal(new Set(graph.nodes.map(node => node.id)).size, 16);
 assert.equal(new Set(graph.edges.map(edge => edge.id)).size, 13);
+const princetonNode = graph.nodes.find(node => node.id === "system:entity:uss-princeton")!;
+const dossierReference = princetonNode.metadata?.dossierReference as Record<string, unknown>;
+const dossierRevision = USS_PRINCETON_DOSSIER_REVISION_2;
+assert.deepEqual(dossierReference, {
+  schemaVersion: dossierRevision.schemaVersion,
+  entityId: "system:entity:uss-princeton",
+  globalDossierRevisionId: dossierRevision.dossierRevisionId,
+  effectiveDossierHash: dossierRevision.contentHash,
+});
+assert.equal(Object.isFrozen(dossierReference), true);
+assert.equal("facts" in dossierReference || "sourceRecords" in dossierReference || "sourceLinks" in dossierReference, false);
 
 const initial = materializeInitialOperationalRevision(sourceInvestigation, knowledge);
 assert.equal(initial.revisions.length, 1);
@@ -119,6 +131,12 @@ assert.throws(() => validateOperationalRevisionInvestigation(frozenVariant(initi
 const missingEndpointGraph = deepFreeze({ ...current.manifold.graph, nodes: current.manifold.graph.nodes.slice(1) });
 const missingEndpointRevision = deepFreeze({ ...current, manifold: { ...current.manifold, graph: missingEndpointGraph } });
 assert.throws(() => validateOperationalRevisionInvestigation(frozenVariant(initial, [missingEndpointRevision], missingEndpointRevision.id)));
+
+const changedReferenceGraph = deepFreeze({ ...current.manifold.graph, nodes: current.manifold.graph.nodes.map(node => node.id === princetonNode.id ? { ...node, metadata: { ...node.metadata, dossierReference: { ...dossierReference, effectiveDossierHash: `sha256:${"0".repeat(64)}` } } } : node) });
+assert.notEqual(createOperationalGraphFingerprint(changedReferenceGraph), createOperationalGraphFingerprint(current.manifold.graph));
+const malformedReferenceGraph = deepFreeze({ ...current.manifold.graph, nodes: current.manifold.graph.nodes.map(node => node.id === princetonNode.id ? { ...node, metadata: { ...node.metadata, dossierReference: { ...dossierReference, entityId: "system:entity:wrong" } } } : node) });
+const malformedReferenceRevision = deepFreeze({ ...current, manifold: { ...current.manifold, graph: malformedReferenceGraph } });
+assert.throws(() => validateOperationalRevisionInvestigation(frozenVariant(initial, [malformedReferenceRevision], malformedReferenceRevision.id)), /entity mismatch/);
 
 assert.equal(prepareNextOperationalRevision(initial, knowledge), undefined);
 const changedKnowledge = knowledge.map((object, index) => index === 0 ? { ...object, metadata: { ...object.metadata, description: `${object.metadata.description} changed` } } : object);

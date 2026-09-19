@@ -55,8 +55,16 @@ import type {
 } from "./GuestWorkspaceSessionPersistenceTypes";
 
 import {
+  buildCanonicalOperationalGraph,
+  createOperationalGraphFingerprint,
+  reconcileOperationalGraphRevision,
   rehydrateOperationalRevisionInvestigation,
+  resolveCurrentOperationalRevision,
 } from "../../investigation/revision/OperationalGraphRevision";
+import { buildKnowledgeBootstrapPopulation } from "../../knowledge/ingestion/KnowledgeRuntimeBootstrap.ts";
+import { USS_PRINCETON_DOSSIER_REVISION_1, USS_PRINCETON_DOSSIER_REVISION_2 } from "../../knowledge/dossier/SystemCanonEntityDossierRegistry.ts";
+import type { Investigation } from "../../investigation/investigationTypes.ts";
+import type { InvestigationGraph } from "../../manifold/graphTypes.ts";
 import { restoreStudioDocument } from "../../studio/api/StudioDocumentRestoration";
 
 
@@ -261,6 +269,87 @@ function validateOptionalSnapshotInvestigationIdentity(
 // ============================================================
 // RESTORE WORKSPACE
 // ============================================================
+
+const AUTHORIZED_SYSTEM_CANON_FACILITY_ICON_EVOLUTION =
+  new Set(["SHIP", "RADAR", "SENSOR", "LOCATION"]);
+const USS_PRINCETON_ENTITY_ID = "system:entity:uss-princeton";
+
+function exactReference(revision: typeof USS_PRINCETON_DOSSIER_REVISION_1) {
+  return {
+    schemaVersion: revision.schemaVersion,
+    entityId: USS_PRINCETON_ENTITY_ID,
+    globalDossierRevisionId: revision.dossierRevisionId,
+    effectiveDossierHash: revision.contentHash,
+  };
+}
+
+function sameReference(value: unknown, expected: ReturnType<typeof exactReference>): boolean {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return Object.keys(record).length === 4 && Object.entries(expected).every(([key, item]) => record[key] === item);
+}
+
+function authorizedPriorPrincetonState(graph: InvestigationGraph): boolean {
+  const node = graph.nodes.find(candidate => candidate.id === USS_PRINCETON_ENTITY_ID);
+  if (node === undefined) return false;
+  const reference = node.metadata?.dossierReference;
+  if (reference === undefined) return node.type === "FACILITY" && node.iconType === "BUILDING";
+  return sameReference(reference, exactReference(USS_PRINCETON_DOSSIER_REVISION_1));
+}
+
+function withoutAuthorizedSystemCanonProjectionEvolution(
+  graph: InvestigationGraph,
+  authoritativeGraph: InvestigationGraph,
+): InvestigationGraph {
+  return {
+    ...graph,
+    nodes: graph.nodes.map(node => {
+      const authoritativeNode = authoritativeGraph.nodes.find(candidate => candidate.id === node.id);
+      const metadata = node.metadata === undefined ? undefined : { ...node.metadata };
+      if (metadata !== undefined && node.id === USS_PRINCETON_ENTITY_ID) delete metadata.dossierReference;
+      const legacyFacilityIcon =
+        node.type === "FACILITY" &&
+        node.iconType === "BUILDING" &&
+        authoritativeNode?.type === "FACILITY" &&
+        authoritativeNode.iconType !== undefined &&
+        AUTHORIZED_SYSTEM_CANON_FACILITY_ICON_EVOLUTION.has(authoritativeNode.iconType);
+      return {
+        ...node,
+        ...(legacyFacilityIcon ? { iconType: authoritativeNode.iconType } : {}),
+        ...(metadata === undefined ? {} : { metadata }),
+      };
+    }),
+  };
+}
+
+function reconcileRestoredSystemCanonProjection(investigation: Investigation): Investigation {
+  if (
+    investigation.createdBy !== "SYSTEM_CANON" ||
+    investigation.workspace.guest_candidate_event !== undefined ||
+    investigation.workspace.imported_events.length === 0 ||
+    investigation.workspace.imported_events.some(reference => reference.source !== "SYSTEM_CANON")
+  ) return investigation;
+
+  const current = resolveCurrentOperationalRevision(investigation);
+  const knowledge = buildKnowledgeBootstrapPopulation();
+  const authoritativeGraph = buildCanonicalOperationalGraph(knowledge);
+  const currentFingerprint = createOperationalGraphFingerprint(current.manifold.graph);
+  const authoritativeFingerprint = createOperationalGraphFingerprint(authoritativeGraph);
+  if (currentFingerprint === authoritativeFingerprint) return investigation;
+
+  if (!authorizedPriorPrincetonState(current.manifold.graph)) return investigation;
+  const authoritativePrinceton = authoritativeGraph.nodes.find(node => node.id === USS_PRINCETON_ENTITY_ID);
+  if (!sameReference(authoritativePrinceton?.metadata?.dossierReference, exactReference(USS_PRINCETON_DOSSIER_REVISION_2))) return investigation;
+
+  const authoritativeHasGovernedReference = authoritativeGraph.nodes.some(node => node.metadata?.dossierReference !== undefined);
+  const referenceNeutralCurrent = createOperationalGraphFingerprint(withoutAuthorizedSystemCanonProjectionEvolution(current.manifold.graph, authoritativeGraph));
+  const referenceNeutralAuthority = createOperationalGraphFingerprint(withoutAuthorizedSystemCanonProjectionEvolution(authoritativeGraph, authoritativeGraph));
+  if (!authoritativeHasGovernedReference || referenceNeutralCurrent !== referenceNeutralAuthority) return investigation;
+
+  return reconcileOperationalGraphRevision(investigation, knowledge, {
+    recordedAt: current.manifold.timestamp,
+  });
+}
 //
 // Ordering matters.
 //
@@ -347,13 +436,18 @@ function restoreWorkspace(
   // INVESTIGATION
   // ----------------------------------------------------------
 
-  const runtimeInvestigation =
+  const rehydratedInvestigation =
     investigation.revisions.length > 0 ||
     investigation.currentRevisionId !== undefined
       ? rehydrateOperationalRevisionInvestigation(
           investigation,
         )
       : investigation;
+
+  const runtimeInvestigation =
+    rehydratedInvestigation.revisions.length > 0
+      ? reconcileRestoredSystemCanonProjection(rehydratedInvestigation)
+      : rehydratedInvestigation;
 
   runtime.setActiveInvestigation(
     runtimeInvestigation,

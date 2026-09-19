@@ -1,0 +1,30 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { OPERATIONAL_DOSSIER_PROFILE_IDS } from "../../src/intelligence/selection/profiles/OperationalDossierProfileTypes.ts";
+import { OPERATIONAL_DOSSIER_PROFILE_REGISTRY,resolveOperationalDossierProfile } from "../../src/intelligence/selection/profiles/OperationalDossierProfileRegistry.ts";
+import { projectOperationalDossierProfile } from "../../src/intelligence/selection/profiles/OperationalDossierProjection.ts";
+import { USS_PRINCETON_DOSSIER_REVISION_2 } from "../../src/knowledge/dossier/SystemCanonEntityDossierRegistry.ts";
+
+assert.deepEqual(Object.keys(OPERATIONAL_DOSSIER_PROFILE_REGISTRY).sort(),[...OPERATIONAL_DOSSIER_PROFILE_IDS].sort());
+for(const id of OPERATIONAL_DOSSIER_PROFILE_IDS){const profile=OPERATIONAL_DOSSIER_PROFILE_REGISTRY[id];assert.equal(profile.profileId,id);assert.equal(new Set(profile.sectionOrder).size,profile.sectionOrder.length);assert(Object.isFrozen(profile)&&Object.isFrozen(profile.sectionOrder));}
+assert.deepEqual(OPERATIONAL_DOSSIER_PROFILE_REGISTRY.NAVAL_VESSEL.sectionOrder,["IDENTITY","OPERATIONAL_SUMMARY","EVENT_ROLE","CAPABILITIES","LIMITATIONS","SPECIFICATIONS","SYSTEMS","ORGANIZATION","CHRONOLOGY","EXTERNAL_REFERENCES","FACT_LINEAGE","INTELLIGENCE_GAPS","GOVERNANCE"]);
+assert.deepEqual(OPERATIONAL_DOSSIER_PROFILE_REGISTRY.EVENT.sectionOrder,["IDENTITY","OPERATIONAL_SUMMARY","CHRONOLOGY","LOCATION","PARTICIPANTS","EVIDENCE","CONFLICTS","FACT_LINEAGE","INTELLIGENCE_GAPS","GOVERNANCE"]);
+assert.equal(resolveOperationalDossierProfile({explicitGovernedProfile:"AIRCRAFT",governedEntitySubtype:"NAVAL_VESSEL",canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"AIRCRAFT");
+assert.equal(resolveOperationalDossierProfile({governedEntitySubtype:"NAVAL_VESSEL",canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"NAVAL_VESSEL");
+assert.equal(resolveOperationalDossierProfile({canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"EVENT");
+assert.equal(resolveOperationalDossierProfile({graphNodeType:"PERSON"}).profile.profileId,"PERSON");
+assert.equal(resolveOperationalDossierProfile({}).profile.profileId,"GENERIC_ENTITY");
+const entitySpecific=resolveOperationalDossierProfile({canonicalEntityId:"system:entity:uss-princeton",governedEntitySubtype:"CANONICAL_FACILITY",canonicalKnowledgeType:"ENTITY",graphNodeType:"FACILITY"});
+assert.equal(entitySpecific.profile.profileId,"NAVAL_VESSEL");assert.equal(entitySpecific.basis,"ENTITY_SPECIFIC");
+const unsupported=resolveOperationalDossierProfile({canonicalEntityId:"system:entity:unsupported"});assert.equal(unsupported.profile.profileId,"GENERIC_ENTITY");assert.equal(unsupported.basis,"GENERIC_FALLBACK");
+const projected=projectOperationalDossierProfile(USS_PRINCETON_DOSSIER_REVISION_2,"FACILITY");
+assert.equal(projected.profileId,"NAVAL_VESSEL");assert.equal(projected.resolutionBasis,"ENTITY_SPECIFIC");
+assert.deepEqual(projected.sectionOrder,OPERATIONAL_DOSSIER_PROFILE_REGISTRY.NAVAL_VESSEL.sectionOrder);
+assert.equal(projected.sections.find(s=>s.sectionId==="LIMITATIONS")?.state,"NOT_ESTABLISHED");
+assert.deepEqual(projected.sections.find(s=>s.sectionId==="LIMITATIONS")?.availabilityFields,["documentedLimitations","encounterRadarTracksNovember2004","encounterSensorPerformanceNovember2004"]);
+assert.equal(projected.sections.find(s=>s.sectionId==="SPECIFICATIONS")?.state,"AVAILABLE");
+assert.equal(projected.sections.find(s=>s.sectionId==="INTELLIGENCE_GAPS")?.state,"NOT_ESTABLISHED");
+assert(projected.sections.find(s=>s.sectionId==="EVENT_ROLE")?.relationshipFactIds.length===1);
+const source=readFileSync("src/intelligence/selection/profiles/OperationalDossierProfileRegistry.ts","utf8");
+for(const forbidden of ["USS Princeton","startsWith(\"USS\")","includes(\"USS\")","displayName","fetch(","Tavily","WebDiscovery"])assert.equal(source.includes(forbidden),false,forbidden);
+console.log("PASS VerifyOperationalDossierProfiles — 13 deterministic profiles, precedence, NAVAL_VESSEL order, and truthful section states verified");

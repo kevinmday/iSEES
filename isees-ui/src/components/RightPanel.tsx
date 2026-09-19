@@ -45,7 +45,9 @@
 // ============================================================
 
 import {
+  useLayoutEffect,
   useMemo,
+  useRef,
 } from "react";
 
 import type {
@@ -104,6 +106,14 @@ import {
   resolveCurrentOperationalRevision,
 } from "../investigation/revision/OperationalGraphRevision";
 import { RexExploreControl } from "../rex/RexExploreControl.tsx";
+import type {
+  EntityEvidenceProfile,
+  EntityProvenanceProfile,
+  GraphEdgeIntelligence,
+  GraphNodeIntelligence,
+  IntelligenceFieldAvailability,
+  EntityDossierProjection,
+} from "../graph/graphInteractionTypes";
 
 // ============================================================
 // COMPONENT
@@ -270,12 +280,43 @@ export default function RightPanel() {
       [selectedCandidateIntelligence, knowledgeObjects],
     );
 
+  const selectionScrollIdentity = selectedCandidateIntelligence === undefined
+    ? graphIntelligence.kind === "NODE"
+      ? `NODE:${graphIntelligence.intelligence.nodeId}`
+      : graphIntelligence.kind === "EDGE"
+        ? `EDGE:${graphIntelligence.intelligence.edgeId}`
+        : graphIntelligence.kind === "CLUSTER"
+          ? `CLUSTER:${graphIntelligence.clusterId}`
+          : "NONE"
+    : JSON.stringify([
+        "CANDIDATE",
+        selectedCandidateIntelligence.identity.candidateId,
+        selectedCandidateIntelligence.identity.evaluationId,
+        selectedCandidateIntelligence.identity.leftKnowledgeObjectId,
+        selectedCandidateIntelligence.identity.rightKnowledgeObjectId,
+      ]);
+
+  const projectionRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const scrollContainer = projectionRef.current?.closest(
+      ".selection-intelligence__body",
+    );
+
+    if (scrollContainer instanceof HTMLElement) {
+      scrollContainer.scrollTop = 0;
+    }
+  }, [selectionScrollIdentity]);
+
   // ==========================================================
   // RENDER
   // ==========================================================
 
   return (
-    <div className="selection-intelligence__projection">
+    <div
+      ref={projectionRef}
+      className="selection-intelligence__projection"
+    >
 
       {/* RESOLVE CANDIDATE */}
 
@@ -852,18 +893,16 @@ function SelectionTypeIdentity({
 function NodeInspector({
   intelligence,
 }: {
-  intelligence: {
-    nodeId: string;
-    title: string;
-    sourceType: string;
-    confidence?: number;
-    connectionCount: number;
-    metadata?: Record<
-      string,
-      unknown
-    >;
-  };
+  intelligence: GraphNodeIntelligence;
 }) {
+  const entity = intelligence.entitySpecific;
+  const hiddenRelationships = entity.relationships.totalCount - entity.relationships.returnedCount;
+  const roleCopy = {
+    ISOLATED: "No established relationships connect this entity in the active Investigation graph.",
+    TERMINAL: "This entity is an endpoint in one established Investigation relationship.",
+    CONNECTOR: "This entity connects multiple established relationships in the active Investigation graph.",
+    HUB: "This entity has several established relationships in the active Investigation graph.",
+  }[entity.investigationRole];
   return (
     <div
       className={
@@ -877,7 +916,7 @@ function NodeInspector({
         }
       />
 
-      <InspectorSection title="Selected Node">
+      <InspectorSection title="Selected node">
         <div
           className={
             "selection-intelligence__entity-title"
@@ -887,41 +926,49 @@ function NodeInspector({
         </div>
 
         <div className="selection-intelligence__rows">
-          <IntelRow
-            label="Source"
-            value={
-              intelligence.sourceType
-            }
-          />
-
-          <IntelRow
-            label="Connections"
-            value={
-              intelligence.connectionCount
-            }
-          />
-
-          <IntelRow
-            label="Confidence"
-            value={
-              intelligence.confidence !==
-                undefined
-                ? `${(
-                    intelligence.confidence *
-                    100
-                  ).toFixed(1)}%`
-                : "N/A"
-            }
-          />
+          <IntelRow label="Node type" value={entity.classification.projectedType} />
+          <AvailabilityRow label="Canonical type" availability={entity.classification.canonicalType} />
+          <AvailabilityRow label="Epistemic status" availability={entity.evidence.epistemicStatus} />
         </div>
       </InspectorSection>
 
-      <InspectorSection title="Metadata">
-        <MetadataRows
-          metadata={
-            intelligence.metadata
-          }
-        />
+      <GovernedDossierInspector dossier={entity.governedDossier} />
+
+      <InspectorSection title="Why it matters">
+        <p className="selection-intelligence__plain-language">{roleCopy}</p>
+        <IntelRow label="Investigation role" value={formatLabel(entity.investigationRole)} />
+      </InspectorSection>
+
+      <InspectorSection title="Related entities">
+        <div className="selection-intelligence__rows">
+          <IntelRow label="Established relationships" value={entity.relationships.totalCount} />
+          <IntelRow label="Incoming / outgoing" value={`${entity.relationships.incomingCount} / ${entity.relationships.outgoingCount}`} />
+        </div>
+        {entity.relationships.items.length === 0
+          ? <div className="selection-intelligence__muted">No related entities are supplied by the active graph.</div>
+          : <div className="selection-intelligence__entity-list">{entity.relationships.items.map(item => <div className="selection-intelligence__entity-card" key={item.edgeId}><div><strong>{item.neighbor.label}</strong><span>{item.neighborClassification.projectedType}</span></div><span>{formatLabel(item.direction)} · {formatLabel(item.relationship)}</span></div>)}</div>}
+        {hiddenRelationships > 0 && <p className="selection-intelligence__overflow-notice">{hiddenRelationships} additional relationship{hiddenRelationships === 1 ? " is" : "s are"} not displayed.</p>}
+      </InspectorSection>
+
+      <InspectorSection title="Supporting evidence">
+        {entity.evidence.candidateEvidenceBoundary === "NON_CANONICAL_REVIEW_ONLY" && <div className="selection-intelligence__review-warning"><strong>NON-CANONICAL / REVIEW ONLY</strong><span>Candidate Evidence requires researcher review and does not change canonical Knowledge.</span></div>}
+        <EvidenceRows evidence={entity.evidence} />
+      </InspectorSection>
+
+      <InspectorSection title="Provenance">
+        <ProvenanceRows provenance={entity.provenance} />
+      </InspectorSection>
+
+      <InspectorSection title="Deterministic basis">
+        <div className="selection-intelligence__rows">
+          <IntelRow label="Connections" value={intelligence.connectionCount} />
+          <IntelRow label="Confidence" value={intelligence.confidence === undefined ? "UNAVAILABLE" : `${(intelligence.confidence * 100).toFixed(1)}%`} />
+        </div>
+        <p className="selection-intelligence__basis-note">Values shown here come from the active Investigation graph. No Selection Intelligence evaluator or equation is claimed.</p>
+      </InspectorSection>
+
+      <InspectorSection title="Restrictions">
+        <Restrictions evidence={entity.evidence} provenance={entity.provenance} />
       </InspectorSection>
 
       <InspectorSection
@@ -931,9 +978,7 @@ function NodeInspector({
         <div className="selection-intelligence__rows">
           <IntelRow
             label="Node ID"
-            value={
-              intelligence.nodeId
-            }
+            value={entity.identity.id}
           />
         </div>
       </InspectorSection>
@@ -945,31 +990,95 @@ function NodeInspector({
 // EDGE INSPECTOR
 // ============================================================
 
+function dossierFactValue(fact: Extract<EntityDossierProjection, { availability: "AVAILABLE" }>["acceptedFacts"][number]): string {
+  const value = fact.value;
+  return value.valueType === "NUMBER" && value.unit !== undefined ? `${value.value} ${value.unit}` : String(value.value);
+}
+
+const DOSSIER_SECTION_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  IDENTITY: "Identity",
+  OPERATIONAL_SUMMARY: "Operational Summary",
+  EVENT_ROLE: "Event-Specific Role",
+  CAPABILITIES: "Capabilities",
+  LIMITATIONS: "Limitations",
+  SPECIFICATIONS: "Specifications",
+  SYSTEMS: "Systems",
+  ORGANIZATION: "Platform and Organization",
+  CHRONOLOGY: "Service History / Chronology",
+  EXTERNAL_REFERENCES: "Official External References",
+  FACT_LINEAGE: "Sources and Fact-Level Lineage",
+  INTELLIGENCE_GAPS: "Unavailable, Not Researched, Stale, or Conflicting Intelligence",
+  GOVERNANCE: "Technical Governance Metadata",
+});
+
+function DossierFactCard({ fact, dossier }: { fact: Extract<EntityDossierProjection, { availability: "AVAILABLE" }>["acceptedFacts"][number]; dossier: Extract<EntityDossierProjection, { availability: "AVAILABLE" }> }) {
+  const links = dossier.sourceLinks.filter(link => link.factId === fact.factId);
+  const sources = new Map(dossier.sourceRecords.map(source => [source.sourceRecordId, source]));
+  const factContext = fact.temporalQualification.kind === "UNSPECIFIED" ? "GLOBAL ENTITY FACT" : "HISTORICALLY BOUNDED FACT";
+  return <div className="selection-intelligence__entity-card">
+    <div><strong>{fact.displayLabel ?? formatLabel(fact.predicate)}</strong><span>{dossierFactValue(fact)}</span></div>
+    <span>{formatLabel(factContext)} · {formatLabel(fact.applicability ?? "UNAVAILABLE")} · {formatLabel(fact.epistemicClassification)} · {formatLabel(fact.reviewStatus)}</span>
+    <details><summary>Source lineage</summary>{links.map(link => { const source = sources.get(link.sourceRecordId); return <div className="selection-intelligence__rows" key={link.sourceLinkId}>
+      <IntelRow label="Source" value={source?.sourceTitle ?? "UNAVAILABLE"} />
+      <IntelRow label="Authority / publisher" value={source === undefined ? "UNAVAILABLE" : `${source.authority} / ${source.publisher}`} />
+      <IntelRow label="Official locator" value={source?.locator ?? source?.repositoryIdentity ?? "UNAVAILABLE"} />
+      <IntelRow label="Published / revised" value={source?.publicationTime ?? source?.sourceRevisionLabel ?? "NOT SUPPLIED"} />
+      <IntelRow label="Retrieved" value={source?.retrievedAt ?? "UNAVAILABLE"} />
+      <IntelRow label="Citation" value={link.citationLocator ?? "NOT SUPPLIED"} />
+      <IntelRow label="Relationship" value={formatLabel(link.relationship)} />
+      <IntelRow label="Retention" value={source?.retentionState ?? "UNAVAILABLE"} />
+      <IntelRow label="Snapshot hash" value={source?.contentHash ?? "UNAVAILABLE"} />
+      <IntelRow label="Governing revision" value={link.governingDossierRevisionId ?? dossier.dossierRevisionId} />
+    </div>; })}</details>
+  </div>;
+}
+
+function GovernedDossierInspector({ dossier }: { dossier: EntityDossierProjection }) {
+  if (dossier.availability === "UNAVAILABLE") {
+    return dossier.reason === "NOT_REFERENCED"
+      ? null
+      : <InspectorSection title="GOVERNED ENTITY DOSSIER"><IntelRow label="Availability" value={`UNAVAILABLE — ${formatLabel(dossier.reason)}`} /></InspectorSection>;
+  }
+  const facts = new Map(dossier.acceptedFacts.map(fact => [fact.factId, fact]));
+  const relationships = new Map(dossier.relationshipFacts.map(fact => [fact.factId, fact]));
+  return <InspectorSection title="GOVERNED ENTITY DOSSIER">
+    <div className="selection-intelligence__rows">
+      <IntelRow label="Availability" value="AVAILABLE" />
+      <IntelRow label="Entity" value={dossier.entityIdentity.displayName} />
+      <IntelRow label="Hull number" value={dossier.entityIdentity.identifiers.find(item => item.scheme === "US_NAVY_HULL_CLASSIFICATION")?.value ?? "UNAVAILABLE"} />
+      <IntelRow label="Operational profile" value={formatLabel(dossier.operationalProfile.profileId)} />
+      <IntelRow label="Classification" value={`${formatLabel(dossier.entityIdentity.entityType)} · ${formatLabel(dossier.entityIdentity.entitySubtype ?? "UNAVAILABLE")}`} />
+      <IntelRow label="Governance" value={`GOVERNED · REVIEWED · ${formatLabel(dossier.scope)}`} />
+    </div>
+    {dossier.operationalProfile.sections.map(section => {
+      const title = DOSSIER_SECTION_LABELS[section.sectionId] ?? formatLabel(section.sectionId);
+      if (section.sectionId === "GOVERNANCE") return <div key={section.sectionId}><h4>{title}</h4><div className="selection-intelligence__rows">
+        <IntelRow label="Governed revision" value={dossier.dossierRevisionId} /><IntelRow label="Schema" value={dossier.schemaVersion} /><IntelRow label="Canonical identity" value={dossier.entityIdentity.canonicalEntityId} /><IntelRow label="Profile resolution" value={formatLabel(dossier.operationalProfile.resolutionBasis)} /><IntelRow label="Investigation binding" value={dossier.binding.investigationId} /><IntelRow label="Manifold revision" value={dossier.binding.manifoldRevisionId} /><IntelRow label="Node binding" value={dossier.binding.nodeId} /><IntelRow label="Content hash" value={dossier.binding.effectiveDossierHash} /><IntelRow label="Projection fingerprint" value={dossier.projectionFingerprint} />
+      </div></div>;
+      if (section.sectionId === "INTELLIGENCE_GAPS") return <div key={section.sectionId}><h4>{title}</h4><div className="selection-intelligence__entity-list">{dossier.unavailableCategories.map(field => <div className="selection-intelligence__entity-card" key={field.field}><div><strong>{formatLabel(field.field)}</strong><span>{formatLabel(field.state)}</span></div></div>)}</div></div>;
+      if (section.sectionId === "FACT_LINEAGE") return <div key={section.sectionId}><h4>{title}</h4><div className="selection-intelligence__rows"><IntelRow label="Official sources" value={dossier.sourceRecords.length} /><IntelRow label="Exact fact-source links" value={dossier.sourceLinks.length} /></div></div>;
+      return <div key={section.sectionId}><h4>{title}</h4><IntelRow label="Section status" value={formatLabel(section.state)} />
+        {section.factIds.length > 0 && <div className="selection-intelligence__entity-list">{section.factIds.map(id => facts.get(id)).filter((fact): fact is NonNullable<typeof fact> => fact !== undefined).map(fact => <DossierFactCard key={fact.factId} fact={fact} dossier={dossier} />)}</div>}
+        {section.relationshipFactIds.map(id => relationships.get(id)).filter((fact): fact is NonNullable<typeof fact> => fact !== undefined).map(fact => <div className="selection-intelligence__entity-card" key={fact.factId}><div><strong>{fact.displayLabel ?? formatLabel(fact.relationshipType)}</strong><span>{fact.objectEntityId}</span></div><span>Encounter-specific claim · {formatLabel(fact.epistemicClassification)} · {formatLabel(fact.reviewStatus)}</span></div>)}
+        {section.availabilityFields.length > 0 && <div className="selection-intelligence__entity-list">{section.availabilityFields.map(field => { const availability = dossier.unavailableCategories.find(item => item.field === field); return <div className="selection-intelligence__entity-card" key={field}><div><strong>{formatLabel(field)}</strong><span>{formatLabel(availability?.state ?? "UNAVAILABLE")}</span></div></div>; })}</div>}
+      </div>;
+    })}
+  </InspectorSection>;
+}
+
 function EdgeInspector({
   intelligence,
   metricAvailability,
   hasCompletedResolve,
   goToCompare,
 }: {
-  intelligence: {
-    edgeId: string;
-    sourceId: string;
-    sourceLabel: string;
-    targetId: string;
-    targetLabel: string;
-    relationship: string;
-    confidence: number;
-    narrative: number;
-    observability: number;
-    infrastructure: number;
-    topology: number;
-    geo: number;
-    rationale: string[];
-  };
+  intelligence: GraphEdgeIntelligence;
   metricAvailability: EdgeMetricAvailability;
   hasCompletedResolve: boolean;
   goToCompare: () => void;
 }) {
+  const entity = intelligence.entitySpecific;
+  const [source, target] = entity.endpoints;
   const metrics = [
     ["Confidence", metricAvailability.confidence],
     ["Narrative", metricAvailability.narrative],
@@ -998,7 +1107,15 @@ function EdgeInspector({
         }
       />
 
-      <InspectorSection title="Selected Edge">
+      <InspectorSection title="Selected edge">
+        <div className="selection-intelligence__entity-title">{formatLabel(entity.semantics.relationship)}</div>
+        <div className="selection-intelligence__rows">
+          <IntelRow label="Direction" value={`${source.identity.label} → ${target.identity.label}`} />
+          <AvailabilityRow label="Epistemic status" availability={entity.evidence.epistemicStatus} />
+        </div>
+      </InspectorSection>
+
+      <InspectorSection title="Endpoint profiles">
         <div className="selection-intelligence__relationship">
           <div
             className={
@@ -1013,8 +1130,9 @@ function EdgeInspector({
               "selection-intelligence__relationship-object"
             }
           >
-            {intelligence.sourceLabel}
+            {source.identity.label}
           </div>
+          <span className="selection-intelligence__endpoint-meta">{source.classification.projectedType} · {source.identity.id}</span>
 
           <div
             className={
@@ -1040,9 +1158,7 @@ function EdgeInspector({
               </span>
 
               {
-                formatLabel(
-                  intelligence.relationship
-                )
+                formatLabel(entity.semantics.relationship)
               }
             </span>
           </div>
@@ -1060,9 +1176,29 @@ function EdgeInspector({
               "selection-intelligence__relationship-object"
             }
           >
-            {intelligence.targetLabel}
+            {target.identity.label}
           </div>
+          <span className="selection-intelligence__endpoint-meta">{target.classification.projectedType} · {target.identity.id}</span>
         </div>
+      </InspectorSection>
+
+      <InspectorSection title="Relationship meaning">
+        <p className="selection-intelligence__plain-language">The active graph supplies a directed {formatLabel(entity.semantics.relationship).toLocaleLowerCase()} relationship from the source entity to the target entity.</p>
+      </InspectorSection>
+
+      <InspectorSection title="Supporting evidence">
+        <EvidenceRows evidence={entity.evidence} />
+      </InspectorSection>
+
+      <InspectorSection title="Provenance">
+        <ProvenanceRows provenance={entity.provenance} />
+      </InspectorSection>
+
+      <InspectorSection title="Deterministic basis">
+        <div className="selection-intelligence__rows">
+          <AvailabilityRow label="Graph weight" availability={entity.weight} format={value => String(value)} />
+        </div>
+        <p className="selection-intelligence__basis-note">Graph weight and metrics are displayed as supplied. No evaluator definition or equation is registered here.</p>
       </InspectorSection>
 
       <InspectorSection title="Metrics">
@@ -1095,15 +1231,17 @@ function EdgeInspector({
         )}
       </InspectorSection>
 
-      <InspectorSection title="Rationale">
+      <InspectorSection title="Deterministic rationale">
         <RationaleList
-          rationale={
-            intelligence.rationale
-          }
+          rationale={entity.rationale}
           emptyMessage={
             "No relationship rationale available."
           }
         />
+      </InspectorSection>
+
+      <InspectorSection title="Restrictions">
+        <Restrictions evidence={entity.evidence} provenance={entity.provenance} />
       </InspectorSection>
 
       <InspectorSection
@@ -1166,6 +1304,52 @@ function MetricAvailabilityRow({
   );
 }
 
+function AvailabilityRow<T extends string | number>({
+  label,
+  availability,
+  format = value => String(value),
+}: {
+  label: string;
+  availability: IntelligenceFieldAvailability<T>;
+  format?: (value: T) => string;
+}) {
+  return <IntelRow label={label} value={availability.status === "AVAILABLE" ? format(availability.value) : "UNAVAILABLE"} />;
+}
+
+function describeLineage(value: Readonly<Record<string, unknown>> | readonly unknown[]): string {
+  if (Array.isArray(value)) return `${value.length} supplied lineage item${value.length === 1 ? "" : "s"}`;
+  const keys = Object.keys(value).sort();
+  return keys.length === 0 ? "Supplied (empty)" : `Supplied fields: ${keys.join(", ")}`;
+}
+
+function ProvenanceRows({ provenance }: { provenance: EntityProvenanceProfile }) {
+  return <div className="selection-intelligence__rows">
+    <AvailabilityRow label="Source" availability={provenance.sourceType} />
+    <AvailabilityRow label="Source identity" availability={provenance.sourceId} />
+    <AvailabilityRow label="Source revision" availability={provenance.sourceRevision} />
+    <AvailabilityRow label="Knowledge revision" availability={provenance.knowledgeRevision} />
+    <IntelRow label="Lineage" value={provenance.lineage.status === "AVAILABLE" ? describeLineage(provenance.lineage.value) : "UNAVAILABLE"} />
+  </div>;
+}
+
+function EvidenceRows({ evidence }: { evidence: EntityEvidenceProfile }) {
+  return <div className="selection-intelligence__rows">
+    <AvailabilityRow label="Classification" availability={evidence.knowledgeClassification} />
+    <AvailabilityRow label="Review status" availability={evidence.reviewStatus} />
+    <AvailabilityRow label="Canon effect" availability={evidence.canonEffect} />
+  </div>;
+}
+
+function Restrictions({ evidence, provenance }: { evidence: EntityEvidenceProfile; provenance: EntityProvenanceProfile }) {
+  const sourceUnavailable = provenance.sourceId.status === "UNAVAILABLE" && provenance.sourceType.status === "UNAVAILABLE";
+  return <div className="selection-intelligence__restriction-list">
+    {evidence.candidateEvidenceBoundary === "NON_CANONICAL_REVIEW_ONLY" && <p>Researcher review is required. This selection does not establish canonical Knowledge.</p>}
+    {evidence.canonEffect.status === "AVAILABLE" && <p>Canon effect: {evidence.canonEffect.value}.</p>}
+    {sourceUnavailable && <p>Source provenance is unavailable in the active graph; no source claim is inferred.</p>}
+    {evidence.candidateEvidenceBoundary === "CANONICAL_OR_UNSPECIFIED" && !sourceUnavailable && evidence.canonEffect.status === "UNAVAILABLE" && <p>No additional restriction is supplied by the active graph.</p>}
+  </div>;
+}
+
 // ============================================================
 // INSPECTOR SECTION
 // ============================================================
@@ -1200,52 +1384,6 @@ function InspectorSection({
 
       {children}
     </section>
-  );
-}
-
-// ============================================================
-// METADATA
-// ============================================================
-
-function MetadataRows({
-  metadata,
-}: {
-  metadata?: Record<
-    string,
-    unknown
-  >;
-}) {
-  if (
-    !metadata ||
-    Object.keys(metadata).length === 0
-  ) {
-    return (
-      <div className="selection-intelligence__muted">
-        No metadata available.
-      </div>
-    );
-  }
-
-  return (
-    <div className="selection-intelligence__rows">
-      {
-        Object.entries(
-          metadata
-        ).map(
-          ([key, value]) => (
-            <IntelRow
-              key={key}
-              label={
-                formatLabel(key)
-              }
-              value={
-                formatValue(value)
-              }
-            />
-          )
-        )
-      }
-    </div>
   );
 }
 
@@ -1375,27 +1513,6 @@ function formatLabel(
       character =>
         character.toUpperCase()
     );
-}
-
-function formatValue(
-  value: unknown
-): string {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "N/A";
-  }
-
-  if (
-    typeof value === "object"
-  ) {
-    return JSON.stringify(
-      value
-    );
-  }
-
-  return String(value);
 }
 
 // ============================================================

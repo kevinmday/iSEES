@@ -483,6 +483,14 @@ function adaptNode(
 
       ...node.metadata,
 
+      ...(node.dossierReference === undefined
+        ? {}
+        : {
+            dossierReference: {
+              ...node.dossierReference,
+            },
+          }),
+
       // ------------------------------------------------------
       // CANONICAL SEMANTICS
       // ------------------------------------------------------

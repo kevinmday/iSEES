@@ -1,4 +1,5 @@
 import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject.ts";
+import { ENTITY_DOSSIER_SCHEMA_VERSION } from "../../knowledge/dossier/EntityDossierTypes.ts";
 import { buildCanonicalInvestigationGraph } from "../../intelligence/selection/CanonicalInvestigationGraph.ts";
 import type { GraphEdge, GraphNode, InvestigationGraph } from "../../manifold/graphTypes.ts";
 import { commitRevision, createRevision } from "../engine/revisionEngine.ts";
@@ -115,6 +116,21 @@ function validateGraph(graph: InvestigationGraph): void {
     requireIdentity(node.id, "NODE identity");
     if (nodeIds.has(node.id)) throw new Error(`Duplicate NODE identity: ${node.id}`);
     nodeIds.add(node.id);
+    const reference = node.metadata?.dossierReference;
+    if (reference !== undefined) {
+      if (reference === null || typeof reference !== "object" || Array.isArray(reference)) throw new Error(`NODE ${node.id} dossierReference is malformed.`);
+      const record = reference as Record<string, unknown>;
+      const allowed = ["schemaVersion", "entityId", "globalDossierRevisionId", "investigationOverlayRevisionId", "effectiveDossierHash"];
+      if (Object.keys(record).some(key => !allowed.includes(key))) throw new Error(`NODE ${node.id} dossierReference contains unsupported content.`);
+      for (const key of ["schemaVersion", "entityId", "globalDossierRevisionId", "effectiveDossierHash"]) {
+        if (typeof record[key] !== "string" || !(record[key] as string).trim()) throw new Error(`NODE ${node.id} dossierReference ${key} is malformed.`);
+      }
+      if (record.schemaVersion !== ENTITY_DOSSIER_SCHEMA_VERSION) throw new Error(`NODE ${node.id} dossierReference schema mismatch.`);
+      if (record.entityId !== node.id) throw new Error(`NODE ${node.id} dossierReference entity mismatch.`);
+      if ((record.globalDossierRevisionId as string).toLowerCase().includes("latest")) throw new Error(`NODE ${node.id} dossierReference must pin an exact revision.`);
+      if (!/^sha256:[0-9a-f]{64}$/.test(record.effectiveDossierHash as string)) throw new Error(`NODE ${node.id} dossierReference hash is malformed.`);
+      if (record.investigationOverlayRevisionId !== undefined && (typeof record.investigationOverlayRevisionId !== "string" || !record.investigationOverlayRevisionId.trim() || record.investigationOverlayRevisionId.toLowerCase().includes("latest"))) throw new Error(`NODE ${node.id} dossierReference overlay revision is malformed.`);
+    }
   }
   const edgeIds = new Set<string>();
   for (const edge of graph.edges) {

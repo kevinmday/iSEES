@@ -51,6 +51,10 @@ import type {
 } from "../model/KnowledgeObjectTypes.ts";
 
 import {
+  resolvePinnedSystemCanonEntityDossierRevision,
+} from "../dossier/SystemCanonEntityDossierRegistry.ts";
+
+import {
   KnowledgeTopologyDiagnosticType,
 
   type KnowledgeTopology,
@@ -276,6 +280,11 @@ function projectNode(
   object: KnowledgeObject,
 ): KnowledgeTopologyNode {
 
+  const dossierRevision =
+    resolvePinnedSystemCanonEntityDossierRevision(
+      object.identity.id,
+    );
+
   return {
 
     id:
@@ -292,6 +301,17 @@ function projectNode(
 
     sourceType:
       object.provenance.sourceType,
+
+    ...(dossierRevision === undefined
+      ? {}
+      : {
+          dossierReference: {
+            schemaVersion: dossierRevision.schemaVersion,
+            entityId: object.identity.id,
+            globalDossierRevisionId: dossierRevision.dossierRevisionId,
+            effectiveDossierHash: dossierRevision.contentHash,
+          },
+        }),
 
     metadata: {
 
