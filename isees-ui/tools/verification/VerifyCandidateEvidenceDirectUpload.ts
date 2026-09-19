@@ -15,8 +15,12 @@ for (const marker of ["FormData", '"/direct-uploads"', "candidate-evidence-uploa
 }
 assert(api.includes("init?.body instanceof FormData"), "multipart requests would be mislabeled as JSON");
 assert(types.includes('"DIRECT_UPLOAD"'), "shared Candidate Evidence pathway omits direct upload");
+const directUploadStart = workspace.indexOf("async function submitCandidate");
+const directUploadEnd = workspace.indexOf("const view =", directUploadStart);
+const directUploadFlow = directUploadStart >= 0 && directUploadEnd > directUploadStart ? workspace.slice(directUploadStart, directUploadEnd) : "";
+assert(directUploadFlow, "direct-upload submission boundary is absent");
 for (const forbidden of ["publishRex", "createAnchorsAtomically", "fetch(submission", "OperationalGraphRevision"]) {
-  assert(!workspace.includes(forbidden), `direct-upload UI contains forbidden side-effect owner: ${forbidden}`);
+  assert(!directUploadFlow.includes(forbidden), `direct-upload UI contains forbidden side-effect owner: ${forbidden}`);
 }
 
 console.log("PASS VerifyCandidateEvidenceDirectUpload — deliberate multipart review-only intake and governed inspection verified");

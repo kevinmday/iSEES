@@ -5,7 +5,7 @@ import type { WebDiscoveryCaptureDisposition, WebDiscoverySearchResponse, WebDis
 
 export interface WebDiscoveryRevisionBinding { readonly investigationAggregateRevision: number; readonly manifoldRevisionId: string }
 interface CaptureConfirmation { readonly result: WebDiscoverySearchResult; readonly operationId: string; readonly idempotencyKey: string }
-export interface CapturedResult { readonly candidateId: string; readonly disposition: WebDiscoveryCaptureDisposition }
+export interface CapturedResult { readonly candidateId: string; readonly disposition: WebDiscoveryCaptureDisposition; readonly researchInboxEffect?: "NONE" | "CREATED" | "REPLAYED" }
 
 const commandIdentity = (kind: string): string => `web-discovery-${kind}-${crypto.randomUUID()}`;
 function visibleError(error: unknown, action: "search" | "capture"): string {
@@ -25,6 +25,7 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
   const [error, setError] = useState<string>();
   const [confirmation, setConfirmation] = useState<CaptureConfirmation>();
   const [researcherNote, setResearcherNote] = useState("");
+  const [addToResearchInbox, setAddToResearchInbox] = useState(true);
   const [capturePending, setCapturePending] = useState<string>();
   const [captured, setCaptured] = useState<Readonly<Record<string, CapturedResult>>>({});
   const bindingKey = scope && binding ? `${scope.principalId}\u0000${scope.investigationId}\u0000${binding.investigationAggregateRevision}\u0000${binding.manifoldRevisionId}` : "unavailable";
@@ -48,7 +49,7 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
 
   const requestCapture = useCallback((result: WebDiscoverySearchResult) => {
     if (capturePending) return;
-    setResearcherNote(""); setError(undefined);
+    setResearcherNote(""); setAddToResearchInbox(true); setError(undefined);
     setConfirmation({ result, operationId: commandIdentity("capture-operation"), idempotencyKey: commandIdentity("capture-idempotency") });
   }, [capturePending]);
   const cancelCapture = useCallback(() => { if (!capturePending) { setConfirmation(undefined); setResearcherNote(""); } }, [capturePending]);
@@ -57,20 +58,22 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
     const resultId = confirmation.result.resultId;
     setCapturePending(resultId); setError(undefined);
     try {
-      const outcome = await webDiscoveryApi.capture(scope, buildWebDiscoveryCaptureCommand({ investigationId: scope.investigationId, expectedInvestigationRevision: binding.investigationAggregateRevision, manifoldRevisionId: binding.manifoldRevisionId, searchSessionId: response.searchSessionId, resultId, operationId: confirmation.operationId, idempotencyKey: confirmation.idempotencyKey, ...(researcherNote.trim() ? { researcherNote: researcherNote.trim() } : {}) }));
-      setCaptured((current) => ({ ...current, [resultId]: { candidateId: outcome.candidateId, disposition: outcome.idempotencyDisposition } }));
-      setConfirmation(undefined); setResearcherNote("");
+      const outcome = await webDiscoveryApi.capture(scope, buildWebDiscoveryCaptureCommand({ investigationId: scope.investigationId, expectedInvestigationRevision: binding.investigationAggregateRevision, manifoldRevisionId: binding.manifoldRevisionId, searchSessionId: response.searchSessionId, resultId, operationId: confirmation.operationId, idempotencyKey: confirmation.idempotencyKey, addToResearchInbox, ...(researcherNote.trim() ? { researcherNote: researcherNote.trim() } : {}) }));
       await onCandidateCaptured(outcome.candidateId);
+      setCaptured((current) => ({ ...current, [resultId]: { candidateId: outcome.candidateId, disposition: outcome.idempotencyDisposition, researchInboxEffect: outcome.researchInboxEffect } }));
+      setConfirmation(undefined); setResearcherNote("");
     } catch (caught) {
       const replayed = webDiscoveryAlreadyCaptured(caught);
       if (replayed) {
-        setCaptured((current) => ({ ...current, [resultId]: replayed }));
-        setConfirmation(undefined); setResearcherNote("");
-        await onCandidateCaptured(replayed.candidateId);
+        try {
+          await onCandidateCaptured(replayed.candidateId);
+          setCaptured((current) => ({ ...current, [resultId]: replayed }));
+          setConfirmation(undefined); setResearcherNote("");
+        } catch (refreshError) { setError(visibleError(refreshError, "capture")); }
       } else setError(visibleError(caught, "capture"));
     }
     finally { setCapturePending(undefined); }
-  }, [binding, capturePending, confirmation, onCandidateCaptured, researcherNote, response, scope]);
+  }, [addToResearchInbox, binding, capturePending, confirmation, onCandidateCaptured, researcherNote, response, scope]);
 
-  return useMemo(() => ({ query, setQuery, searching, response, error, confirmation, researcherNote, setResearcherNote, capturePending, captured, search, requestCapture, cancelCapture, confirmCapture }), [query, searching, response, error, confirmation, researcherNote, capturePending, captured, search, requestCapture, cancelCapture, confirmCapture]);
+  return useMemo(() => ({ query, setQuery, searching, response, error, confirmation, researcherNote, setResearcherNote, addToResearchInbox, setAddToResearchInbox, capturePending, captured, search, requestCapture, cancelCapture, confirmCapture }), [query, searching, response, error, confirmation, researcherNote, addToResearchInbox, capturePending, captured, search, requestCapture, cancelCapture, confirmCapture]);
 }

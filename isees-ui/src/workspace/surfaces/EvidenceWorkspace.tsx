@@ -12,6 +12,7 @@ import { useResearchBridge } from "../../research/ResearchBridgeContext";
 import { evidenceRecordResearchAnchor } from "../../studio/sources/TypedResearchSourceAdapters";
 import { collectTypedResearchSource } from "../../studio/sources/DirectResearchPublication";
 import WebDiscoveryWorkspace from "../../evidence/candidates/WebDiscoveryWorkspace";
+import { listCandidateEvidenceResearchAnchors } from "../../research/ResearchSourceApi";
 
 function presentOptional<T>(field: EvidenceOptionalValue<T>, format: (value: T) => string = String): string {
   return field.status === "KNOWN" ? format(field.value) : "UNKNOWN";
@@ -56,10 +57,11 @@ export default function EvidenceWorkspace() {
 
   const refreshCapturedCandidate = useCallback(async (candidateId: string) => {
     if (!apiScope) return;
-    const refreshed = await candidateEvidenceApi.list(apiScope);
+    const [refreshed, inboxAnchors] = await Promise.all([candidateEvidenceApi.list(apiScope), listCandidateEvidenceResearchAnchors(apiScope.investigationId, apiScope.principalId)]);
     setCandidateBinding({ investigationAggregateRevision: refreshed.investigationAggregateRevision, manifoldRevisionId: refreshed.manifoldRevisionId });
     setCandidateRequest({ scope: apiScope, status: "READY", records: refreshed.items, selectedCandidateId: candidateId });
-  }, [apiScope]);
+    research.createAnchorsAtomically(inboxAnchors);
+  }, [apiScope, research]);
 
   useEffect(() => {
     setSelection(undefined);
@@ -73,6 +75,15 @@ export default function EvidenceWorkspace() {
     void fetchCandidates(apiScope, controller.signal);
     return () => controller.abort();
   }, [projection?.investigation.id, apiScope]);
+
+  useEffect(() => {
+    if (!webDiscoveryScope) return;
+    const controller = new AbortController();
+    void listCandidateEvidenceResearchAnchors(webDiscoveryScope.investigationId, webDiscoveryScope.principalId, controller.signal)
+      .then((anchors) => research.createAnchorsAtomically(anchors))
+      .catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) setCommandError(error instanceof Error ? error.message : "Research Inbox refresh failed."); });
+    return () => controller.abort();
+  }, [research, webDiscoveryScope]);
 
   const scopedRequest = candidateRequest.scope?.investigationId === apiScope?.investigationId && candidateRequest.scope?.principalId === apiScope?.principalId ? candidateRequest : apiScope ? beginCandidateRequest(apiScope) : EMPTY_CANDIDATE_REQUEST;
   const candidateLanes = useMemo(() => partitionCandidateEvidence(scopedRequest.records), [scopedRequest.records]);

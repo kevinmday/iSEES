@@ -8,7 +8,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from isees_uap.api import app
-from isees_uap.api.v1.candidate_evidence import repository, web_discovery_runtime
+from isees_uap.api.v1.candidate_evidence import repository, web_discovery_runtime, web_discovery_research_repository
+from isees_uap.api.v1.research_sources import repository as research_source_repository
+from isees_uap.research_sources.sqlite_repository import ResearchSourceConflict
+from isees_uap.research_sources.sqlite_repository import SQLiteResearchSourceRepository
 from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEvidenceRepository
 from isees_uap.candidate_evidence.web_discovery_fixture import DeterministicWebDiscoveryFixture
 from isees_uap.candidate_evidence.web_discovery_runtime import WebDiscoverySearchRuntime
@@ -60,16 +63,21 @@ def capture_session(tmp_path):
     runtime = WebDiscoverySearchRuntime(
         clock=clock, lifetime_seconds=60,
         adapter=DeterministicWebDiscoveryFixture())
+    research = SQLiteResearchSourceRepository(tmp_path / "research.sqlite3")
     app.dependency_overrides[repository] = lambda: candidates
     app.dependency_overrides[web_discovery_runtime] = lambda: runtime
+    app.dependency_overrides[web_discovery_research_repository] = lambda: research
+    app.dependency_overrides[research_source_repository] = lambda: research
     try:
         with authenticated_route_session(
             tmp_path / "route", investigation_ids=("investigation-a", "investigation-b")
         ) as session:
-            yield session, candidates, runtime, clock
+            yield session, candidates, runtime, clock, research
     finally:
         app.dependency_overrides.pop(repository, None)
         app.dependency_overrides.pop(web_discovery_runtime, None)
+        app.dependency_overrides.pop(web_discovery_research_repository, None)
+        app.dependency_overrides.pop(research_source_repository, None)
 
 
 def post(session, url, body, headers=None):
@@ -78,7 +86,7 @@ def post(session, url, body, headers=None):
 
 
 def searched(capture_session, *, command=None):
-    session, _, runtime, _ = capture_session
+    session, _, runtime, _, _ = capture_session
     before = runtime.adapter_execution_count
     response = post(session, SEARCH, command or search_command())
     assert response.status_code == 200
@@ -87,7 +95,7 @@ def searched(capture_session, *, command=None):
 
 
 def test_search_alone_creates_zero_candidates_and_capture_before_search_fails(capture_session):
-    session, candidates, _, _ = capture_session
+    session, candidates, _, _, _ = capture_session
     assert post(session, CAPTURE, capture_command()).status_code == 410
     result = searched(capture_session)
     assert result["resultCount"] == 3
@@ -96,7 +104,7 @@ def test_search_alone_creates_zero_candidates_and_capture_before_search_fails(ca
 
 
 def test_capture_requires_authentication_csrf_and_ownership(capture_session):
-    session, _, runtime, _ = capture_session
+    session, _, runtime, _, _ = capture_session
     result_id = searched(capture_session)["results"][0]["resultId"]
     anonymous = TestClient(app)
     try:
@@ -113,7 +121,7 @@ def test_capture_requires_authentication_csrf_and_ownership(capture_session):
 
 
 def test_identity_revision_confirmation_and_extra_metadata_fail_closed(capture_session):
-    session, candidates, runtime, _ = capture_session
+    session, candidates, runtime, _, _ = capture_session
     result_id = searched(capture_session)["results"][0]["resultId"]
     cases = [
         (capture_command(result_id, investigationId="investigation-b"), 412, "INVESTIGATION_MISMATCH"),
@@ -133,7 +141,7 @@ def test_identity_revision_confirmation_and_extra_metadata_fail_closed(capture_s
 
 
 def test_missing_mismatched_cross_scope_and_expired_sessions(capture_session):
-    session, candidates, runtime, clock = capture_session
+    session, candidates, runtime, clock, _ = capture_session
     first = searched(capture_session)
     missing = post(session, CAPTURE, capture_command("missing"))
     assert missing.status_code == 409 and missing.json()["error"]["code"] == "WEB_DISCOVERY_RESULT_NOT_FOUND"
@@ -159,7 +167,7 @@ def test_missing_mismatched_cross_scope_and_expired_sessions(capture_session):
 
 
 def test_capture_creates_one_review_only_candidate_without_provider_or_network(capture_session, monkeypatch):
-    session, candidates, runtime, _ = capture_session
+    session, candidates, runtime, _, research = capture_session
     search = searched(capture_session)
     result = search["results"][1]
     executions = runtime.adapter_execution_count
@@ -177,13 +185,17 @@ def test_capture_creates_one_review_only_candidate_without_provider_or_network(c
     items, _ = candidates.list(investigation_id="investigation-a", principal_id=session.account_id,
                                limit=10, cursor=None)
     assert len(items) == 1 and items[0]["candidateId"] == body["candidateId"]
+    with sqlite3.connect(research.path) as connection:
+        row = connection.execute("SELECT candidate_id FROM research_candidate_evidence_source").fetchall()
+    assert row == [(body["candidateId"],)]
+    assert body["researchInboxEffect"] == "CREATED"
     assert runtime._sessions.project(search_session_id="session-1", principal_id=session.account_id,
         investigation_id="investigation-a", expected_investigation_revision=0,
         manifold_revision_id="investigation-aggregate:0").capture_count == 1
 
 
 def test_lineage_receipt_survives_restart_and_all_effects_are_zero(capture_session):
-    session, candidates, _, _ = capture_session
+    session, candidates, _, _, _ = capture_session
     before = session.investigations.get_empty_aggregate(
         investigation_id="investigation-a", owner_principal_id=session.account_id)
     with sqlite3.connect(session.investigations.path) as connection:
@@ -210,7 +222,7 @@ def test_lineage_receipt_survives_restart_and_all_effects_are_zero(capture_sessi
 
 
 def test_idempotent_replay_and_changed_governed_input(capture_session):
-    session, candidates, runtime, _ = capture_session
+    session, candidates, runtime, _, research = capture_session
     search = searched(capture_session)
     first_id, second_id = search["results"][0]["resultId"], search["results"][1]["resultId"]
     first = post(session, CAPTURE, capture_command(first_id))
@@ -228,13 +240,15 @@ def test_idempotent_replay_and_changed_governed_input(capture_session):
     assert origin_conflict.json()["error"]["code"] == "ORIGIN_IDENTITY_CONFLICT"
     assert len(candidates.list(investigation_id="investigation-a", principal_id=session.account_id,
                                limit=10, cursor=None)[0]) == 1
+    with sqlite3.connect(research.path) as connection:
+        assert connection.execute("SELECT count(*) FROM research_candidate_evidence_source").fetchone()[0] == 1
     assert runtime._sessions.project(search_session_id="session-1", principal_id=session.account_id,
         investigation_id="investigation-a", expected_investigation_revision=0,
         manifold_revision_id="investigation-aggregate:0").capture_count == 1
 
 
 def test_repeated_search_duplicate_returns_stable_candidate_identity_without_other_effects(capture_session):
-    session, candidates, runtime, _ = capture_session
+    session, candidates, runtime, _, _ = capture_session
     before = session.investigations.get_empty_aggregate(
         investigation_id="investigation-a", owner_principal_id=session.account_id)
     with sqlite3.connect(session.investigations.path) as connection:
@@ -271,7 +285,7 @@ def test_repeated_search_duplicate_returns_stable_candidate_identity_without_oth
 
 
 def test_capture_candidate_uses_existing_review_lifecycle(capture_session):
-    session, _, _, _ = capture_session
+    session, _, _, _, _ = capture_session
     result_id = searched(capture_session)["results"][0]["resultId"]
     candidate = post(session, CAPTURE, capture_command(result_id)).json()
     url = f"{BASE}/{candidate['candidateId']}/lifecycle-transitions"
@@ -283,3 +297,61 @@ def test_capture_candidate_uses_existing_review_lifecycle(capture_session):
         "schemaVersion": "candidate-evidence-command/v1", "investigationId": "investigation-a",
         "expectedRevision": 1, "to": "IN_REVIEW", "idempotencyKey": "review-2"})
     assert transition.status_code == 200 and transition.json()["lifecycleState"] == "IN_REVIEW"
+
+
+def test_unchecked_capture_creates_candidate_only(capture_session):
+    session, candidates, _, _, research = capture_session
+    result_id = searched(capture_session)["results"][0]["resultId"]
+    response = post(session, CAPTURE, capture_command(result_id, addToResearchInbox=False))
+    assert response.status_code == 201 and response.json()["researchInboxEffect"] == "NONE"
+    assert len(candidates.list(investigation_id="investigation-a", principal_id=session.account_id, limit=10, cursor=None)[0]) == 1
+    with sqlite3.connect(research.path) as connection:
+        assert connection.execute("SELECT count(*) FROM research_candidate_evidence_source").fetchone()[0] == 0
+
+
+def test_checked_capture_projects_owned_durable_anchor_after_restart(capture_session):
+    session, _, _, _, research = capture_session
+    result_id = searched(capture_session)["results"][0]["resultId"]
+    created = post(session, CAPTURE, capture_command(result_id, addToResearchInbox=True))
+    assert created.status_code == 201
+    anchor_id = created.json()["researchInboxAnchorId"]
+    projection = session.client.get(
+        "/api/v1/investigations/investigation-a/research-sources/candidate-evidence")
+    assert projection.status_code == 200
+    assert projection.json()["items"][0]["anchorId"] == anchor_id
+    assert projection.json()["items"][0]["candidateId"] == created.json()["candidateId"]
+    restarted = SQLiteResearchSourceRepository(research.path)
+    assert restarted.list_candidate_evidence(
+        investigation_id="investigation-a", principal_id=session.account_id)[0]["anchorId"] == anchor_id
+    assert restarted.list_candidate_evidence(
+        investigation_id="investigation-a", principal_id="other") == []
+
+
+def test_partial_inbox_failure_returns_failure_and_retry_reconciles_idempotently(capture_session, monkeypatch):
+    session, candidates, runtime, _, research = capture_session
+    result_id = searched(capture_session)["results"][0]["resultId"]
+    executions = runtime.adapter_execution_count
+    original = research.publish_candidate_evidence
+    monkeypatch.setattr(research, "publish_candidate_evidence",
+                        lambda **kwargs: (_ for _ in ()).throw(ResearchSourceConflict("injected failure")))
+    failed = post(session, CAPTURE, capture_command(result_id, addToResearchInbox=True))
+    assert failed.status_code == 503
+    assert failed.json()["error"]["code"] == "RESEARCH_INBOX_PUBLICATION_FAILED"
+    assert len(candidates.list(investigation_id="investigation-a", principal_id=session.account_id,
+                               limit=10, cursor=None)[0]) == 1
+    monkeypatch.setattr(research, "publish_candidate_evidence", original)
+    retried = post(session, CAPTURE, capture_command(result_id, addToResearchInbox=True))
+    assert retried.status_code == 200
+    assert retried.json()["idempotencyDisposition"] == "REPLAYED"
+    assert retried.json()["researchInboxEffect"] == "CREATED"
+    assert runtime.adapter_execution_count == executions
+    assert len(research.list_candidate_evidence(
+        investigation_id="investigation-a", principal_id=session.account_id)) == 1
+
+
+def test_research_source_schema_uses_governed_migrations(tmp_path):
+    path = tmp_path / "research.sqlite3"
+    SQLiteResearchSourceRepository(path)
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT version FROM research_source_schema_migrations ORDER BY version").fetchall() == [(1,), (2,)]

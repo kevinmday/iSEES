@@ -134,6 +134,7 @@ class WebDiscoveryCaptureCommand(StrictWebDiscoveryModel):
     operationId: Identity
     idempotencyKey: Identity
     researcherConfirmation: Literal[True]
+    addToResearchInbox: bool = True
     researcherNote: Annotated[str, StringConstraints(
         strip_whitespace=True, min_length=1, max_length=20_000,
     )] | None = None
@@ -176,7 +177,7 @@ class WebDiscoveryCaptureReceiptProjection(StrictWebDiscoveryModel):
     estimatedProviderCost: Literal[0]
     actualProviderCost: Literal[0]
     finalCharge: Literal[0]
-    researchInboxEffect: Literal["NONE"]
+    researchInboxEffect: Literal["NONE", "CREATED", "REPLAYED"]
     publicationEffect: Literal["NONE"]
     candidateKnowledgeEffect: Literal["NONE"]
     canonEffect: Literal["NONE"]
@@ -203,5 +204,7 @@ class WebDiscoveryCaptureResponse(StrictWebDiscoveryModel):
     publicationState: Literal["NOT_PUBLISHED"]
     idempotencyDisposition: Literal["CREATED", "REPLAYED"]
     capturedAt: datetime
+    researchInboxEffect: Literal["NONE", "CREATED", "REPLAYED"]
+    researchInboxAnchorId: str | None = None
     source: WebDiscoveryCaptureSourceProjection
     receipt: WebDiscoveryCaptureReceiptProjection

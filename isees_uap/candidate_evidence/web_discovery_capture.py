@@ -6,12 +6,15 @@ from .errors import OriginConflict, WebDiscoveryAlreadyCaptured
 from .service import CandidateEvidenceService
 from .web_discovery_runtime import WebDiscoverySearchRuntime
 from .web_discovery_schemas import WebDiscoveryCaptureCommand, WebDiscoveryCaptureResponse
+from isees_uap.research_sources.sqlite_repository import SQLiteResearchSourceRepository
 
 
 class WebDiscoveryCaptureService:
-    def __init__(self, candidates: CandidateEvidenceService, runtime: WebDiscoverySearchRuntime):
+    def __init__(self, candidates: CandidateEvidenceService, runtime: WebDiscoverySearchRuntime,
+                 research_sources: SQLiteResearchSourceRepository):
         self._candidates = candidates
         self._runtime = runtime
+        self._research_sources = research_sources
 
     def capture(self, *, principal_id: str, command: WebDiscoveryCaptureCommand) -> tuple[WebDiscoveryCaptureResponse, bool]:
         session, result = self._runtime.resolve_capture(
@@ -93,6 +96,13 @@ class WebDiscoveryCaptureService:
             if existing_receipt.get("searchSessionId") == command.searchSessionId:
                 raise
             raise WebDiscoveryAlreadyCaptured(error.existing_candidate_id) from error
+        inbox_effect = "NONE"
+        inbox_anchor_id = None
+        if command.addToResearchInbox:
+            inbox, inbox_replayed = self._research_sources.publish_candidate_evidence(
+                candidate=candidate, principal_id=principal_id)
+            inbox_effect = "REPLAYED" if inbox_replayed else "CREATED"
+            inbox_anchor_id = inbox["anchorId"]
         self._runtime.mark_captured(
             principal_id=principal_id, investigation_id=command.investigationId,
             expected_investigation_revision=command.expectedInvestigationRevision,
@@ -102,7 +112,8 @@ class WebDiscoveryCaptureService:
         )
         persisted = candidate["lineage"]["captureReceipt"]
         disposition = "REPLAYED" if replayed else "CREATED"
-        response_receipt = {**persisted, "idempotencyDisposition": disposition}
+        response_receipt = {**persisted, "idempotencyDisposition": disposition,
+                            "researchInboxEffect": inbox_effect}
         projection_source = {key: source[key] for key in (
             "title", "providerReturnedUrl", "normalizedUrl", "sourceDomain", "snippet",
             "mediaType", "attribution", "retentionRestrictions", "providerMetadata")}
@@ -118,5 +129,6 @@ class WebDiscoveryCaptureService:
             "acquisitionState": candidate["acquisitionState"],
             "publicationState": candidate["publicationState"],
             "idempotencyDisposition": disposition, "capturedAt": persisted["capturedAt"],
+            "researchInboxEffect": inbox_effect, "researchInboxAnchorId": inbox_anchor_id,
             "source": projection_source, "receipt": response_receipt,
         }), replayed

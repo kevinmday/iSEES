@@ -34,6 +34,8 @@ from isees_uap.candidate_evidence.web_discovery_runtime import (
     WebDiscoveryRuntimeError, WebDiscoverySearchRuntime,
 )
 from isees_uap.candidate_evidence.web_discovery_capture import WebDiscoveryCaptureService
+from isees_uap.research_sources import SQLiteResearchSourceRepository, research_source_database_path
+from isees_uap.research_sources.sqlite_repository import ResearchSourceConflict
 from isees_uap.candidate_evidence.web_discovery_schemas import (
     WebDiscoveryCaptureCommand, WebDiscoveryCaptureResponse,
     WebDiscoverySearchCommand, WebDiscoverySearchResponse,
@@ -88,12 +90,17 @@ def web_discovery_runtime() -> WebDiscoverySearchRuntime:
     """Process-owned ephemeral search authority; overrideable/resettable in tests."""
     return WebDiscoverySearchRuntime()
 
+@lru_cache(maxsize=1)
+def web_discovery_research_repository() -> SQLiteResearchSourceRepository:
+    return SQLiteResearchSourceRepository(research_source_database_path())
+
 
 def web_discovery_capture_service(
     svc: CandidateEvidenceService = Depends(service),
     runtime: WebDiscoverySearchRuntime = Depends(web_discovery_runtime),
+    research_sources: SQLiteResearchSourceRepository = Depends(web_discovery_research_repository),
 ) -> WebDiscoveryCaptureService:
-    return WebDiscoveryCaptureService(svc, runtime)
+    return WebDiscoveryCaptureService(svc, runtime, research_sources)
 
 
 def _require_optional_owned_investigation(
@@ -185,6 +192,8 @@ def capture_web_discovery(
         )
     except WebDiscoveryRuntimeError as error:
         return _web_discovery_error(error.code, str(error), error.status_code)
+    except (ResearchSourceConflict, OSError) as error:
+        return _web_discovery_error("RESEARCH_INBOX_PUBLICATION_FAILED", str(error), 503)
     return JSONResponse(
         status_code=200 if replayed else 201,
         content=result.model_dump(mode="json", exclude_none=False),

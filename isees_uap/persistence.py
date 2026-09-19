@@ -179,6 +179,7 @@ def readiness_report(*, studio_v1_enabled: bool, studio_v1_path: Path | None,
     from isees_uap.investigations.config import investigation_database_path
     from isees_uap.investigations.sqlite_repository import SCHEMA_VERSION as INVESTIGATION_VERSION
     from isees_uap.research_sources.config import research_source_database_path
+    from isees_uap.research_sources.sqlite_repository import SCHEMA_VERSION as RESEARCH_SOURCE_VERSION
     from isees_uap.studio.config import studio_database_path
     from isees_uap.studio.sqlite_repository import SCHEMA_VERSION as STUDIO_VERSION
 
@@ -188,8 +189,8 @@ def readiness_report(*, studio_v1_enabled: bool, studio_v1_path: Path | None,
         StoreSpec("investigations", investigation_database_path(),
                   "investigation_schema_migrations", INVESTIGATION_VERSION),
         StoreSpec("candidate_evidence", candidate_database_path(), "schema_migrations", CANDIDATE_VERSION),
-        StoreSpec("research_sources", research_source_database_path(), "", None,
-                  required_table="research_graph_source"),
+        StoreSpec("research_sources", research_source_database_path(),
+                  "research_source_schema_migrations", RESEARCH_SOURCE_VERSION),
         StoreSpec("studio", studio_database_path(), "studio_schema_migrations", STUDIO_VERSION),
     ]
     if studio_v1_enabled and studio_v1_path is not None:

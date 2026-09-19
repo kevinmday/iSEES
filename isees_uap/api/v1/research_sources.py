@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from isees_uap.research_sources import SQLiteResearchSourceRepository, research_source_database_path
 from isees_uap.research_sources.sqlite_repository import ResearchSourceConflict
-from isees_uap.authentication.principal import AuthenticatedPrincipal, require_csrf_protected_principal
+from isees_uap.authentication.principal import AuthenticatedPrincipal, require_authenticated_principal, require_csrf_protected_principal
 from isees_uap.investigations.authority import PersistedInvestigationAuthority
 from isees_uap.api.v1.investigations import repository as investigation_repository
 
@@ -30,6 +30,17 @@ class GraphPublication(BaseModel):
 @lru_cache(maxsize=1)
 def repository() -> SQLiteResearchSourceRepository:
     return SQLiteResearchSourceRepository(research_source_database_path())
+
+@router.get("/candidate-evidence")
+def list_candidate_evidence(investigation_id: IdentityPath,
+            principal: AuthenticatedPrincipal = Depends(require_authenticated_principal),
+            repo: SQLiteResearchSourceRepository = Depends(repository),
+            parent_repo=Depends(investigation_repository)):
+    owner = principal.account_id
+    PersistedInvestigationAuthority(parent_repo).require_owned(
+        account_id=owner, investigation_id=investigation_id)
+    items = repo.list_candidate_evidence(investigation_id=investigation_id, principal_id=owner)
+    return {"schemaVersion": "research-candidate-evidence-list/v1", "items": items}
 
 @router.post("")
 def publish(investigation_id: IdentityPath, command: GraphPublication,

@@ -17,7 +17,8 @@ const required = [
   "backend origin `DISCOVERY`, intake pathway `WEB_DISCOVERY`, and visible origin label `WEB_DISCOVERED`",
   "`aiAssistance: NONE`",
   "`rexExecution: NONE`",
-  "Research Inbox effect `NONE`",
+  "explicit `addToResearchInbox` choice",
+  "Research Inbox effect `NONE`, `CREATED`, or `REPLAYED`",
   "Candidate Knowledge effect `NONE`",
   "Canon effect `NONE`",
   "graph effect `NONE`",
@@ -57,6 +58,6 @@ for (const error of [
 
 assert.match(contract, /estimated provider cost `0`.*actual provider cost `0`.*final charge `0`/s);
 assert.match(contract, /principal ID.*Investigation ID.*aggregate revision.*Manifold revision ID/s);
-assert.match(contract, /Capture MUST NOT contact the provider.*mutate downstream owners/s);
+assert.match(contract, /Capture MUST NOT contact the provider.*explicitly checked Research Inbox anchor/s);
 
-console.log("PASS VerifyWebDiscoveryContract — authenticated metadata-only search/capture contract and zero-effect boundary verified");
+console.log("PASS VerifyWebDiscoveryContract — authenticated metadata-only search/capture and explicit Research Inbox boundary verified");
