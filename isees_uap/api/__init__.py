@@ -34,7 +34,10 @@ from isees_uap.api.v1.authentication import (
     settings as authentication_api_settings,
 )
 from isees_uap.authentication.config import authentication_settings
-from isees_uap.authentication.errors import AuthenticationError
+from isees_uap.authentication.errors import (
+    AuthenticationError, AuthenticationRepositoryUnavailable,
+)
+from isees_uap.authentication.principal import authentication_repository
 from isees_uap.api.application import (
     process_studio_v1_configuration, trusted_hosts_from_environment,
     studio_v1_application_lifespan,
@@ -46,7 +49,9 @@ from isees_uap.api.v1.studio_v1 import (
 from isees_uap.api.v1.rex import rex_error_handler, router as rex_router
 from isees_uap.rex.errors import RexExecutionError, RexRepositoryError
 from isees_uap.studio.v1.persistence import StudioV1Failure
-from isees_uap.persistence import readiness_report
+from isees_uap.persistence import (
+    PersistenceDurability, authentication_storage_durability, readiness_report,
+)
 from isees_uap.studio.config import studio_output_root
 from isees_uap.api.frontend import (
     DEFAULT_FRONTEND_DIRECTORY, create_frontend_root_router, create_frontend_router,
@@ -307,6 +312,17 @@ def create_application(
     application.dependency_overrides[authentication_api_settings] = (
         lambda: startup_authentication_settings
     )
+    authentication_durability = authentication_storage_durability(authentication_environment)
+    if authentication_durability not in {
+        PersistenceDurability.NOT_REQUIRED, PersistenceDurability.DURABLE,
+    }:
+        def unavailable_authentication_repository():
+            raise AuthenticationRepositoryUnavailable(
+                "Authentication requires durable production storage"
+            )
+        application.dependency_overrides[authentication_repository] = (
+            unavailable_authentication_repository
+        )
 
     @application.get("/health", include_in_schema=False)
     def health() -> dict[str, str]:
@@ -318,6 +334,8 @@ def create_application(
             studio_v1_enabled=configuration.enabled,
             studio_v1_path=configuration.database_path,
             output_root=studio_output_root(),
+            environment=authentication_environment,
+            durability=authentication_durability,
         )
         return JSONResponse(
             status_code=200 if compatible else 503,

@@ -6,7 +6,7 @@ import sqlite3
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Mapping
+from typing import Callable, Mapping
 from urllib.parse import quote
 
 
@@ -56,6 +56,42 @@ class PreflightClassification(str, Enum):
     MIGRATION_REQUIRED = "MIGRATION_REQUIRED"
     INCOMPATIBLE = "INCOMPATIBLE"
     UNAVAILABLE = "UNAVAILABLE"
+
+
+class PersistenceDurability(str, Enum):
+    NOT_REQUIRED = "NOT_REQUIRED"
+    ROOT_ABSENT = "ROOT_ABSENT"
+    EPHEMERAL = "EPHEMERAL"
+    DURABLE = "DURABLE"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+def authentication_storage_durability(
+    values: Mapping[str, str] | None = None,
+    *,
+    device: Callable[[Path], os.stat_result] = os.stat,
+) -> PersistenceDurability:
+    """Classify whether production authentication resolves onto an attached volume.
+
+    A configured directory inside the container image is not durable. Production
+    therefore requires the persistent root to live on a different filesystem from
+    the container root. Hugging Face bucket volumes satisfy this when mounted at
+    ``/data`` while ``ISEES_PERSISTENT_ROOT`` points below it.
+    """
+    environment = os.environ if values is None else values
+    if environment.get("ISEES_AUTH_ENV", "production").strip().lower() != "production":
+        return PersistenceDurability.NOT_REQUIRED
+    root = persistent_root(environment)
+    if root is None:
+        return PersistenceDurability.ROOT_ABSENT
+    try:
+        if not root.is_dir() or not os.access(root, os.R_OK | os.W_OK | os.X_OK):
+            return PersistenceDurability.UNAVAILABLE
+        return (PersistenceDurability.DURABLE
+                if device(root).st_dev != device(Path(root.anchor)).st_dev
+                else PersistenceDurability.EPHEMERAL)
+    except OSError:
+        return PersistenceDurability.UNAVAILABLE
 
 
 @dataclass(frozen=True)
@@ -134,7 +170,8 @@ def inspect_output_root(path: Path) -> PreflightClassification:
 
 
 def readiness_report(*, studio_v1_enabled: bool, studio_v1_path: Path | None,
-                     output_root: Path) -> tuple[bool, dict[str, str]]:
+                     output_root: Path, environment: Mapping[str, str] | None = None,
+                     durability: PersistenceDurability | None = None) -> tuple[bool, dict[str, str]]:
     from isees_uap.authentication.config import authentication_settings
     from isees_uap.authentication.sqlite_repository import SCHEMA_VERSION as AUTH_VERSION
     from isees_uap.candidate_evidence.config import candidate_database_path
@@ -146,7 +183,7 @@ def readiness_report(*, studio_v1_enabled: bool, studio_v1_path: Path | None,
     from isees_uap.studio.sqlite_repository import SCHEMA_VERSION as STUDIO_VERSION
 
     specs = [
-        StoreSpec("authentication", authentication_settings().database_path,
+        StoreSpec("authentication", authentication_settings(environment).database_path,
                   "authentication_schema_migrations", AUTH_VERSION),
         StoreSpec("investigations", investigation_database_path(),
                   "investigation_schema_migrations", INVESTIGATION_VERSION),
@@ -160,5 +197,17 @@ def readiness_report(*, studio_v1_enabled: bool, studio_v1_path: Path | None,
                                schema_name="STUDIO_V1"))
     results = {spec.name: inspect_store(spec).value for spec in specs}
     results["studio_outputs"] = inspect_output_root(output_root).value
+    auth_durability = durability or authentication_storage_durability(environment)
+    results["authentication_storage"] = auth_durability.value
     acceptable = {PreflightClassification.ABSENT.value, PreflightClassification.COMPATIBLE.value}
-    return all(value in acceptable for value in results.values()), results
+    stores_compatible = all(
+        value in acceptable for name, value in results.items()
+        if name != "authentication_storage"
+    )
+    production = auth_durability is not PersistenceDurability.NOT_REQUIRED
+    authentication_ready = (
+        not production
+        or (auth_durability is PersistenceDurability.DURABLE
+            and results["authentication"] == PreflightClassification.COMPATIBLE.value)
+    )
+    return stores_compatible and authentication_ready, results

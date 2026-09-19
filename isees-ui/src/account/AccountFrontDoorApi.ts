@@ -18,11 +18,13 @@ async function request(path: string, init: RequestInit, unauthorized: "AUTHENTIC
   }
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
+    const errorCode = (body as { error?: { code?: unknown } } | null)?.error?.code;
     if (response.status === 401) {
       const detail = unauthorized === "AUTHENTICATION" ? "The email or password was not accepted." : "Your session has ended. Please sign in again.";
       throw new AccountFrontDoorError(unauthorized, detail);
     }
-    if (response.status === 409) throw new AccountFrontDoorError("VALIDATION", "An account with that email already exists.");
+    if (response.status === 409 && errorCode === "ACCOUNT_UNAVAILABLE")
+      throw new AccountFrontDoorError("VALIDATION", "Account registration is unavailable for these details. Check your invitation or sign in if you may already have an account.");
     if (response.status === 422 || response.status === 400) throw new AccountFrontDoorError("VALIDATION", "Please check the information you entered.");
     throw new AccountFrontDoorError("SERVER", "The account request could not be completed. Please try again.");
   }

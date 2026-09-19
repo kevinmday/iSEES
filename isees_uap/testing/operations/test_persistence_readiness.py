@@ -11,7 +11,8 @@ from isees_uap.api.application import studio_v1_deployment_configuration
 from isees_uap.api.v1.rex import repository as rex_repository
 from isees_uap.candidate_evidence.config import candidate_blob_root
 from isees_uap.persistence import (
-    PreflightClassification, StoreSpec, database_path, inspect_store, output_path,
+    PersistenceDurability, PreflightClassification, StoreSpec,
+    authentication_storage_durability, database_path, inspect_store, output_path,
 )
 from isees_uap.rex.application import RexApiApplicationService
 
@@ -27,7 +28,7 @@ INDIVIDUAL = {
 
 
 def disabled() -> dict[str, str]:
-    return {"ISEES_STUDIO_V1_ENABLED": "false"}
+    return {"ISEES_AUTH_ENV": "test", "ISEES_STUDIO_V1_ENABLED": "false"}
 
 
 def test_local_defaults_and_persistent_derivation(tmp_path: Path) -> None:
@@ -80,6 +81,38 @@ def test_preflight_classifications_and_future_schema_rejection(tmp_path: Path) -
     assert inspect_store(spec) is PreflightClassification.INCOMPATIBLE
     directory_spec = StoreSpec("bad", tmp_path, "schema_migrations", 1)
     assert inspect_store(directory_spec) is PreflightClassification.UNAVAILABLE
+
+
+def test_production_authentication_requires_an_attached_filesystem(tmp_path: Path) -> None:
+    root = tmp_path / "persistent"
+    root.mkdir()
+    same_device = lambda path: type("Stat", (), {"st_dev": 7})()
+    values = {"ISEES_AUTH_ENV": "production", "ISEES_PERSISTENT_ROOT": str(root)}
+    assert authentication_storage_durability(values, device=same_device) is PersistenceDurability.EPHEMERAL
+    assert authentication_storage_durability({"ISEES_AUTH_ENV": "production"}) is PersistenceDurability.ROOT_ABSENT
+    assert authentication_storage_durability({"ISEES_AUTH_ENV": "test"}) is PersistenceDurability.NOT_REQUIRED
+
+
+def test_absent_production_persistence_blocks_registration_and_readiness(tmp_path: Path) -> None:
+    values = {
+        "ISEES_AUTH_ENV": "production",
+        "ISEES_TRUSTED_HOSTS": "candidate.example",
+        "ISEES_STUDIO_V1_ENABLED": "false",
+    }
+    local_database = Path("runtime/authentication.sqlite3").resolve()
+    before = local_database.read_bytes() if local_database.exists() else None
+    application = create_application(values, tmp_path / "no-frontend")
+    with TestClient(application, base_url="https://candidate.example") as client:
+        ready = client.get("/ready")
+        registration = client.post("/api/v1/auth/accounts", json={
+            "email": "researcher@example.test", "password": "synthetic password",
+        })
+    assert ready.status_code == 503
+    assert ready.json()["dependencies"]["authentication_storage"] == "ROOT_ABSENT"
+    assert registration.status_code == 503
+    assert registration.json()["error"]["code"] == "AUTHENTICATION_UNAVAILABLE"
+    after = local_database.read_bytes() if local_database.exists() else None
+    assert after == before
 
 
 def test_health_and_readiness_are_non_mutating_and_redacted(tmp_path: Path, monkeypatch) -> None:

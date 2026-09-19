@@ -69,6 +69,18 @@ def test_duplicate_normalized_identity_is_safe(authentication):
     assert "email" not in duplicate.json()["error"]["message"].lower()
 
 
+def test_registered_account_survives_repository_restart(tmp_path):
+    from isees_uap.authentication.service import AuthenticationService
+    from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
+
+    database = tmp_path / "authentication.sqlite3"
+    first = AuthenticationService(SQLiteAuthenticationRepository(database), session_ttl_seconds=3600)
+    created = first.create_account(email="durable@example.test", password="synthetic durable password")
+    restarted = SQLiteAuthenticationRepository(database)
+    restored = restarted.find_account_by_normalized_email("durable@example.test")
+    assert restored is not None and restored.account_id == created.account_id
+
+
 def test_login_is_valid_and_invalid_login_is_non_disclosing(authentication):
     client, _, _ = authentication
     _create(client)

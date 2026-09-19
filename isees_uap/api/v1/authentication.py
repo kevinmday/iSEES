@@ -266,6 +266,10 @@ async def reset_password(
 
 def authentication_error_handler(request: Request, error: AuthenticationError) -> JSONResponse:
     request_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
+    message = (
+        "Account registration is unavailable"
+        if error.code == "ACCOUNT_UNAVAILABLE" else str(error)
+    )
     return JSONResponse(status_code=error.status_code, content={"error": {
-        "code": error.code, "message": str(error), "requestId": request_id,
+        "code": error.code, "message": message, "requestId": request_id,
     }})

@@ -101,6 +101,12 @@ reply(201, { researcherId: "acct_server", email: "server@example.test" });
 await assert.rejects(submitAccount("create", "typed@example.test", testCredential),
   (cause: unknown) => cause instanceof AccountFrontDoorError && cause.code === "SERVER");
 
+reply(409, { error: { code: "ACCOUNT_UNAVAILABLE", message: "Account registration is unavailable" } });
+await assert.rejects(submitAccount("create", "typed@example.test", testCredential),
+  (cause: unknown) => cause instanceof AccountFrontDoorError && cause.code === "VALIDATION" &&
+    cause.message === "Account registration is unavailable for these details. Check your invitation or sign in if you may already have an account.");
+assert.ok(!api.includes("An account with that email already exists."), "409 must not disclose or assume account existence");
+
 let continuityRequest: { url: string; init: RequestInit } | undefined;
 const continuity = createAccountContinuityApi({ transport: async (input, init) => {
   continuityRequest = { url: String(input), init };

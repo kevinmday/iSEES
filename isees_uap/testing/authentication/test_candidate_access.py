@@ -232,6 +232,19 @@ def test_enabled_mode_rejects_unapproved_email_without_disclosure(tmp_path, capl
     assert configured not in caplog.text
 
 
+def test_policy_rejection_and_duplicate_share_the_safe_account_unavailable_contract(tmp_path):
+    approved = "approved@example.test"
+    with _client(tmp_path, _policy(approved)) as client:
+        assert _register(client, approved).status_code == 201
+        client.cookies.clear()
+        duplicate = _register(client, approved)
+        rejected = _register(client, "unapproved@example.test")
+    assert duplicate.status_code == rejected.status_code == 409
+    for response in (duplicate, rejected):
+        assert response.json()["error"]["code"] == "ACCOUNT_UNAVAILABLE"
+        assert response.json()["error"]["message"] == "Account registration is unavailable"
+
+
 def test_missing_and_invalid_configuration_fail_closed(tmp_path):
     invalid_values = [
         None,
