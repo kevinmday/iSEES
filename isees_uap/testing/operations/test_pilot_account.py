@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
+from isees_uap.authentication.config import authentication_settings
 from isees_uap.authentication.service import AuthenticationService
 from isees_uap.authentication.passwords import verify_password
 from isees_uap.authentication.sqlite_repository import session_secret_digest
@@ -164,3 +165,32 @@ def test_startup_reset_targets_only_the_governed_owner_and_logs_safely(tmp_path,
     assert "OWNER_PASSWORD_RESET_COMPLETED" in log_text
     assert password not in log_text
     assert account.password_hash not in log_text
+
+
+def test_startup_reset_reuses_production_authentication_database(tmp_path):
+    configured_path = (tmp_path / "authoritative" / "production-auth.sqlite3").resolve()
+    values = {
+        "ISEES_AUTH_ENV": "production",
+        "ISEES_AUTH_DB_PATH": str(configured_path),
+        "ISEES_OWNER_RESET_PASSWORD": "replacement owner password",
+        "ISEES_OWNER_RESET_REQUEST_ID": "owner-reset-production-config-test",
+    }
+    settings = authentication_settings(values)
+    production_repository = SQLiteAuthenticationRepository(settings.database_path)
+    production_service = AuthenticationService(
+        production_repository,
+        session_ttl_seconds=settings.session_ttl_seconds,
+        candidate_access=settings.candidate_access,
+        login_max_failures=settings.login_max_failures,
+        login_window_seconds=settings.login_window_seconds,
+        login_lockout_seconds=settings.login_lockout_seconds,
+    )
+    production_service.create_account(
+        email=OWNER_EMAIL, password="old owner password")
+
+    run_owner_password_reset(values)
+
+    account = production_repository.find_account_by_normalized_email(OWNER_EMAIL)
+    assert verify_password(values["ISEES_OWNER_RESET_PASSWORD"], account.password_hash)
+    guessed_path = tmp_path / "databases" / "authentication.sqlite3"
+    assert not guessed_path.exists()
