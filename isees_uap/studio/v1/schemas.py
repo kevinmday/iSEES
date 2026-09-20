@@ -36,7 +36,8 @@ class ArtifactIdentity(StrictModel):
     artifactId: Identity; investigationId: Identity; authorPrincipalId: Identity
     profile: Literal["INVESTIGATION_REPORT", "EXECUTIVE_BRIEF", "SCIENTIFIC_PAPER", "INTENTION_HYPOTHESIS_ASSESSMENT"]
     profileCapability: Literal["ADMITTED_UNVERIFIED", "VERIFIED_AVAILABLE"]
-    lifecycleClassification: Literal["CANDIDATE_KNOWLEDGE"]; createdAt: UtcTimestamp
+    # The legacy label remains readable, but is not evidence of registration.
+    lifecycleClassification: Literal["AUTHOR_REVISION", "CANDIDATE_KNOWLEDGE"]; createdAt: UtcTimestamp
     currentSavedRevisionId: Identity | None = None; workingDraft: WorkingDraftState
 class HeadingNode(StrictModel): id: Identity; type: Literal["HEADING"]; level: int = Field(ge=1, le=6); text: Identity
 class SectionNode(StrictModel): id: Identity; type: Literal["SECTION"]; title: Identity; childNodeIds: tuple[Identity, ...]

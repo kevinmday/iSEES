@@ -219,7 +219,7 @@ class SQLiteStudioV1Store:
         with self._connect() as db: row=self._scoped_artifact(db,owner_id,investigation_id,artifact_id)
         return ArtifactIdentity.model_validate({"artifactId":row["artifact_id"],"investigationId":row["investigation_id"],
             "authorPrincipalId":row["owner_id"],"profile":row["profile"],"profileCapability":row["profile_capability"],
-            "lifecycleClassification":"CANDIDATE_KNOWLEDGE","createdAt":row["created_at"],
+            "lifecycleClassification":"AUTHOR_REVISION","createdAt":row["created_at"],
             "currentSavedRevisionId":row["head_revision_id"],"workingDraft":{"state":"UNSAVED","basedOnRevisionId":row["head_revision_id"]}})
 
     def list_artifacts(self, owner_id, investigation_id):
@@ -237,7 +237,7 @@ class SQLiteStudioV1Store:
             "artifactId": row["artifact_id"], "investigationId": row["investigation_id"],
             "authorPrincipalId": row["owner_id"], "profile": row["profile"],
             "profileCapability": row["profile_capability"],
-            "lifecycleClassification": "CANDIDATE_KNOWLEDGE", "createdAt": row["created_at"],
+            "lifecycleClassification": "AUTHOR_REVISION", "createdAt": row["created_at"],
             "currentSavedRevisionId": row["head_revision_id"],
             "workingDraft": {"state": "UNSAVED", "basedOnRevisionId": row["head_revision_id"]},
         }) for row in rows)

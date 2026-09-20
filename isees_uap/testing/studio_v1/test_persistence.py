@@ -39,7 +39,7 @@ def make_command(*, key="key-1", projections=2, artifact_id="artifact-paper-1", 
     data=fixture_data(); raw=deepcopy(revision or data["scientificRevision"]); raw["artifactId"]=artifact_id; raw["authorPrincipalId"]=owner
     snap=FrozenResearchSourceSnapshot.model_validate(snapshot or data["entireInboxSnapshot"])
     artifact=ArtifactIdentity.model_validate({"artifactId":artifact_id,"investigationId":investigation,"authorPrincipalId":owner,
-        "profile":raw["profile"],"profileCapability":"ADMITTED_UNVERIFIED","lifecycleClassification":"CANDIDATE_KNOWLEDGE",
+        "profile":raw["profile"],"profileCapability":"ADMITTED_UNVERIFIED","lifecycleClassification":"AUTHOR_REVISION",
         "createdAt":NOW,"currentSavedRevisionId":expected,"workingDraft":{"state":"UNSAVED","basedOnRevisionId":expected}})
     specs=(ProjectionSpecification("PDF","paper/1","pdf/1",HASH), ProjectionSpecification("DOCX","paper/1","docx/1",HASH))[:projections]
     c=SaveCommand(artifact,AuthorRevision.model_validate(raw),(snap,),specs,expected,key,"pending",NOW)
@@ -87,6 +87,20 @@ def test_snapshot_and_revision_database_rows_are_immutable(tmp_path):
         with pytest.raises(sqlite3.IntegrityError): db.execute("UPDATE studio_v1_revisions SET content_hash=?",(HASH,))
         with pytest.raises(sqlite3.IntegrityError): db.execute("UPDATE studio_v1_source_snapshots SET snapshot_hash=?",(HASH,))
     assert not hasattr(store,"update_revision") and not hasattr(store,"update_snapshot")
+
+
+def test_author_revision_classification_is_read_only_metadata_and_does_not_rewrite_rows(tmp_path):
+    store=make_store(tmp_path); command=make_command(projections=0); StudioV1SaveService(store).save(command)
+    with sqlite3.connect(store.path) as db:
+        before=db.execute("SELECT revision_json,content_hash FROM studio_v1_revisions").fetchone()
+    located=store.locate_artifact("principal-1","investigation-1","artifact-paper-1")
+    listed=store.list_artifacts("principal-1","investigation-1")
+    with sqlite3.connect(store.path) as db:
+        after=db.execute("SELECT revision_json,content_hash FROM studio_v1_revisions").fetchone()
+    assert located.lifecycleClassification == "AUTHOR_REVISION"
+    assert listed[0].lifecycleClassification == "AUTHOR_REVISION"
+    assert before == after
+    assert store.list_projection_jobs("principal-1","investigation-1") == ()
 
 
 def test_idempotency_replay_conflict_and_restart(tmp_path):

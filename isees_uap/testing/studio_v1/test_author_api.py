@@ -87,6 +87,24 @@ def test_exact_route_surface_and_no_worker_or_publication_mutations(api):
                for path in studio)
 
 
+def test_save_requires_author_revision_and_has_no_registration_or_publication_effect(api):
+    _, _, client, _, base = prepare(api)
+    payload = wire(make_command(projections=0))
+    assert payload["artifact"]["lifecycleClassification"] == "AUTHOR_REVISION"
+    created = client.post(base, json=payload, headers=csrf(client))
+    assert created.status_code == 201
+    assert created.json()["projectionIds"] == []
+    discovered = client.get(base).json()["items"][0]
+    assert discovered["lifecycleClassification"] == "AUTHOR_REVISION"
+    assert not any(key in created.json() for key in ("candidateKnowledge", "canon", "manifold", "publication", "promotion"))
+    legacy_save = deepcopy(payload); legacy_save["idempotencyKey"] = "legacy-label-save"
+    legacy_save["artifact"]["artifactId"] = "legacy-label-artifact"
+    legacy_save["revision"]["artifactId"] = "legacy-label-artifact"
+    legacy_save["revision"]["revisionId"] = "legacy-label-artifact.r1"
+    legacy_save["artifact"]["lifecycleClassification"] = "CANDIDATE_KNOWLEDGE"
+    assert client.post(base, json=legacy_save, headers=csrf(client)).status_code == 422
+
+
 def test_anonymous_and_csrf_fail_before_lifecycle_access(api):
     application, _, _, _ = api
     with TestClient(application) as anonymous:

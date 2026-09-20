@@ -30,7 +30,8 @@ export type SemanticNode =
   | { id: string; type: "APPENDIX"; title: string; childNodeIds: readonly string[] };
 export interface SemanticDocument { documentId: string; schemaVersion: "studio-author-semantic/v1"; title: string; nodeOrder: readonly string[]; nodes: readonly SemanticNode[]; citations: readonly CitationMetadata[]; citationStyle: CitationStyleConfiguration }
 
-export interface ArtifactIdentity { artifactId: string; investigationId: string; authorPrincipalId: string; profile: ArtifactProfile; profileCapability: "ADMITTED_UNVERIFIED" | "VERIFIED_AVAILABLE"; lifecycleClassification: "CANDIDATE_KNOWLEDGE"; createdAt: string; currentSavedRevisionId?: string; workingDraft: { state: "UNSAVED"; basedOnRevisionId?: string } }
+export type AuthorRevisionClassification = "AUTHOR_REVISION" | "CANDIDATE_KNOWLEDGE";
+export interface ArtifactIdentity { artifactId: string; investigationId: string; authorPrincipalId: string; profile: ArtifactProfile; profileCapability: "ADMITTED_UNVERIFIED" | "VERIFIED_AVAILABLE"; lifecycleClassification: AuthorRevisionClassification; createdAt: string; currentSavedRevisionId?: string; workingDraft: { state: "UNSAVED"; basedOnRevisionId?: string } }
 export interface AuthorRevision { artifactId: string; revisionId: string; revisionNumber: number; parentRevisionId?: string; semanticContent: SemanticDocument; contentHash: string; sourceSnapshots: readonly { snapshotId: string; snapshotHash: string }[]; profile: ArtifactProfile; profileVersion: string; createdAt: string; authorPrincipalId: string; immutableStatus: "IMMUTABLE_SAVED_REVISION" }
 
 export interface SensitiveSourceDirectives { includeInAnalysis: boolean; includeInArtifact: boolean; citePublicly: boolean; anonymize: boolean; restrictedAppendix: boolean; excludeFromAiProcessing: boolean }

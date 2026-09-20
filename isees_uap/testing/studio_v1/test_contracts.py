@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 from isees_uap.studio.v1.contracts import ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES
 from isees_uap.studio.v1.hashing import canonical_serialize, canonical_sha256
-from isees_uap.studio.v1.schemas import SemanticDocument, SensitiveSourceDirectives
+from isees_uap.studio.v1.schemas import ArtifactIdentity, SemanticDocument, SensitiveSourceDirectives
 from isees_uap.studio.v1.validation import effective_sensitivity, validate_inference, validate_projection, validate_projection_transition, validate_proposal, validate_revision, validate_snapshot
 
 FIXTURES = json.loads((Path(__file__).parents[3] / "contracts/studio-v1/fixtures/studio-v1-contract-fixtures.json").read_text(encoding="utf-8"))
@@ -42,6 +42,14 @@ def test_valid_proposal_projection_and_inference_contracts():
     validate_projection_transition("CURRENT", "STALE")
     validate_projection_transition("FAILED", "QUEUED")
     with pytest.raises(ValueError): validate_projection_transition("PUBLISHED", "CURRENT")
+
+def test_author_revision_and_legacy_classifications_are_readable_without_registration_claim():
+    base = {"artifactId":"artifact-1","investigationId":"investigation-1","authorPrincipalId":"principal-1","profile":"INVESTIGATION_REPORT","profileCapability":"VERIFIED_AVAILABLE","createdAt":"2026-09-10T18:00:00.000Z","workingDraft":{"state":"UNSAVED"}}
+    current = ArtifactIdentity.model_validate({**base,"lifecycleClassification":"AUTHOR_REVISION"})
+    legacy = ArtifactIdentity.model_validate({**base,"lifecycleClassification":"CANDIDATE_KNOWLEDGE"})
+    assert current.lifecycleClassification == "AUTHOR_REVISION"
+    assert legacy.lifecycleClassification == "CANDIDATE_KNOWLEDGE"
+    assert "candidateKnowledgeRegistered" not in legacy.model_dump()
 
 @pytest.mark.parametrize("mutation", [
     lambda v: v.update(artifactId=" "),

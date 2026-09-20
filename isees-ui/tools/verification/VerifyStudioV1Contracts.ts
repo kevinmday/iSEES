@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROHIBITED_STUDIO_MUTATIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES, type SensitiveSourceDirectives } from "../../src/studio/contracts/StudioV1Contract.ts";
+import { ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROHIBITED_STUDIO_MUTATIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES, type ArtifactIdentity, type SensitiveSourceDirectives } from "../../src/studio/contracts/StudioV1Contract.ts";
 import { canonicalSerialize, canonicalSha256, effectiveSensitivity, validateAuthorRevision, validateInference, validateProjection, validateProjectionTransition, validateProposal, validateSnapshot } from "../../src/studio/contracts/StudioCanonicalSerialization.ts";
 
 const fixturePath = fileURLToPath(new URL("../../../contracts/studio-v1/fixtures/studio-v1-contract-fixtures.json", import.meta.url));
@@ -22,6 +22,9 @@ assert.deepEqual(fixtures.vocabulary.assistanceModes, ASSISTANCE_MODES);
 assert.deepEqual(fixtures.vocabulary.governedConclusions, GOVERNED_CONCLUSIONS);
 assert.equal(fixtures.invalidFixtures.length, 10);
 assert.deepEqual(PROHIBITED_STUDIO_MUTATIONS, ["SYSTEM_CANON", "INVESTIGATION_EVIDENCE", "DETERMINISTIC_RESULTS", "RESEARCH_INBOX", "SOURCE_SYSTEMS", "INTENTION"]);
+const currentClassification: ArtifactIdentity["lifecycleClassification"] = "AUTHOR_REVISION";
+const legacyClassification: ArtifactIdentity["lifecycleClassification"] = "CANDIDATE_KNOWLEDGE";
+assert.equal(currentClassification, "AUTHOR_REVISION"); assert.equal(legacyClassification, "CANDIDATE_KNOWLEDGE");
 validateAuthorRevision(fixtures.scientificRevision);
 validateSnapshot(fixtures.entireInboxSnapshot);
 validateInference(fixtures.inferenceAssessment);

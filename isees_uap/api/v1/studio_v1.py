@@ -49,7 +49,7 @@ class ArtifactInput(StrictRequest):
         "INTENTION_HYPOTHESIS_ASSESSMENT",
     ]
     profileCapability: Literal["ADMITTED_UNVERIFIED", "VERIFIED_AVAILABLE"]
-    lifecycleClassification: Literal["CANDIDATE_KNOWLEDGE"]
+    lifecycleClassification: Literal["AUTHOR_REVISION"]
     createdAt: UtcTimestamp
     currentSavedRevisionId: Identity | None = None
     workingDraft: WorkingDraftState
