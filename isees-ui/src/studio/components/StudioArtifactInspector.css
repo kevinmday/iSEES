@@ -57,4 +57,8 @@
 .studio-html-preview__facts code { display: block; overflow-wrap: anywhere; font-size: 9px; }
 .studio-html-preview iframe { width: 100%; min-height: 430px; border: 1px solid #334155; border-radius: 4px; background: #fff; }
 .studio-html-preview__empty { padding: 18px; border: 1px dashed #475569; color: #94a3b8; text-align: center; }
+.studio-html-preview__selector { display: grid; gap: 5px; color: #bae6fd; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.studio-html-preview__selector select { width: 100%; padding: 7px; border: 1px solid #475569; border-radius: 4px; background: #07101f; color: #f8fafc; }
+.studio-html-preview__availability { color: #94a3b8; font-size: 11px; }
+.studio-html-preview__error { padding: 9px; border: 1px solid #f87171; border-radius: 4px; background: #2a1014; color: #fecaca; }
 @media (max-width: 1080px) { .studio-artifact-family__children { grid-template-columns: 1fr; } }

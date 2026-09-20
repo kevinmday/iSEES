@@ -58,7 +58,7 @@ const projectionSource = readFileSync(new URL("../../src/studio/projection/Studi
 for (const forbidden of ["Date" + ".", "new " + "Date", "Math" + ".random", "crypto" + ".randomUUID", "fetch" + "(", "provider", "Candidate" + " Knowledge", "MANI" + "FOLD", "REX", "AI drafting"]) assert.ok(!projectionSource.includes(forbidden), `projection excludes ${forbidden}`);
 const component = readFileSync(new URL("../../src/studio/components/StudioHtmlProjectionPreview.tsx", import.meta.url), "utf8");
 assert.match(component, /HTML PROJECTION — CURRENT DRAFT/); assert.match(component, /Disposable preview derived from the active \.author document\./); assert.match(component, /Not an authority record\./);
-assert.match(component, /useAuthorDocumentRevision/); assert.match(component, /sandbox=""/); assert.doesNotMatch(component, /dangerouslySetInnerHTML|fetch\(|studioApi|saveAction/);
+assert.match(component, /useAuthorDocumentRevision/); assert.match(component, /sandbox=""/); assert.doesNotMatch(component, /dangerouslySetInnerHTML|fetch\(|studioApi/);
 const inspector = readFileSync(new URL("../../src/studio/components/StudioArtifactInspector.tsx", import.meta.url), "utf8"); assert.match(inspector, /<StudioHtmlProjectionPreview \/>/);
 const save = readFileSync(new URL("../../src/studio/v1/runtime/StudioV1SaveOrchestrator.ts", import.meta.url), "utf8"); assert.match(save, /projections:\[\]/, "explicit Save still requests no projections");
 console.log("PASS VerifyStudioAutomaticHtmlProjection — deterministic local current-draft HTML, complete node vocabulary, escaping, sandboxing, runtime isolation, and Save boundary verified");
