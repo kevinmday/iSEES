@@ -114,10 +114,16 @@ prove(() => {
 });
 
 prove(() => {
-  for (const marker of ["GOVERNED ENTITY DOSSIER", "Operational Summary", "Event-Specific Role", "Capabilities", "Limitations", "Specifications", "Systems", "Platform and Organization", "Service History / Chronology", "Official External References", "Sources and Fact-Level Lineage", "Technical Governance Metadata", "Projection fingerprint"]) assert(node.includes(marker), marker);
+  for (const marker of ["GOVERNED EVENT DOSSIER", "GOVERNED ENTITY DOSSIER", "Operational Summary", "Event-Specific Role", "Capabilities", "Limitations", "Specifications", "Systems", "Platform and Organization", "Service History / Chronology", "Chronology", "Official External References", "Sources and Fact-Level Lineage", "Technical Governance Metadata", "Governed storage-envelope schema", "Projection fingerprint"]) assert(node.includes(marker), marker);
   for (const marker of ["GLOBAL ENTITY FACT", "HISTORICALLY BOUNDED FACT", "Encounter-specific claim", "section.availabilityFields"]) assert(node.includes(marker), marker);
   assert(node.includes("entity.governedDossier"));
   assert(panel.includes("dossier.operationalProfile.sections.map") && panel.includes("Source lineage") && panel.includes("fact.applicability"));
+  assert(panel.includes('dossier.operationalProfile.profileId === "EVENT"'));
+  assert(panel.includes('dossier.operationalProfile.profileId === "NAVAL_VESSEL"'));
+  assert(panel.includes('subjectNoun') && panel.includes('`This ${subjectNoun} has several established relationships in the active Investigation graph.`'));
+  assert(panel.includes('fact.predicate === "event_classification"') && panel.includes('value.value === "multi_sensor_naval_event"') && panel.includes('return "Multi-Sensor Naval Event"'));
+  assert(panel.includes('fact.predicate === "observability_profile"') && panel.includes('value.value === "multi_sensor"') && panel.includes('return "Multi-Sensor"'));
+  assert(panel.includes('section.sectionId === "IDENTITY"') && panel.includes('facts.get(id)?.predicate !== "event_classification"'));
   for (const forbidden of ["fetch(", "Tavily", "WebDiscovery", "invokeRex", "CandidateEvidence", "ResearchBridgeRuntime"]) assert(!node.includes(forbidden), forbidden);
 });
 

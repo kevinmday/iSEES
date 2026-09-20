@@ -8,6 +8,8 @@ const r1=USS_PRINCETON_DOSSIER_REVISION_1,r2=USS_PRINCETON_DOSSIER_REVISION_2;
 assert.equal(r1.dossierRevisionId,"dossier-revision:system:entity:uss-princeton:1");
 assert.equal(r1.contentHash,"sha256:0e58fe0382bdb2c9f857f3eb333b7f572252119629f931a7348940bec48c25c4","revision 1 hash must remain byte-for-byte stable");
 assert.equal(r2.revisionNumber,2); assert.equal(r2.parentRevisionId,r1.dossierRevisionId);
+assert.equal(r2.dossierRevisionId,"dossier-revision:system:entity:uss-princeton:2");
+assert.equal(r2.contentHash,"sha256:8c36e296230cbf0bb312263b67f69e56550c255b4a4f59f9a9da8c41553b7abe","revision 2 hash must remain byte-for-byte stable");
 assert.equal(USS_PRINCETON_GOVERNED_ENTITY_DOSSIER.revisions[0],r1); assert.equal(USS_PRINCETON_GOVERNED_ENTITY_DOSSIER.revisions[1],r2);
 assert.equal(USS_PRINCETON_PINNED_HEAD_REVISION_ID,r2.dossierRevisionId);
 assert.equal(SYSTEM_CANON_ENTITY_DOSSIER_REGISTRY["system:entity:uss-princeton"].pinnedHeadRevisionId,r2.dossierRevisionId);

@@ -2,6 +2,12 @@ import { test } from "vitest";
 
 const regressionVerifiers = [
   "VerifyOperationalGraphRevision.ts",
+  "VerifySemanticNodeIconResolution.ts",
+  "VerifyAdaptiveGovernedDossierTypeCanon.ts",
+  "VerifyGovernedDossierResolverPrecedence.ts",
+  "VerifyGovernedEntityDossierSelectionProjection.ts",
+  "VerifyUssPrincetonOperationalDossier.ts",
+  "VerifyNimitzTicTacEventGovernedDossier.ts",
   "VerifyFreshInvestigationIsolation.ts",
   "VerifyComparePairProjection.ts",
   "VerifyCompareStateCoherence.ts",

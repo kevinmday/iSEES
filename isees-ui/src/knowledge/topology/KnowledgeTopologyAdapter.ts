@@ -50,6 +50,7 @@ import type {
   KnowledgeTopologyEdge,
   KnowledgeTopologyNode,
 } from "./KnowledgeTopologyTypes.ts";
+import { resolveSemanticNodeIconFamily } from "../../manifold/iconology/semanticNodeIconResolver.ts";
 
 // ============================================================
 // SUPPORTED MANIFOLD NODE TYPES
@@ -277,116 +278,13 @@ function adaptNodeType(
 function adaptIconType(
   node: KnowledgeTopologyNode,
   projectedType: GraphNodeType,
-): GraphIconType | undefined {
-
-  // ----------------------------------------------------------
-  // PROJECTED FACILITY
-  // ----------------------------------------------------------
-
-  if (
-    projectedType === "FACILITY"
-  ) {
-
-    // Canonical System Canon ingestion preserves the
-    // original infrastructure classification as a tag.
-    // Icon projection therefore remains deterministic and
-    // does not infer identity from labels or descriptions.
-
-    if (
-      hasSemanticTag(
-        node,
-        "NAVAL STRIKE GROUP",
-      )
-    ) {
-
-      return "SHIP";
-
-    }
-
-    if (
-      hasSemanticTag(
-        node,
-        "AEGIS RADAR",
-      )
-    ) {
-
-      return "RADAR";
-
-    }
-
-    if (
-      hasSemanticTag(
-        node,
-        "AIRBORNE SENSOR",
-      ) ||
-      hasSemanticTag(
-        node,
-        "TARGETING POD",
-      )
-    ) {
-
-      return "SENSOR";
-
-    }
-
-    if (
-      hasSemanticTag(
-        node,
-        "MILITARY AIRSPACE",
-      ) ||
-      hasSemanticTag(
-        node,
-        "TRAINING RANGE",
-      )
-    ) {
-
-      return "LOCATION";
-
-    }
-
-    return "BUILDING";
-
-  }
-
-  // ----------------------------------------------------------
-  // CANONICAL TYPE
-  // ----------------------------------------------------------
-
-  switch (
-    node.type
-  ) {
-
-    case "EVENT":
-    case "OBSERVATION":
-      return "UAP";
-
-    case "PERSON":
-      return "PERSON";
-
-    case "ORGANIZATION":
-      return "ORGANIZATION";
-
-    case "LOCATION":
-      return "LOCATION";
-
-    case "NARRATIVE":
-      return "NARRATIVE";
-
-    case "HYPOTHESIS":
-      return "HYPOTHESIS";
-
-    case "ARTIFACT":
-    case "EVIDENCE":
-    case "DOCUMENT":
-    case "REFERENCE":
-    case "DATASET":
-    case "MODEL":
-      return "DOCUMENT";
-
-    default:
-      return undefined;
-
-  }
+): GraphIconType {
+  return resolveSemanticNodeIconFamily({
+    canonicalIdentity: node.id,
+    canonicalSubtypes: node.type === "ENTITY" ? node.metadata?.tags : undefined,
+    canonicalSemanticType: node.type,
+    compatibilityGraphNodeType: projectedType,
+  }).iconFamily;
 
 }
 

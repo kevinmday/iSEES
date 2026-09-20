@@ -897,11 +897,14 @@ function NodeInspector({
 }) {
   const entity = intelligence.entitySpecific;
   const hiddenRelationships = entity.relationships.totalCount - entity.relationships.returnedCount;
+  const subjectNoun = entity.governedDossier.availability === "AVAILABLE" && entity.governedDossier.operationalProfile.profileId === "EVENT"
+    ? "event"
+    : "entity";
   const roleCopy = {
-    ISOLATED: "No established relationships connect this entity in the active Investigation graph.",
-    TERMINAL: "This entity is an endpoint in one established Investigation relationship.",
-    CONNECTOR: "This entity connects multiple established relationships in the active Investigation graph.",
-    HUB: "This entity has several established relationships in the active Investigation graph.",
+    ISOLATED: `No established relationships connect this ${subjectNoun} in the active Investigation graph.`,
+    TERMINAL: `This ${subjectNoun} is an endpoint in one established Investigation relationship.`,
+    CONNECTOR: `This ${subjectNoun} connects multiple established relationships in the active Investigation graph.`,
+    HUB: `This ${subjectNoun} has several established relationships in the active Investigation graph.`,
   }[entity.investigationRole];
   return (
     <div
@@ -992,6 +995,8 @@ function NodeInspector({
 
 function dossierFactValue(fact: Extract<EntityDossierProjection, { availability: "AVAILABLE" }>["acceptedFacts"][number]): string {
   const value = fact.value;
+  if (fact.predicate === "event_classification" && value.valueType === "STRING" && value.value === "multi_sensor_naval_event") return "Multi-Sensor Naval Event";
+  if (fact.predicate === "observability_profile" && value.valueType === "STRING" && value.value === "multi_sensor") return "Multi-Sensor";
   return value.valueType === "NUMBER" && value.unit !== undefined ? `${value.value} ${value.unit}` : String(value.value);
 }
 
@@ -1039,26 +1044,31 @@ function GovernedDossierInspector({ dossier }: { dossier: EntityDossierProjectio
       ? null
       : <InspectorSection title="GOVERNED ENTITY DOSSIER"><IntelRow label="Availability" value={`UNAVAILABLE — ${formatLabel(dossier.reason)}`} /></InspectorSection>;
   }
+  const isEventProfile = dossier.operationalProfile.profileId === "EVENT";
+  const dossierTitle = isEventProfile ? "GOVERNED EVENT DOSSIER" : "GOVERNED ENTITY DOSSIER";
   const facts = new Map(dossier.acceptedFacts.map(fact => [fact.factId, fact]));
   const relationships = new Map(dossier.relationshipFacts.map(fact => [fact.factId, fact]));
-  return <InspectorSection title="GOVERNED ENTITY DOSSIER">
+  return <InspectorSection title={dossierTitle}>
     <div className="selection-intelligence__rows">
       <IntelRow label="Availability" value="AVAILABLE" />
       <IntelRow label="Entity" value={dossier.entityIdentity.displayName} />
-      <IntelRow label="Hull number" value={dossier.entityIdentity.identifiers.find(item => item.scheme === "US_NAVY_HULL_CLASSIFICATION")?.value ?? "UNAVAILABLE"} />
+      {dossier.operationalProfile.profileId === "NAVAL_VESSEL" && <IntelRow label="Hull number" value={dossier.entityIdentity.identifiers.find(item => item.scheme === "US_NAVY_HULL_CLASSIFICATION")?.value ?? "UNAVAILABLE"} />}
       <IntelRow label="Operational profile" value={formatLabel(dossier.operationalProfile.profileId)} />
       <IntelRow label="Classification" value={`${formatLabel(dossier.entityIdentity.entityType)} · ${formatLabel(dossier.entityIdentity.entitySubtype ?? "UNAVAILABLE")}`} />
       <IntelRow label="Governance" value={`GOVERNED · REVIEWED · ${formatLabel(dossier.scope)}`} />
     </div>
     {dossier.operationalProfile.sections.map(section => {
-      const title = DOSSIER_SECTION_LABELS[section.sectionId] ?? formatLabel(section.sectionId);
+      const title = isEventProfile && section.sectionId === "CHRONOLOGY" ? "Chronology" : DOSSIER_SECTION_LABELS[section.sectionId] ?? formatLabel(section.sectionId);
       if (section.sectionId === "GOVERNANCE") return <div key={section.sectionId}><h4>{title}</h4><div className="selection-intelligence__rows">
-        <IntelRow label="Governed revision" value={dossier.dossierRevisionId} /><IntelRow label="Schema" value={dossier.schemaVersion} /><IntelRow label="Canonical identity" value={dossier.entityIdentity.canonicalEntityId} /><IntelRow label="Profile resolution" value={formatLabel(dossier.operationalProfile.resolutionBasis)} /><IntelRow label="Investigation binding" value={dossier.binding.investigationId} /><IntelRow label="Manifold revision" value={dossier.binding.manifoldRevisionId} /><IntelRow label="Node binding" value={dossier.binding.nodeId} /><IntelRow label="Content hash" value={dossier.binding.effectiveDossierHash} /><IntelRow label="Projection fingerprint" value={dossier.projectionFingerprint} />
+        <IntelRow label="Governed revision" value={dossier.dossierRevisionId} /><IntelRow label="Governed storage-envelope schema" value={dossier.schemaVersion} /><IntelRow label="Canonical identity" value={dossier.entityIdentity.canonicalEntityId} /><IntelRow label="Profile resolution" value={formatLabel(dossier.operationalProfile.resolutionBasis)} /><IntelRow label="Investigation binding" value={dossier.binding.investigationId} /><IntelRow label="Manifold revision" value={dossier.binding.manifoldRevisionId} /><IntelRow label="Node binding" value={dossier.binding.nodeId} /><IntelRow label="Content hash" value={dossier.binding.effectiveDossierHash} /><IntelRow label="Projection fingerprint" value={dossier.projectionFingerprint} />
       </div></div>;
       if (section.sectionId === "INTELLIGENCE_GAPS") return <div key={section.sectionId}><h4>{title}</h4><div className="selection-intelligence__entity-list">{dossier.unavailableCategories.map(field => <div className="selection-intelligence__entity-card" key={field.field}><div><strong>{formatLabel(field.field)}</strong><span>{formatLabel(field.state)}</span></div></div>)}</div></div>;
       if (section.sectionId === "FACT_LINEAGE") return <div key={section.sectionId}><h4>{title}</h4><div className="selection-intelligence__rows"><IntelRow label="Official sources" value={dossier.sourceRecords.length} /><IntelRow label="Exact fact-source links" value={dossier.sourceLinks.length} /></div></div>;
+      const visibleFactIds = isEventProfile && section.sectionId === "IDENTITY"
+        ? section.factIds.filter(id => facts.get(id)?.predicate !== "event_classification")
+        : section.factIds;
       return <div key={section.sectionId}><h4>{title}</h4><IntelRow label="Section status" value={formatLabel(section.state)} />
-        {section.factIds.length > 0 && <div className="selection-intelligence__entity-list">{section.factIds.map(id => facts.get(id)).filter((fact): fact is NonNullable<typeof fact> => fact !== undefined).map(fact => <DossierFactCard key={fact.factId} fact={fact} dossier={dossier} />)}</div>}
+        {visibleFactIds.length > 0 && <div className="selection-intelligence__entity-list">{visibleFactIds.map(id => facts.get(id)).filter((fact): fact is NonNullable<typeof fact> => fact !== undefined).map(fact => <DossierFactCard key={fact.factId} fact={fact} dossier={dossier} />)}</div>}
         {section.relationshipFactIds.map(id => relationships.get(id)).filter((fact): fact is NonNullable<typeof fact> => fact !== undefined).map(fact => <div className="selection-intelligence__entity-card" key={fact.factId}><div><strong>{fact.displayLabel ?? formatLabel(fact.relationshipType)}</strong><span>{fact.objectEntityId}</span></div><span>Encounter-specific claim · {formatLabel(fact.epistemicClassification)} · {formatLabel(fact.reviewStatus)}</span></div>)}
         {section.availabilityFields.length > 0 && <div className="selection-intelligence__entity-list">{section.availabilityFields.map(field => { const availability = dossier.unavailableCategories.find(item => item.field === field); return <div className="selection-intelligence__entity-card" key={field}><div><strong>{formatLabel(field)}</strong><span>{formatLabel(availability?.state ?? "UNAVAILABLE")}</span></div></div>; })}</div>}
       </div>;

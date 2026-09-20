@@ -29,7 +29,13 @@ export type EntityDossierFactCategory =
   | "PERSONNEL_ASSOCIATION"
   | "EXTERNAL_REFERENCE";
 export type EntityDossierConflictState = "NONE" | "CONTESTED" | "UNRESOLVED" | "SUPERSEDED";
-export type EntityDossierFactApplicability = "SHIP_SPECIFIC" | "CLASS_LEVEL" | "SYSTEM_LEVEL";
+export type EntityDossierFactApplicability =
+  | "SHIP_SPECIFIC"
+  | "CLASS_LEVEL"
+  | "SYSTEM_LEVEL"
+  | "EVENT_SPECIFIC"
+  | "ENTITY_SPECIFIC"
+  | "TYPE_CANON";
 export type EntityDossierEpistemicClassification =
   | "OBSERVED"
   | "ESTABLISHED"

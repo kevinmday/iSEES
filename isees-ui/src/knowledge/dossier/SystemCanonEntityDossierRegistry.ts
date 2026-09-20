@@ -1,6 +1,7 @@
 import { createEntityDossierRevision, createGovernedEntityDossier, entityDossierSha256 } from "./EntityDossierCanonicalization.ts";
 import { ENTITY_DOSSIER_SCHEMA_VERSION, type EntityDossierFact, type EntityDossierFactSourceLink, type EntityDossierRelationshipFact, type EntityDossierRevision, type EntityDossierSourceRecord, type GovernedEntityDossier, type GovernedEntityDossierRegistryEntry } from "./EntityDossierTypes.ts";
 import { USS_PRINCETON_OFFICIAL_SOURCE_EXTRACTS as SOURCES, USS_PRINCETON_SOURCE_RETRIEVED_AT as RETRIEVED_AT, type UssPrincetonOfficialSourceKey } from "./sources/uss-princeton/manifest.ts";
+import { NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1, NIMITZ_TIC_TAC_EVENT_GOVERNED_DOSSIER, NIMITZ_TIC_TAC_EVENT_ID } from "./fixtures/nimitzTicTacEventDossier.ts";
 
 const ENTITY_ID="system:entity:uss-princeton", DOSSIER_ID=`dossier:${ENTITY_ID}`, EVENT_ID="E-TICTAC-2004", UNKNOWN_TIME="1970-01-01T00:00:00.000Z";
 const R1_ID=`dossier-revision:${ENTITY_ID}:1`, R2_ID=`dossier-revision:${ENTITY_ID}:2`, CANON_SOURCE_ID=`source:system-canon:${EVENT_ID}:revision:1`;
@@ -49,11 +50,14 @@ export const USS_PRINCETON_DOSSIER_REVISION_1=revision1;
 export const USS_PRINCETON_DOSSIER_REVISION_2=revision2;
 export const USS_PRINCETON_GOVERNED_ENTITY_DOSSIER=createGovernedEntityDossier({dossierId:DOSSIER_ID,schemaVersion:ENTITY_DOSSIER_SCHEMA_VERSION,canonicalEntityId:ENTITY_ID,scope:"GLOBAL_BASE",revisions:[revision1,revision2]});
 export const USS_PRINCETON_PINNED_HEAD_REVISION_ID=R2_ID;
-export const SYSTEM_CANON_ENTITY_DOSSIER_REGISTRY:Readonly<Record<string,GovernedEntityDossierRegistryEntry>>=Object.freeze({[ENTITY_ID]:Object.freeze({canonicalEntityId:ENTITY_ID,dossier:USS_PRINCETON_GOVERNED_ENTITY_DOSSIER,pinnedHeadRevisionId:R2_ID})});
+export const SYSTEM_CANON_ENTITY_DOSSIER_REGISTRY:Readonly<Record<string,GovernedEntityDossierRegistryEntry>>=Object.freeze({
+ [ENTITY_ID]:Object.freeze({canonicalEntityId:ENTITY_ID,dossier:USS_PRINCETON_GOVERNED_ENTITY_DOSSIER,pinnedHeadRevisionId:R2_ID}),
+ [NIMITZ_TIC_TAC_EVENT_ID]:Object.freeze({canonicalEntityId:NIMITZ_TIC_TAC_EVENT_ID,dossier:NIMITZ_TIC_TAC_EVENT_GOVERNED_DOSSIER,pinnedHeadRevisionId:NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1.dossierRevisionId}),
+});
 // I3C-A deliberately does not advance operational graph references. This
 // compatibility view keeps the existing I3B singleton projection pinned to R1;
 // I3C-B will adopt the explicit registry head through an authorized builder edit.
 const OPERATIONAL_GRAPH_COMPATIBILITY_DOSSIER=createGovernedEntityDossier({dossierId:DOSSIER_ID,schemaVersion:ENTITY_DOSSIER_SCHEMA_VERSION,canonicalEntityId:ENTITY_ID,scope:"GLOBAL_BASE",revisions:[revision1]});
-export function resolveSystemCanonEntityDossier(id:string):GovernedEntityDossier|undefined{return id===ENTITY_ID?OPERATIONAL_GRAPH_COMPATIBILITY_DOSSIER:undefined;}
+export function resolveSystemCanonEntityDossier(id:string):GovernedEntityDossier|undefined{return id===ENTITY_ID?OPERATIONAL_GRAPH_COMPATIBILITY_DOSSIER:SYSTEM_CANON_ENTITY_DOSSIER_REGISTRY[id]?.dossier;}
 export function resolveSystemCanonEntityDossierRevision(id:string,revisionId:string):EntityDossierRevision|undefined{return revisionId.toLowerCase().includes("latest")?undefined:SYSTEM_CANON_ENTITY_DOSSIER_REGISTRY[id]?.dossier.revisions.find(r=>r.dossierRevisionId===revisionId);}
 export function resolvePinnedSystemCanonEntityDossierRevision(id:string):EntityDossierRevision|undefined{const entry=SYSTEM_CANON_ENTITY_DOSSIER_REGISTRY[id];return entry===undefined?undefined:resolveSystemCanonEntityDossierRevision(id,entry.pinnedHeadRevisionId);}

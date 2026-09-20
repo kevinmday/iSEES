@@ -63,6 +63,7 @@ import {
 } from "../../investigation/revision/OperationalGraphRevision";
 import { buildKnowledgeBootstrapPopulation } from "../../knowledge/ingestion/KnowledgeRuntimeBootstrap.ts";
 import { USS_PRINCETON_DOSSIER_REVISION_1, USS_PRINCETON_DOSSIER_REVISION_2 } from "../../knowledge/dossier/SystemCanonEntityDossierRegistry.ts";
+import { NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1, NIMITZ_TIC_TAC_EVENT_ID } from "../../knowledge/dossier/fixtures/nimitzTicTacEventDossier.ts";
 import type { Investigation } from "../../investigation/investigationTypes.ts";
 import type { InvestigationGraph } from "../../manifold/graphTypes.ts";
 import { restoreStudioDocument } from "../../studio/api/StudioDocumentRestoration";
@@ -270,8 +271,6 @@ function validateOptionalSnapshotInvestigationIdentity(
 // RESTORE WORKSPACE
 // ============================================================
 
-const AUTHORIZED_SYSTEM_CANON_FACILITY_ICON_EVOLUTION =
-  new Set(["SHIP", "RADAR", "SENSOR", "LOCATION"]);
 const USS_PRINCETON_ENTITY_ID = "system:entity:uss-princeton";
 
 function exactReference(revision: typeof USS_PRINCETON_DOSSIER_REVISION_1) {
@@ -289,14 +288,6 @@ function sameReference(value: unknown, expected: ReturnType<typeof exactReferenc
   return Object.keys(record).length === 4 && Object.entries(expected).every(([key, item]) => record[key] === item);
 }
 
-function authorizedPriorPrincetonState(graph: InvestigationGraph): boolean {
-  const node = graph.nodes.find(candidate => candidate.id === USS_PRINCETON_ENTITY_ID);
-  if (node === undefined) return false;
-  const reference = node.metadata?.dossierReference;
-  if (reference === undefined) return node.type === "FACILITY" && node.iconType === "BUILDING";
-  return sameReference(reference, exactReference(USS_PRINCETON_DOSSIER_REVISION_1));
-}
-
 function withoutAuthorizedSystemCanonProjectionEvolution(
   graph: InvestigationGraph,
   authoritativeGraph: InvestigationGraph,
@@ -306,16 +297,21 @@ function withoutAuthorizedSystemCanonProjectionEvolution(
     nodes: graph.nodes.map(node => {
       const authoritativeNode = authoritativeGraph.nodes.find(candidate => candidate.id === node.id);
       const metadata = node.metadata === undefined ? undefined : { ...node.metadata };
-      if (metadata !== undefined && node.id === USS_PRINCETON_ENTITY_ID) delete metadata.dossierReference;
-      const legacyFacilityIcon =
-        node.type === "FACILITY" &&
-        node.iconType === "BUILDING" &&
-        authoritativeNode?.type === "FACILITY" &&
-        authoritativeNode.iconType !== undefined &&
-        AUTHORIZED_SYSTEM_CANON_FACILITY_ICON_EVOLUTION.has(authoritativeNode.iconType);
+      const authorizedDossierReferenceEvolution =
+        node.id === USS_PRINCETON_ENTITY_ID
+          ? sameReference(metadata?.dossierReference, exactReference(USS_PRINCETON_DOSSIER_REVISION_1)) ||
+            sameReference(metadata?.dossierReference, exactReference(USS_PRINCETON_DOSSIER_REVISION_2))
+          : node.id === NIMITZ_TIC_TAC_EVENT_ID &&
+            sameReference(metadata?.dossierReference, {
+              schemaVersion: NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1.schemaVersion,
+              entityId: NIMITZ_TIC_TAC_EVENT_ID,
+              globalDossierRevisionId: NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1.dossierRevisionId,
+              effectiveDossierHash: NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1.contentHash,
+            });
+      if (metadata !== undefined && authorizedDossierReferenceEvolution) delete metadata.dossierReference;
       return {
         ...node,
-        ...(legacyFacilityIcon ? { iconType: authoritativeNode.iconType } : {}),
+        ...(authoritativeNode?.iconType === undefined ? {} : { iconType: authoritativeNode.iconType }),
         ...(metadata === undefined ? {} : { metadata }),
       };
     }),
@@ -337,7 +333,6 @@ function reconcileRestoredSystemCanonProjection(investigation: Investigation): I
   const authoritativeFingerprint = createOperationalGraphFingerprint(authoritativeGraph);
   if (currentFingerprint === authoritativeFingerprint) return investigation;
 
-  if (!authorizedPriorPrincetonState(current.manifold.graph)) return investigation;
   const authoritativePrinceton = authoritativeGraph.nodes.find(node => node.id === USS_PRINCETON_ENTITY_ID);
   if (!sameReference(authoritativePrinceton?.metadata?.dossierReference, exactReference(USS_PRINCETON_DOSSIER_REVISION_2))) return investigation;
 

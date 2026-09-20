@@ -39,6 +39,13 @@ Record<
   GraphIconDefinition
 > = {
 
+  EVENT: {
+    type: "EVENT",
+    icon: "✦",
+    color: "#60a5fa",
+    size: 18,
+  },
+
 
   UAP: {
 
@@ -85,6 +92,13 @@ SHIP: {
   size: 18,
 },
 
+FLEET: {
+  type: "FLEET",
+  icon: "⚓",
+  color: "#94a3b8",
+  size: 18,
+},
+
 AIRCRAFT: {
 
   type: "AIRCRAFT",
@@ -107,6 +121,13 @@ RADAR: {
   size: 18,
 },
 
+SYSTEM: {
+  type: "SYSTEM",
+  icon: "⚙️",
+  color: "#22c55e",
+  size: 18,
+},
+
 SENSOR: {
 
   type: "SENSOR",
@@ -115,6 +136,13 @@ SENSOR: {
 
   color: "#22c55e",
 
+  size: 18,
+},
+
+NETWORK: {
+  type: "NETWORK",
+  icon: "🕸️",
+  color: "#22c55e",
   size: 18,
 },
 
@@ -195,6 +223,13 @@ VIDEO: {
 
     size: 18,
   },
+
+  GENERIC: {
+    type: "GENERIC",
+    icon: "●",
+    color: "#94a3b8",
+    size: 18,
+  },
 };
 
 // ============================================================
@@ -208,7 +243,7 @@ export function getGraphIcon(
   switch (type) {
 
     case "EVENT":
-      return GRAPH_ICON_REGISTRY.UAP;
+      return GRAPH_ICON_REGISTRY.EVENT;
 
     case "FACILITY":
       return GRAPH_ICON_REGISTRY.BUILDING;
@@ -217,9 +252,7 @@ export function getGraphIcon(
       return GRAPH_ICON_REGISTRY.DOCUMENT;
 
     default:
-      return GRAPH_ICON_REGISTRY[
-        type as GraphIconType
-      ];
+      return GRAPH_ICON_REGISTRY[type as GraphIconType] ?? GRAPH_ICON_REGISTRY.GENERIC;
 
   }
 

@@ -25,12 +25,16 @@ export type GraphNodeType =
 
 export type GraphIconType =
 
+  | "EVENT"
   | "UAP"
   | "BUILDING"
   | "SHIP"
+  | "FLEET"
   | "AIRCRAFT"
   | "RADAR"
+  | "SYSTEM"
   | "SENSOR"
+  | "NETWORK"
   | "PERSON"
   | "ORGANIZATION"
   | "LOCATION"
@@ -38,7 +42,8 @@ export type GraphIconType =
   | "PHOTO"
   | "VIDEO"
   | "HYPOTHESIS"
-  | "NARRATIVE";
+  | "NARRATIVE"
+  | "GENERIC";
 
 
 

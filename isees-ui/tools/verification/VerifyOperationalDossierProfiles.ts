@@ -8,17 +8,17 @@ import { USS_PRINCETON_DOSSIER_REVISION_2 } from "../../src/knowledge/dossier/Sy
 assert.deepEqual(Object.keys(OPERATIONAL_DOSSIER_PROFILE_REGISTRY).sort(),[...OPERATIONAL_DOSSIER_PROFILE_IDS].sort());
 for(const id of OPERATIONAL_DOSSIER_PROFILE_IDS){const profile=OPERATIONAL_DOSSIER_PROFILE_REGISTRY[id];assert.equal(profile.profileId,id);assert.equal(new Set(profile.sectionOrder).size,profile.sectionOrder.length);assert(Object.isFrozen(profile)&&Object.isFrozen(profile.sectionOrder));}
 assert.deepEqual(OPERATIONAL_DOSSIER_PROFILE_REGISTRY.NAVAL_VESSEL.sectionOrder,["IDENTITY","OPERATIONAL_SUMMARY","EVENT_ROLE","CAPABILITIES","LIMITATIONS","SPECIFICATIONS","SYSTEMS","ORGANIZATION","CHRONOLOGY","EXTERNAL_REFERENCES","FACT_LINEAGE","INTELLIGENCE_GAPS","GOVERNANCE"]);
-assert.deepEqual(OPERATIONAL_DOSSIER_PROFILE_REGISTRY.EVENT.sectionOrder,["IDENTITY","OPERATIONAL_SUMMARY","CHRONOLOGY","LOCATION","PARTICIPANTS","EVIDENCE","CONFLICTS","FACT_LINEAGE","INTELLIGENCE_GAPS","GOVERNANCE"]);
-assert.equal(resolveOperationalDossierProfile({explicitGovernedProfile:"AIRCRAFT",governedEntitySubtype:"NAVAL_VESSEL",canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"AIRCRAFT");
-assert.equal(resolveOperationalDossierProfile({governedEntitySubtype:"NAVAL_VESSEL",canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"NAVAL_VESSEL");
-assert.equal(resolveOperationalDossierProfile({canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"EVENT");
-assert.equal(resolveOperationalDossierProfile({graphNodeType:"PERSON"}).profile.profileId,"PERSON");
+assert.deepEqual(OPERATIONAL_DOSSIER_PROFILE_REGISTRY.EVENT.sectionOrder,["IDENTITY","OPERATIONAL_SUMMARY","CHRONOLOGY","LOCATION","PARTICIPANTS","SYSTEMS","EVIDENCE","CONFLICTS","RELATIONSHIPS","FACT_LINEAGE","RESTRICTIONS","INTELLIGENCE_GAPS","GOVERNANCE"]);
+assert.equal(resolveOperationalDossierProfile({identityDossierState:"ABSENT",governedEntitySubtype:"NAVAL_VESSEL",canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"NAVAL_VESSEL");
+assert.equal(resolveOperationalDossierProfile({identityDossierState:"ABSENT",canonicalKnowledgeType:"EVENT",graphNodeType:"PERSON"}).profile.profileId,"EVENT");
+assert.equal(resolveOperationalDossierProfile({identityDossierState:"ABSENT",graphNodeType:"PERSON"}).profile.profileId,"PERSON");
 assert.equal(resolveOperationalDossierProfile({}).profile.profileId,"GENERIC_ENTITY");
 const entitySpecific=resolveOperationalDossierProfile({canonicalEntityId:"system:entity:uss-princeton",governedEntitySubtype:"CANONICAL_FACILITY",canonicalKnowledgeType:"ENTITY",graphNodeType:"FACILITY"});
-assert.equal(entitySpecific.profile.profileId,"NAVAL_VESSEL");assert.equal(entitySpecific.basis,"ENTITY_SPECIFIC");
+assert.equal(entitySpecific.profile.profileId,"NAVAL_VESSEL");assert.equal(entitySpecific.basis,"IDENTITY_SPECIFIC");
 const unsupported=resolveOperationalDossierProfile({canonicalEntityId:"system:entity:unsupported"});assert.equal(unsupported.profile.profileId,"GENERIC_ENTITY");assert.equal(unsupported.basis,"GENERIC_FALLBACK");
 const projected=projectOperationalDossierProfile(USS_PRINCETON_DOSSIER_REVISION_2,"FACILITY");
-assert.equal(projected.profileId,"NAVAL_VESSEL");assert.equal(projected.resolutionBasis,"ENTITY_SPECIFIC");
+assert.equal(projected.profileId,"NAVAL_VESSEL");assert.equal(projected.resolutionBasis,"IDENTITY_SPECIFIC");
+assert.equal(projected.matchedKey,"system:entity:uss-princeton");assert.deepEqual(projected.consideredCandidates.map(candidate=>candidate.basis),["IDENTITY_SPECIFIC","CANONICAL_SUBTYPE","CANONICAL_SEMANTIC_TYPE","COMPATIBILITY_PROJECTION_TYPE","GENERIC_FALLBACK"]);
 assert.deepEqual(projected.sectionOrder,OPERATIONAL_DOSSIER_PROFILE_REGISTRY.NAVAL_VESSEL.sectionOrder);
 assert.equal(projected.sections.find(s=>s.sectionId==="LIMITATIONS")?.state,"NOT_ESTABLISHED");
 assert.deepEqual(projected.sections.find(s=>s.sectionId==="LIMITATIONS")?.availabilityFields,["documentedLimitations","encounterRadarTracksNovember2004","encounterSensorPerformanceNovember2004"]);

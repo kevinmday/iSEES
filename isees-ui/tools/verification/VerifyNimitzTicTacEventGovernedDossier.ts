@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { CANONICAL_EVENTS } from "../../src/canonical/runtimeCorpus.ts";
+import { buildCanonicalOperationalGraph } from "../../src/investigation/revision/OperationalGraphRevision.ts";
+import { projectOperationalDossierProfile } from "../../src/intelligence/selection/profiles/OperationalDossierProjection.ts";
+import { cloneJson, createEntityDossierRevision } from "../../src/knowledge/dossier/EntityDossierCanonicalization.ts";
+import type { EntityDossierRevision, EntityDossierRevisionInput } from "../../src/knowledge/dossier/EntityDossierTypes.ts";
+import { NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1 as revision, NIMITZ_TIC_TAC_EVENT_ID } from "../../src/knowledge/dossier/fixtures/nimitzTicTacEventDossier.ts";
+import { resolvePinnedSystemCanonEntityDossierRevision } from "../../src/knowledge/dossier/SystemCanonEntityDossierRegistry.ts";
+import { adaptSystemCanonToKnowledge } from "../../src/knowledge/ingestion/SystemCanonKnowledgeAdapter.ts";
+import { resolveSelectionIntelligence } from "../../src/manifold/selection/selectionIntelligenceResolver.ts";
+
+assert.equal(revision.entityIdentity.canonicalEntityId, NIMITZ_TIC_TAC_EVENT_ID);
+assert.equal(revision.entityIdentity.displayName, "Nimitz Tic Tac Encounter");
+assert.equal(revision.entityIdentity.canonicalType, "EVENT");
+assert.equal(revision.dossierRevisionId, "dossier-revision:system:event:E-TICTAC-2004:1");
+assert.equal(revision.contentHash, "sha256:bf88276975652bb1e6c254c7a3e95c5627e7fd59355c31774f0e34407a4df1c4");
+assert.equal(resolvePinnedSystemCanonEntityDossierRevision(NIMITZ_TIC_TAC_EVENT_ID), revision);
+assert.deepEqual(revision.facts.map(item => item.predicate).sort(), ["canonical_semantic_type", "canonical_status", "event_classification", "event_location", "event_name", "event_year", "observability_profile"]);
+assert(revision.facts.every(item => item.reviewStatus === "ACCEPTED" && item.canonEffect === "GLOBAL_BASE" && item.derivation === "DIRECT_SOURCE"));
+assert(revision.facts.every(item => revision.sourceLinks.some(link => link.factId === item.factId && link.relationship === "SUPPORTS")));
+assert.equal(revision.facts.find(item => item.predicate === "event_classification")?.value.value, "multi_sensor_naval_event");
+assert.equal(revision.facts.find(item => item.predicate === "observability_profile")?.value.value, "multi_sensor");
+const unavailable = new Map(revision.fieldAvailability.map(item => [item.field, item.state]));
+for (const [field, state] of [["authoritativeConfidence", "UNAVAILABLE"], ["participants", "NOT_RESEARCHED"], ["specificSensorObservations", "NOT_ESTABLISHED"], ["supportingEvidence", "NOT_ESTABLISHED"], ["contradictingEvidence", "NOT_RESEARCHED"], ["relationships", "NOT_ESTABLISHED"], ["documentedRestrictions", "NO_LIMITATION_DOCUMENTED"]] as const) assert.equal(unavailable.get(field), state);
+const serialized = JSON.stringify(revision).toLowerCase();
+for (const forbidden of ["radar operators", "f/a-18", "tic tac shaped", "object reacting", "provider", "tavily", "rex"]) assert.equal(serialized.includes(forbidden), false, forbidden);
+
+const profile = projectOperationalDossierProfile(revision, "EVENT");
+assert.equal(profile.profileId, "EVENT"); assert.equal(profile.resolutionBasis, "IDENTITY_SPECIFIC"); assert.equal(profile.matchedKey, NIMITZ_TIC_TAC_EVENT_ID);
+const classificationFactId = revision.facts.find(item => item.predicate === "event_classification")!.factId;
+assert(profile.sections.find(item => item.sectionId === "OPERATIONAL_SUMMARY")?.factIds.includes(classificationFactId));
+assert.equal(profile.sections.find(item => item.sectionId === "PARTICIPANTS")?.state, "NOT_RESEARCHED");
+assert.equal(profile.sections.find(item => item.sectionId === "RELATIONSHIPS")?.state, "NOT_ESTABLISHED");
+assert.equal(profile.sections.find(item => item.sectionId === "RESTRICTIONS")?.state, "NO_LIMITATION_DOCUMENTED");
+
+const graph = buildCanonicalOperationalGraph(adaptSystemCanonToKnowledge(CANONICAL_EVENTS));
+const node = graph.nodes.find(item => item.id === NIMITZ_TIC_TAC_EVENT_ID)!;
+const reference = node.metadata?.dossierReference as Record<string, unknown>;
+assert.deepEqual(reference, { schemaVersion: revision.schemaVersion, entityId: NIMITZ_TIC_TAC_EVENT_ID, globalDossierRevisionId: revision.dossierRevisionId, effectiveDossierHash: revision.contentHash });
+assert.equal("facts" in reference || "sourceRecords" in reference || "sourceLinks" in reference, false);
+const intelligence = resolveSelectionIntelligence({ kind: "NODE", nodeId: node.id, nodeType: node.type }, graph, { investigationId: "INV-EVENT", manifoldRevisionId: "REV-0001" });
+assert(intelligence.kind === "NODE" && intelligence.intelligence.entitySpecific.governedDossier.availability === "AVAILABLE");
+if (intelligence.kind !== "NODE" || intelligence.intelligence.entitySpecific.governedDossier.availability !== "AVAILABLE") throw new Error("unreachable");
+assert.equal(intelligence.intelligence.entitySpecific.governedDossier.binding.globalDossierRevisionId, revision.dossierRevisionId);
+assert.equal(intelligence.intelligence.entitySpecific.governedDossier.operationalProfile.profileId, "EVENT");
+
+const raw = cloneJson(revision) as EntityDossierRevision & { contentHash?: string }; delete raw.contentHash;
+const reversed = createEntityDossierRevision({ ...raw, facts: [...raw.facts].reverse(), sourceRecords: [...raw.sourceRecords].reverse(), sourceLinks: [...raw.sourceLinks].reverse(), fieldAvailability: [...raw.fieldAvailability].reverse(), limitations: [...raw.limitations].reverse() } as EntityDossierRevisionInput);
+assert.equal(reversed.contentHash, revision.contentHash); assert.equal(JSON.stringify(reversed), JSON.stringify(revision));
+const sources = ["src/knowledge/dossier/fixtures/nimitzTicTacEventDossier.ts", "src/knowledge/dossier/typeCanon/GovernedDossierTypeCanonRegistry.ts", "src/intelligence/selection/profiles/OperationalDossierProfileRegistry.ts"].map(path => readFileSync(path, "utf8")).join("\n");
+for (const forbidden of ["Date.now", "new Date", "Math.random", "randomUUID", "fetch(", "XMLHttpRequest", "WebSocket", "Tavily", "WebDiscovery", "invokeRex"]) assert.equal(sources.includes(forbidden), false, forbidden);
+const panel = readFileSync("src/components/RightPanel.tsx", "utf8");
+for (const marker of ["GOVERNED EVENT DOSSIER", "Chronology", "Multi-Sensor Naval Event", "Multi-Sensor", "Governed storage-envelope schema"]) assert(panel.includes(marker), marker);
+assert(panel.includes('dossier.operationalProfile.profileId === "EVENT"'));
+assert(panel.includes('dossier.operationalProfile.profileId === "NAVAL_VESSEL"') && panel.includes('label="Hull number"'));
+assert(panel.includes('subjectNoun') && panel.includes('? "event"') && panel.includes(': "entity"'));
+assert(panel.includes('section.sectionId === "IDENTITY"') && panel.includes('facts.get(id)?.predicate !== "event_classification"'));
+
+console.log(`PASS VerifyNimitzTicTacEventGovernedDossier — ${revision.dossierRevisionId} ${revision.contentHash}; exact local binding and truthful unavailable states verified`);

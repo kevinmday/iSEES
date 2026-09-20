@@ -69,7 +69,10 @@ assert.equal(JSON.stringify(graph), graphBefore);
 
 const eventNode = graph.nodes.find(candidate => candidate.id === "system:event:E-TICTAC-2004")!;
 const ordinary = resolveSelectionIntelligence({ kind: "NODE", nodeId: eventNode.id, nodeType: eventNode.type }, graph, context);
-assert(ordinary.kind === "NODE" && ordinary.intelligence.entitySpecific.governedDossier.availability === "UNAVAILABLE" && ordinary.intelligence.entitySpecific.governedDossier.reason === "NOT_REFERENCED");
+assert(ordinary.kind === "NODE" && ordinary.intelligence.entitySpecific.governedDossier.availability === "AVAILABLE");
+if(ordinary.kind!=="NODE"||ordinary.intelligence.entitySpecific.governedDossier.availability!=="AVAILABLE")throw new Error("unreachable");
+assert.equal(ordinary.intelligence.entitySpecific.governedDossier.operationalProfile.profileId,"EVENT");
+assert.equal(ordinary.intelligence.entitySpecific.governedDossier.binding.globalDossierRevisionId,eventNode.metadata?.dossierReference&&typeof eventNode.metadata.dossierReference==="object"?(eventNode.metadata.dossierReference as Record<string,unknown>).globalDossierRevisionId:undefined);
 const edge = graph.edges[0]!;
 assert.equal(resolveSelectionIntelligence({ kind: "EDGE", edgeId: edge.id, sourceId: edge.source, targetId: edge.target }, graph, context).kind, "EDGE");
 assert.equal(resolveSelectionIntelligence({ kind: "CLUSTER", clusterId: "cluster:one" }, graph, context).kind, "CLUSTER");
@@ -77,7 +80,7 @@ assert.equal(resolveSelectionIntelligence({ kind: "NONE" }, graph, context).kind
 
 assert.equal(dossier.acceptedFacts.length, 20);
 assert.equal(dossier.operationalProfile.profileId, "NAVAL_VESSEL");
-assert.equal(dossier.operationalProfile.resolutionBasis, "ENTITY_SPECIFIC");
+assert.equal(dossier.operationalProfile.resolutionBasis, "IDENTITY_SPECIFIC");
 assert(dossier.acceptedFacts.every(fact => fact.reviewStatus === "ACCEPTED" && fact.canonEffect === "GLOBAL_BASE"));
 assert.deepEqual(dossier.unavailableCategories, revision.fieldAvailability);
 assert.deepEqual(dossier.sourceLinks, revision.sourceLinks);
@@ -118,6 +121,8 @@ staleRevision.manifold.graph.nodes = staleRevision.manifold.graph.nodes.map(cand
   return {
     ...candidate,
     ...(candidate.type === "FACILITY" ? { iconType: "BUILDING" as const } : {}),
+    ...(candidate.id === "system:entity:atflir-sensor-systems" ? { iconType: "SENSOR" as const } : {}),
+    ...(candidate.id === "system:entity:e2-hawkeye-sensor-grid" || candidate.id === "system:entity:usaf-security-patrol-network" ? { iconType: "NETWORK" as const } : {}),
     ...(metadata === undefined ? {} : { metadata }),
   };
 });
@@ -162,9 +167,15 @@ assert.deepEqual(live.investigation.revisions[0], historicalBefore);
 assert.equal(live.investigation.revisions[1]!.parentRevisionId, live.investigation.revisions[0]!.id);
 assert.equal(live.investigation.currentRevisionId, live.investigation.revisions[1]!.id);
 const liveRevision = resolveCurrentOperationalRevision(live.investigation);
+assert.deepEqual(
+  Object.fromEntries(liveRevision.manifold.graph.nodes.map(candidate => [candidate.id, candidate.iconType])),
+  Object.fromEntries(graph.nodes.map(candidate => [candidate.id, candidate.iconType])),
+  "restored and fresh sessions project identical icon families for all 16 nodes",
+);
 const livePrinceton = liveRevision.manifold.graph.nodes.find(candidate => candidate.id === "system:entity:uss-princeton")!;
 assert.deepEqual(livePrinceton.metadata?.dossierReference, reference);
-assert.equal(liveRevision.manifold.graph.nodes.find(candidate => candidate.id === "system:event:E-TICTAC-2004")!.metadata?.dossierReference, undefined);
+const liveEventReference=liveRevision.manifold.graph.nodes.find(candidate => candidate.id === "system:event:E-TICTAC-2004")!.metadata?.dossierReference as Record<string,unknown>;
+assert.equal(liveEventReference.entityId,"system:event:E-TICTAC-2004");assert.equal(typeof liveEventReference.globalDossierRevisionId,"string");assert.equal(typeof liveEventReference.effectiveDossierHash,"string");assert.equal("facts" in liveEventReference||"sourceRecords" in liveEventReference,false);
 const liveSelection = { kind: "NODE", nodeId: livePrinceton.id } as const;
 const coherent = resolveCoherentInvestigationSelection(live.investigation, adaptSystemCanonToKnowledge(CANONICAL_EVENTS), liveSelection);
 assert.deepEqual(coherent, liveSelection);
