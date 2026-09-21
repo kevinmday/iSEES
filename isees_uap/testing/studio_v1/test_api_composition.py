@@ -160,6 +160,7 @@ def test_routes_openapi_middleware_handlers_and_dependencies_are_unchanged():
     assert studio_paths == {
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/current-draft/exports/pdf",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/current-draft/exports/docx",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}",

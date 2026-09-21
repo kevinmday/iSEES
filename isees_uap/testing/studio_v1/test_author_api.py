@@ -81,8 +81,8 @@ def test_exact_route_surface_and_no_worker_or_publication_mutations(api):
     application, _, _, _ = api
     paths = application.openapi()["paths"]
     studio = {path: set(methods) for path, methods in paths.items() if "/studio-v1/" in path}
-    assert len(studio) == 10
-    assert sum(len(methods) for methods in studio.values()) == 12
+    assert len(studio) == 11
+    assert sum(len(methods) for methods in studio.values()) == 13
     assert all(not any(word in path for word in ("claim", "complete", "fail", "retry", "publish"))
                for path in studio)
 

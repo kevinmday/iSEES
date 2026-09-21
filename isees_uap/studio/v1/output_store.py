@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 
-MAX_PDF_BYTES = 25 * 1024 * 1024
+MAX_OUTPUT_BYTES = 25 * 1024 * 1024
 
 
 class OutputStoreFailure(RuntimeError): pass
@@ -18,12 +18,14 @@ class StudioOutputStore:
         self.root.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def storage_key(export_id: str, output_hash: str) -> str:
+    def storage_key(export_id: str, output_hash: str, format: str = "PDF") -> str:
         digest = output_hash.removeprefix("sha256:")
         if not all(c in "0123456789abcdef" for c in digest) or len(digest) != 64:
             raise OutputStoreFailure("Output hash is invalid.")
         safe_id = hashlib.sha256(export_id.encode("utf-8")).hexdigest()[:24]
-        return f"pdf/{digest[:2]}/{safe_id}-{digest}.pdf"
+        extension = {"PDF": "pdf", "DOCX": "docx"}.get(format)
+        if extension is None: raise OutputStoreFailure("Output format is invalid.")
+        return f"{extension}/{digest[:2]}/{safe_id}-{digest}.{extension}"
 
     def _path(self, key: str) -> Path:
         if not key or "\\" in key or key.startswith("/") or any(x in {"", ".", ".."} for x in key.split("/")):
@@ -33,11 +35,11 @@ class StudioOutputStore:
             raise OutputStoreFailure("Output storage identity is invalid.")
         return path
 
-    def write(self, export_id: str, data: bytes) -> tuple[str, str, int]:
-        if not data or len(data) > MAX_PDF_BYTES:
+    def write(self, export_id: str, data: bytes, format: str = "PDF") -> tuple[str, str, int]:
+        if not data or len(data) > MAX_OUTPUT_BYTES:
             raise OutputStoreFailure("Rendered output exceeds the storage limit.")
         output_hash = "sha256:" + hashlib.sha256(data).hexdigest()
-        key, path = self.storage_key(export_id, output_hash), None
+        key, path = self.storage_key(export_id, output_hash, format), None
         path = self._path(key); path.parent.mkdir(parents=True, exist_ok=True)
         fd, temporary = tempfile.mkstemp(prefix=".studio-v1-", suffix=".tmp", dir=path.parent)
         try:

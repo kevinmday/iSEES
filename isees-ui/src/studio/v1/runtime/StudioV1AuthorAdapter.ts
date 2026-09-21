@@ -2,7 +2,7 @@ import type { ComputationalAuthorDocument } from "../../../author/model/AuthorDo
 import { AuthorNodeTypes, type AuthorNode, type ReferenceNode } from "../../../author/model/AuthorNodeTypes.ts";
 import type { CitationMetadata, FrozenResearchSourceSnapshot, SemanticDocument, SemanticNode } from "../../contracts/StudioV1Contract.ts";
 import { canonicalSerialize, canonicalSha256, validateSemanticDocument, validateSnapshot } from "../../contracts/StudioCanonicalSerialization.ts";
-import type { CurrentDraftPdfRequest } from "../api/StudioV1AuthorApiTypes.ts";
+import type { CurrentDraftDocxRequest, CurrentDraftPdfRequest } from "../api/StudioV1AuthorApiTypes.ts";
 
 export class StudioV1AdaptationError extends Error {}
 export interface AdaptationIdentity { readonly snapshotId: string; readonly capturedAt: string }
@@ -57,6 +57,21 @@ export function adaptCurrentDraftPdfRequest(document: ComputationalAuthorDocumen
     templateProfileVersion:"investigation-report-pdf/1",
     rendererVersion:"studio-v1-reportlab-pdf/1",
     configurationHash:"sha256:6d1e0783d1fe839271f281ee34b7355a618291c6e31b1282cfc170e297dab200"});
+}
+
+export function adaptCurrentDraftDocxRequest(document: ComputationalAuthorDocument,
+                                              investigationId: string,
+                                              exportedAt: string): CurrentDraftDocxRequest {
+  const adapted = adaptAuthorDocument(document, investigationId, {
+    snapshotId: `current-draft:${document.identity.id}`,
+    capturedAt: document.identity.createdAt.toISOString(),
+  });
+  return Object.freeze({sourceKind:"CURRENT_DRAFT", documentId:document.identity.id,
+    investigationId, semanticContent:adapted.semanticContent, sourceSnapshots:adapted.snapshots,
+    sourceHash:canonicalSha256(adapted.semanticContent), exportedAt,
+    profile:"INVESTIGATION_REPORT", profileVersion:"investigation-report/v1",
+    templateProfileVersion:"investigation-report-docx/1", rendererVersion:"studio-v1-python-docx/1",
+    configurationHash:"sha256:d71b44bcde4fb6847d842df974368a4469dac8783280eefd55f78bb2fd9f1f49"});
 }
 
 /** V1 has no presentation section field. Analysis is the editor's deterministic neutral placement. */

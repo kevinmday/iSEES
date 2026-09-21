@@ -19,6 +19,9 @@ from isees_uap.studio.v1.application import PrivateStudioV1Application
 from isees_uap.studio.v1.hashing import canonical_serialize
 from isees_uap.studio.v1.pdf_renderer import (CONFIGURATION_HASH, MEDIA_TYPE,
     RENDERER_VERSION, TEMPLATE_VERSION, render_pdf)
+from isees_uap.studio.v1.docx_renderer import (CONFIGURATION_HASH as DOCX_CONFIGURATION_HASH,
+    MEDIA_TYPE as DOCX_MEDIA_TYPE, RENDERER_VERSION as DOCX_RENDERER_VERSION,
+    TEMPLATE_VERSION as DOCX_TEMPLATE_VERSION, render_docx)
 from isees_uap.studio.v1.render_model import (RenderModelFailure,
     build_current_draft_render_model)
 from isees_uap.studio.v1.lifecycle import LifecycleState, PrivateStudioV1LifecycleOwner
@@ -59,6 +62,21 @@ class CurrentDraftPdfRequest(StrictRequest):
     profileVersion: Literal["investigation-report/v1"]
     templateProfileVersion: Literal["investigation-report-pdf/1"]
     rendererVersion: Literal["studio-v1-reportlab-pdf/1"]
+    configurationHash: Sha256
+
+
+class CurrentDraftDocxRequest(StrictRequest):
+    sourceKind: Literal["CURRENT_DRAFT"]
+    documentId: Identity
+    investigationId: Identity | None = None
+    semanticContent: SemanticDocument
+    sourceSnapshots: tuple[FrozenResearchSourceSnapshot, ...]
+    sourceHash: Sha256
+    exportedAt: UtcTimestamp
+    profile: Literal["INVESTIGATION_REPORT"]
+    profileVersion: Literal["investigation-report/v1"]
+    templateProfileVersion: Literal["investigation-report-docx/1"]
+    rendererVersion: Literal["studio-v1-python-docx/1"]
     configurationHash: Sha256
 
 
@@ -190,7 +208,7 @@ class ProjectionStatusResponse(BaseModel):
 
 
 class CreateExportRequest(StrictRequest):
-    format: Literal["PDF"]
+    format: Literal["PDF", "DOCX"]
     templateProfileVersion: Identity
     rendererVersion: Identity
     configurationHash: Sha256
@@ -284,10 +302,39 @@ def _current_draft_request_protected(request: Request) -> None:
             raise StudioV1ApiError("INVALID_CURRENT_DRAFT", "Current draft export request is invalid", 422) from exc
 
 
-def _current_draft_filename(title: str, exported_at: str) -> str:
+def _current_draft_filename(title: str, exported_at: str, extension: str = "pdf") -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:80] or "current-draft"
     stamp = exported_at.replace("-", "").replace(":", "").split(".", 1)[0] + "Z"
-    return f"isees-{slug}-local-draft-{stamp}.pdf"
+    return f"isees-{slug}-local-draft-{stamp}.{extension}"
+
+
+def _current_draft_export(investigation_id: str, payload, *, template_version: str,
+                          renderer_version: str, configuration_hash: str,
+                          renderer, media_type: str, extension: str) -> Response:
+    if len(canonical_serialize(payload.model_dump(mode="json", exclude_none=True)).encode("utf-8")) > 5_000_000:
+        raise StudioV1ApiError("CURRENT_DRAFT_TOO_LARGE", "Current draft exceeds the export request limit", 413)
+    if payload.investigationId is not None and payload.investigationId != investigation_id:
+        raise StudioV1ApiError("ROUTE_PAYLOAD_MISMATCH", "Request identity does not match the route", 422)
+    if (payload.templateProfileVersion != template_version or payload.rendererVersion != renderer_version
+            or payload.configurationHash != configuration_hash):
+        raise StudioV1ApiError("INVALID_CURRENT_DRAFT", "Current draft export configuration is invalid", 422)
+    try:
+        model = build_current_draft_render_model(document_id=payload.documentId,
+            investigation_id=payload.investigationId, semantic=payload.semanticContent,
+            snapshots=payload.sourceSnapshots, source_hash=payload.sourceHash,
+            profile=payload.profile, profile_version=payload.profileVersion)
+        data = renderer(model, payload.exportedAt)
+    except RenderModelFailure as exc:
+        raise StudioV1ApiError(f"CURRENT_DRAFT_{exc.code.value}", exc.safe_message, 422) from exc
+    filename = _current_draft_filename(model.title, payload.exportedAt, extension)
+    return Response(content=data, media_type=media_type, headers={
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "private, no-store", "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff", "X-Studio-Source-Kind": "CURRENT_DRAFT",
+        "X-Studio-Source-Hash": payload.sourceHash,
+        "X-Studio-Renderer-Version": renderer_version,
+        "X-Studio-Template-Version": template_version,
+    })
 
 
 def _parse(payload: object, owner: str, investigation_id: str,
@@ -352,33 +399,17 @@ def _save(payload, owner, investigation_id, artifact_id, facade, *, initial):
 @router.post("/current-draft/exports/pdf", dependencies=[Depends(_current_draft_request_protected)])
 def export_current_draft_pdf(investigation_id: IdentityPath,
                              payload: CurrentDraftPdfRequest) -> Response:
-    if len(canonical_serialize(payload.model_dump(mode="json", exclude_none=True)).encode("utf-8")) > 5_000_000:
-        raise StudioV1ApiError("CURRENT_DRAFT_TOO_LARGE", "Current draft exceeds the export request limit", 413)
-    if payload.investigationId is not None and payload.investigationId != investigation_id:
-        raise StudioV1ApiError("ROUTE_PAYLOAD_MISMATCH", "Request identity does not match the route", 422)
-    if (payload.templateProfileVersion != TEMPLATE_VERSION
-            or payload.rendererVersion != RENDERER_VERSION
-            or payload.configurationHash != CONFIGURATION_HASH):
-        raise StudioV1ApiError("INVALID_CURRENT_DRAFT", "Current draft export configuration is invalid", 422)
-    try:
-        model = build_current_draft_render_model(
-            document_id=payload.documentId, investigation_id=payload.investigationId,
-            semantic=payload.semanticContent, snapshots=payload.sourceSnapshots,
-            source_hash=payload.sourceHash, profile=payload.profile,
-            profile_version=payload.profileVersion)
-        exported_at = payload.exportedAt
-        data = render_pdf(model, exported_at)
-    except RenderModelFailure as exc:
-        raise StudioV1ApiError(f"CURRENT_DRAFT_{exc.code.value}", exc.safe_message, 422) from exc
-    filename = _current_draft_filename(model.title, exported_at)
-    return Response(content=data, media_type=MEDIA_TYPE, headers={
-        "Content-Disposition": f'attachment; filename="{filename}"',
-        "Cache-Control": "private, no-store", "Pragma": "no-cache",
-        "X-Content-Type-Options": "nosniff", "X-Studio-Source-Kind": "CURRENT_DRAFT",
-        "X-Studio-Source-Hash": payload.sourceHash,
-        "X-Studio-Renderer-Version": RENDERER_VERSION,
-        "X-Studio-Template-Version": TEMPLATE_VERSION,
-    })
+    return _current_draft_export(investigation_id, payload, template_version=TEMPLATE_VERSION,
+        renderer_version=RENDERER_VERSION, configuration_hash=CONFIGURATION_HASH,
+        renderer=render_pdf, media_type=MEDIA_TYPE, extension="pdf")
+
+
+@router.post("/current-draft/exports/docx", dependencies=[Depends(_current_draft_request_protected)])
+def export_current_draft_docx(investigation_id: IdentityPath,
+                              payload: CurrentDraftDocxRequest) -> Response:
+    return _current_draft_export(investigation_id, payload, template_version=DOCX_TEMPLATE_VERSION,
+        renderer_version=DOCX_RENDERER_VERSION, configuration_hash=DOCX_CONFIGURATION_HASH,
+        renderer=render_docx, media_type=DOCX_MEDIA_TYPE, extension="docx")
 
 
 @router.post("", response_model=SaveAuthorResponse, status_code=status.HTTP_201_CREATED)
@@ -536,10 +567,10 @@ def download_revision_export(
     facade: PrivateStudioV1Application = Depends(private_ready_facade),
 ):
     record, data = facade.download_export(owner, investigation_id, artifact_id, revision_id, export_id)
-    return Response(content=data, media_type="application/pdf", headers={
+    return Response(content=data, media_type=record.media_type, headers={
         "Content-Disposition": f'attachment; filename="{record.safe_filename}"',
         "ETag": f'"{record.output_hash}"', "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "private, no-store",
+        "Cache-Control": "private, no-store", "Pragma": "no-cache",
     })
 
 

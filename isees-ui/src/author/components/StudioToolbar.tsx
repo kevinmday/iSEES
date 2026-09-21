@@ -106,7 +106,7 @@ import { useStudioSaveAction } from "../../studio/runtime/StudioSaveActionContex
 import { useIsAccountOperator } from "../../identity/runtime/OperatorIdentityRuntimeContext.tsx";
 import { createStudioV1AuthorApiClient } from "../../studio/v1/api/StudioV1AuthorApiClient.ts";
 import type { ExportStatus } from "../../studio/v1/api/StudioV1AuthorApiTypes.ts";
-import { adaptCurrentDraftPdfRequest } from "../../studio/v1/runtime/StudioV1AuthorAdapter.ts";
+import { adaptCurrentDraftDocxRequest, adaptCurrentDraftPdfRequest } from "../../studio/v1/runtime/StudioV1AuthorAdapter.ts";
 
 // ============================================================
 // STYLES
@@ -318,6 +318,9 @@ export default function StudioToolbar() {
   const [pdfExport, setPdfExport] = useState<ExportStatus | undefined>();
   const [pdfExportMessage, setPdfExportMessage] = useState("");
   const [currentDraftPdfMessage, setCurrentDraftPdfMessage] = useState("");
+  const [docxExport, setDocxExport] = useState<ExportStatus | undefined>();
+  const [docxExportMessage, setDocxExportMessage] = useState("");
+  const [currentDraftDocxMessage, setCurrentDraftDocxMessage] = useState("");
   const canDurablySave = useIsAccountOperator();
 
   const fileInputRef =
@@ -400,6 +403,19 @@ export default function StudioToolbar() {
       anchor.href=url;anchor.download=result.filename;anchor.click();URL.revokeObjectURL(url);
       setCurrentDraftPdfMessage(`Current-draft PDF downloaded (${result.sourceHash}). Not an authority record.`);
     } catch(error) { setCurrentDraftPdfMessage(error instanceof Error?error.message:"Current-draft PDF generation failed safely."); }
+  };
+  const handleDocxExport = async () => {
+    const investigationId=saveAction.state.investigationId,artifactId=saveAction.state.artifactId,revisionId=saveAction.state.historicalRevisionId??saveAction.state.headRevisionId;
+    if(!investigationId||!artifactId||!revisionId){setDocxExportMessage("DOCX is unavailable until an immutable revision is saved.");return}
+    setDocxExportMessage("Exporting the selected saved revision…");
+    try{const result=await createStudioV1AuthorApiClient().createExport(investigationId,artifactId,revisionId,{format:"DOCX",templateProfileVersion:"investigation-report-docx/1",rendererVersion:"studio-v1-python-docx/1",configurationHash:"sha256:d71b44bcde4fb6847d842df974368a4469dac8783280eefd55f78bb2fd9f1f49",idempotencyKey:`studio-v1-docx-export-${crypto.randomUUID()}`});setDocxExport(result);setDocxExportMessage(result.state==="CURRENT"?`DOCX is current for saved revision ${result.revisionNumber}.`:result.state==="FAILED"?`DOCX export failed (${result.failureCode??"RENDER_FAILED"}). The saved revision remains valid.`:"DOCX export is queued.");await saveAction.inspectProjections()}catch(error){setDocxExportMessage(`${error instanceof Error?error.message:"DOCX export failed safely."} The saved revision remains valid.`)}
+  };
+  const handleDocxDownload = async () => {if(!docxExport?.downloadAvailable||!saveAction.state.investigationId||!saveAction.state.artifactId)return;try{const blob=await createStudioV1AuthorApiClient().downloadExport(saveAction.state.investigationId,saveAction.state.artifactId,docxExport.revisionId,docxExport.exportId,"DOCX"),url=URL.createObjectURL(blob),anchor=globalThis.document.createElement("a");anchor.href=url;anchor.download=docxExport.filename??"isees-investigation-report.docx";anchor.click();URL.revokeObjectURL(url)}catch{setDocxExportMessage("DOCX download failed integrity or authorization checks. The saved revision remains valid.")}};
+  const handleCurrentDraftDocx = async () => {
+    if (!document || !activeInvestigation || currentDraftUnavailable) return;
+    setCurrentDraftDocxMessage("Generating DOCX from the exact current draft…");
+    try { const request=adaptCurrentDraftDocxRequest(document,activeInvestigation.id,new Date().toISOString());const result=await createStudioV1AuthorApiClient().exportCurrentDraftDocx(activeInvestigation.id,request);const url=URL.createObjectURL(result.blob),anchor=globalThis.document.createElement("a");anchor.href=url;anchor.download=result.filename;anchor.click();URL.revokeObjectURL(url);setCurrentDraftDocxMessage(`Current-draft DOCX downloaded (${result.sourceHash}). Not an authority record.`); }
+    catch(error) { setCurrentDraftDocxMessage(error instanceof Error?error.message:"Current-draft DOCX generation failed safely."); }
   };
 
   // ==========================================================
@@ -783,7 +799,11 @@ export default function StudioToolbar() {
         {pdfExport?.downloadAvailable && <button type="button" style={buttonStyle} onClick={() => void handlePdfDownload()}>Download Saved Revision PDF</button>}
         {dirty && saveAction.state.headRevisionId && <span style={statusStyle}>Exports the last saved revision. Unsaved changes are not included.</span>}
         {pdfExportMessage && <span style={statusStyle}>{pdfExportMessage}</span>}
-        <button type="button" style={disabledButtonStyle} disabled title="DOCX is unavailable in this Studio iteration.">DOCX unavailable</button>
+        <button type="button" style={currentDraftUnavailable ? disabledButtonStyle : buttonStyle} disabled={Boolean(currentDraftUnavailable)} onClick={() => void handleCurrentDraftDocx()} title={currentDraftUnavailable ?? "Generate and download the exact current .author draft as DOCX. Not an authority record."}>Export Current Draft DOCX</button>
+        {currentDraftDocxMessage && <span style={statusStyle}>{currentDraftDocxMessage}</span>}
+        <button type="button" style={saveAction.state.headRevisionId ? buttonStyle : disabledButtonStyle} disabled={!saveAction.state.headRevisionId} onClick={() => void handleDocxExport()} title={saveAction.state.headRevisionId ? (dirty ? "Exports the last saved revision. Unsaved changes are not included." : "Export the selected saved revision as DOCX.") : "Saved-revision DOCX export is unavailable until a saved revision exists."}>Export Saved Revision DOCX</button>
+        {docxExport?.downloadAvailable && <button type="button" style={buttonStyle} onClick={() => void handleDocxDownload()}>Download Saved Revision DOCX</button>}
+        {docxExportMessage && <span style={statusStyle}>{docxExportMessage}</span>}
 
         {/* ================================================== */}
         {/* UPLOAD / INGEST                                    */}
