@@ -159,11 +159,15 @@ def test_routes_openapi_middleware_handlers_and_dependencies_are_unchanged():
     studio_paths = {path for path in fresh.openapi()["paths"] if "/studio-v1/" in path}
     assert studio_paths == {
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/current-draft/exports/pdf",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/source-snapshots/{snapshot_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/exports",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/exports/{export_id}",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/exports/{export_id}/download",
     }
     assert [middleware.cls for middleware in fresh.user_middleware] == [
         middleware.cls for middleware in app.user_middleware]

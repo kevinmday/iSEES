@@ -8,7 +8,7 @@ from threading import RLock
 from typing import Callable
 
 from .hashing import canonical_serialize
-from .persistence import FailureCode, ProjectionJob, SaveCommand, SaveResult, StudioV1Failure
+from .persistence import ExportRecord, FailureCode, ProjectionJob, SaveCommand, SaveResult, StudioV1Failure
 from .save_service import projection_identity
 from .schemas import ArtifactIdentity, AuthorRevision, FrozenResearchSourceSnapshot
 from .validation import validate_projection_transition
@@ -69,6 +69,18 @@ CREATE TABLE IF NOT EXISTS studio_v1_idempotency_commands(
  owner_id TEXT NOT NULL, investigation_id TEXT NOT NULL, operation TEXT NOT NULL, idempotency_key TEXT NOT NULL,
  request_fingerprint TEXT NOT NULL, result_json TEXT NOT NULL, created_at TEXT NOT NULL,
  PRIMARY KEY(owner_id, investigation_id, operation, idempotency_key));
+CREATE TABLE IF NOT EXISTS studio_v1_exports(
+ export_id TEXT PRIMARY KEY, projection_id TEXT NOT NULL, job_id TEXT NOT NULL,
+ owner_id TEXT NOT NULL, investigation_id TEXT NOT NULL, artifact_id TEXT NOT NULL,
+ revision_id TEXT NOT NULL, revision_number INTEGER NOT NULL, source_hash TEXT NOT NULL,
+ format TEXT NOT NULL, renderer_version TEXT NOT NULL, template_profile_version TEXT NOT NULL,
+ configuration_hash TEXT NOT NULL, exported_at TEXT NOT NULL, state TEXT NOT NULL,
+ output_hash TEXT, storage_key TEXT, media_type TEXT, safe_filename TEXT, byte_length INTEGER,
+ failure_code TEXT, safe_failure_message TEXT, created_at TEXT NOT NULL, completed_at TEXT,
+ idempotency_key TEXT NOT NULL, request_fingerprint TEXT NOT NULL,
+ UNIQUE(owner_id, investigation_id, idempotency_key),
+ FOREIGN KEY(job_id) REFERENCES studio_v1_projection_jobs(job_id),
+ FOREIGN KEY(owner_id, investigation_id, artifact_id, revision_id) REFERENCES studio_v1_revisions(owner_id, investigation_id, artifact_id, revision_id));
 CREATE TRIGGER IF NOT EXISTS studio_v1_revisions_immutable BEFORE UPDATE ON studio_v1_revisions BEGIN SELECT RAISE(ABORT,'immutable revision'); END;
 CREATE TRIGGER IF NOT EXISTS studio_v1_snapshots_immutable BEFORE UPDATE ON studio_v1_source_snapshots BEGIN SELECT RAISE(ABORT,'immutable snapshot'); END;
 CREATE TRIGGER IF NOT EXISTS studio_v1_representations_immutable BEFORE UPDATE ON studio_v1_source_representations BEGIN SELECT RAISE(ABORT,'immutable representation'); END;
@@ -272,6 +284,44 @@ class SQLiteStudioV1Store:
 
     @staticmethod
     def _job(row): return ProjectionJob(**{k:row[k] for k in ProjectionJob.__dataclass_fields__})
+    @staticmethod
+    def _export(row): return ExportRecord(**{k:row[k] for k in ExportRecord.__dataclass_fields__})
+
+    def create_export(self, record, idempotency_key, request_fingerprint):
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            prior=db.execute("SELECT * FROM studio_v1_exports WHERE owner_id=? AND investigation_id=? AND idempotency_key=?",(record.owner_id,record.investigation_id,idempotency_key)).fetchone()
+            if prior:
+                if prior["request_fingerprint"] != request_fingerprint: self._fail(FailureCode.IDEMPOTENCY_KEY_REUSE,"Idempotency key was used for a different request.")
+                db.commit(); return self._export(prior)
+            self._scoped_artifact(db,record.owner_id,record.investigation_id,record.artifact_id)
+            revision=db.execute("SELECT 1 FROM studio_v1_revisions WHERE owner_id=? AND investigation_id=? AND artifact_id=? AND revision_id=?",(record.owner_id,record.investigation_id,record.artifact_id,record.revision_id)).fetchone()
+            if not revision: self._fail(FailureCode.ARTIFACT_NOT_FOUND,"Artifact was not found.")
+            existing=db.execute("SELECT * FROM studio_v1_projection_jobs WHERE owner_id=? AND investigation_id=? AND artifact_id=? AND revision_id=? AND format=? AND template_profile_version=? AND renderer_version=? AND configuration_hash=?",(record.owner_id,record.investigation_id,record.artifact_id,record.revision_id,record.format,record.template_profile_version,record.renderer_version,record.configuration_hash)).fetchone()
+            if existing:
+                job=self._job(existing)
+            else:
+                db.execute("INSERT INTO studio_v1_enabled_projections VALUES(?,?,?,?,?,?,?,?,NULL)",(record.owner_id,record.investigation_id,record.artifact_id,record.revision_id,record.format,record.template_profile_version,record.renderer_version,record.configuration_hash))
+                db.execute("INSERT INTO studio_v1_projection_jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)",(record.job_id,record.projection_id,record.owner_id,record.investigation_id,record.artifact_id,record.revision_id,record.source_hash,record.format,record.template_profile_version,record.renderer_version,record.configuration_hash,"QUEUED",record.created_at,0,self.max_attempts,None,None,None,None,None,None))
+                job=self._job(db.execute("SELECT * FROM studio_v1_projection_jobs WHERE job_id=?",(record.job_id,)).fetchone())
+            completed=db.execute("SELECT * FROM studio_v1_exports WHERE job_id=? AND state='CURRENT' AND storage_key IS NOT NULL ORDER BY completed_at,export_id LIMIT 1",(job.job_id,)).fetchone()
+            values=[record.export_id,job.projection_id,job.job_id,record.owner_id,record.investigation_id,record.artifact_id,record.revision_id,record.revision_number,record.source_hash,record.format,record.renderer_version,record.template_profile_version,record.configuration_hash,record.exported_at,"CURRENT" if completed else job.state,(completed["output_hash"] if completed else job.output_hash),(completed["storage_key"] if completed else None),(completed["media_type"] if completed else None),(completed["safe_filename"] if completed else None),(completed["byte_length"] if completed else None),job.failure_code,job.safe_failure_message,record.created_at,(completed["completed_at"] if completed else None),idempotency_key,request_fingerprint]
+            db.execute("INSERT INTO studio_v1_exports VALUES("+",".join("?" for _ in values)+")",values); db.commit()
+            return self._export(db.execute("SELECT * FROM studio_v1_exports WHERE export_id=?",(record.export_id,)).fetchone())
+
+    def get_export(self, owner_id, investigation_id, artifact_id, revision_id, export_id):
+        with self._connect() as db:
+            self._scoped_artifact(db,owner_id,investigation_id,artifact_id)
+            row=db.execute("SELECT * FROM studio_v1_exports WHERE owner_id=? AND investigation_id=? AND artifact_id=? AND revision_id=? AND export_id=?",(owner_id,investigation_id,artifact_id,revision_id,export_id)).fetchone()
+            if not row: self._fail(FailureCode.EXPORT_NOT_FOUND,"Export was not found.")
+            return self._export(row)
+
+    def update_export_state(self, export_id, state, *, output_hash=None, storage_key=None, media_type=None, safe_filename=None, byte_length=None, failure_code=None, safe_failure_message=None, completed_at=None):
+        with self._connect() as db:
+            db.execute("UPDATE studio_v1_exports SET state=?,output_hash=?,storage_key=?,media_type=?,safe_filename=?,byte_length=?,failure_code=?,safe_failure_message=?,completed_at=? WHERE export_id=?",(state,output_hash,storage_key,media_type,safe_filename,byte_length,failure_code,safe_failure_message,completed_at,export_id)); db.commit()
+            row=db.execute("SELECT * FROM studio_v1_exports WHERE export_id=?",(export_id,)).fetchone()
+            if not row: self._fail(FailureCode.EXPORT_NOT_FOUND,"Export was not found.")
+            return self._export(row)
     def list_projection_jobs(self, owner_id, investigation_id, artifact_id=None):
         sql="SELECT * FROM studio_v1_projection_jobs WHERE owner_id=? AND investigation_id=?"; args=[owner_id,investigation_id]
         if artifact_id is not None: sql += " AND artifact_id=?"; args.append(artifact_id)

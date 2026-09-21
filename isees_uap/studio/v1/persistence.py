@@ -30,6 +30,10 @@ class FailureCode(str, Enum):
     ATTEMPT_LIMIT_REACHED = "ATTEMPT_LIMIT_REACHED"
     PERSISTENCE_UNAVAILABLE = "PERSISTENCE_UNAVAILABLE"
     LEGACY_ADAPTER_INCOMPATIBLE = "LEGACY_ADAPTER_INCOMPATIBLE"
+    EXPORT_NOT_FOUND = "EXPORT_NOT_FOUND"
+    EXPORT_CONFIGURATION_INVALID = "EXPORT_CONFIGURATION_INVALID"
+    EXPORT_RENDER_FAILED = "EXPORT_RENDER_FAILED"
+    OUTPUT_INTEGRITY_FAILURE = "OUTPUT_INTEGRITY_FAILURE"
 
 
 class StudioV1Failure(Exception):
@@ -93,6 +97,34 @@ class ProjectionJob:
     prior_successful_projection_id: str | None
 
 
+@dataclass(frozen=True)
+class ExportRecord:
+    export_id: str
+    projection_id: str
+    job_id: str
+    owner_id: str
+    investigation_id: str
+    artifact_id: str
+    revision_id: str
+    revision_number: int
+    source_hash: str
+    format: str
+    renderer_version: str
+    template_profile_version: str
+    configuration_hash: str
+    exported_at: str
+    state: str
+    output_hash: str | None
+    storage_key: str | None
+    media_type: str | None
+    safe_filename: str | None
+    byte_length: int | None
+    failure_code: str | None
+    safe_failure_message: str | None
+    created_at: str
+    completed_at: str | None
+
+
 class AuthoritativeStudioV1Store(Protocol):
     def initialize_schema(self) -> None: ...
     def verify_schema_version(self, expected_version: int) -> None: ...
@@ -110,4 +142,6 @@ class AuthoritativeStudioV1Store(Protocol):
     def complete_projection_job(self, job_id: str, lease_id: str, now: str, output_hash: str) -> ProjectionJob: ...
     def fail_projection_job(self, job_id: str, lease_id: str, now: str, failure_code: str, safe_message: str) -> ProjectionJob: ...
     def retry_projection_job(self, job_id: str, now: str) -> ProjectionJob: ...
+    def create_export(self, record: ExportRecord, idempotency_key: str, request_fingerprint: str) -> ExportRecord: ...
+    def get_export(self, owner_id: str, investigation_id: str, artifact_id: str, revision_id: str, export_id: str) -> ExportRecord: ...
     def recover_expired_jobs(self, now: str) -> int: ...

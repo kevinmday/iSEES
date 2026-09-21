@@ -1,11 +1,12 @@
 import {
   useMemo,
+  useEffect,
 } from "react";
 import { projectGuestCandidateCanonOptions } from "../projection/GuestCandidateCompareProjection";
 import type { GuestCandidateEvent } from "../../workspace/workspaceTypes";
 
 import { useResearchBridge, useResearchDesk } from "../../research/ResearchBridgeContext";
-import { publishCompareCandidateToResearch } from "../research/CompareCandidateResearchPublication";
+import { createCompareCandidateResearchAnchor, publishCompareCandidateToResearch, reconcileCompareCandidateResearchAnchor, reconcilePublishedCompareCandidates } from "../research/CompareCandidateResearchPublication";
 
 import {
   useKnowledgeObjects,
@@ -178,13 +179,24 @@ function DimensionRow({
   );
 }
 
-function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { projection: ComparePairProjectionReady; investigationId: string; resolveExecutionId?: string }) {
+function ReadyWorkspace({ projection, investigationId, resolveExecutionId, knowledgeObjects }: { projection: ComparePairProjectionReady; investigationId: string; resolveExecutionId?: string; knowledgeObjects: ReturnType<typeof useKnowledgeObjects> }) {
   const researchBridgeRuntime = useResearchBridge();
   const researchDesk = useResearchDesk();
   const anchorId = ["research", investigationId, "CANDIDATE", projection.candidateId, projection.evaluationId].join(":");
-  const published = researchDesk.entries.some(entry => entry.anchor.anchorId === anchorId);
+  const publishedAnchor = researchDesk.entries.find(entry => entry.anchor.anchorId === anchorId)?.anchor;
+  const published = publishedAnchor !== undefined;
+  const currentQualification = reconcileCompareCandidateResearchAnchor(
+    createCompareCandidateResearchAnchor({ investigationId, projection, resolveExecutionId }),
+    knowledgeObjects,
+  );
+  const accepted = currentQualification.candidate.acceptedRelationshipId !== undefined;
+  useEffect(() => {
+    reconcilePublishedCompareCandidates(researchBridgeRuntime, knowledgeObjects, investigationId);
+  }, [investigationId, knowledgeObjects, researchBridgeRuntime]);
   const publicationDescription = published
-    ? "This pairwise comparison is preserved in Research Inbox. No relationship was accepted."
+    ? accepted
+      ? "This pairwise comparison is preserved in Research Inbox and its canonical relationship is accepted."
+      : "This pairwise comparison is preserved in Research Inbox. Its current canonical acceptance remains unresolved."
     : "Preserve this pairwise comparison in Research Inbox for inspection and writing. This does not accept the relationship.";
   const caseASide = projection.caseAKnowledgeObjectId === projection.leftKnowledgeObjectId
     ? "LEFT"
@@ -205,20 +217,20 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { p
             <p className="compare-workspace__subtitle">Deterministic projection of the selected canonical candidate</p>
           </div>
           <div className="compare-workspace__publish">
-            <span className="compare-workspace__badge compare-workspace__badge--candidate">CANDIDATE</span>
+            <span className="compare-workspace__badge compare-workspace__badge--candidate">{accepted ? "ACCEPTED" : "CANDIDATE"}</span>
             <button
               type="button"
               disabled={published}
               title={publicationDescription}
               aria-label={publicationDescription}
-              onClick={() => publishCompareCandidateToResearch({ investigationId, projection, resolveExecutionId, researchBridgeRuntime })}
+              onClick={() => publishCompareCandidateToResearch({ investigationId, projection, resolveExecutionId, researchBridgeRuntime, knowledgeObjects })}
             >
               {published ? "Published to Research" : "Send to Research"}
             </button>
             {published && (
               <div className="compare-workspace__publication-confirmation">
                 <strong>Added to Research Inbox</strong>
-                <span>Pairwise correspondence preserved. No relationship was accepted.</span>
+                <span>{accepted ? "Pairwise correspondence preserved. Canonical relationship accepted." : "Pairwise correspondence preserved. Current canonical acceptance unresolved."}</span>
               </div>
             )}
           </div>
@@ -287,7 +299,7 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId }: { p
           <li>One Knowledge graph</li>
           <li>Two canonical EVENT anchors</li>
           <li>One deterministic comparison</li>
-          <li>No canonical relationship has been created</li>
+          <li>{accepted ? `Canonical relationship accepted: ${currentQualification.candidate.acceptedRelationshipId}` : "No canonical relationship has been accepted"}</li>
         </ul>
       </section>
     </div>
@@ -420,6 +432,6 @@ export default function CompareWorkspace() {
       if (!investigationId) {
         return <main className="compare-workspace"><EmptyState title="Investigation unavailable" guidance="Research publication requires canonical Investigation ownership." /></main>;
       }
-      return <main className="compare-workspace"><ReadyWorkspace projection={projectionState.result} investigationId={investigationId} resolveExecutionId={resolveExecutionId} /></main>;
+      return <main className="compare-workspace"><ReadyWorkspace projection={projectionState.result} investigationId={investigationId} resolveExecutionId={resolveExecutionId} knowledgeObjects={knowledgeObjects} /></main>;
   }
 }

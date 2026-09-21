@@ -9,6 +9,8 @@ from threading import RLock
 from typing import Callable
 
 from .legacy_adapter import legacy_version_to_author_revision
+from .export_service import StudioV1ExportService
+from .output_store import StudioOutputStore
 from .persistence import (FailureCode, ProjectionJob, SaveCommand, SaveResult,
                           StudioV1Failure)
 from .save_service import StudioV1SaveService, request_fingerprint
@@ -35,6 +37,7 @@ class StudioV1ApplicationSettings:
     database_path: Path | None = None
     connection_factory: ConnectionFactory | None = None
     expected_schema_version: int = STUDIO_V1_SCHEMA_VERSION
+    output_root: Path | None = None
 
     def validate(self) -> None:
         if not isinstance(self.application_instance_id, str) or not self.application_instance_id.strip():
@@ -60,6 +63,8 @@ class StudioV1ApplicationSettings:
                 _invalid("Studio database path must identify a file.")
         if self.connection_factory is not None and not callable(self.connection_factory):
             _invalid("Studio connection factory must be callable.")
+        if self.output_root is not None and not Path(self.output_root).is_absolute():
+            _invalid("Studio output root must be absolute.")
 
 
 @dataclass(frozen=True)
@@ -86,9 +91,11 @@ def _timestamp(value: datetime) -> str:
 
 class PrivateStudioV1Application:
     def __init__(self, settings: StudioV1ApplicationSettings, clock: Callable[[], datetime],
-                 store: SQLiteStudioV1Store, save_service: StudioV1SaveService):
+                 store: SQLiteStudioV1Store, save_service: StudioV1SaveService,
+                 export_service: StudioV1ExportService):
         self._settings, self._clock = settings, clock
         self._store, self._save_service = store, save_service
+        self._export_service = export_service
         self._state, self._lock = ApplicationState.CREATED, RLock()
         self._readiness = self._status(False, None)
 
@@ -228,6 +235,21 @@ class PrivateStudioV1Application:
     def recover_expired_projection_jobs(self):
         self._require_ready(); return self._store.recover_expired_jobs(self._now())
 
+    def create_export(self, owner_id, investigation_id, artifact_id, revision_id, **command):
+        self._require_ready()
+        try:
+            return self._export_service.create(owner_id, investigation_id, artifact_id, revision_id,
+                                               exported_at=self._now(), **command)
+        except StudioV1Failure as exc: self._scope_failure(exc)
+    def get_export(self, owner_id, investigation_id, artifact_id, revision_id, export_id):
+        self._require_ready()
+        try: return self._export_service.status(owner_id, investigation_id, artifact_id, revision_id, export_id)
+        except StudioV1Failure as exc: self._scope_failure(exc)
+    def download_export(self, owner_id, investigation_id, artifact_id, revision_id, export_id):
+        self._require_ready()
+        try: return self._export_service.download(owner_id, investigation_id, artifact_id, revision_id, export_id)
+        except StudioV1Failure as exc: self._scope_failure(exc)
+
     def convert_legacy_version(self, version, *, profile, profile_version, snapshot_references):
         self._require_ready()
         return legacy_version_to_author_revision(version, profile=profile,
@@ -242,4 +264,7 @@ def compose_private_studio_v1_application(settings: StudioV1ApplicationSettings,
     store = SQLiteStudioV1Store(settings.database_path,
         connection_factory=settings.connection_factory,
         max_attempts=settings.maximum_projection_attempts)
-    return PrivateStudioV1Application(settings, clock, store, StudioV1SaveService(store))
+    output_root = settings.output_root or ((settings.database_path.parent / "studio-outputs") if settings.database_path else Path.cwd() / "runtime" / "studio-outputs")
+    return PrivateStudioV1Application(settings, clock, store, StudioV1SaveService(store),
+        StudioV1ExportService(store, StudioOutputStore(output_root), settings.application_instance_id,
+                              settings.projection_lease_duration))

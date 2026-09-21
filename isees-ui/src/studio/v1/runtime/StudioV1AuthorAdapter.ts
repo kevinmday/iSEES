@@ -2,6 +2,7 @@ import type { ComputationalAuthorDocument } from "../../../author/model/AuthorDo
 import { AuthorNodeTypes, type AuthorNode, type ReferenceNode } from "../../../author/model/AuthorNodeTypes.ts";
 import type { CitationMetadata, FrozenResearchSourceSnapshot, SemanticDocument, SemanticNode } from "../../contracts/StudioV1Contract.ts";
 import { canonicalSerialize, canonicalSha256, validateSemanticDocument, validateSnapshot } from "../../contracts/StudioCanonicalSerialization.ts";
+import type { CurrentDraftPdfRequest } from "../api/StudioV1AuthorApiTypes.ts";
 
 export class StudioV1AdaptationError extends Error {}
 export interface AdaptationIdentity { readonly snapshotId: string; readonly capturedAt: string }
@@ -39,6 +40,23 @@ export function adaptAuthorDocument(document: ComputationalAuthorDocument, inves
   validateSemanticDocument(semanticContent);
   const snapshots: FrozenResearchSourceSnapshot[]=references.map(reference=>{const source=reference.researchSource!;const frozen:FrozenAuthorReference={schemaVersion:"studio-author-reference/v1",nodeId:reference.id,targetType:reference.targetType,targetId:reference.targetId,title:reference.title,...(reference.summary?{summary:reference.summary}:{}),section:reference.section??"Evidence",sourceIdentity:source.sourceIdentity,sourceKind:source.sourceKind,sourceWorkspace:source.sourceWorkspace,...(source.sourceRevisionId?{sourceRevisionId:source.sourceRevisionId}:{}),...(source.sourceExecutionId?{sourceExecutionId:source.sourceExecutionId}:{}),...(source.sourceProjectionId?{sourceProjectionId:source.sourceProjectionId}:{}),collectedAt:source.collectedAt.toISOString(),...(source.locator?{locator:source.locator}:{}),classification:source.classification,capturedRepresentation:source.capturedRepresentation};const content=canonicalSerialize(frozen);const sourceClassification=source.classification==="CANONICAL"?"CANONICAL" as const:source.classification==="RESEARCHER_GENERATED"?"CANDIDATE" as const:"EXTERNAL" as const;const frozenSource=Object.freeze({anchorId:source.anchorId,classification:sourceClassification,availability:"AVAILABLE" as const,provenance:`${source.sourceWorkspace}:${source.sourceKind}:${source.sourceIdentity}`,sensitivity:Object.freeze({includeInAnalysis:true,includeInArtifact:true,citePublicly:false,anonymize:false,restrictedAppendix:false,excludeFromAiProcessing:true}),representations:Object.freeze([{representationId:`${source.anchorId}:representation`,mediaType:"application/json",schemaVersion:"studio-author-reference/v1",content,contentHash:canonicalSha256(content)}])});const domain={snapshotId:snapshotByReference.get(reference.id)!,investigationId,capturedAt:identity.capturedAt,selectionScope:"EXPLICIT_SELECTION" as const,selectedAnchorIds:[source.anchorId],inboxMembershipBasis:"EXPLICIT_STABLE_IDENTITIES" as const,sources:[frozenSource],immutableStatus:"FROZEN" as const};const snapshot=Object.freeze({...domain,snapshotHash:canonicalSha256(domain)});validateSnapshot(snapshot);return snapshot});
   return Object.freeze({semanticContent,snapshots:Object.freeze(snapshots)});
+}
+
+export function adaptCurrentDraftPdfRequest(document: ComputationalAuthorDocument,
+                                             investigationId: string,
+                                             exportedAt: string): CurrentDraftPdfRequest {
+  const adapted = adaptAuthorDocument(document, investigationId, {
+    snapshotId: `current-draft:${document.identity.id}`,
+    capturedAt: document.identity.createdAt.toISOString(),
+  });
+  return Object.freeze({sourceKind:"CURRENT_DRAFT", documentId:document.identity.id,
+    investigationId, semanticContent:adapted.semanticContent,
+    sourceSnapshots:adapted.snapshots,
+    sourceHash:canonicalSha256(adapted.semanticContent), exportedAt,
+    profile:"INVESTIGATION_REPORT", profileVersion:"investigation-report/v1",
+    templateProfileVersion:"investigation-report-pdf/1",
+    rendererVersion:"studio-v1-reportlab-pdf/1",
+    configurationHash:"sha256:6d1e0783d1fe839271f281ee34b7355a618291c6e31b1282cfc170e297dab200"});
 }
 
 /** V1 has no presentation section field. Analysis is the editor's deterministic neutral placement. */

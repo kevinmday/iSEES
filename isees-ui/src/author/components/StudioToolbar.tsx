@@ -104,6 +104,9 @@ import {
 } from "../ingestion/AuthorKnowledgeCompiler";
 import { useStudioSaveAction } from "../../studio/runtime/StudioSaveActionContext.ts";
 import { useIsAccountOperator } from "../../identity/runtime/OperatorIdentityRuntimeContext.tsx";
+import { createStudioV1AuthorApiClient } from "../../studio/v1/api/StudioV1AuthorApiClient.ts";
+import type { ExportStatus } from "../../studio/v1/api/StudioV1AuthorApiTypes.ts";
+import { adaptCurrentDraftPdfRequest } from "../../studio/v1/runtime/StudioV1AuthorAdapter.ts";
 
 // ============================================================
 // STYLES
@@ -312,6 +315,9 @@ export default function StudioToolbar() {
   const dirty = useAuthorDocumentDirty();
 
   const saveAction = useStudioSaveAction();
+  const [pdfExport, setPdfExport] = useState<ExportStatus | undefined>();
+  const [pdfExportMessage, setPdfExportMessage] = useState("");
+  const [currentDraftPdfMessage, setCurrentDraftPdfMessage] = useState("");
   const canDurablySave = useIsAccountOperator();
 
   const fileInputRef =
@@ -372,6 +378,29 @@ export default function StudioToolbar() {
   // ==========================================================
 
   const handleSaveDocument = () => { void saveAction.save(); };
+
+  const handlePdfExport = async () => {
+    const investigationId=saveAction.state.investigationId,artifactId=saveAction.state.artifactId,revisionId=saveAction.state.historicalRevisionId??saveAction.state.headRevisionId;
+    if(!investigationId||!artifactId||!revisionId){setPdfExportMessage("PDF is unavailable until an immutable revision is saved.");return}
+    setPdfExportMessage("Exporting the selected saved revision…");
+    try{const result=await createStudioV1AuthorApiClient().createExport(investigationId,artifactId,revisionId,{format:"PDF",templateProfileVersion:"investigation-report-pdf/1",rendererVersion:"studio-v1-reportlab-pdf/1",configurationHash:"sha256:6d1e0783d1fe839271f281ee34b7355a618291c6e31b1282cfc170e297dab200",idempotencyKey:`studio-v1-pdf-export-${crypto.randomUUID()}`});setPdfExport(result);setPdfExportMessage(result.state==="CURRENT"?`PDF is current for saved revision ${result.revisionNumber}.`:result.state==="FAILED"?`PDF export failed (${result.failureCode??"RENDER_FAILED"}). The saved revision remains valid.`:"PDF export is queued.");await saveAction.inspectProjections()}catch(error){setPdfExportMessage(`${error instanceof Error?error.message:"PDF export failed safely."} The saved revision remains valid.`)}
+  };
+  const handlePdfDownload = async () => {if(!pdfExport?.downloadAvailable||!saveAction.state.investigationId||!saveAction.state.artifactId)return;try{const blob=await createStudioV1AuthorApiClient().downloadExport(saveAction.state.investigationId,saveAction.state.artifactId,pdfExport.revisionId,pdfExport.exportId),url=URL.createObjectURL(blob),anchor=globalThis.document.createElement("a");anchor.href=url;anchor.download=pdfExport.filename??"isees-investigation-report.pdf";anchor.click();URL.revokeObjectURL(url)}catch{setPdfExportMessage("PDF download failed integrity or authorization checks. The saved revision remains valid.")}};
+  let currentDraftUnavailable: string | undefined;
+  if (!document || !activeInvestigation) currentDraftUnavailable = "Create or open a nonempty .author draft first.";
+  else try { adaptCurrentDraftPdfRequest(document, activeInvestigation.id, new Date().toISOString()); }
+  catch (error) { currentDraftUnavailable = error instanceof Error ? error.message : "This current draft cannot be exported."; }
+  const handleCurrentDraftPdf = async () => {
+    if (!document || !activeInvestigation || currentDraftUnavailable) return;
+    setCurrentDraftPdfMessage("Generating PDF from the exact current draft…");
+    try {
+      const request=adaptCurrentDraftPdfRequest(document,activeInvestigation.id,new Date().toISOString());
+      const result=await createStudioV1AuthorApiClient().exportCurrentDraftPdf(activeInvestigation.id,request);
+      const url=URL.createObjectURL(result.blob),anchor=globalThis.document.createElement("a");
+      anchor.href=url;anchor.download=result.filename;anchor.click();URL.revokeObjectURL(url);
+      setCurrentDraftPdfMessage(`Current-draft PDF downloaded (${result.sourceHash}). Not an authority record.`);
+    } catch(error) { setCurrentDraftPdfMessage(error instanceof Error?error.message:"Current-draft PDF generation failed safely."); }
+  };
 
   // ==========================================================
   // OPEN AUTHOR ARTIFACT PICKER
@@ -748,6 +777,14 @@ export default function StudioToolbar() {
 
         {saveAction.state.status === "SAVED" && <button type="button" style={buttonStyle} onClick={() => void saveAction.reloadHead()}>Reload head</button>}
 
+        <button type="button" style={currentDraftUnavailable ? disabledButtonStyle : buttonStyle} disabled={Boolean(currentDraftUnavailable)} onClick={() => void handleCurrentDraftPdf()} title={currentDraftUnavailable ?? "Generate and download the exact current .author draft. Not an authority record."}>Export Current Draft PDF</button>
+        {currentDraftPdfMessage && <span style={statusStyle}>{currentDraftPdfMessage}</span>}
+        <button type="button" style={saveAction.state.headRevisionId ? buttonStyle : disabledButtonStyle} disabled={!saveAction.state.headRevisionId} onClick={() => void handlePdfExport()} title={saveAction.state.headRevisionId ? (dirty ? "Exports the last saved revision. Unsaved changes are not included." : "Export the selected saved revision as PDF.") : "Saved-revision PDF export is unavailable until a saved revision exists."}>Export Saved Revision PDF</button>
+        {pdfExport?.downloadAvailable && <button type="button" style={buttonStyle} onClick={() => void handlePdfDownload()}>Download Saved Revision PDF</button>}
+        {dirty && saveAction.state.headRevisionId && <span style={statusStyle}>Exports the last saved revision. Unsaved changes are not included.</span>}
+        {pdfExportMessage && <span style={statusStyle}>{pdfExportMessage}</span>}
+        <button type="button" style={disabledButtonStyle} disabled title="DOCX is unavailable in this Studio iteration.">DOCX unavailable</button>
+
         {/* ================================================== */}
         {/* UPLOAD / INGEST                                    */}
         {/* ================================================== */}
@@ -786,7 +823,6 @@ export default function StudioToolbar() {
 
         {[
           "References",
-          "Export",
           "Publish",
         ].map(command => (
 

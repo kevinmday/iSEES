@@ -1,11 +1,12 @@
 """Governed authenticated HTTP boundary for authoritative STUDIO V1 revisions."""
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends, Path, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from isees_uap.api.v1.investigations import repository as investigation_repository
@@ -15,6 +16,11 @@ from isees_uap.authentication.principal import (
 )
 from isees_uap.investigations.authority import PersistedInvestigationAuthority
 from isees_uap.studio.v1.application import PrivateStudioV1Application
+from isees_uap.studio.v1.hashing import canonical_serialize
+from isees_uap.studio.v1.pdf_renderer import (CONFIGURATION_HASH, MEDIA_TYPE,
+    RENDERER_VERSION, TEMPLATE_VERSION, render_pdf)
+from isees_uap.studio.v1.render_model import (RenderModelFailure,
+    build_current_draft_render_model)
 from isees_uap.studio.v1.lifecycle import LifecycleState, PrivateStudioV1LifecycleOwner
 from isees_uap.studio.v1.persistence import (
     FailureCode, ProjectionSpecification, SaveCommand, StudioV1Failure,
@@ -39,6 +45,21 @@ class StudioV1ApiError(Exception):
 
 class StrictRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class CurrentDraftPdfRequest(StrictRequest):
+    sourceKind: Literal["CURRENT_DRAFT"]
+    documentId: Identity
+    investigationId: Identity | None = None
+    semanticContent: SemanticDocument
+    sourceSnapshots: tuple[FrozenResearchSourceSnapshot, ...]
+    sourceHash: Sha256
+    exportedAt: UtcTimestamp
+    profile: Literal["INVESTIGATION_REPORT"]
+    profileVersion: Literal["investigation-report/v1"]
+    templateProfileVersion: Literal["investigation-report-pdf/1"]
+    rendererVersion: Literal["studio-v1-reportlab-pdf/1"]
+    configurationHash: Sha256
 
 
 class ArtifactInput(StrictRequest):
@@ -168,6 +189,50 @@ class ProjectionStatusResponse(BaseModel):
     items: list[ProjectionStatus]
 
 
+class CreateExportRequest(StrictRequest):
+    format: Literal["PDF"]
+    templateProfileVersion: Identity
+    rendererVersion: Identity
+    configurationHash: Sha256
+    idempotencyKey: Identity = Field(max_length=200)
+
+
+class ExportResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    exportId: str
+    projectionId: str
+    artifactId: str
+    revisionId: str
+    revisionNumber: int
+    sourceHash: str
+    format: str
+    state: str
+    rendererVersion: str
+    templateProfileVersion: str
+    configurationHash: str
+    exportedAt: str
+    outputHash: str | None = None
+    mediaType: str | None = None
+    filename: str | None = None
+    byteLength: int | None = None
+    failureCode: str | None = None
+    failureMessage: str | None = None
+    downloadAvailable: bool
+
+
+def _export_response(record) -> ExportResponse:
+    return ExportResponse(exportId=record.export_id, projectionId=record.projection_id,
+        artifactId=record.artifact_id, revisionId=record.revision_id,
+        revisionNumber=record.revision_number, sourceHash=record.source_hash,
+        format=record.format, state=record.state, rendererVersion=record.renderer_version,
+        templateProfileVersion=record.template_profile_version,
+        configurationHash=record.configuration_hash, exportedAt=record.exported_at,
+        outputHash=record.output_hash, mediaType=record.media_type, filename=record.safe_filename,
+        byteLength=record.byte_length, failureCode=record.failure_code,
+        failureMessage=record.safe_failure_message,
+        downloadAvailable=record.state == "CURRENT" and record.storage_key is not None)
+
+
 def _owned(investigation_id: str, principal: AuthenticatedPrincipal, parent_repo) -> str:
     PersistedInvestigationAuthority(parent_repo).require_owned(
         account_id=principal.account_id, investigation_id=investigation_id)
@@ -198,6 +263,31 @@ def private_ready_facade(request: Request) -> PrivateStudioV1Application:
         return owner.facade()
     except Exception as exc:
         raise StudioV1ApiError("STUDIO_V1_UNAVAILABLE", "Studio V1 is unavailable", 503) from exc
+
+
+def _current_draft_request_protected(request: Request) -> None:
+    """Require a same-origin, non-simple request without requiring an account."""
+    if request.headers.get("X-ISEES-Current-Draft") != "1":
+        raise StudioV1ApiError("CSRF_REJECTED", "Request could not be authorized", 403)
+    csrf_cookie = request.cookies.get("isees_csrf")
+    if csrf_cookie and request.headers.get("X-ISEES-CSRF") != csrf_cookie:
+        raise StudioV1ApiError("CSRF_REJECTED", "Request could not be authorized", 403)
+    fetch_site = request.headers.get("Sec-Fetch-Site")
+    if fetch_site and fetch_site not in {"same-origin", "none"}:
+        raise StudioV1ApiError("CSRF_REJECTED", "Request could not be authorized", 403)
+    declared = request.headers.get("content-length")
+    if declared:
+        try:
+            if int(declared) > 5_000_000:
+                raise StudioV1ApiError("CURRENT_DRAFT_TOO_LARGE", "Current draft exceeds the export request limit", 413)
+        except ValueError as exc:
+            raise StudioV1ApiError("INVALID_CURRENT_DRAFT", "Current draft export request is invalid", 422) from exc
+
+
+def _current_draft_filename(title: str, exported_at: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:80] or "current-draft"
+    stamp = exported_at.replace("-", "").replace(":", "").split(".", 1)[0] + "Z"
+    return f"isees-{slug}-local-draft-{stamp}.pdf"
 
 
 def _parse(payload: object, owner: str, investigation_id: str,
@@ -257,6 +347,38 @@ def _save(payload, owner, investigation_id, artifact_id, facade, *, initial):
         projectionIds=[job_id.removeprefix("job-") for job_id in result.job_ids],
         replayed=result.replayed,
     )
+
+
+@router.post("/current-draft/exports/pdf", dependencies=[Depends(_current_draft_request_protected)])
+def export_current_draft_pdf(investigation_id: IdentityPath,
+                             payload: CurrentDraftPdfRequest) -> Response:
+    if len(canonical_serialize(payload.model_dump(mode="json", exclude_none=True)).encode("utf-8")) > 5_000_000:
+        raise StudioV1ApiError("CURRENT_DRAFT_TOO_LARGE", "Current draft exceeds the export request limit", 413)
+    if payload.investigationId is not None and payload.investigationId != investigation_id:
+        raise StudioV1ApiError("ROUTE_PAYLOAD_MISMATCH", "Request identity does not match the route", 422)
+    if (payload.templateProfileVersion != TEMPLATE_VERSION
+            or payload.rendererVersion != RENDERER_VERSION
+            or payload.configurationHash != CONFIGURATION_HASH):
+        raise StudioV1ApiError("INVALID_CURRENT_DRAFT", "Current draft export configuration is invalid", 422)
+    try:
+        model = build_current_draft_render_model(
+            document_id=payload.documentId, investigation_id=payload.investigationId,
+            semantic=payload.semanticContent, snapshots=payload.sourceSnapshots,
+            source_hash=payload.sourceHash, profile=payload.profile,
+            profile_version=payload.profileVersion)
+        exported_at = payload.exportedAt
+        data = render_pdf(model, exported_at)
+    except RenderModelFailure as exc:
+        raise StudioV1ApiError(f"CURRENT_DRAFT_{exc.code.value}", exc.safe_message, 422) from exc
+    filename = _current_draft_filename(model.title, exported_at)
+    return Response(content=data, media_type=MEDIA_TYPE, headers={
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "private, no-store", "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff", "X-Studio-Source-Kind": "CURRENT_DRAFT",
+        "X-Studio-Source-Hash": payload.sourceHash,
+        "X-Studio-Renderer-Version": RENDERER_VERSION,
+        "X-Studio-Template-Version": TEMPLATE_VERSION,
+    })
 
 
 @router.post("", response_model=SaveAuthorResponse, status_code=status.HTTP_201_CREATED)
@@ -383,6 +505,44 @@ def get_projection_statuses(
         ) for job in jobs])
 
 
+@router.post("/{artifact_id}/revisions/{revision_id}/exports", response_model=ExportResponse,
+             status_code=status.HTTP_201_CREATED)
+def create_revision_export(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    payload: CreateExportRequest,
+    owner: str = Depends(owned_mutation_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    record = facade.create_export(owner, investigation_id, artifact_id, revision_id,
+        format=payload.format, template_version=payload.templateProfileVersion,
+        renderer_version=payload.rendererVersion, configuration_hash=payload.configurationHash,
+        idempotency_key=payload.idempotencyKey)
+    return _export_response(record)
+
+
+@router.get("/{artifact_id}/revisions/{revision_id}/exports/{export_id}", response_model=ExportResponse)
+def get_revision_export(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    export_id: IdentityPath, owner: str = Depends(owned_read_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    return _export_response(facade.get_export(owner, investigation_id, artifact_id, revision_id, export_id))
+
+
+@router.get("/{artifact_id}/revisions/{revision_id}/exports/{export_id}/download")
+def download_revision_export(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    export_id: IdentityPath, owner: str = Depends(owned_read_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    record, data = facade.download_export(owner, investigation_id, artifact_id, revision_id, export_id)
+    return Response(content=data, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="{record.safe_filename}"',
+        "ETag": f'"{record.output_hash}"', "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-store",
+    })
+
+
 _FAILURES = {
     FailureCode.ARTIFACT_NOT_FOUND: (404, "STUDIO_V1_ARTIFACT_NOT_FOUND", "Studio V1 artifact was not found"),
     FailureCode.REVISION_IDENTITY_CONFLICT: (422, "INVALID_STUDIO_V1_CONTRACT", "Studio V1 revision contract is invalid"),
@@ -397,6 +557,9 @@ _FAILURES = {
     FailureCode.INCOMPATIBLE_SCHEMA_VERSION: (503, "STUDIO_V1_INCOMPATIBLE_SCHEMA", "Studio V1 schema is incompatible"),
     FailureCode.APPLICATION_NOT_STARTED: (503, "STUDIO_V1_UNAVAILABLE", "Studio V1 is unavailable"),
     FailureCode.APPLICATION_CLOSED: (503, "STUDIO_V1_UNAVAILABLE", "Studio V1 is unavailable"),
+    FailureCode.EXPORT_NOT_FOUND: (404, "STUDIO_V1_EXPORT_NOT_FOUND", "Studio V1 export was not found"),
+    FailureCode.EXPORT_CONFIGURATION_INVALID: (422, "INVALID_STUDIO_V1_EXPORT", "Studio V1 export configuration is invalid"),
+    FailureCode.OUTPUT_INTEGRITY_FAILURE: (409, "STUDIO_V1_OUTPUT_INTEGRITY_FAILURE", "Stored export integrity verification failed"),
 }
 
 

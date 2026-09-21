@@ -37,18 +37,25 @@ for (const text of [
   "Accepted Relationship",
   "Relationship Conflict",
   'label="EDGE ID"',
+  'accepted\n+                ? "ACCEPTED"\n+                : "CANDIDATE"',
 ]) assert(rightPanel.includes(text), `Right Inspector contains ${text}`);
 
 for (const text of [
   "Preserve this pairwise comparison in Research Inbox for inspection and writing. This does not accept the relationship.",
-  "This pairwise comparison is preserved in Research Inbox. No relationship was accepted.",
+  "This pairwise comparison is preserved in Research Inbox. Its current canonical acceptance remains unresolved.",
   "aria-label={publicationDescription}",
+  "No canonical relationship has been accepted",
+  "Canonical relationship accepted:",
+  '{accepted ? "ACCEPTED" : "CANDIDATE"}',
 ]) assert(compare.includes(text), `publication UI contains ${text}`);
+
+assert(!compare.includes('compare-workspace__badge--candidate">CANDIDATE</span>'), "COMPARE lifecycle badge is not hard-coded to stale candidate state");
+assert(compare.includes("Candidate ID: {projection.candidateId}"), "candidate identity remains visible as lineage after acceptance");
 
 for (const text of [
   "Added to Research Inbox",
-  "Pairwise correspondence preserved. No relationship was accepted.",
-  "researchDesk.entries.some(entry => entry.anchor.anchorId === anchorId)",
+  "Pairwise correspondence preserved. Current canonical acceptance unresolved.",
+  "researchDesk.entries.find(entry => entry.anchor.anchorId === anchorId)",
 ]) assert(compare.includes(text), `persistent COMPARE confirmation contains ${text}`);
 
 for (const text of [
@@ -71,7 +78,7 @@ assert(!/if\s*\([^)]*sourceWorkspace\s*!==\s*["']REX["'][^)]*\)\s*onExpandedChan
 const orderedCardFields = ["Narrative", "Observability", "Infrastructure", "Topology", "Geography"];
 let previous = -1;
 for (const field of orderedCardFields) {
-  const next = inbox.indexOf(`[\"${field.toUpperCase()}\", \"${field}\"]`);
+  const next = inbox.indexOf(`["${field.toUpperCase()}", "${field}"]`);
   assert(next > previous, `${field} appears in canonical order`);
   previous = next;
 }
@@ -153,7 +160,7 @@ assert.throws(() => materializeAcceptedResolveCandidate(intelligence, [knowledge
   assert.deepEqual(mutations.map(mutation => mutation.kind), ["CREATE", "CREATE", "CREATE"], "duplicates produce no success mutation");
   assert.deepEqual(mutations.flatMap(mutation => mutation.kind === "CREATE" ? ["graph" in mutation.anchor ? mutation.anchor.graph.type : mutation.anchor.candidate.type] : []), ["NODE", "EDGE", "CANDIDATE"]);
 
-  runtime.restoreDesk(runtime.getDesk() as any);
+  runtime.restoreDesk(runtime.getDesk());
   assert.equal(mutations.at(-1)?.kind, "RESTORE", "guest restoration is distinguishable from live collection");
 }
 

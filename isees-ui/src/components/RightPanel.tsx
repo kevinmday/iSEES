@@ -475,9 +475,9 @@ function CandidateInspector({
           <IntelRow
             label="Intelligence"
             value={
-              formatLabel(
-                intelligence.kind,
-              )
+              accepted
+                ? "ACCEPTED"
+                : "CANDIDATE"
             }
           />
 

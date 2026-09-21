@@ -32,6 +32,7 @@ MarketMindAI_ARCHIVE/**
 **/*.bak
 **/*.txt
 !isees_uap/requirements.txt
+!isees_uap/studio/v1/fonts/LICENSE-DejaVu.txt
 **/*.png
 **/*.jpg
 **/*.jpeg

@@ -112,6 +112,7 @@
 // ============================================================
 import {
   Fragment,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -167,6 +168,8 @@ import {
 import type {
   ResolveCandidateIntelligence,
 } from "../../resolve/intelligence/ResolveCandidateIntelligenceTypes";
+import { useResearchBridge } from "../../research/ResearchBridgeContext";
+import { reconcilePublishedCompareCandidates } from "../../compare/research/CompareCandidateResearchPublication";
 
 // ============================================================
 // TYPES
@@ -205,6 +208,16 @@ export default function PrimaryInvestigationManifold({
 
   const workspaceRuntime =
     useWorkspaceRuntime();
+
+  const researchBridgeRuntime = useResearchBridge();
+
+  useEffect(() => {
+    reconcilePublishedCompareCandidates(
+      researchBridgeRuntime,
+      knowledgeObjects,
+      workspaceRuntime.getActiveInvestigation()?.id,
+    );
+  }, [knowledgeObjects, researchBridgeRuntime, workspaceRuntime]);
 
   const resolveState =
     useResolveRuntimeState();
@@ -431,6 +444,12 @@ export default function PrimaryInvestigationManifold({
 
       knowledgeRuntime.updateObject(
         result.knowledgeObject,
+      );
+
+      reconcilePublishedCompareCandidates(
+        researchBridgeRuntime,
+        knowledgeRuntime.getObjects(),
+        workspaceRuntime.getActiveInvestigation()?.id,
       );
 
       setAcceptanceError(undefined);

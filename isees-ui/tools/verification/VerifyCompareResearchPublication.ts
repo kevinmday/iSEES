@@ -63,7 +63,7 @@ assert.equal(beforeTopology, JSON.stringify({ nodes: ["n1"], edges: [] }));
 assert.equal(beforeSelection, JSON.stringify({ kind: "CANDIDATE", candidateId: projection.candidateId }));
 
 const publicationSource = readFileSync("src/compare/research/CompareCandidateResearchPublication.ts", "utf8");
-for (const forbidden of ["ResolveCandidateAcceptance", "acceptResolveCandidate", "GraphMutation", "createEdge", "setNodes", "setEdges", "setSelection", "WorkspaceSelection", "executeResolve", ".execute("]) {
+for (const forbidden of ["acceptResolveCandidate", "GraphMutation", "createEdge", "setNodes", "setEdges", "setSelection", "WorkspaceSelection", "executeResolve", ".execute("]) {
   assert.equal(publicationSource.includes(forbidden), false, `publication boundary excludes ${forbidden}`);
 }
 

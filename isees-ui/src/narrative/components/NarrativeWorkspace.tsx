@@ -169,7 +169,7 @@ function AvailableExactSet({ title, result }: { title: string; result: Narrative
     : <div><dt>{title}</dt><dd><span className="narrative-workspace__badge narrative-workspace__badge--unavailable">UNAVAILABLE</span> {result.reason}</dd></div>;
 }
 
-function NormalizedRegion({ projection, resolveExecutionId }: { projection: NarrativeWorkspaceReadyProjection; resolveExecutionId?: string }) {
+function NormalizedRegion({ projection, resolveExecutionId, knowledgeObjects }: { projection: NarrativeWorkspaceReadyProjection; resolveExecutionId?: string; knowledgeObjects: ReturnType<typeof useKnowledgeObjects> }) {
   const { normalizedCenter } = projection;
   const researchBridgeRuntime = useResearchBridge();
   const researchDesk = useResearchDesk();
@@ -192,7 +192,7 @@ function NormalizedRegion({ projection, resolveExecutionId }: { projection: Narr
             <span className="narrative-workspace__material">Revision {projection.currentRevisionId}</span>
           </div>
           <div className="narrative-workspace__publish">
-            <button type="button" disabled={published || publicationUnavailable} title={publicationDescription} aria-label={publicationDescription} onClick={() => publishCompareCandidateToResearch({ investigationId: projection.investigationId, projection: projection.comparePair, resolveExecutionId, researchBridgeRuntime })}>
+            <button type="button" disabled={published || publicationUnavailable} title={publicationDescription} aria-label={publicationDescription} onClick={() => publishCompareCandidateToResearch({ investigationId: projection.investigationId, projection: projection.comparePair, resolveExecutionId, researchBridgeRuntime, knowledgeObjects })}>
               {published ? "Published to Research" : "Send to Research"}
             </button>
             {published && <div className="narrative-workspace__publication-confirmation" aria-live="polite"><strong>Added to Research Inbox</strong><span>Pairwise correspondence preserved. No relationship was accepted.</span></div>}
@@ -288,7 +288,7 @@ export default function NarrativeWorkspace() {
       return (
         <main className="narrative-workspace">
           <NarrativeRegion role="FOCUSED NARRATIVE" narrative={projection.focusedNarrative} investigationId={projection.investigationId} revisionId={projection.currentRevisionId} />
-          <NormalizedRegion projection={projection} resolveExecutionId={currentExecution?.executionId} />
+          <NormalizedRegion projection={projection} resolveExecutionId={currentExecution?.executionId} knowledgeObjects={knowledgeObjects} />
           <NarrativeRegion role="COMPARED NARRATIVE" narrative={projection.comparedNarrative} investigationId={projection.investigationId} revisionId={projection.currentRevisionId} compared />
         </main>
       );

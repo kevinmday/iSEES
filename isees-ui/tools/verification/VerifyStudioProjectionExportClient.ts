@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import { createStudioV1AuthorApiClient } from "../../src/studio/v1/api/StudioV1AuthorApiClient.ts";
+
+const payload={exportId:"export-1",projectionId:"projection-1",artifactId:"artifact-1",revisionId:"revision-1",revisionNumber:1,sourceHash:`sha256:${"a".repeat(64)}`,format:"PDF",state:"CURRENT",rendererVersion:"studio-v1-reportlab-pdf/1",templateProfileVersion:"investigation-report-pdf/1",configurationHash:"sha256:6d1e0783d1fe839271f281ee34b7355a618291c6e31b1282cfc170e297dab200",exportedAt:"2026-09-20T18:00:00.000Z",outputHash:`sha256:${"b".repeat(64)}`,mediaType:"application/pdf",filename:"isees-report-r0001-20260920T180000Z.pdf",byteLength:8,failureCode:null,failureMessage:null,downloadAvailable:true};
+const calls:{url:string;init?:RequestInit}[]=[];
+const fetcher:typeof fetch=async(input,init)=>{calls.push({url:String(input),init});if(String(input).endsWith("/download"))return new Response(new Uint8Array([37,80,68,70]),{status:200,headers:{"Content-Type":"application/pdf"}});return new Response(JSON.stringify(payload),{status:201,headers:{"Content-Type":"application/json","Content-Length":String(JSON.stringify(payload).length)}})};
+const client=createStudioV1AuthorApiClient({baseUrl:"https://example.test",fetch:fetcher,readCsrfToken:()=>"csrf"});
+const request={format:"PDF" as const,templateProfileVersion:"investigation-report-pdf/1" as const,rendererVersion:"studio-v1-reportlab-pdf/1" as const,configurationHash:"sha256:6d1e0783d1fe839271f281ee34b7355a618291c6e31b1282cfc170e297dab200",idempotencyKey:"export-key"};
+const result=await client.createExport("investigation-1","artifact-1","revision-1",request);assert.equal(result.revisionId,"revision-1");assert.equal(result.downloadAvailable,true);
+assert.match(calls[0]!.url,/revisions\/revision-1\/exports$/);assert.equal(calls[0]!.init?.method,"POST");assert.equal((calls[0]!.init?.headers as Record<string,string>)["X-ISEES-CSRF"],"csrf");assert.doesNotMatch(String(calls[0]!.init?.body),/semanticContent|workingDraft/);
+const blob=await client.downloadExport("investigation-1","artifact-1","revision-1","export-1");assert.equal(blob.type,"application/pdf");assert.match(calls[1]!.url,/exports\/export-1\/download$/);assert.equal(calls.some(call=>call.url.includes("/revisions")&&String(call.init?.body).includes("semanticContent")),false);
+console.log("PASS VerifyStudioProjectionExportClient — explicit CSRF export command, saved revision identity, strict decoding, and authorized PDF download verified");

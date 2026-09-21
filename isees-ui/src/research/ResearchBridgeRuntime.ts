@@ -45,6 +45,7 @@ import { migrateResearchAnchor } from "./ResearchAnchorContract.ts";
 
 export type ResearchBridgeMutation =
   | { kind: "CREATE"; anchor: ResearchAnchor }
+  | { kind: "REPLACE"; anchor: ResearchAnchor }
   | { kind: "REMOVE" | "CLEAR" | "RESTORE" | "PIN" };
 
 type ResearchBridgeListener =
@@ -240,6 +241,19 @@ export class ResearchBridgeRuntime {
 
     this.notify({ kind: "CLEAR" });
 
+  }
+
+  replaceAnchor(anchor: ResearchAnchor): "REPLACED" | "UNCHANGED" | "NOT_FOUND" {
+    const qualifiedAnchor = migrateResearchAnchor(anchor);
+    const index = this.desk.entries.findIndex(entry => entry.anchor.anchorId === qualifiedAnchor.anchorId);
+    if (index < 0) return "NOT_FOUND";
+    const existing = this.desk.entries[index];
+    if (!existing) return "NOT_FOUND";
+    const replacement = { ...qualifiedAnchor, anchorId: existing.anchor.anchorId, investigationId: existing.anchor.investigationId, collectedAt: existing.anchor.collectedAt, createdAt: existing.anchor.createdAt, pinned: existing.anchor.pinned } as ResearchAnchor;
+    if (JSON.stringify(existing.anchor) === JSON.stringify(replacement)) return "UNCHANGED";
+    this.desk = { ...this.desk, entries: this.desk.entries.map((entry, entryIndex) => entryIndex === index ? { ...entry, anchor: replacement } : entry) };
+    this.notify({ kind: "REPLACE", anchor: replacement });
+    return "REPLACED";
   }
 
   createAnchorsAtomically(anchors: readonly ResearchAnchor[]): Readonly<{ added: number; alreadyPresent: number }> {

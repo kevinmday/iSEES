@@ -23,8 +23,15 @@ const GROUPS: readonly { title: string; kinds: readonly ResearchAnchorKind[] }[]
 const WORKSPACES: readonly ResearchSourceWorkspace[] = ["MANIFOLD", "COMPARE", "LAYERS", "EVIDENCE", "MEDIA", "NARRATIVE", "TIMELINE", "INTENTION"];
 const KINDS = GROUPS.flatMap(group => group.kinds);
 
-function warningFor(anchor: ResearchAnchor): string | undefined {
-  if (anchor.kind === "COMPARE_CANDIDATE") return "Candidate source — noncanonical and inspection only.";
+export function warningFor(anchor: ResearchAnchor): string | undefined {
+  if (anchor.kind === "COMPARE_CANDIDATE") {
+    if (anchor.classification === "CANONICAL") {
+      return anchor.insertability.state === "INSERTABLE" ? undefined : anchor.insertability.reason;
+    }
+    const reason = anchor.insertability.state === "INSPECTION_ONLY" ? anchor.insertability.reason : undefined;
+    if (reason && /conflict|malformed|unavailable/i.test(reason)) return reason;
+    return "Candidate source — noncanonical and inspection only.";
+  }
   if (anchor.kind === "LAYERS_EXPERIMENT") return "Experimental source — no canonical relationship was created.";
   if (anchor.kind === "METRIC_FINDING") return "Experimental metric finding — inspection only; no canonical relationship was created.";
   if (anchor.insertability.state === "INSPECTION_ONLY") return anchor.insertability.reason;
