@@ -1,5 +1,9 @@
 # Hugging Face Docker candidate contract
 
+## System Identity metadata
+
+The tracked `release/isees-release.json` manifest owns immutable product identity. For a reproducible image, pass `ISEES_SOURCE_REVISION` and `ISEES_BUILT_AT` as Docker build arguments; `ISEES_BUILT_AT` must be an actual UTC timestamp ending in `Z`. At runtime, set `ISEES_RELEASE_CHANNEL=CANDIDATE` or `PRODUCTION` and `ISEES_RUNTIME_ENVIRONMENT=HUGGING_FACE` as appropriate. Set `ISEES_DEPLOYMENT_REVISION` only from the hosting platform's actual deployment revision. It remains distinct from the source revision and must remain unset when unavailable.
+
 This source tree prepares a fresh, permanent-name candidate Space. It does not name or modify a remote Space, and it must never be used to push to `kevinmday/iSEES-Operator` or `kevinmday/iSEES-UAP`.
 
 The root metadata selects the Docker SDK and public port 7860. The image builds the locked React application in a Node stage, then copies only its compiled `dist` plus the `isees_uap` Python package into a Python 3.12 runtime. Startup is one Uvicorn worker at `isees_uap.api:app`, bound to `0.0.0.0` and `${PORT:-7860}`.

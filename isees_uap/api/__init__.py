@@ -47,6 +47,7 @@ from isees_uap.api.v1.studio_v1 import (
     router as studio_v1_router, StudioV1ApiError, studio_v1_error_handler,
 )
 from isees_uap.api.v1.rex import rex_error_handler, router as rex_router
+from isees_uap.api.v1.system import router as system_router
 from isees_uap.rex.errors import RexExecutionError, RexRepositoryError
 from isees_uap.studio.v1.persistence import StudioV1Failure
 from isees_uap.persistence import (
@@ -56,6 +57,7 @@ from isees_uap.studio.config import studio_output_root
 from isees_uap.api.frontend import (
     DEFAULT_FRONTEND_DIRECTORY, create_frontend_root_router, create_frontend_router,
 )
+from isees_uap.system_identity import system_identity
 
 # ------------------------------------------------------------
 # APP INIT
@@ -288,6 +290,7 @@ def create_application(
     """Construct the production API with injectable STUDIO deployment configuration."""
     environment_values = os.environ if studio_v1_configuration is None or isinstance(
         studio_v1_configuration, StudioV1LifecycleConfiguration) else studio_v1_configuration
+    public_system_identity = system_identity(environment_values)
     if (environment_values.get("ISEES_OWNER_RESET_PASSWORD") is not None
             and environment_values.get("ISEES_OWNER_RESET_REQUEST_ID")):
         from isees_uap.operations.owner_password_reset_startup import run_owner_password_reset
@@ -301,6 +304,7 @@ def create_application(
         from isees_uap.api.application import studio_v1_deployment_configuration
         configuration = studio_v1_deployment_configuration(studio_v1_configuration)
     application = FastAPI(lifespan=studio_v1_application_lifespan(configuration))
+    application.state.system_identity = public_system_identity
     application.add_middleware(TrustedHostMiddleware, allowed_hosts=list(trusted_hosts))
     # Capture candidate access once during application construction. Invalid allowlist
     # input is represented by a fail-closed policy, so public and guest routes still start.
@@ -355,6 +359,7 @@ def create_application(
         # Production intentionally changes GET / from the API-live JSON to the SPA.
         application.include_router(frontend_root_router)
     application.include_router(authentication_router)
+    application.include_router(system_router)
     application.add_exception_handler(AuthenticationError, authentication_error_handler)
     application.include_router(candidate_evidence_router)
     application.include_router(native_case_router)

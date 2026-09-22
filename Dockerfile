@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 FROM node:24.7.0-bookworm-slim AS frontend-build
 WORKDIR /build/isees-ui
+COPY release /build/release
 COPY isees-ui/package.json isees-ui/package-lock.json ./
 RUN npm ci
 COPY isees-ui/index.html isees-ui/tsconfig.json isees-ui/tsconfig.app.json isees-ui/tsconfig.node.json isees-ui/vite.config.ts isees-ui/eslint.config.js ./
@@ -10,17 +11,24 @@ COPY isees-ui/isees-capture-extension/icons/isees-capture.svg ./isees-capture-ex
 RUN npm run build
 
 FROM python:3.12.11-slim-bookworm AS runtime
+ARG ISEES_SOURCE_REVISION=""
+ARG ISEES_BUILT_AT=""
 RUN useradd --create-home --uid 1000 user
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ISEES_FRONTEND_DIR=/app/frontend \
     ISEES_CORS_ORIGINS="" \
-    ISEES_PERSISTENT_ROOT=/data/isees
+    ISEES_PERSISTENT_ROOT=/data/isees \
+    ISEES_RELEASE_CHANNEL=LOCAL \
+    ISEES_RUNTIME_ENVIRONMENT=LOCAL \
+    ISEES_SOURCE_REVISION=${ISEES_SOURCE_REVISION} \
+    ISEES_BUILT_AT=${ISEES_BUILT_AT}
 RUN install -d -o 1000 -g 1000 /data/isees/databases /data/isees/studio-outputs /data/isees/candidate-evidence-blobs /data/isees/backups
 WORKDIR /app
 COPY --chown=user:user isees_uap/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --requirement /app/requirements.txt
 COPY --chown=user:user isees_uap /app/isees_uap
+COPY --chown=user:user release /app/release
 COPY --from=frontend-build --chown=user:user /build/isees-ui/dist /app/frontend
 USER user
 EXPOSE 7860

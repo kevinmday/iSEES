@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "isees-release-manifest/v1",
+  "productId": "isees",
+  "productName": "iSEES",
+  "expandedName": "Integrated Systems Epistemology & Evaluation System",
+  "descriptor": "Deterministic investigative research environment",
+  "version": "1.0.0",
+  "frontendContract": "isees-web/v1",
+  "backendContract": "isees-api/v1"
+}
