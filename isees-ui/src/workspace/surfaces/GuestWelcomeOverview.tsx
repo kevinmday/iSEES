@@ -4,6 +4,7 @@ import { CANON_PRESENTATION_VISUAL, OVERVIEW_REPOSITORIES, projectHydratedOvervi
 import { useOverviewSelection } from "./overview/OverviewSelectionContext";
 import "./GuestWelcomeOverview.css";
 import GuestCaseIntake from "./GuestCaseIntake";
+import { useGuidePresentation } from "../../guide/presentation/GuidePresentationContext";
 
 export interface GuestWelcomeOverviewProps { readonly projection: OverviewFrontDoorProjection | null; }
 const CANON_EVENTS = projectHydratedOverviewEvents();
@@ -29,6 +30,7 @@ export default function GuestWelcomeOverview({ projection }: GuestWelcomeOvervie
           <p className="guest-welcome__eyebrow">{isAccount ? "New Account / Research Gateway" : "Guest Overview / Public Research Gateway"}</p>
           <h1 id="overview-gateway-title">Investigate the record, preserve the source.</h1>
           <p className="guest-welcome__lead">iSEES is an inspectable research workstation for exploring canonical events, tracing source-grounded claims, and explicitly opening a case as an investigation when you are ready.</p>
+          <OrientationInvitation />
           {!isAccount && <div className="guest-welcome__bring-case"><button type="button" onClick={() => setIntakeOpen(true)}>Bring Your Own Case</button><p>Create a structured candidate event, then compare it with System Canon.</p></div>}
           <div className="guest-welcome__status-row" aria-label="Workspace status">
             <Status label="Investigation" value="No active investigation" />
@@ -85,10 +87,28 @@ function AccountLibraryOverview({ title, message, projection }: { readonly title
   const overview = useOverviewSelection();
   const unresolved = projection.library.status !== InvestigationLibraryStatus.READY;
   return <main className="guest-welcome guest-welcome--account"><section className="guest-welcome__hero">
-    <p className="guest-welcome__eyebrow">Account Overview / Owned Workspace</p><h1>{title}</h1><p className="guest-welcome__lead">{message}</p>
+    <div className="guest-welcome__hero-copy"><p className="guest-welcome__eyebrow">Account Overview / Owned Workspace</p><h1>{title}</h1><p className="guest-welcome__lead">{message}</p><OrientationInvitation /></div>
     {unresolved ? <div className="guest-welcome__closed" role="status"><strong>Fail-closed library state</strong><span>Status: {projection.library.status}. No owned summaries are displayed.</span></div> :
       <div className="guest-welcome__owned-list">{projection.library.summaries.map(summary => <button type="button" aria-pressed={overview.selection.kind === "OWNED_INVESTIGATION" && overview.selection.investigationId === summary.investigationId} onClick={() => overview.selectOwnedInvestigation(summary)} key={summary.investigationId}><span>Owned investigation</span><h2>{summary.title}</h2><code>{summary.investigationId}</code><p>Preview summary; no workspace activation occurs.</p></button>)}</div>}
   </section></main>;
+}
+
+function OrientationInvitation() {
+  const { openOrientation } = useGuidePresentation();
+  const [visible, setVisible] = useState(() => {
+    try { return window.sessionStorage.getItem("isees.guided-orientation.v1.invitation-dismissed") !== "true"; } catch { return true; }
+  });
+  if (!visible) return null;
+  const dismiss = () => { setVisible(false); try { window.sessionStorage.setItem("isees.guided-orientation.v1.invitation-dismissed", "true"); } catch { /* optional session state */ } };
+  const launch = (element: HTMLButtonElement) => { dismiss(); openOrientation(element); };
+  return <aside className="guest-welcome__orientation" aria-labelledby="first-contact-orientation-title">
+    <div><p className="guest-welcome__eyebrow">New to iSEES?</p><h2 id="first-contact-orientation-title">Start with the complete research flow</h2><p>Start the guided orientation to learn what iSEES does and follow an investigation from evidence to a finished research product.</p></div>
+    <div className="guest-welcome__orientation-actions">
+      <button type="button" className="is-primary" onClick={event => launch(event.currentTarget)}>Start Guided Orientation</button>
+      <button type="button" onClick={event => launch(event.currentTarget)}>Read Instead</button>
+      <button type="button" onClick={dismiss}>Explore on My Own</button>
+    </div>
+  </aside>;
 }
 
 function ClosedOverview() { return <main className="guest-welcome"><section className="guest-welcome__hero"><p className="guest-welcome__eyebrow">Overview unavailable</p><h1>Authority is not settled</h1><div className="guest-welcome__closed" role="status"><strong>Fail closed</strong><span>Research gateway content and owned work remain hidden until the front-door projection is authoritative.</span></div></section></main>; }

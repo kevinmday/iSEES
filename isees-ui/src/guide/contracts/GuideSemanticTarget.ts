@@ -38,6 +38,8 @@ export const GuideSemanticTargetIds = {
   LAYERS_RESOLVE_TOPOLOGY_STATE: "layers.layer.resolve-topology-state",
   LAYERS_RUN_EXPERIMENT: "layers.experiment.run",
   RESOLVE_RUN_EXECUTION: "manifold.resolve.run-execution",
+  WORKSPACE_REGION: "shell.workspace-region",
+  WORKSPACE_MODES: "shell.workspace-modes",
 } as const satisfies Readonly<Record<string, GuideSemanticTargetId>>;
 
 export function missingGuideTarget(

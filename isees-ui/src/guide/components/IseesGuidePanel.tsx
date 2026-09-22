@@ -8,7 +8,7 @@ import {
 } from "../presentation/GuidePresentationContext.tsx";
 
 export default function IseesGuidePanel({ resolution }: { readonly resolution: GuideResolution }) {
-  const { isOpen, closeGuide } = useGuidePresentation();
+  const { isOpen, closeGuide, openOrientation } = useGuidePresentation();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [spotlightTarget, setSpotlightTarget] = useState<string>();
   const [targetFailure, setTargetFailure] = useState<string>();
@@ -58,6 +58,11 @@ export default function IseesGuidePanel({ resolution }: { readonly resolution: G
         {resolution.status === "RESOLVED" ? <Briefing briefing={resolution.definition.briefing} onShowMe={targetId => { setTargetFailure(undefined); setSpotlightTarget(targetId); }} /> : <p role="status">{resolution.message}</p>}
         {spotlightTarget && <GuideSpotlight targetId={spotlightTarget} onMissing={reportMissing} onRemoved={clearSpotlight} />}
         {targetFailure && <p className="isees-guide-panel__target-failure" role="status">{targetFailure}</p>}
+        <section className="isees-guide-panel__orientation" aria-labelledby="isees-guide-orientation-heading">
+          <h3 id="isees-guide-orientation-heading">New to the complete system?</h3>
+          <p>Learn the end-to-end governed research flow, from evidence and Manifold inspection to a .author research product.</p>
+          <button type="button" onClick={event => openOrientation(event.currentTarget)}>Open Guided Orientation</button>
+        </section>
         <section className="isees-guide-panel__boundary" aria-labelledby="isees-guide-boundary-heading">
           <h3 id="isees-guide-boundary-heading">Advisory boundary</h3>
           <p>Guide is advisory. It does not select controls, run computations, publish research, or modify System Canon.</p>

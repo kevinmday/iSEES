@@ -30,6 +30,7 @@ import ManifoldProjectionStatus
   from "../components/workspace/ManifoldProjectionStatus";
 import IseesCaptureGlobalLink from "../companion/capture/IseesCaptureGlobalLink";
 import IseesGuideHost from "../guide/components/IseesGuideHost";
+import { GuidePresentationProvider } from "../guide/presentation/GuidePresentationContext";
 
 import "../components/SelectionIntelligence.css";
 
@@ -71,7 +72,9 @@ export default function MainLayout({
   ] = useState(false);
 
   return (
+    <GuidePresentationProvider>
     <div
+      data-guide-id="shell.workspace-shell"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -316,6 +319,7 @@ export default function MainLayout({
         {/* =================================================== */}
 
         <div
+          data-guide-id="shell.workspace-region"
           style={{
             flex: 1,
             minWidth: 0,
@@ -474,7 +478,7 @@ export default function MainLayout({
       {/* WORKSPACE MODE BAR */}
       {/* ===================================================== */}
 
-      <WorkspaceModeBar />
+      <div data-guide-id="shell.workspace-modes"><WorkspaceModeBar /></div>
 
       {/* ===================================================== */}
       {/* FOOTER STATUS STRIP */}
@@ -510,5 +514,6 @@ export default function MainLayout({
         </div>
       </div>
     </div>
+    </GuidePresentationProvider>
   );
 }

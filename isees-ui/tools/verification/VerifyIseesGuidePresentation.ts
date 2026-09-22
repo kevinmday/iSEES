@@ -43,7 +43,7 @@ assert.match(context, /affordanceElement\?\.focus\(\)/, "closing must restore af
 assert.match(affordance, /ref=\{registerAffordance\}/, "affordance must register the focus-restoration target");
 assert.equal(panel.includes('role="dialog"'), false, "normal Guide must not be a dialog");
 assert.equal(panel.includes("aria-modal"), false, "normal Guide must not be modal");
-assert.equal(css.includes("backdrop"), false, "normal Guide must not have a backdrop");
+assert.equal(css.includes(".isees-guide-backdrop"), false, "normal contextual Guide must not have a backdrop");
 assert.match(css, /overflow-y:\s*auto/);
 assert.match(css, /@media \(max-width: 760px\)[\s\S]*top:\s*auto[\s\S]*bottom:\s*8px[\s\S]*max-height:/, "narrow layout must be a contained bottom sheet");
 assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);

@@ -15,6 +15,8 @@ import {
 import { useGuidePresentation } from "../presentation/GuidePresentationContext.tsx";
 import { resolveGuideDefinition } from "../registry/GuideDefinitionRegistry.ts";
 import IseesGuidePanel from "../components/IseesGuidePanel.tsx";
+import GuidedOrientationDialog from "../components/GuidedOrientationDialog.tsx";
+import { WorkspaceMode } from "../../workspace/runtime/WorkspaceRuntimeTypes.ts";
 import { CanonicalLayerCatalog, CanonicalLayerReadiness } from "../../layers/catalog/index.ts";
 
 const selectionClassification = (kind?: string) => kind === WorkspaceSelectionKind.NODE ? GuideSelectionClassification.NODE : kind === WorkspaceSelectionKind.EDGE ? GuideSelectionClassification.EDGE : kind === WorkspaceSelectionKind.CANDIDATE ? GuideSelectionClassification.CANDIDATE : GuideSelectionClassification.NONE;
@@ -31,7 +33,7 @@ export default function OperationalGuideContextAdapter() {
   const experiment = useLayersExperimentState();
   const research = useResearchBridge();
   void useResearchRevision();
-  const { presentation } = useGuidePresentation();
+  const { presentation, isOrientationOpen, closeGuide } = useGuidePresentation();
   const inbox = research.projectInvestigation({ investigationId: investigation?.id });
   const currentResolve = resolve.currentExecution?.result;
   const resolveCurrent = Boolean(currentResolve && currentResolve.success && currentResolve.provenance.investigationId === investigation?.id);
@@ -60,5 +62,13 @@ export default function OperationalGuideContextAdapter() {
     guidePresentation: presentation === "OPEN" ? GuidePresentationClassification.OPEN : GuidePresentationClassification.CLOSED,
   });
   const resolution = resolveGuideDefinition(snapshot);
-  return <IseesGuidePanel resolution={resolution} />;
+  return <>
+    <IseesGuidePanel resolution={resolution} />
+    {isOrientationOpen && <GuidedOrientationDialog
+      activeInvestigationId={investigation?.id}
+      workspaceContextKey={`${workspace?.id ?? "none"}:${workspaceState.operator.activeMode}:${workspaceState.operator.layoutMode}`}
+      onClose={closeGuide}
+      onBeginFirstInvestigation={() => workspaceRuntime.setActiveMode(WorkspaceMode.OVERVIEW)}
+    />}
+  </>;
 }
