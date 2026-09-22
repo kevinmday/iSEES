@@ -1,0 +1,27 @@
+.system-identity-footer {
+  min-width: 0;
+  max-width: 48%;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.system-identity-footer__primary {
+  color: var(--text-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.system-identity-footer__warning {
+  margin-left: 7px;
+  color: var(--color-warning);
+}
+
+@media (max-width: 900px) {
+  .system-identity-footer__runtime,
+  .system-identity-footer__revision {
+    display: none;
+  }
+}

@@ -8,6 +8,7 @@
    ========================================================== */
 
 .isees-modebar {
+    width: 100%;
     height: var(--modebar-height);
     min-height: var(--modebar-height);
 
@@ -17,11 +18,13 @@
     gap: var(--space-sm);
 
     padding:
-        0
+        4px
         var(--space-lg);
 
+    box-sizing: border-box;
+
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
 
     border-top: var(--surface-border);
 

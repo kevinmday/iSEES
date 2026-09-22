@@ -28,6 +28,9 @@ import WorkspaceModeBar
 
 import ManifoldProjectionStatus
   from "../components/workspace/ManifoldProjectionStatus";
+import SystemIdentityFooter
+  from "../system/SystemIdentityFooter";
+import "../system/SystemIdentityFooter.css";
 import IseesCaptureGlobalLink from "../companion/capture/IseesCaptureGlobalLink";
 import IseesGuideHost from "../guide/components/IseesGuideHost";
 import { GuidePresentationProvider } from "../guide/presentation/GuidePresentationContext";
@@ -76,10 +79,13 @@ export default function MainLayout({
     <div
       data-guide-id="shell.workspace-shell"
       style={{
-        display: "flex",
-        flexDirection: "column",
+        display: "grid",
+        gridTemplateRows: "var(--header-height) minmax(0, 1fr) var(--modebar-height) 28px",
         height: "100%",
-        width: "100vw",
+        maxHeight: "100%",
+        width: "100%",
+        minWidth: 0,
+        minHeight: 0,
         background: "#060b14",
         color: "#f8fafc",
         overflow: "hidden",
@@ -478,7 +484,12 @@ export default function MainLayout({
       {/* WORKSPACE MODE BAR */}
       {/* ===================================================== */}
 
-      <div data-guide-id="shell.workspace-modes"><WorkspaceModeBar /></div>
+      <div
+        data-guide-id="shell.workspace-modes"
+        style={{ minWidth: 0, minHeight: 0, overflow: "visible" }}
+      >
+        <WorkspaceModeBar />
+      </div>
 
       {/* ===================================================== */}
       {/* FOOTER STATUS STRIP */}
@@ -501,9 +512,7 @@ export default function MainLayout({
           letterSpacing: 0.5,
         }}
       >
-        <div>
-          VERSION: v0.9-operator-shell
-        </div>
+        <SystemIdentityFooter />
 
         <div>
           SYSTEM STATE: {operatorMode}
