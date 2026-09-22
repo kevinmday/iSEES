@@ -11,6 +11,7 @@ const affordance = read("src/guide/components/IseesGuideAffordance.tsx");
 const panel = read("src/guide/components/IseesGuidePanel.tsx");
 const css = read("src/guide/components/IseesGuide.css");
 const registry = read("src/guide/registry/LayersGuideDefinitions.ts");
+const operationalRegistry = read("src/guide/registry/OperationalGuideDefinitions.ts");
 const guideSource = [context, host, affordance, panel, css].join("\n");
 const modeTypes = read("src/workspace/runtime/WorkspaceRuntimeTypes.ts");
 const modeBar = read("src/components/workspace/WorkspaceModeBar.tsx");
@@ -29,7 +30,7 @@ assert.equal(modeBar.includes("IseesGuide"), false, "Guide must not appear in th
 assert.match(context, /useState<GuideShellPresentation>\(GuideShellPresentation\.CLOSED\)/, "initial state must be CLOSED");
 assert.equal(/useEffect[\s\S]{0,300}setPresentation\(GuideShellPresentation\.OPEN\)/.test(context), false, "no effect may open Guide automatically");
 assert.match(affordance, /<button[\s\S]*?type="button"/, "affordance must be a native button");
-assert.match(affordance, /aria-label="Open iSEES Guide"/);
+assert.match(affordance, /isOpen \? "Close iSEES Guide" : "Open iSEES Guide"/);
 assert.match(affordance, /aria-expanded=\{isOpen\}/);
 assert.match(affordance, /aria-controls=\{GUIDE_PANEL_ID\}/);
 assert.match(context, /GUIDE_PANEL_ID = "isees-guide-panel"/);
@@ -56,11 +57,13 @@ assert.equal(/\bpublish[A-Z]\w*\s*\(/.test(guideSource), false, "Guide presentat
 const importedModules = [...guideSource.matchAll(/from\s+["']([^"']+)["']/g)].map(match => match[1]);
 assert.equal(importedModules.some(moduleName => /workspace|investigation|resolve|layers|research|federation|api/i.test(moduleName)), false, "Guide presentation imports a mode or service dependency");
 assert.ok(panel.includes("Guide is advisory. It does not select controls, run computations, publish research, or modify System Canon."));
-for (const heading of ["Where you are", "Current situation", "Why it matters", "Recommended next action", "Alternatives", "What will happen", "Protected boundaries", "Blockers"]) {
+assert.equal(occurrences(panel, "Guide is advisory."), 1, "global advisory statement is rendered only in the Advisory Boundary callout");
+assert.match(operationalRegistry, /recommendedAction: undefined/, "operational Start Here text is not manufactured as a duplicate recommendation");
+for (const heading of ["Where you are", "What this mode is for", "Start here", "Steps", "Current situation", "Next recommended mode", "Important boundaries"]) {
   assert.ok(panel.includes(heading), `operational briefing includes ${heading}`);
 }
 assert.ok(panel.includes("Show Me"), "contextual visual target control is available when defined");
-assert.ok(registry.includes("Detailed contextual guidance for this mode has not yet been integrated."), "non-LAYERS fallback remains honest");
+assert.equal(registry.includes("Detailed contextual guidance for this mode has not yet been integrated."), false, "production placeholder is absent");
 assert.ok(registry.includes("Opening MANIFOLD does not run Resolve."), "LAYERS guidance distinguishes navigation from execution");
 assert.equal(panel.includes("Context briefing becomes available in the next Guide integration slice."), false, "retired I2 placeholder is absent");
 

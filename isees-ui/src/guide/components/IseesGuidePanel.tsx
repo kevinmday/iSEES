@@ -70,13 +70,12 @@ export default function IseesGuidePanel({ resolution }: { readonly resolution: G
 function Briefing({ briefing, onShowMe }: { readonly briefing: import("../contracts/index.ts").GuideBriefing; readonly onShowMe: (targetId: string) => void }) {
   return <div className="isees-guide-briefing">
     <Section title="Where you are"><p>{briefing.location}</p></Section>
-    <Section title="Current situation"><p>{briefing.situation}</p></Section>
-    <Section title="Why it matters"><p>{briefing.significance}</p></Section>
-    {briefing.recommendedAction && <Section title="Recommended next action"><strong>{briefing.recommendedAction.label}</strong></Section>}
-    {briefing.alternatives.length > 0 && <Section title="Alternatives"><ul>{briefing.alternatives.map(item => <li key={item.id}>{item.label}</li>)}</ul></Section>}
-    {briefing.consequences.length > 0 && <Section title="What will happen"><ul>{briefing.consequences.map(item => <li key={item.description}>{item.description}</li>)}</ul></Section>}
-    {briefing.protectedBoundaries.length > 0 && <Section title="Protected boundaries"><ul>{briefing.protectedBoundaries.map(item => <li key={item.description}>{item.description}</li>)}</ul></Section>}
-    {briefing.blockers.length > 0 && <Section title="Blockers"><ul>{briefing.blockers.map(item => <li key={item.code}><strong>{item.missing}</strong> — {item.remedy}</li>)}</ul></Section>}
+    <Section title="What this mode is for"><p>{briefing.purpose}</p></Section>
+    <Section title="Start here"><p>{briefing.startHere}</p>{briefing.recommendedAction && <p><strong>{briefing.recommendedAction.label}</strong></p>}</Section>
+    <Section title="Steps"><ol>{briefing.steps.map((step, index) => <li key={`${index}:${step}`}>{step}</li>)}</ol></Section>
+    <Section title="Current situation"><p>{briefing.situation}</p>{briefing.blockers.length > 0 && <ul>{briefing.blockers.map(item => <li key={item.code}><strong>{item.missing}</strong> — {item.reason} {item.remedy}</li>)}</ul>}</Section>
+    <Section title="Next recommended mode"><p><strong>{briefing.nextMode}</strong> — {briefing.nextModeReason}</p></Section>
+    <Section title="Important boundaries">{briefing.authenticationNote && <p>{briefing.authenticationNote}</p>}<ul>{briefing.protectedBoundaries.map(item => <li key={item.description}>{item.description}</li>)}</ul></Section>
     {briefing.showMeTargetId && <button className="isees-guide-panel__show-me" type="button" onClick={() => onShowMe(briefing.showMeTargetId!)}>Show Me</button>}
   </div>;
 }

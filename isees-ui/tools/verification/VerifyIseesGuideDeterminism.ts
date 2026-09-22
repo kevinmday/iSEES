@@ -4,15 +4,16 @@ import {
   GUIDE_CONTEXT_SNAPSHOT_SCHEMA_ID, GUIDE_CONTEXT_SNAPSHOT_SCHEMA_VERSION,
   GuideIdentityClassification, GuideLayoutClassification, GuideLayersExperimentClassification,
   GuidePresentationClassification, GuideResearchInboxClassification, GuideResolveClassification,
-  GuideSelectionClassification, GuideWorkspaceMode, GuideWorkspaceStatus, type GuideContextSnapshot,
+  GuideSelectionClassification, GuideWorkspaceStatus, type GuideContextSnapshot,
 } from "../../src/guide/contracts/index.ts";
+import { WorkspaceMode } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
 import { resolveGuideDefinition } from "../../src/guide/registry/GuideDefinitionRegistry.ts";
 import { LayersGuideTargetIds } from "../../src/guide/registry/LayersGuideDefinitions.ts";
 
 const fixture = (overrides: Partial<GuideContextSnapshot> = {}): GuideContextSnapshot => Object.freeze({
   schemaId: GUIDE_CONTEXT_SNAPSHOT_SCHEMA_ID, schemaVersion: GUIDE_CONTEXT_SNAPSHOT_SCHEMA_VERSION,
   route: "/", identity: GuideIdentityClassification.GUEST, workspaceStatus: GuideWorkspaceStatus.ACTIVE,
-  activeMode: GuideWorkspaceMode.LAYERS, layout: GuideLayoutClassification.NORMAL,
+  activeMode: WorkspaceMode.LAYERS, layout: GuideLayoutClassification.NORMAL,
   activeWorkspaceId: "workspace:1", activeInvestigationId: "investigation:1", focusedEventId: "event:a",
   selection: Object.freeze({ classification: GuideSelectionClassification.NONE }),
   comparison: Object.freeze({ classification: "NONE" }),
@@ -30,8 +31,24 @@ assert.equal(resolved(fixture({ resolve: { classification: GuideResolveClassific
 assert.equal(resolved(fixture({ resolve: { classification: GuideResolveClassification.RESOLVED }, comparison: pair, activeLayerIds: ["TOPOLOGY"] })).showMeTargetId, LayersGuideTargetIds.RUN_EXPERIMENT);
 const complete = resolved(fixture({ resolve: { classification: GuideResolveClassification.RESOLVED }, comparison: pair, activeLayerIds: ["TOPOLOGY"], layersExperiment: { classification: GuideLayersExperimentClassification.COMPLETE } }));
 assert.equal(complete.recommendedAction?.label, "Inspect the experiment result"); assert.equal(complete.showMeTargetId, undefined);
-for (const mode of Object.values(GuideWorkspaceMode).filter(mode => mode !== GuideWorkspaceMode.LAYERS)) { const neutral = resolved(fixture({ activeMode: mode })); assert.equal(neutral.recommendedAction, undefined); assert.equal(neutral.showMeTargetId, undefined); assert.match(neutral.situation, /not yet been integrated/); }
-for (const state of [fixture(), fixture({ resolve: { classification: GuideResolveClassification.RESOLVED } }), fixture({ resolve: { classification: GuideResolveClassification.RESOLVED }, comparison: pair }), fixture({ resolve: { classification: GuideResolveClassification.RESOLVED }, comparison: pair, activeLayerIds: ["TOPOLOGY"] })]) assert.ok([resolved(state).recommendedAction].filter(Boolean).length <= 1);
+for (const mode of Object.values(WorkspaceMode).filter(mode => mode !== WorkspaceMode.LAYERS)) { const operational = resolved(fixture({ activeMode: mode })); assert.ok(operational.steps.length >= 3 && operational.steps.length <= 6); assert.doesNotMatch(JSON.stringify(operational), /not yet been integrated/); assert.doesNotMatch(JSON.stringify(operational), /`/, `${mode} content must not expose Markdown backticks`); assert.equal(operational.recommendedAction, undefined, `${mode} must not duplicate Start Here as a recommended action`); assert.equal(operational.steps.includes(operational.startHere), false, `${mode} must not repeat Start Here verbatim in Steps`); assert.equal(operational.protectedBoundaries.length, 1, `${mode} must expose only its mode-specific boundary`); assert.ok(operational.purpose); assert.ok(operational.nextMode); }
+assert.equal(resolved(fixture({ activeMode: WorkspaceMode.RESEARCH })).location, "STUDIO");
+const manifoldSteps = resolved(fixture({ activeMode: WorkspaceMode.MANIFOLD })).steps.join(" ");
+for (const required of ["Single-click", "Double-click", "RESOLVE", "Research Inbox"]) assert.match(manifoldSteps, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+const compare = resolved(fixture({ activeMode: WorkspaceMode.COMPARE }));
+assert.match(compare.steps.join(" "), /Confirm whether the relationship is already accepted\./);
+assert.match(compare.protectedBoundaries.map(item => item.description).join(" "), /COMPARE does not accept or reject relationships; acceptance belongs to the existing MANIFOLD\/Resolve workflow\./);
+assert.doesNotMatch(JSON.stringify(resolved(fixture({ activeMode: WorkspaceMode.COMPARE }))), /COMPARE (accepts|rejects)/);
+assert.match(JSON.stringify(resolved(fixture({ activeMode: WorkspaceMode.EVIDENCE }))), /Candidate Evidence.*explicit governed researcher action/);
+assert.match(JSON.stringify(resolved(fixture({ activeMode: WorkspaceMode.INTENTION }))), /not a full H0\/H1 construction editor/);
+assert.match(JSON.stringify(resolved(fixture({ activeMode: WorkspaceMode.RESEARCH }))), /Guests retain local working access.*Authentication is required for durable/);
+for (const state of [fixture(), fixture({ resolve: { classification: GuideResolveClassification.RESOLVED } }), fixture({ resolve: { classification: GuideResolveClassification.RESOLVED }, comparison: pair }), fixture({ resolve: { classification: GuideResolveClassification.RESOLVED }, comparison: pair, activeLayerIds: ["TOPOLOGY"] })]) {
+  const layers = resolved(state);
+  assert.ok([layers.recommendedAction].filter(Boolean).length <= 1);
+  assert.ok(layers.recommendedAction, "LAYERS retains its state-specific recommended action");
+  assert.ok(layers.showMeTargetId, "actionable LAYERS states retain Show Me targets");
+  assert.doesNotMatch(JSON.stringify(layers), /`/, "LAYERS content must not expose Markdown backticks");
+}
 assert.equal(JSON.stringify(resolveGuideDefinition(fixture())), JSON.stringify(resolveGuideDefinition(structuredClone(fixture()))));
 assert.equal(new Set(Object.values(LayersGuideTargetIds)).size, 4);
 

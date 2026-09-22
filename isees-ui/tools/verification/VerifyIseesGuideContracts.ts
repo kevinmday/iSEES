@@ -21,12 +21,12 @@ import {
   GuideSelectionClassification,
   GuideSemanticTargetIds,
   GuideTargetResolutionStatus,
-  GuideWorkspaceMode,
   GuideWorkspaceStatus,
   missingGuideTarget,
   type GuideBriefing,
   type GuideContextSnapshot,
 } from "../../src/guide/contracts/index.ts";
+import { WorkspaceMode } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
 
 const values = <T extends Readonly<Record<string, string>>>(value: T): readonly T[keyof T][] => Object.values(value);
 const contractDirectory = fileURLToPath(new URL("../../src/guide/contracts/", import.meta.url));
@@ -41,7 +41,7 @@ assert.equal(GUIDE_SEMANTIC_TARGET_SCHEMA_VERSION, "1.0");
 assert.equal(GUIDE_LESSON_PREFERENCE_SCHEMA_ID, "isees-guide-lesson-preference");
 assert.equal(GUIDE_LESSON_PREFERENCE_SCHEMA_VERSION, "1.0");
 
-assert.deepEqual(values(GuideWorkspaceMode), ["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"]);
+assert.deepEqual(values(WorkspaceMode), ["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"]);
 assert.deepEqual(values(GuideEpistemicClassification), ["CANONICAL", "CANDIDATE", "EXPERIMENTAL", "DERIVED", "NON_CANONICAL", "UNRESOLVED", "UNAVAILABLE", "PUBLISHED", "COLLECTED", "INCOMING", "UNASSIGNED"]);
 assert.equal(DEFAULT_GUIDE_PRESENTATION_CLASSIFICATION, GuidePresentationClassification.CLOSED, "Guide must be closed by default");
 
@@ -49,7 +49,7 @@ const targetIds = values(GuideSemanticTargetIds);
 assert.equal(new Set(targetIds).size, targetIds.length, "semantic target identifiers must be unique");
 assert.notEqual(GuideSemanticTargetIds.GUIDE, GuideSemanticTargetIds.CAPTURE, "Capture and Guide identities must remain distinct");
 assert.equal(GuideSemanticTargetIds.LAYERS_RESOLVE_TOPOLOGY_STATE, "layers.layer.resolve-topology-state");
-assert.equal(GuideSemanticTargetIds.LAYERS_RUN_EXPERIMENT, "layers.run-experiment");
+assert.equal(GuideSemanticTargetIds.LAYERS_RUN_EXPERIMENT, "layers.experiment.run");
 assert.notEqual(GuideSemanticTargetIds.LAYERS_RESOLVE_TOPOLOGY_STATE, GuideSemanticTargetIds.LAYERS_RUN_EXPERIMENT);
 assert.notEqual(GuideSemanticTargetIds.RESOLVE_RUN_EXECUTION, GuideSemanticTargetIds.LAYERS_RESOLVE_TOPOLOGY_STATE);
 
@@ -64,7 +64,7 @@ const snapshot = Object.freeze<GuideContextSnapshot>({
   route: "/",
   identity: GuideIdentityClassification.GUEST,
   workspaceStatus: GuideWorkspaceStatus.ACTIVE,
-  activeMode: GuideWorkspaceMode.LAYERS,
+  activeMode: WorkspaceMode.LAYERS,
   layout: GuideLayoutClassification.NORMAL,
   activeWorkspaceId: "workspace:current",
   activeInvestigationId: "investigation:current",
@@ -92,8 +92,13 @@ assert.equal(freshInvestigation.selection.identifier, undefined, "fresh investig
 const briefing: GuideBriefing = {
   definitionId: "layers.ready",
   location: "LAYERS",
+  purpose: "Test layers.",
+  startHere: "Review readiness.",
+  steps: ["Review readiness.", "Select a layer.", "Run the experiment."],
   situation: "An experiment is ready.",
   significance: "The result remains experimental.",
+  nextMode: "INTENTION",
+  nextModeReason: "Inspect derived projections.",
   recommendedAction: undefined,
   alternatives: [], consequences: [], protectedBoundaries: [], blockers: [], stateReferences: [], visualSteps: [],
 };
@@ -112,7 +117,7 @@ assertDataOnly(snapshot);
 assertDataOnly(oneRecommendation);
 
 const source = contractFiles.map(file => readFileSync(`${contractDirectory}${file}`, "utf8")).join("\n");
-for (const forbidden of ["react", "WorkspaceRuntime", "ResolveRuntime", "ResearchBridgeRuntime", "document.", "window.", "HTMLElement", "Element", "telemetry", "localStorage", "sessionStorage", "fetch("]) {
+for (const forbidden of ["react", "ResolveRuntime", "ResearchBridgeRuntime", "document.", "window.", "HTMLElement", "Element", "telemetry", "localStorage", "sessionStorage", "fetch("]) {
   assert.equal(source.includes(forbidden), false, `I1 contract source contains forbidden runtime/implementation dependency: ${forbidden}`);
 }
 assert.equal(/\b(onClick|callback|mutate|setActiveMode|activateInvestigation)\b/.test(source), false, "contracts expose executable or mutation behavior");

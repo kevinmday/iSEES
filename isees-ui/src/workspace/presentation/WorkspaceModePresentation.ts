@@ -1,6 +1,6 @@
 import {
   WorkspaceMode,
-} from "../runtime/WorkspaceRuntimeTypes";
+} from "../runtime/WorkspaceRuntimeTypes.ts";
 
 const MODE_LABELS: Record<WorkspaceMode, string> = {
   [WorkspaceMode.OVERVIEW]: "OVERVIEW",

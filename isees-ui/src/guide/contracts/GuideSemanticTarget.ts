@@ -36,7 +36,7 @@ export const GuideSemanticTargetIds = {
   GUIDE: "shell.guide",
   CAPTURE: "shell.capture",
   LAYERS_RESOLVE_TOPOLOGY_STATE: "layers.layer.resolve-topology-state",
-  LAYERS_RUN_EXPERIMENT: "layers.run-experiment",
+  LAYERS_RUN_EXPERIMENT: "layers.experiment.run",
   RESOLVE_RUN_EXECUTION: "manifold.resolve.run-execution",
 } as const satisfies Readonly<Record<string, GuideSemanticTargetId>>;
 

@@ -15,18 +15,7 @@ export const GuideWorkspaceStatus = {
 } as const;
 export type GuideWorkspaceStatus = typeof GuideWorkspaceStatus[keyof typeof GuideWorkspaceStatus];
 
-export const GuideWorkspaceMode = {
-  OVERVIEW: "OVERVIEW",
-  MANIFOLD: "MANIFOLD",
-  COMPARE: "COMPARE",
-  NARRATIVE: "NARRATIVE",
-  EVIDENCE: "EVIDENCE",
-  TIMELINE: "TIMELINE",
-  LAYERS: "LAYERS",
-  INTENTION: "INTENTION",
-  RESEARCH: "RESEARCH",
-} as const;
-export type GuideWorkspaceMode = typeof GuideWorkspaceMode[keyof typeof GuideWorkspaceMode];
+import type { WorkspaceMode } from "../../workspace/runtime/WorkspaceRuntimeTypes.ts";
 
 export const GuideLayoutClassification = {
   NORMAL: "NORMAL",
@@ -96,7 +85,7 @@ export interface GuideContextSnapshot {
   readonly route: string;
   readonly identity: GuideIdentityClassification;
   readonly workspaceStatus: GuideWorkspaceStatus;
-  readonly activeMode: GuideWorkspaceMode;
+  readonly activeMode: WorkspaceMode;
   readonly layout: GuideLayoutClassification;
   readonly activeWorkspaceId?: string;
   readonly activeInvestigationId?: string;

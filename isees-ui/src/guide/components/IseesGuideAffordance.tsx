@@ -8,7 +8,7 @@ export default function IseesGuideAffordance() {
       ref={registerAffordance}
       className="isees-guide-affordance"
       type="button"
-      aria-label="Open iSEES Guide"
+      aria-label={isOpen ? "Close iSEES Guide" : "Open iSEES Guide"}
       aria-expanded={isOpen}
       aria-controls={GUIDE_PANEL_ID}
       onClick={isOpen ? closeGuide : openGuide}

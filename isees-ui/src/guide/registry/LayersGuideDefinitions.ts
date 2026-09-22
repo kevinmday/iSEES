@@ -6,7 +6,6 @@ import {
   GuideLayersExperimentClassification,
   GuideResolveClassification,
   GuideSelectionClassification,
-  GuideWorkspaceMode,
   type GuideAction,
   type GuideBriefing,
   type GuideContextSnapshot,
@@ -27,12 +26,27 @@ const action = (id: string, label: string, targetId?: string): GuideAction => ({
   description: label, consequences: [], protectedBoundaries: [boundary],
 });
 
-function definition(id: string, briefing: Omit<GuideBriefing, "definitionId" | "stateReferences" | "visualSteps">): GuideDefinition {
+function definition(id: string, briefing: Omit<GuideBriefing, "definitionId" | "stateReferences" | "visualSteps" | "purpose" | "startHere" | "steps" | "nextMode" | "nextModeReason">, snapshot: Readonly<GuideContextSnapshot>): GuideDefinition {
+  const inboxCount = snapshot.researchInbox.newLeadCount + snapshot.researchInbox.incomingSourceCount + snapshot.researchInbox.collectedFindingCount;
   return Object.freeze({
     schemaId: GUIDE_DEFINITION_SCHEMA_ID,
     schemaVersion: GUIDE_DEFINITION_SCHEMA_VERSION,
     definitionId: id,
-    briefing: Object.freeze({ ...briefing, definitionId: id, stateReferences: Object.freeze([]), visualSteps: Object.freeze([]) }),
+    briefing: Object.freeze({
+      purpose: "Browse deterministic layers, prepare a valid experimental configuration, and inspect non-canonical results.",
+      startHere: "Browse the layer catalog and check the readiness shown for each selected layer.",
+      steps: Object.freeze([
+        "Browse all available layers and review each readiness state.",
+        "Select the layers relevant to the research question.",
+        "Satisfy the displayed prerequisites for layers that are not READY.",
+        "Use Run / Recompute experiment when the configuration is ready.",
+        "Inspect the deterministic result and its contributions.",
+        "Use Publish Experiment to Research for a useful qualified finding.",
+      ]),
+      nextMode: "INTENTION or STUDIO",
+      nextModeReason: "Continue to INTENTION to inspect derived projections, or STUDIO after useful findings have been published to the Research Inbox.",
+      ...briefing, situation: `${briefing.situation} Research Inbox: ${inboxCount} item${inboxCount === 1 ? "" : "s"}.`, definitionId: id, stateReferences: Object.freeze([]), visualSteps: Object.freeze([]),
+    }),
   });
 }
 
@@ -49,7 +63,7 @@ export function resolveLayersGuideDefinition(snapshot: Readonly<GuideContextSnap
       protectedBoundaries: [{ description: "Guide and Show Me do not execute Resolve, mutate the investigation, accept knowledge, or change System Canon." }],
       blockers: [{ code: "RESOLVE_REQUIRED", missing: "Current Resolve execution", reason: "LAYERS requires current deterministic Resolve output.", remedy: "Use Open MANIFOLD in the LAYERS prerequisite controls, then explicitly activate RESOLVE there.", changesCanonicalState: false }],
       showMeTargetId: LayersGuideTargetIds.RUN_RESOLVE,
-    });
+    }, snapshot);
   }
 
   if (snapshot.comparison.classification !== "READY") {
@@ -64,7 +78,7 @@ export function resolveLayersGuideDefinition(snapshot: Readonly<GuideContextSnap
       protectedBoundaries: [boundary],
       blockers: [{ code: "COMPARISON_REQUIRED", missing: "Comparison event", reason: "Case A and Case B are required.", remedy: "Use Choose Comparison in the LAYERS prerequisite controls.", changesCanonicalState: false }],
       showMeTargetId: LayersGuideTargetIds.CHOOSE_COMPARISON,
-    });
+    }, snapshot);
   }
 
   const readiness = snapshot.layerReadiness;
@@ -79,7 +93,7 @@ export function resolveLayersGuideDefinition(snapshot: Readonly<GuideContextSnap
       consequences: [{ description: "Preparation may make a governed layer READY; selection alone creates no input, evaluator, or score.", consequential: false }],
       protectedBoundaries: [boundary],
       blockers: [{ code: "NO_READY_SELECTED_LAYER", missing: firstUnresolved.missingRequirements[0] ?? "Ready deterministic layer", reason: `${firstUnresolved.readiness.replace("_", " ")}: ${firstUnresolved.label} cannot participate yet.`, remedy: "Provide the first declared canonical requirement or select a READY layer.", changesCanonicalState: false }],
-    });
+    }, snapshot);
   }
 
   if (!snapshot.activeLayerIds.includes("TOPOLOGY")) {
@@ -92,7 +106,7 @@ export function resolveLayersGuideDefinition(snapshot: Readonly<GuideContextSnap
       alternatives: [{ ...action("layers.select-alternative", "Select another available layer to test a different deterministic contribution"), classification: GuideActionClassification.AVAILABLE }],
       consequences: [{ description: "Layer selection changes only the experimental configuration. It does not mutate the investigation manifold or System Canon.", consequential: false }],
       protectedBoundaries: [boundary], blockers: [], showMeTargetId: LayersGuideTargetIds.RESOLVE_TOPOLOGY_STATE,
-    });
+    }, snapshot);
   }
 
   if (snapshot.layersExperiment.classification === GuideLayersExperimentClassification.COMPLETE) {
@@ -104,7 +118,7 @@ export function resolveLayersGuideDefinition(snapshot: Readonly<GuideContextSnap
       alternatives: [{ ...action("layers.recompute", "Change the layer configuration and recompute"), classification: GuideActionClassification.AVAILABLE }],
       consequences: [{ description: "Inspection does not publish the result, modify System Canon, or mutate the underlying investigation.", consequential: false }],
       protectedBoundaries: [boundary], blockers: [],
-    });
+    }, snapshot);
   }
 
   return definition("layers.ready-to-run", {
@@ -115,21 +129,11 @@ export function resolveLayersGuideDefinition(snapshot: Readonly<GuideContextSnap
     alternatives: [{ ...action("layers.review-layers", "Review or change the selected layers before running"), classification: GuideActionClassification.AVAILABLE }],
     consequences: [{ description: "The result remains experimental and non-canonical until deliberately handled through the authorized research workflow.", consequential: true }],
     protectedBoundaries: [{ description: "The result is experimental, not accepted knowledge, and System Canon remains unchanged." }], blockers: [], showMeTargetId: LayersGuideTargetIds.RUN_EXPERIMENT,
-  });
-}
-
-export function resolveNeutralGuideDefinition(snapshot: Readonly<GuideContextSnapshot>): GuideDefinition {
-  return definition(`mode.${snapshot.activeMode.toLowerCase()}.pending`, {
-    location: snapshot.activeMode === GuideWorkspaceMode.RESEARCH ? "STUDIO" : snapshot.activeMode,
-    situation: `You are in ${snapshot.activeMode === GuideWorkspaceMode.RESEARCH ? "STUDIO" : snapshot.activeMode}. Detailed contextual guidance for this mode has not yet been integrated.`,
-    significance: "The Guide remains available without changing the active workspace.",
-    alternatives: [], consequences: [{ description: "Opening or closing Guide does not change application state.", consequential: false }],
-    protectedBoundaries: [boundary], blockers: [],
-  });
+  }, snapshot);
 }
 
 export function isLayersSnapshot(snapshot: Readonly<GuideContextSnapshot>): boolean {
-  return snapshot.activeMode === GuideWorkspaceMode.LAYERS;
+  return snapshot.activeMode === "LAYERS";
 }
 
 export const LAYERS_GUIDE_EPISTEMIC_BOUNDARIES = Object.freeze([

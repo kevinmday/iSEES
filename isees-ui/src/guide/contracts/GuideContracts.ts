@@ -76,8 +76,14 @@ export interface GuideVisualStep {
 export interface GuideBriefing {
   readonly definitionId: string;
   readonly location: string;
+  readonly purpose: string;
+  readonly startHere: string;
+  readonly steps: readonly string[];
   readonly situation: string;
   readonly significance: string;
+  readonly nextMode: string;
+  readonly nextModeReason: string;
+  readonly authenticationNote?: string;
   readonly recommendedAction?: GuideAction;
   readonly alternatives: readonly GuideAction[];
   readonly consequences: readonly GuideConsequence[];

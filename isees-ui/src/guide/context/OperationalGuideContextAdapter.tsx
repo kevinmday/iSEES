@@ -60,5 +60,5 @@ export default function OperationalGuideContextAdapter() {
     guidePresentation: presentation === "OPEN" ? GuidePresentationClassification.OPEN : GuidePresentationClassification.CLOSED,
   });
   const resolution = resolveGuideDefinition(snapshot);
-  return <IseesGuidePanel key={JSON.stringify(snapshot)} resolution={resolution} />;
+  return <IseesGuidePanel resolution={resolution} />;
 }
