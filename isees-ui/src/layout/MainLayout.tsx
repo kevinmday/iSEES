@@ -9,7 +9,7 @@
 // FULL DROP-IN REPLACEMENT
 // ============================================================
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { useEventContext } from "../context/EventContext";
@@ -45,7 +45,11 @@ export default function MainLayout({
   left,
   center,
   right,
-}: any) {
+}: {
+  left: ReactNode;
+  center: ReactNode;
+  right: ReactNode;
+}) {
   const {
     operatorMode,
   } = useEventContext();
@@ -54,10 +58,11 @@ export default function MainLayout({
     useWorkspaceMode();
   const studioMode = workspaceMode === WorkspaceMode.RESEARCH;
   const overviewMode = workspaceMode === WorkspaceMode.OVERVIEW;
+  const libraryMode = workspaceMode === WorkspaceMode.LIBRARY;
   const layersMode = workspaceMode === WorkspaceMode.LAYERS;
   const timelineMode = workspaceMode === WorkspaceMode.TIMELINE;
-  const leftInstrumentName = overviewMode ? "Case Intake" : layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
-  const rightInstrumentName = overviewMode ? "Overview Inspector" : layersMode ? "Experimental Intelligence" : timelineMode ? "Timeline Inspector" : "Selection Intelligence";
+  const leftInstrumentName = overviewMode ? "Orientation" : layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
+  const rightInstrumentName = overviewMode ? "Overview Boundary" : layersMode ? "Experimental Intelligence" : timelineMode ? "Timeline Inspector" : "Selection Intelligence";
 
   const [
     workspaceExpanded,
@@ -230,7 +235,7 @@ export default function MainLayout({
 
         {/* LEFT PANEL RESTORE CONTROL */}
 
-        {!studioMode && !workspaceExpanded && leftPanelCollapsed && (
+        {!studioMode && !libraryMode && !workspaceExpanded && leftPanelCollapsed && (
           <div
             style={{
               display: "flex",
@@ -260,7 +265,7 @@ export default function MainLayout({
           </div>
         )}
 
-        {!studioMode && <div
+        {!studioMode && !libraryMode && <div
           style={{
             display:
               workspaceExpanded || leftPanelCollapsed
@@ -339,7 +344,7 @@ export default function MainLayout({
 
           {/* WORKSPACE LAYOUT CONTROL */}
 
-          {!studioMode && <button
+          {!studioMode && !libraryMode && <button
             type="button"
             onClick={() =>
               setWorkspaceExpanded(
@@ -402,7 +407,7 @@ export default function MainLayout({
 
         {/* RIGHT PANEL RESTORE CONTROL */}
 
-        {!studioMode && !workspaceExpanded && rightPanelCollapsed && (
+        {!studioMode && !libraryMode && !workspaceExpanded && rightPanelCollapsed && (
           <div className="selection-intelligence-restore">
             <button
               type="button"
@@ -422,7 +427,7 @@ export default function MainLayout({
 
         {/* RIGHT PANEL SHELL */}
 
-        {!studioMode && <aside
+        {!studioMode && !libraryMode && <aside
           className={[
             "selection-intelligence",
             workspaceExpanded || rightPanelCollapsed
@@ -463,7 +468,7 @@ export default function MainLayout({
 
             <div className="selection-intelligence__description">
               {overviewMode
-                ? "Inspect public Canon records, repository orientation, and owned investigation summaries without changing the workspace."
+                ? "Review product orientation and enter Library for operational investigation work."
                 : layersMode
                 ? "Inspect the experimental subjects, layers, wires, delta, contributions, and deterministic provenance."
                 : timelineMode

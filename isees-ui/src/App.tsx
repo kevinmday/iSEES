@@ -77,8 +77,7 @@ import {
 } from "./investigation/library/InvestigationLibraryRuntimeContext";
 import { OverviewSelectionProvider } from "./workspace/surfaces/overview/OverviewSelectionContext";
 import { OverviewCanonicalActivationProvider } from "./workspace/surfaces/overview/OverviewCanonicalActivationContext";
-import OverviewCaseIntake from "./workspace/surfaces/overview/OverviewCaseIntake";
-import OverviewInspector from "./workspace/surfaces/overview/OverviewInspector";
+import { LibraryNavigationProvider } from "./workspace/surfaces/LibraryWorkspace";
 
 import {
   EventProvider,
@@ -451,8 +450,12 @@ function ModeAwarePrimarySurface() {
 }
 
 function ModeAwareOperatorLayout() {
+  return <LibraryNavigationProvider><ModeAwareOperatorLayoutContent /></LibraryNavigationProvider>;
+}
+
+function ModeAwareOperatorLayoutContent() {
   const mode = useWorkspaceMode();
-  return mode === WorkspaceMode.OVERVIEW
+  return mode === WorkspaceMode.OVERVIEW || mode === WorkspaceMode.LIBRARY
     ? (
       <InvestigationLibraryRuntimeProvider>
         <OverviewSelectionProvider>
@@ -468,7 +471,7 @@ function ModeAwareOperatorLayout() {
 function ModeAwareLeftPanel() {
   const mode = useWorkspaceMode();
   return mode === WorkspaceMode.OVERVIEW
-    ? <OverviewCaseIntake />
+    ? <div className="overview-panel"><p className="overview-panel__eyebrow">Orientation</p><p>Learn the iSEES research flow, then enter LIBRARY to choose or create an investigation.</p></div>
     : mode === WorkspaceMode.LAYERS
     ? <LayersLaboratoryNavigator />
     : mode === WorkspaceMode.TIMELINE
@@ -481,7 +484,7 @@ function ModeAwareLeftPanel() {
 function ModeAwareRightPanel() {
   const mode = useWorkspaceMode();
   return mode === WorkspaceMode.OVERVIEW
-    ? <OverviewInspector />
+    ? <div className="overview-panel"><p className="overview-panel__eyebrow">Operational boundary</p><p>Browsing, intake, previews, and investigation management are owned by LIBRARY.</p></div>
     : mode === WorkspaceMode.LAYERS
     ? <LayersExperimentalIntelligence />
     : mode === WorkspaceMode.TIMELINE

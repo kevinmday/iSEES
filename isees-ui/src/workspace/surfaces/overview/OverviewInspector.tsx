@@ -3,13 +3,13 @@ import { useOverviewCanonicalActivation } from "./OverviewCanonicalActivationCon
 import "./OverviewPanels.css";
 import "./OverviewCanonicalActivation.css";
 
-export default function OverviewInspector() {
+export default function OverviewInspector({ onOpenOwned, ownedBusy = false, emptyOwnedInvestigationId = null }: { readonly onOpenOwned?: (investigationId: string) => void; readonly ownedBusy?: boolean; readonly emptyOwnedInvestigationId?: string | null }) {
   const { selection } = useOverviewSelection();
   const activation = useOverviewCanonicalActivation();
-  return <div className="overview-panel overview-inspector" aria-live="polite">{renderSelection(selection, activation)}</div>;
+  return <div className="overview-panel overview-inspector" aria-live="polite">{renderSelection(selection, activation, onOpenOwned, ownedBusy, emptyOwnedInvestigationId)}</div>;
 }
 
-function renderSelection(selection: OverviewSelection, activation: ReturnType<typeof useOverviewCanonicalActivation>) {
+function renderSelection(selection: OverviewSelection, activation: ReturnType<typeof useOverviewCanonicalActivation>, onOpenOwned?: (investigationId: string) => void, ownedBusy = false, emptyOwnedInvestigationId: string | null = null) {
   switch (selection.kind) {
     case "CANON_EVENT":
       return <><Eyebrow>Canon Event / Public Record</Eyebrow><h2>{selection.title}</h2><Details rows={[["Canonical ID", selection.eventId], ["Time / Place", `${selection.year} · ${selection.location}`], ["Classification", selection.classification]]} />
@@ -21,9 +21,9 @@ function renderSelection(selection: OverviewSelection, activation: ReturnType<ty
     case "EXTERNAL_REPOSITORY":
       return <><Eyebrow>Repository / Orientation</Eyebrow><h2>{selection.name}</h2><Details rows={[["Capability", selection.capability]]} /><p>{selection.note}</p><Boundary>{repositoryBoundary(selection.capability)}</Boundary></>;
     case "OWNED_INVESTIGATION":
-      return <><Eyebrow>Owned Investigation / Public Summary</Eyebrow><h2>{selection.title}</h2><Details rows={[["Investigation ID", selection.investigationId]]} /><Boundary>Preview only. Opening an investigation requires a separate authoritative activation path.</Boundary><button type="button" disabled>Open unavailable</button></>;
+      return <><Eyebrow>Owned Investigation / Authorized Summary</Eyebrow><h2>{selection.title}</h2><Details rows={[["Investigation ID", selection.investigationId]]} /><Boundary>Preview only. Resuming is a separate explicit action through the existing account continuity authority.</Boundary>{emptyOwnedInvestigationId === selection.investigationId ? <button type="button" disabled>Continue Setup</button> : <button className="overview-inspector__activate" type="button" disabled={ownedBusy || onOpenOwned === undefined} onClick={() => onOpenOwned?.(selection.investigationId)}>Resume Investigation</button>}</>;
     default:
-      return <><Eyebrow>Overview Inspector / Neutral</Eyebrow><h2>Select a front-door record</h2><p>Choose a Canon event, external repository, or owned investigation to inspect its public details here.</p><Boundary>Browsing is non-mutating and begins with no selection.</Boundary></>;
+      return <><Eyebrow>Library Inspector / Neutral</Eyebrow><h2>Select a Library record</h2><p>Choose a Canon event, external repository, guest investigation, or saved investigation to preview its available details.</p><Boundary>Browsing is non-mutating and begins with no selection.</Boundary></>;
   }
 }
 

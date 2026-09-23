@@ -106,10 +106,10 @@ const inputs: readonly ChapterInput[] = [
     visibleTranscript: [
       "Your first mission is: 1. Open or begin an investigation. 2. Enter Manifold. 3. Select a node and inspect Selection Intelligence. 4. Open Compare and inspect one relationship. 5. Send a qualified result to Research.",
       "Then: 6. Open Studio. 7. Create a .author document. 8. Insert the Research Inbox source. 9. Add a researcher note. 10. Export a current-draft PDF or DOCX.",
-      "You remain in control at every step. Begin First Investigation takes you to the existing starting workspace only. It does not run Resolve, select evidence, accept relationships, publish research, or mutate System Canon.",
+      "You remain in control at every step. Begin First Investigation takes you to Library only. It does not activate a case, run Resolve, select evidence, accept relationships, publish research, or mutate System Canon.",
     ],
     interfaceTargetId: GuideSemanticTargetIds.WORKSPACE_MODES,
-    recommendedMode: WorkspaceMode.OVERVIEW,
+    recommendedMode: WorkspaceMode.LIBRARY,
   },
 ] as const;
 

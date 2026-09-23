@@ -45,6 +45,7 @@ import {
 
 import {
   OverviewWorkspace,
+  LibraryWorkspace,
   ManifoldWorkspace,
   CompareWorkspace,
   NarrativeWorkspace,
@@ -89,6 +90,9 @@ export default function WorkspaceProjection({
 
     case WorkspaceMode.OVERVIEW:
       return <OverviewWorkspace />;
+
+    case WorkspaceMode.LIBRARY:
+      return <LibraryWorkspace />;
 
     case WorkspaceMode.MANIFOLD:
       return <ManifoldWorkspace />;

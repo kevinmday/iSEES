@@ -391,7 +391,7 @@ function restoreWorkspace(
     }
 
     runtime.deactivate();
-    runtime.setActiveMode("OVERVIEW");
+    runtime.setActiveMode(persisted.operator.activeMode);
     runtime.setFocusMode(false);
     runtime.setComputationalConfiguration({
       activeLayers: [],

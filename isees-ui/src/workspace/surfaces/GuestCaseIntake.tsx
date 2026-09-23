@@ -7,7 +7,7 @@ import { GUEST_WORKING_TITLE_REQUIRED_MESSAGE, submitGuestCase } from "../guestC
 import { useWorkspaceRuntime } from "../runtime/WorkspaceRuntimeContext";
 import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
 
-export default function GuestCaseIntake({ onCancel }: { readonly onCancel: () => void }) {
+export default function GuestCaseIntake({ onCancel, onCreated }: { readonly onCancel: () => void; readonly onCreated?: () => void }) {
   const identity = useOperatorIdentity();
   const runtime = useWorkspaceRuntime();
   const knowledgeObjects = useKnowledgeObjects();
@@ -35,6 +35,8 @@ export default function GuestCaseIntake({ onCancel }: { readonly onCancel: () =>
         ? GUEST_WORKING_TITLE_REQUIRED_MESSAGE
         : firstInvalid ? `Please correct ${result.validation.find(item => item.field === firstInvalid)?.message ?? "the first invalid field"}.` : "Please review the supplied case fields.");
       if (firstInvalid) revealInvalidField(firstInvalid);
+    } else {
+      onCreated?.();
     }
   };
   return <section className="guest-welcome__intake" aria-labelledby="guest-case-title">

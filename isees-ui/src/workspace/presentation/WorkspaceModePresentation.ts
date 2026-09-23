@@ -4,6 +4,7 @@ import {
 
 const MODE_LABELS: Record<WorkspaceMode, string> = {
   [WorkspaceMode.OVERVIEW]: "OVERVIEW",
+  [WorkspaceMode.LIBRARY]: "LIBRARY",
   [WorkspaceMode.MANIFOLD]: "MANIFOLD",
   [WorkspaceMode.COMPARE]: "COMPARE",
   [WorkspaceMode.NARRATIVE]: "NARRATIVE",

@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from isees_uap.api import app
+from isees_uap.api.v1.investigations import ViewState
 from isees_uap.investigations.errors import RepositoryUnavailable
 from isees_uap.investigations.sqlite_repository import SQLiteInvestigationRepository
 from isees_uap.testing.authenticated_route_support import authenticated_route_session
@@ -28,6 +29,11 @@ def payload(key="adopt-1"):
         "viewState": {"activeMode": "RESEARCH", "focusedEventId": "evt-canonical-44",
                       "activeLayers": ["layer:reports"], "temporalContext": "2026-Q3", "investigativeScale": "EVENT"},
     }
+
+
+def test_library_mode_is_an_additive_guest_adoption_literal():
+    value = payload()["viewState"] | {"activeMode": "LIBRARY"}
+    assert ViewState.model_validate(value).activeMode == "LIBRARY"
 
 
 def test_authenticated_non_empty_adoption_is_atomic_durable_and_idempotent(tmp_path):

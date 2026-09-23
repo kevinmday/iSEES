@@ -47,6 +47,8 @@ const MODES = [
 
   WorkspaceMode.OVERVIEW,
 
+  WorkspaceMode.LIBRARY,
+
   WorkspaceMode.MANIFOLD,
 
   WorkspaceMode.COMPARE,

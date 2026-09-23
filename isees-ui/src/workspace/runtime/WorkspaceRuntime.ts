@@ -350,9 +350,9 @@ export class WorkspaceRuntime {
    * Returns the canonical operator-facing eligibility for a
    * Workspace Mode.
    *
-   * OVERVIEW is the only valid mode for a canonical empty
-   * Guest workspace. Every investigative mode requires a real
-   * active Investigation.
+   * OVERVIEW and LIBRARY are valid without an active
+   * Investigation. Every analytical mode requires a real active
+   * Investigation.
    */
   getModeAvailability(
     mode:
@@ -361,6 +361,7 @@ export class WorkspaceRuntime {
 
     if (
       mode === WorkspaceMode.OVERVIEW ||
+      mode === WorkspaceMode.LIBRARY ||
       this.state.session.investigation !==
         undefined
     ) {
@@ -564,6 +565,9 @@ export class WorkspaceRuntime {
       operator: {
 
         ...this.state.operator,
+
+        activeMode:
+          WorkspaceMode.MANIFOLD,
 
         selection:
           undefined,
@@ -1154,7 +1158,7 @@ export class WorkspaceRuntime {
 
     this.state = { ...this.state, status: "ACTIVE",
       session: { workspace, investigation, focusedEvent: candidate.candidateId, artifacts: [] },
-      operator: { ...this.state.operator, activeMode: WorkspaceMode.COMPARE, layoutMode: WorkspaceLayoutMode.NORMAL, selection: undefined },
+      operator: { ...this.state.operator, activeMode: WorkspaceMode.MANIFOLD, layoutMode: WorkspaceLayoutMode.NORMAL, selection: undefined },
       computational: { activeLayers: [], temporalContext: undefined, investigativeScale: undefined },
       revision: this.state.revision + 1 };
     this.notify();
@@ -1201,7 +1205,7 @@ export class WorkspaceRuntime {
       },
       operator: {
         ...this.state.operator,
-        activeMode: WorkspaceMode.OVERVIEW,
+        activeMode: WorkspaceMode.LIBRARY,
         layoutMode: WorkspaceLayoutMode.NORMAL,
         selection: undefined,
       },
@@ -1227,7 +1231,7 @@ export class WorkspaceRuntime {
       ...this.state,
       status: "ACTIVE",
       session: { workspace, investigation: activation.investigation, focusedEvent: workspace.focused_event_id ?? undefined, artifacts: [...workspace.artifacts] },
-      operator: { ...this.state.operator, activeMode: activation.activeMode, layoutMode: WorkspaceLayoutMode.NORMAL, selection: undefined },
+      operator: { ...this.state.operator, activeMode: WorkspaceMode.MANIFOLD, layoutMode: WorkspaceLayoutMode.NORMAL, selection: undefined },
       computational: { activeLayers: [...workspace.active_layers], temporalContext: activation.temporalContext, investigativeScale: activation.investigativeScale },
       revision: this.state.revision + 1,
     };

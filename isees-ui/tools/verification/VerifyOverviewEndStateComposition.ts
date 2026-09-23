@@ -31,16 +31,14 @@ assert(resolveOverviewCompositionKind(projection("ACCOUNT", "NOT_REQUESTED")) ==
 assert(resolveOverviewCompositionKind(null) === "CLOSED", "unsettled authority did not fail closed");
 pass("Guest, New Account, Returning Account, and unresolved compositions are distinct");
 
-const overviewSource = readFileSync(new URL("../../src/workspace/surfaces/GuestWelcomeOverview.tsx", import.meta.url), "utf8");
-assert((overviewSource.match(/<CanonCard key=/g) ?? []).length === 1 && overviewSource.includes("aria-pressed={selected}"), "canonical selection is not an operable production control");
-assert(overviewSource.includes("useOverviewSelection") && overviewSource.includes("Import remains a separate action in the Case Library"), "shared selection/import boundary is not visible");
-assert(!overviewSource.includes("activateInvestigation") && !overviewSource.includes("importInvestigation"), "browsing calls import or activation");
-assert(/<button type="button" disabled>Create Empty Investigation/.test(overviewSource), "planned investigation creation is enabled");
-assert(!overviewSource.includes("function CanonInspector") && !overviewSource.includes("useState"), "center retained a private selection owner or duplicate inspector");
-pass("selection is shared preview, import stays explicit elsewhere, the duplicate inspector is absent, and empty creation is disabled");
+const overviewSource = readFileSync(new URL("../../src/workspace/surfaces/OverviewWorkspace.tsx", import.meta.url), "utf8");
+assert(overviewSource.includes("Enter Library") && overviewSource.includes("Bring Your Own Case"), "Library entry affordances are absent");
+assert(overviewSource.includes("library.enter(true)"), "Bring Your Own Case does not route to Library intake");
+assert(!/CanonCard|OVERVIEW_REPOSITORIES|OverviewInspector|GuestCaseIntake|activateInvestigation|importInvestigation/.test(overviewSource), "Overview retains operational behavior");
+pass("Overview is orientation-only and both operational entries route to Library");
 
 const app = readFileSync(new URL("../../src/App.tsx", import.meta.url), "utf8");
-assert(app.includes("mode === WorkspaceMode.OVERVIEW") && app.includes("InvestigationLibraryRuntimeProvider"), "OVERVIEW provider boundary is absent");
+assert(app.includes("mode === WorkspaceMode.OVERVIEW || mode === WorkspaceMode.LIBRARY") && app.includes("InvestigationLibraryRuntimeProvider"), "OVERVIEW/LIBRARY provider boundary is absent");
 for (const mode of ["MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "STUDIO"]) {
   assert(!app.includes(`mode === WorkspaceMode.${mode}\n                              ? (\n                                <InvestigationLibraryRuntimeProvider>`), `${mode} entered the library provider boundary`);
 }

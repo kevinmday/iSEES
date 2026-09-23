@@ -6,7 +6,7 @@ import type { WorkspaceMode } from "../../workspace/runtime/WorkspaceRuntimeType
 import type { Investigation } from "../investigationTypes.ts";
 
 export const OWNED_ACTIVATION_SCHEMA_VERSION = "owned-investigation-activation/v1";
-const MODES = new Set(["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "INTENTION", "RESEARCH", "LAYERS"]);
+const MODES = new Set(["OVERVIEW", "LIBRARY", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "INTENTION", "RESEARCH", "LAYERS"]);
 export type ContinuityStateCode = "SESSION_INITIALIZING" | "AUTHENTICATION_REQUIRED" | "SESSION_EXPIRED" | "OWNED_LIBRARY_EMPTY" | "NO_ACTIVE_INVESTIGATION" | "RESTORING_LAST_ACTIVE" | "ACTIVATION_READY" | "ACTIVATION_STALE" | "ACTIVATION_INVALID" | "INVESTIGATION_NOT_FOUND" | "LOGOUT_IN_PROGRESS" | "ACCOUNT_BOUNDARY_RESET";
 export interface AccountSessionProjection { readonly researcherId: string; readonly email: string; readonly sessionExpiresAt: string; }
 type Node = Readonly<{ id: string; kind: "CANONICAL_EVENT" | "NOTE" | "QUESTION"; canonicalEventId: string | null; title: string }>;
@@ -114,7 +114,7 @@ function validateAdopted(op: Readonly<Record<string, unknown>>, item: Readonly<R
 function base(a: OwnedActivationAggregate, artifacts: Artifact[]): Investigation { return { id: a.investigationId, name: a.title, description: a.objective ?? "", createdAt: a.createdAt, updatedAt: a.modifiedAt, createdBy: "AUTHENTICATED_RESEARCHER", status: "ACTIVE", workspace: { id: a.operationalState.workspaceId, name: a.title, description: a.objective ?? "", imported_events: [], focused_event_id: null, investigations: [], artifacts, active_layers: [], created_at: a.createdAt }, revisions: [] }; }
 export function materializeEmptyOwnedInvestigation(a: OwnedActivationAggregate & { aggregateState: "EMPTY" }): Investigation { const i = base(a, []); i.workspace = Object.freeze(i.workspace); i.revisions = Object.freeze([]) as unknown as []; return Object.freeze(i); }
 export function materializeOwnedActivation(a: OwnedActivationAggregate): MaterializedOwnedActivation {
-  if (a.aggregateState === "EMPTY") return Object.freeze({ investigation: materializeEmptyOwnedInvestigation(a), activeMode: "OVERVIEW", researchDesk: Object.freeze({ entries: Object.freeze([]) }) as unknown as ResearchDesk });
+  if (a.aggregateState === "EMPTY") return Object.freeze({ investigation: materializeEmptyOwnedInvestigation(a), activeMode: "LIBRARY", researchDesk: Object.freeze({ entries: Object.freeze([]) }) as unknown as ResearchDesk });
   const op = a.operationalState, canonical = op.workspace.nodes.filter(n => n.kind === "CANONICAL_EVENT").map(n => n.canonicalEventId!);
   const artifacts: Artifact[] = op.artifacts.filter(x => x.kind === "NOTE").map(x => ({ id: x.artifactId, title: x.title, artifact_type: "ANNOTATION", repository: "WORKSPACE", description: x.content, derived_from: [...x.canonicalSourceIds], created_at: a.modifiedAt }));
   const nodes = op.workspace.nodes.map(n => Object.freeze({ id: n.id, label: n.title, type: n.kind === "CANONICAL_EVENT" ? "EVENT" as const : n.kind === "QUESTION" ? "HYPOTHESIS" as const : "NARRATIVE" as const, metadata: Object.freeze(n.canonicalEventId ? { sourceId: n.canonicalEventId } : { adoptedKind: n.kind }) }));

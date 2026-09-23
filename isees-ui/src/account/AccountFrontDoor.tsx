@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type MutableRefObject, type ReactNode } from "react";
 import { createAccountContinuityApi } from "../investigation/continuity/AccountContinuityApi";
 import { AccountWorkspaceContinuityCoordinator } from "../investigation/continuity/AccountWorkspaceContinuityCoordinator";
@@ -20,6 +21,7 @@ import { captureResetCapability, RESET_PATH } from "./ResetCapability";
 import IseesIntroductionGate from "../onboarding/components/IseesIntroductionGate";
 import { hasAcknowledgedIseesIntroduction } from "../onboarding/runtime/OnboardingAcknowledgement";
 import "./AccountFrontDoor.css";
+import { AccountInvestigationLibraryProvider } from "./AccountInvestigationLibraryContext";
 
 type Phase = "restoring" | "anonymous" | "loading-library" | "ready" | "working";
 const RESET_INVALID_MESSAGE = "This password reset link is invalid or has expired.";
@@ -307,9 +309,10 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
   if (phase === "restoring") return <main className="account-door account-door--center" aria-busy="true"><p role="status">Restoring your researcher account…</p></main>;
   if ((preservation.current.phase === "AWAITING_DECISION" || preservation.current.phase === "PRESERVING" || preservation.current.phase === "RECOVERABLE_ERROR") && principal)
     return <PreservationDecision headingRef={preservationHeading} phase={preservation.current.phase} onPreserve={preserveGuestInvestigation} onDiscard={finishWithoutPreserving} />;
-  if (identityState.identity?.kind === "GUEST") return <IseesIntroductionGate identityKind="GUEST"><div className="guest-session-shell"><GuestBar onAccountEntry={enterAccountDoorFromGuest} /><div className="guest-session-shell__workspace">{children}</div></div></IseesIntroductionGate>;
+  if (identityState.identity?.kind === "GUEST") return <IseesIntroductionGate identityKind="GUEST"><AccountInvestigationLibraryProvider value={{ available: false, items: [], activeInvestigationId: null, busy: false, error: "", create: async () => undefined, open: async () => undefined }}><div className="guest-session-shell"><GuestBar onAccountEntry={enterAccountDoorFromGuest} /><div className="guest-session-shell__workspace">{children}</div></div></AccountInvestigationLibraryProvider></IseesIntroductionGate>;
   if (!principal) return <AnonymousDoor key={`${anonymousMode}-${openRecovery}`} initialMode={anonymousMode} initialRecovery={openRecovery} busy={phase === "working"} error={error} confirmation={resetConfirmation} onSubmit={authenticate} onContinueAsGuest={preservation.current.candidate ? cancelAuthentication : continueAsGuest} />;
-  return <IseesIntroductionGate identityKind="ACCOUNT" onEntered={enterAccountWorkspace}><div className="account-authenticated-shell"><AccountBar principal={principal} items={items} activeInvestigationId={activeInvestigationId} phase={phase} error={error} onCreate={create} onOpen={open} onLogout={logout} /><div className="account-authenticated-shell__workspace">{children}</div></div></IseesIntroductionGate>;
+  const busy = phase === "working" || phase === "loading-library";
+  return <IseesIntroductionGate identityKind="ACCOUNT" onEntered={enterAccountWorkspace}><AccountInvestigationLibraryProvider value={{ available: true, items, activeInvestigationId, busy, error, create, open }}><div className="account-authenticated-shell"><AccountBar principal={principal} busy={busy} onLogout={logout} /><div className="account-authenticated-shell__workspace">{children}</div></div></AccountInvestigationLibraryProvider></IseesIntroductionGate>;
 }
 
 function PreservationDecision({ headingRef, phase, onPreserve, onDiscard }: { headingRef: React.RefObject<HTMLHeadingElement | null>; phase: string; onPreserve(): Promise<void>; onDiscard(): Promise<void> }) {
@@ -385,12 +388,6 @@ function GuestBar({ onAccountEntry }: { onAccountEntry(mode: "create" | "signin"
   return <aside className="guest-session-bar" aria-label="Guest session status"><div className="guest-session-bar__message"><p><strong>iSEES Guest session</strong> — your work is not being saved. Create an account to preserve this investigation.</p>{lifecycle.recoveryNotice && <p className="guest-session-bar__recovery" role="alert">{lifecycle.recoveryNotice}</p>}</div><div><button type="button" onClick={() => onAccountEntry("signin")}>Sign in</button><button type="button" onClick={() => onAccountEntry("create")}>Create account</button></div></aside>;
 }
 
-function AccountBar({ principal, items, activeInvestigationId, phase, error, onCreate, onOpen, onLogout }: { principal: AccountSessionProjection; items: readonly OwnedInvestigationSummary[]; activeInvestigationId: string | null; phase: Phase; error: string; onCreate(title: string): Promise<void>; onOpen(id: string): Promise<void>; onLogout(): Promise<void> }) {
-  const busy = phase === "working" || phase === "loading-library";
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (busy) return;
-    const form = event.currentTarget; const title = String(new FormData(form).get("title")).trim();
-    if (title) { void onCreate(title); form.reset(); }
-  }
-  return <aside className="account-library" aria-label="Researcher account and investigation library"><header><div><span>Researcher account</span><strong>{principal.email}</strong></div><button type="button" disabled={busy} onClick={() => void onLogout()}>Sign out</button></header><details open={!activeInvestigationId}><summary>Your investigations ({items.length})</summary><form className="account-library__create" onSubmit={submit} aria-busy={busy}><label htmlFor="new-investigation-title">Investigation title</label><div><input id="new-investigation-title" name="title" maxLength={200} disabled={busy} required /><button className="account-door__primary" disabled={busy}>Create investigation</button></div></form>{phase === "loading-library" ? <p role="status">Loading your investigations…</p> : items.length === 0 ? <p>You have no investigations yet. Create one when you’re ready to begin.</p> : <ul>{items.map(item => <li key={item.investigationId}><span>{item.title}</span><button type="button" disabled={busy} onClick={() => void onOpen(item.investigationId)}>{activeInvestigationId === item.investigationId ? "Continue investigation" : "Open investigation"}</button></li>)}</ul>}<p className="account-door__error" role="alert" aria-live="polite">{error}</p></details></aside>;
+function AccountBar({ principal, busy, onLogout }: { principal: AccountSessionProjection; busy: boolean; onLogout(): Promise<void> }) {
+  return <aside className="account-library" aria-label="Researcher account"><header><div><span>Researcher account</span><strong>{principal.email}</strong></div><button type="button" disabled={busy} onClick={() => void onLogout()}>Sign out</button></header></aside>;
 }

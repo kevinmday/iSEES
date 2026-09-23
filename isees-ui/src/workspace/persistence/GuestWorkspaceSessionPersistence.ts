@@ -58,6 +58,7 @@ import type {
   GuestWorkspaceSessionSnapshot,
 } from "./GuestWorkspaceSessionPersistenceTypes.ts";
 import { migrateResearchAnchor } from "../../research/ResearchAnchorContract.ts";
+import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes.ts";
 
 
 // ============================================================
@@ -189,7 +190,7 @@ function isPersistedWorkspaceOperator(
     isString(
       value.activeMode,
     ) &&
-    value.activeMode.length > 0 &&
+    Object.values(WorkspaceMode).includes(value.activeMode as WorkspaceMode) &&
     isString(
       value.layoutMode,
     ) &&
@@ -307,13 +308,13 @@ function isPersistedWorkspaceState(
     return false;
   }
 
-  // A canonical empty Guest session is an OVERVIEW/normal shell
+  // A canonical empty Guest session is an OVERVIEW or LIBRARY normal shell
   // with no computational configuration. It is not a partially
   // active investigation.
   if (
     value.investigation === undefined &&
     (
-      value.operator.activeMode !== "OVERVIEW" ||
+      !["OVERVIEW", "LIBRARY"].includes(value.operator.activeMode) ||
       value.operator.layoutMode !== "NORMAL" ||
       !Array.isArray(value.computational.activeLayers) ||
       value.computational.activeLayers.length !== 0 ||

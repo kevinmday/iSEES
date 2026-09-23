@@ -12,7 +12,7 @@ import { adaptKnowledgeTopology } from "../../src/knowledge/topology/KnowledgeTo
 import { resolveActiveOperationalGraphProjection } from "../../src/investigation/revision/OperationalGraphRevision.ts";
 import { WorkspaceRuntimeProvider } from "../../src/workspace/runtime/WorkspaceRuntimeContext.tsx";
 import { workspaceRuntime } from "../../src/workspace/runtime/WorkspaceRuntime.ts";
-import { WorkspaceSelectionKind } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
+import { WorkspaceMode, WorkspaceSelectionKind } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
 import { KnowledgeObjectRuntimeProvider } from "../../src/knowledge/runtime/KnowledgeObjectRuntimeContext.tsx";
 import { ResolveRuntimeProvider, useResolveRuntimeState } from "../../src/resolve/runtime/ResolveRuntimeContext.tsx";
 import { ResolveRuntime } from "../../src/resolve/runtime/ResolveRuntime.ts";
@@ -181,19 +181,20 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
     expect(target?.metadata.title).toBe("Nimitz Tic Tac Encounter");
     if (!target) throw new Error("System Canon comparison target E-TICTAC-2004 is unavailable.");
     workspaceRuntime.activateGuestCandidateInvestigation(created.investigation);
+    expect(workspaceRuntime.getActiveMode()).toBe(WorkspaceMode.MANIFOLD);
     workspaceRuntime.setSelection({ kind: WorkspaceSelectionKind.COMPARISON_TARGET, eventId: comparisonEventId, knowledgeObjectId: target.identity.id });
 
     const executeSpy = vi.spyOn(ResolveRuntime.prototype, "execute");
     render(providers(createElement("div", null,
       createElement(ResolveStateProbe, { onState: state => { observedResolveState = state; } }), createElement(ManifoldProjectionStatus), createElement(ManifoldToolbar, { onAction: () => undefined }))));
-    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
-    await waitFor(() => expect(screen.getByText("RESOLVE COMPLETED")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: "COMPUTE RELATIONSHIPS" }));
+    await waitFor(() => expect(screen.getAllByText("RESULT CURRENT").length).toBeGreaterThan(0));
     expect(executeSpy).toHaveBeenCalledTimes(1);
     const resolveResult = executeSpy.mock.results[0]?.value;
     if (!resolveResult) throw new Error("Production Resolve command returned no result.");
     expect(resolveResult.candidateEvaluations.evaluations).toHaveLength(6);
     expect(observedResolveState?.currentExecution?.result?.executionId).toBe(resolveResult.executionId);
-    expect(screen.getByText(/RESOLVE: SYNCHRONIZED/)).toBeTruthy();
+    expect(screen.getByText(/EVENT MANIFOLD: GRAPH/)).toBeTruthy();
 
     const selected = workspaceRuntime.getSelection();
     expect(selected?.kind).toBe(WorkspaceSelectionKind.CANDIDATE);
@@ -287,7 +288,7 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
     console.log(`guest edge count: ${guestEdges.length}`);
     console.log(`Resolve executions: ${executeSpy.mock.calls.length}`);
     console.log(`Resolve candidates: ${resolveResult.candidateEvaluations.evaluations.length}`);
-    console.log(`Resolve synchronized: ${screen.getByText(/RESOLVE: SYNCHRONIZED/).textContent?.includes("SYNCHRONIZED") === true}`);
+    console.log(`Resolve synchronized: ${screen.getByText(/EVENT MANIFOLD: GRAPH/).textContent?.includes("SYNCHRONIZED") === true}`);
     console.log("LAYERS pair preserved: true");
     console.log("Canon mutations: 0");
     const strictViolations = [...missingTypes, ...missingRelationships, ...missingLineageRequirements];

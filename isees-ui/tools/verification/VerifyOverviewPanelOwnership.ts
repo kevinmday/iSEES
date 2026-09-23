@@ -18,16 +18,16 @@ const authority = (principalId: string, revision = 1): OverviewSelectionAuthorit
 const ready = (investigationId = "case:one"): OverviewSelectionLibrary => Object.freeze({ status: InvestigationLibraryStatus.READY, summaries: Object.freeze([Object.freeze({ investigationId, title: "Owned case" })]) });
 
 const app = source("../../src/App.tsx");
-assert(app.includes("mode === WorkspaceMode.OVERVIEW\n    ? <OverviewCaseIntake />"), "OVERVIEW does not route left to OverviewCaseIntake");
-assert(app.includes("mode === WorkspaceMode.OVERVIEW\n    ? <OverviewInspector />"), "OVERVIEW does not route right to OverviewInspector");
+assert(app.includes("Learn the iSEES research flow, then enter LIBRARY"), "OVERVIEW left panel is not orientational");
+assert(app.includes("Browsing, intake, previews, and investigation management are owned by LIBRARY"), "OVERVIEW right panel does not disclose the Library boundary");
 for (const component of ["LayersLaboratoryNavigator", "TimelineNavigator", "IntentionNavigator", "InvestigationControl", "LayersExperimentalIntelligence", "TimelineInspector", "IntentionInspector", "RightPanel"]) assert(app.includes(component), `${component} branch was removed`);
 assert(/<InvestigationLibraryRuntimeProvider>[\s\S]*<OverviewSelectionProvider>[\s\S]*<OperatorLayout \/>/.test(app), "all OVERVIEW slots do not share the mode-local owners");
-assert((app.match(/<InvestigationLibraryRuntimeProvider>/g) ?? []).length === 1 && app.includes("mode === WorkspaceMode.OVERVIEW"), "library provider is not OVERVIEW-only");
-pass("OVERVIEW panel routing and mode-local provider ownership are explicit while existing branches remain");
+assert((app.match(/<InvestigationLibraryRuntimeProvider>/g) ?? []).length === 1 && app.includes("mode === WorkspaceMode.OVERVIEW || mode === WorkspaceMode.LIBRARY"), "shared preview provider is not bounded to OVERVIEW/LIBRARY");
+pass("OVERVIEW orientation panels and shared Library preview ownership are explicit while existing branches remain");
 
 const layout = source("../../src/layout/MainLayout.tsx");
-assert(layout.includes('overviewMode ? "Case Intake"') && layout.includes('overviewMode ? "Overview Inspector"'), "OVERVIEW instrument labels are absent");
-assert(layout.includes("Inspect public Canon records, repository orientation, and owned investigation summaries"), "front-door inspection description is absent");
+assert(layout.includes('overviewMode ? "Orientation"') && layout.includes('overviewMode ? "Overview Boundary"'), "OVERVIEW orientation labels are absent");
+assert(layout.includes("enter Library for operational investigation work"), "front-door Library direction is absent");
 assert(layout.includes("!studioMode") && !layout.includes("overviewMode && <Research"), "Research Inbox shell visibility expanded into OVERVIEW");
 pass("MainLayout labels OVERVIEW without changing Studio suppression");
 
@@ -58,12 +58,10 @@ for (const selection of [canon, owned, Object.freeze({ kind: "EXTERNAL_REPOSITOR
 }
 pass("selection variants contain public presentation data only");
 
-const center = source("../../src/workspace/surfaces/GuestWelcomeOverview.tsx");
-assert(!center.includes("useState") && !center.includes("function CanonInspector"), "center still owns selection or duplicate Canon inspector");
-assert(center.includes("overview.selectCanonEvent") && center.includes("overview.selectRepository"), "center cards do not publish shared selection");
-assert(!/activateInvestigation|importInvestigation|setWorkspaceMode/.test(center), "center selection imports, activates, or changes mode");
-assert(/<button type="button" disabled>Create Empty Investigation/.test(center), "Create Empty Investigation is enabled");
-pass("center selection is shared, non-mutating, and has no duplicate inspector");
+const center = source("../../src/workspace/surfaces/OverviewWorkspace.tsx");
+assert(center.includes("Enter Library") && center.includes("Bring Your Own Case"), "Overview entry actions are absent");
+assert(!/selectCanonEvent|selectRepository|OverviewInspector|GuestCaseIntake/.test(center), "Overview retains operational catalog, inspector, or intake");
+pass("Overview center is orientation-only and routes operational work to Library");
 
 const model = source("../../src/workspace/surfaces/overview/OverviewEndStateModel.ts");
 assert(model.includes('"E-TICTAC-2004", "E-ROOSEVELT-2015", "E-RENDLESHAM-1980"'), "hydrated Canon IDs changed");

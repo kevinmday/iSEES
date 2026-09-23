@@ -83,6 +83,9 @@ export const WorkspaceMode = {
   OVERVIEW:
     "OVERVIEW",
 
+  LIBRARY:
+    "LIBRARY",
+
   MANIFOLD:
     "MANIFOLD",
 

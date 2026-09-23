@@ -57,6 +57,9 @@ import InvestigationWorkspace
 import OverviewWorkspace
   from "../workspace/surfaces/OverviewWorkspace";
 
+import LibraryWorkspace
+  from "../workspace/surfaces/LibraryWorkspace";
+
 import ManifoldWorkspace
   from "../workspace/surfaces/ManifoldWorkspace";
 
@@ -108,6 +111,12 @@ function ActiveWorkspace() {
 
       return (
         <OverviewWorkspace />
+      );
+
+    case WorkspaceMode.LIBRARY:
+
+      return (
+        <LibraryWorkspace />
       );
 
     case WorkspaceMode.MANIFOLD:

@@ -41,7 +41,7 @@ assert.equal(GUIDE_SEMANTIC_TARGET_SCHEMA_VERSION, "1.0");
 assert.equal(GUIDE_LESSON_PREFERENCE_SCHEMA_ID, "isees-guide-lesson-preference");
 assert.equal(GUIDE_LESSON_PREFERENCE_SCHEMA_VERSION, "1.0");
 
-assert.deepEqual(values(WorkspaceMode), ["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"]);
+assert.deepEqual(values(WorkspaceMode), ["OVERVIEW", "LIBRARY", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"]);
 assert.deepEqual(values(GuideEpistemicClassification), ["CANONICAL", "CANDIDATE", "EXPERIMENTAL", "DERIVED", "NON_CANONICAL", "UNRESOLVED", "UNAVAILABLE", "PUBLISHED", "COLLECTED", "INCOMING", "UNASSIGNED"]);
 assert.equal(DEFAULT_GUIDE_PRESENTATION_CLASSIFICATION, GuidePresentationClassification.CLOSED, "Guide must be closed by default");
 

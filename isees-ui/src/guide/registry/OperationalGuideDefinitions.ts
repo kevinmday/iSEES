@@ -10,9 +10,16 @@ type Content = Readonly<{ purpose: string; startHere: string; steps: readonly st
 
 const CONTENT: Readonly<Record<WorkspaceMode, Content>> = {
   [WorkspaceMode.OVERVIEW]: {
-    purpose: "Understand iSEES and select or open an investigation.", startHere: "Review the introduction, then choose an available investigation in the Investigation Library.",
-    steps: ["Review the introductory explanation of iSEES.", "Choose an available investigation from the Investigation Library.", "Confirm the focused event and investigation status.", "Open MANIFOLD to inspect the investigation topology."],
-    nextMode: "MANIFOLD", nextModeReason: "Inspect the selected investigation's topology and canonical relationships.", boundary: "Unavailable investigations cannot be opened; follow the availability shown by the application.",
+    purpose: "Understand what iSEES is, why deterministic investigative research matters, and where to begin.", startHere: "Review the orientation, open System Briefing if useful, then enter LIBRARY for operational work.",
+    steps: ["Review the product purpose and research philosophy.", "Use the guided orientation or System Briefing for more context.", "Enter LIBRARY to browse, preview, create, open, or resume an investigation."],
+    nextMode: "LIBRARY", nextModeReason: "LIBRARY is the authoritative investigation-selection and case-management surface.", boundary: "OVERVIEW does not browse records, activate investigations, run computation, or mutate research state.",
+  },
+  [WorkspaceMode.LIBRARY]: {
+    purpose: "Choose, preview, create, or resume an investigation without changing active investigative state.",
+    startHere: "Browse or search existing work and records; selection is preview-only until you choose an explicit open, resume, or create action.",
+    steps: ["Search or filter the available records.", "Select an item to preview its authority and available details without changing the workspace.", "Start or bring a new case, or explicitly open or resume qualified work.", "Keep empty saved investigations in LIBRARY and continue setup.", "Use MANIFOLD for deterministic relationship analysis after activation."],
+    nextMode: "MANIFOLD after explicit qualified activation", nextModeReason: "MANIFOLD is the first deterministic analytical surface for a populated investigation.", boundary: "LIBRARY does not mutate protected Canon through selection, publish research, run Resolve, or compute relationships.",
+    authenticationNote: "Guest work remains browser-session scoped; authenticated saved work uses the existing account ownership, authorization, and persistence authority.",
   },
   [WorkspaceMode.MANIFOLD]: {
     purpose: "Inspect the deterministic investigation topology and its canonical objects and relationships.", startHere: "Single-click a node or edge and review it in Selection Intelligence.",

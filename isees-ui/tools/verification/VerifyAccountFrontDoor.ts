@@ -15,19 +15,19 @@ const originPolicy = readFileSync(resolve(root, "src/api/ApiOrigin.ts"), "utf8")
 const app = readFileSync(resolve(root, "src/App.tsx"), "utf8");
 const identityRuntime = readFileSync(resolve(root, "src/identity/runtime/OperatorIdentityRuntime.ts"), "utf8");
 const libraryProvider = readFileSync(resolve(root, "src/investigation/library/InvestigationLibraryRuntimeContext.tsx"), "utf8");
+const librarySurface = readFileSync(resolve(root, "src/workspace/surfaces/LibraryWorkspace.tsx"), "utf8");
 const modeBar = readFileSync(resolve(root, "src/components/workspace/WorkspaceModeBar.tsx"), "utf8");
 const vite = readFileSync(resolve(root, "vite.config.ts"), "utf8");
 function requireText(source: string, text: string, label: string) { if (!source.includes(text)) throw new Error(`Missing ${label}`); }
 
 for (const [text, label] of [
   ["Create account", "account creation"], ["Sign in", "sign in"], ["Researcher account", "identity label"],
-  ["Your investigations", "owned library"], ["Create investigation", "creation command"],
-  ["Open investigation", "open command"], ["Sign out", "logout command"],
-  ["You have no investigations yet", "honest empty state"], ["Restoring your researcher account", "session restoration state"],
+  ["Sign out", "logout command"], ["Restoring your researcher account", "session restoration state"],
   ["Continue as guest", "guest entry choice"],
   ["Explore the complete iSEES workspace. Your work will not be saved after this guest session.", "guest capability and persistence explanation"],
   ["Guest session", "guest status"], ["your work is not being saved", "guest non-persistence warning"],
 ] as const) requireText(ui, text, label);
+for (const [text, label] of [["Your investigations", "owned library"], ["Start New Investigation", "creation command"], ["Resume Investigation", "open command"]] as const) requireText(librarySurface, text, label);
 for (const forbidden of ["Nimitz", "Tic Tac", "sampleReport", "defaultInvestigation"]) {
   if (ui.includes(forbidden) || api.includes(forbidden)) throw new Error(`Canonical/default injection reference: ${forbidden}`);
 }
@@ -63,7 +63,7 @@ requireText(ui, "guestWorkspaceSessionLifecycle.stop()", "guest-to-account lifec
 requireText(ui, "clearGuestWorkspaceSession()", "guest-to-account temporary-state discard");
 requireText(ui, "coordinator.beginNewPrincipalEpoch()", "cross-principal stale request isolation");
 requireText(libraryProvider, 'authority?.kind === "ACCOUNT" ? authority : null', "account-only owned library authority");
-for (const mode of ["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"]) {
+for (const mode of ["OVERVIEW", "LIBRARY", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"]) {
   requireText(modeBar, `WorkspaceMode.${mode}`, `${mode} navigation`);
 }
 assert.equal((identityRuntime.match(/continueAsGuest\(recoveryIdentity\?: OperatorIdentity\): void/g) ?? []).length, 1, "exactly one guest identity authority must exist");
