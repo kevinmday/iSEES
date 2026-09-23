@@ -411,7 +411,7 @@ export default function CompareWorkspace() {
   ) {
     return (
       <main className="compare-workspace">
-        <EmptyState title="Resolve candidate population unavailable" guidance="Resolve must complete before a pair can be inspected." detail={projectionState.kind === "ERROR" ? projectionState.reason : undefined} />
+        <EmptyState title="Relationship candidate population unavailable" guidance="Relationship analysis must complete before a pair can be inspected." detail={projectionState.kind === "ERROR" ? projectionState.reason : undefined} />
       </main>
     );
   }
@@ -428,7 +428,7 @@ export default function CompareWorkspace() {
     case ComparePairProjectionStatus.NO_FOCUSED_EVENT:
       return <main className="compare-workspace"><EmptyState title="No focused EVENT" guidance="Open a canonical case before entering pair comparison." /></main>;
     case ComparePairProjectionStatus.NO_CANDIDATE_SELECTION:
-      return <main className="compare-workspace"><EmptyState title="No Resolve candidate selected" guidance="Select a Resolve candidate for deterministic pair inspection. COMPARE will not fabricate or automatically select a case." detail={`Focused EVENT: ${projectionState.result.focusedEventId}`} /></main>;
+      return <main className="compare-workspace"><EmptyState title="No relationship candidate selected" guidance="Select a relationship candidate for deterministic pair inspection. COMPARE will not fabricate or automatically select a case." detail={`Focused EVENT: ${projectionState.result.focusedEventId}`} /></main>;
     case ComparePairProjectionStatus.FOCUSED_EVENT_KNOWLEDGE_UNAVAILABLE:
       return <main className="compare-workspace"><EmptyState title="Focused EVENT Knowledge unavailable" guidance="The I1B projection cannot resolve canonical Knowledge for the focused EVENT. Case A has not been fabricated." detail={`Focused EVENT: ${projectionState.result.focusedEventId}`} /></main>;
     case ComparePairProjectionStatus.READY:

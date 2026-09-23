@@ -287,6 +287,10 @@ export interface WorkspaceCandidateSelection {
   kind:
     typeof WorkspaceSelectionKind.CANDIDATE;
 
+  /** Exact Resolve execution that produced the inspected evaluation. */
+  executionId?:
+    string;
+
   candidateId:
     string;
 

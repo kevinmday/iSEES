@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -90,7 +90,7 @@ describe("composed MANIFOLD Resolve workspace", () => {
       clientHeight: { configurable: true, get() { return 600; } },
       offsetWidth: { configurable: true, get() { return this.dataset.manifoldInstrument === "manifold-map" ? 238 : 142; } },
       offsetHeight: { configurable: true, get() {
-        if (this.dataset.manifoldInstrument === "computation") return this.querySelector("[data-computation-feedback]")?.textContent?.includes("RESOLVE COMPLETED") ? 250 : 160;
+        if (this.dataset.manifoldInstrument === "computation") return this.querySelector("[data-computation-feedback]")?.textContent?.includes("RESULT CURRENT") ? 250 : 160;
         if (this.dataset.manifoldInstrument === "manifold-map") return 190;
         return this.dataset.manifoldInstrument === "camera" ? 150 : 80;
       } },
@@ -98,25 +98,48 @@ describe("composed MANIFOLD Resolve workspace", () => {
   });
   afterEach(() => { cleanup(); workspaceRuntime.deactivate(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  it.each([
-    ["left Navigator", () => document.querySelector<HTMLButtonElement>('[data-guide-id="manifold.resolve.execute"]')!],
-    ["floating COMPUTATION", () => document.querySelector<HTMLButtonElement>('[data-manifold-instrument="computation"] button')!],
-  ])("executes once through the authoritative command from the %s control", async (_label, resolveButton) => {
+  it("exposes one authoritative Resolve control in the canvas Computation instrument", async () => {
     const { created, target } = establishPair();
     const graphBefore = resolveActiveOperationalGraphProjection(created.investigation);
     const execution = vi.spyOn(ResolveRuntime.prototype, "execute");
     render(providers());
-    expect(screen.getByText("READY TO RESOLVE")).toBeTruthy();
-    expect(screen.getAllByText(/RESOLVE: UNRESOLVED/)).toHaveLength(2);
+    const navigator = document.querySelector("aside")!;
+    const computation = document.querySelector<HTMLElement>('[data-manifold-instrument="computation"]')!;
+    expect(within(navigator).queryByRole("button", { name: /resolve/i })).toBeNull();
+    expect(within(navigator).getByText(/Configure the deterministic context/)).toBeTruthy();
+    expect(within(navigator).getByText(/Compute non-canonical relationship candidates for inspection/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "COMPUTE RELATIONSHIPS" })).toHaveLength(1);
+    expect(within(computation).getByRole("button", { name: "COMPUTE RELATIONSHIPS" })).toBeTruthy();
+    expect(screen.getByText("ANALYSIS READY")).toBeTruthy();
+    expect(screen.getAllByText(/· ANALYSIS READY/)).toHaveLength(2);
+    expect(within(computation).getByRole("button", { name: "CLEAR MANIFOLD RESULT" })).toBeTruthy();
+    const projection = document.querySelector<HTMLElement>('[data-manifold-instrument="projection"]')!;
+    expect(within(projection).getByText("VIEW")).toBeTruthy();
+    expect(within(projection).getByRole("button", { name: "COLLAPSE" })).toBeTruthy();
 
-    await userEvent.click(resolveButton());
-    await waitFor(() => expect(screen.getByText("RESOLVE COMPLETED")).toBeTruthy());
+    await userEvent.click(within(computation).getByRole("button", { name: "COMPUTE RELATIONSHIPS" }));
+    await waitFor(() => expect(screen.getByText("RESULT CURRENT")).toBeTruthy());
     expect(execution).toHaveBeenCalledTimes(1);
-    expect(screen.getAllByText(/RESOLVE: SYNCHRONIZED/)).toHaveLength(2);
+    expect(screen.getAllByText(/· RESULT CURRENT/)).toHaveLength(2);
     expect(screen.getByText(/Candidates produced: 6/)).toBeTruthy();
     expect(screen.getByText(`Comparison case: ${target.metadata.title}`)).toBeTruthy();
     expect(resolveActiveOperationalGraphProjection(workspaceRuntime.getActiveInvestigation()!).nodes).toHaveLength(graphBefore.nodes.length);
     expect(resolveActiveOperationalGraphProjection(workspaceRuntime.getActiveInvestigation()!).edges).toHaveLength(graphBefore.edges.length);
+
+    const layersBefore = workspaceRuntime.getActiveLayers();
+    const temporalBefore = workspaceRuntime.getTemporalContext();
+    const scaleBefore = workspaceRuntime.getInvestigativeScale();
+    for (const [change, restore] of [
+      [() => workspaceRuntime.setActiveLayers([...layersBefore, "TEMPORAL"]), () => workspaceRuntime.setActiveLayers(layersBefore)],
+      [() => workspaceRuntime.setTemporalContext({ verification: "changed" }), () => workspaceRuntime.setTemporalContext(temporalBefore)],
+      [() => workspaceRuntime.setInvestigativeScale({ verification: "changed" }), () => workspaceRuntime.setInvestigativeScale(scaleBefore)],
+    ] as const) {
+      act(change);
+      await waitFor(() => expect(screen.getAllByText(/· RESULT OUT OF DATE/)).toHaveLength(2));
+      expect(execution).toHaveBeenCalledTimes(1);
+      act(restore);
+      await waitFor(() => expect(screen.getAllByText(/· RESULT CURRENT/)).toHaveLength(2));
+    }
 
     const notificationsBefore = TestResizeObserver.callbacks.length;
     act(() => { for (const callback of TestResizeObserver.callbacks) callback([], {} as ResizeObserver); });
@@ -130,8 +153,8 @@ describe("composed MANIFOLD Resolve workspace", () => {
     });
 
     const graphSnapshot = JSON.stringify(resolveActiveOperationalGraphProjection(workspaceRuntime.getActiveInvestigation()!));
-    await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
-    expect(screen.queryByText("RESOLVE COMPLETED")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "COLLAPSE" }));
+    expect(screen.queryByText("RESULT CURRENT")).toBeNull();
     expect(JSON.stringify(resolveActiveOperationalGraphProjection(workspaceRuntime.getActiveInvestigation()!))).toBe(graphSnapshot);
     expect(workspaceRuntime.getSelection()).toMatchObject({ kind: WorkspaceSelectionKind.CANDIDATE, rightKnowledgeObjectId: target.identity.id });
   });

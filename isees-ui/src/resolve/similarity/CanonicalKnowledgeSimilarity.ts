@@ -724,6 +724,17 @@ function computeAggregateSimilarity(
           dimension.dimension,
       ),
 
+    weightedNumerator:
+      weightedTotal,
+
+    weightedContributions:
+      available.map(dimension => ({
+        dimension: dimension.dimension,
+        similarity: dimension.similarity,
+        configuredWeight: dimension.weight,
+        weightedContribution: dimension.weight * dimension.similarity,
+      })),
+
   };
 
 }

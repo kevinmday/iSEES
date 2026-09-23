@@ -27,6 +27,11 @@ from "react";
 import { useResolveExecutionCommand }
 from "../../resolve/runtime/useResolveExecutionCommand";
 
+import {
+  ManifoldProjectionStatusValue,
+  useManifoldProjectionStatus,
+} from "../../components/workspace/ManifoldProjectionStatus";
+
 // ============================================================
 // ACTIONS
 // ============================================================
@@ -124,6 +129,9 @@ export default function ManifoldToolbar({
   const resolveCommand =
     useResolveExecutionCommand();
 
+  const projection =
+    useManifoldProjectionStatus();
+
   const [feedbackCollapsed, setFeedbackCollapsed] =
     useState(false);
 
@@ -144,12 +152,14 @@ export default function ManifoldToolbar({
 >
 
         <InstrumentButton
-          label="Resolve"
+          label={projection.status === ManifoldProjectionStatusValue.STALE
+            ? "RECOMPUTE RELATIONSHIPS"
+            : "COMPUTE RELATIONSHIPS"}
           action="RESOLVE"
           onAction={() => resolveCommand.execute()}
           beforeAction={() => setFeedbackCollapsed(false)}
           disabled={resolveCommand.disabled}
-          tooltip="Execute Resolve-Dissolve Computation (RDC) using the current computational universe. The Investigation Manifold is rebuilt deterministically."
+          tooltip={resolveCommand.disabled ? resolveCommand.statusText : "Compute deterministic candidate relationships for the current context."}
         />
 
         {!feedbackCollapsed && <div
@@ -158,7 +168,7 @@ export default function ManifoldToolbar({
           aria-live={resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "assertive" : "polite"}
           style={{ marginTop: 8, padding: 8, border: "1px solid rgba(125,211,252,.3)", borderRadius: 6, background: "rgba(2,6,23,.92)", color: resolveCommand.feedback.phase === "RESOLVE_FAILED" || resolveCommand.feedback.phase === "BLOCKED" ? "#fca5a5" : "#bae6fd", fontSize: 10, lineHeight: 1.5, pointerEvents: "auto" }}
         >
-          <strong>{resolveCommand.feedback.phase.replaceAll("_", " ")}</strong>
+          <strong>{resolveFeedbackLabel(resolveCommand.feedback.phase)}</strong>
           <div>{resolveCommand.feedback.message}</div>
           {resolveCommand.feedback.phase === "RESOLVE_COMPLETED" && <>
             <div>Focused case: {resolveCommand.feedback.focusedLabel}</div>
@@ -168,17 +178,10 @@ export default function ManifoldToolbar({
         </div>}
 
         <InstrumentButton
-          label="Dissolve"
+          label="CLEAR MANIFOLD RESULT"
           action="DISSOLVE"
           onAction={onAction}
-          tooltip="Remove the current manifold solution and return the Investigation to an unresolved computational state."
-        />
-
-        <InstrumentButton
-          label="Collapse"
-          action="COLLAPSE"
-          onAction={() => setFeedbackCollapsed(true)}
-          tooltip="Collapse only the computation feedback instrument. The Investigation Manifold and its graph remain unchanged."
+          tooltip="Removes only the legacy manifold runtime result. Computed relationship candidates and accepted relationships remain unchanged."
         />
 
       </ManifoldInstrumentPalette>
@@ -195,6 +198,9 @@ export default function ManifoldToolbar({
     y: 154,
   }}
 >
+        <div style={{ marginBottom: 6, color: "#94a3b8", fontSize: 9, fontWeight: 700, letterSpacing: 1.1 }}>
+          VIEW
+        </div>
         <div
           style={{
             display: "grid",
@@ -222,10 +228,36 @@ export default function ManifoldToolbar({
 
         </div>
 
+        <div style={{ marginTop: 6 }}>
+          <InstrumentButton
+            label="COLLAPSE"
+            action="COLLAPSE"
+            onAction={() => setFeedbackCollapsed(true)}
+            tooltip="Collapse only the relationship-analysis feedback. The Investigation Manifold, computed candidates, and accepted relationships remain unchanged."
+          />
+        </div>
+
       </ManifoldInstrumentPalette>
 
     </>
 
   );
 
+}
+
+function resolveFeedbackLabel(
+  phase: ReturnType<typeof useResolveExecutionCommand>["feedback"]["phase"],
+): string {
+  switch (phase) {
+    case "READY_TO_RESOLVE":
+      return "ANALYSIS READY";
+    case "RESOLVING":
+      return "COMPUTING";
+    case "RESOLVE_COMPLETED":
+      return "RESULT CURRENT";
+    case "RESOLVE_FAILED":
+      return "RESOLVE FAILED";
+    case "BLOCKED":
+      return "BLOCKED";
+  }
 }

@@ -316,6 +316,15 @@ function evaluateCandidate(
       totalDimensionCount:
         CANONICAL_DIMENSION_ORDER.length,
 
+      weightedNumerator:
+        resolution.aggregate.weightedNumerator,
+
+      participatingWeight:
+        resolution.aggregate.participatingWeight,
+
+      weightedContributions:
+        resolution.aggregate.weightedContributions.map(value => ({ ...value })),
+
     };
 
   // ----------------------------------------------------------

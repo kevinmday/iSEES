@@ -113,7 +113,6 @@
 import {
   Fragment,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -141,6 +140,7 @@ import { resolveCurrentInvestigationExecution } from "../../intelligence/selecti
 import {
   useResolveRuntimeState,
 } from "../../resolve/runtime/ResolveRuntimeContext";
+import { resolveCurrentExecutionCandidateSelection } from "../../resolve/runtime/useResolveExecutionCommand";
 
 // ============================================================
 // P57-UI-A5-I3 — PROJECTION ACCEPTANCE GUARD
@@ -253,11 +253,14 @@ export default function PrimaryInvestigationManifold({
   //
   // ==========================================================
 
-  const candidateEvaluations =
+  const completedExecution =
     resolveCurrentInvestigationExecution(
       workspaceRuntime.getActiveInvestigation(),
       resolveState.currentExecution,
-    )
+    );
+
+  const candidateEvaluations =
+    completedExecution
       ?.result
       ?.candidateEvaluations;
 
@@ -285,27 +288,11 @@ export default function PrimaryInvestigationManifold({
   // ==========================================================
 
   const candidateIntelligenceCollection =
-    useMemo(
-      () => {
-
-        if (
-          candidateEvaluations ===
-          undefined
-        ) {
-
-          return undefined;
-
-        }
-
-        return resolveCandidateIntelligenceCollection(
+    candidateEvaluations === undefined
+      ? undefined
+      : resolveCandidateIntelligenceCollection(
           candidateEvaluations.evaluations,
         );
-
-      },
-      [
-        candidateEvaluations,
-      ],
-    );
 
   // ==========================================================
   // WORKSPACE OPERATOR SELECTION
@@ -341,6 +328,7 @@ export default function PrimaryInvestigationManifold({
     const selection =
       createWorkspaceCandidateSelection(
         intelligence,
+        completedExecution?.executionId,
       );
 
     workspaceRuntime.setSelection(
@@ -369,10 +357,18 @@ export default function PrimaryInvestigationManifold({
   //
   // ==========================================================
 
-   function handleCandidateAcceptance(
+  function handleCandidateAcceptance(
     intelligence:
       ResolveCandidateIntelligence,
   ): void {
+
+    const currentSelection = workspaceRuntime.getSelection();
+    const selectedFromCurrentExecution = currentSelection?.kind === "CANDIDATE" &&
+      resolveCurrentExecutionCandidateSelection(currentSelection, completedExecution) &&
+      currentSelection.candidateId === intelligence.identity.candidateId &&
+      currentSelection.evaluationId === intelligence.identity.evaluationId &&
+      currentSelection.leftKnowledgeObjectId === intelligence.identity.leftKnowledgeObjectId &&
+      currentSelection.rightKnowledgeObjectId === intelligence.identity.rightKnowledgeObjectId;
 
     // ========================================================
     // P57-UI-A5-I3 — STALE CANDIDATE GUARDRAIL
@@ -386,7 +382,8 @@ export default function PrimaryInvestigationManifold({
     // ========================================================
 
     if (
-      !candidateAcceptanceAllowed
+      !candidateAcceptanceAllowed ||
+      !selectedFromCurrentExecution
     ) {
 
       console.warn(
@@ -412,7 +409,7 @@ export default function PrimaryInvestigationManifold({
       setAcceptanceError(
         {
           candidateId: intelligence.identity.candidateId,
-          message: "Relationship acceptance failed: resolve the current computational context and try again.",
+          message: "Relationship acceptance failed: recompute after governing context changes, then select an exact current relationship candidate.",
         },
       );
 
@@ -626,7 +623,7 @@ export default function PrimaryInvestigationManifold({
         >
 
           <summary
-            title="Expand or collapse Resolve Candidates"
+            title="Expand or collapse Relationship Candidates"
             onClick={
               event => {
 
@@ -674,7 +671,7 @@ export default function PrimaryInvestigationManifold({
           >
 
             <span>
-              RESOLVE CANDIDATES
+              RELATIONSHIP CANDIDATES
             </span>
 
             <span
@@ -706,7 +703,7 @@ export default function PrimaryInvestigationManifold({
                 1.4,
             }}
           >
-            Potential relationships - inspect only
+            Computation produces non-canonical candidate relationships. Inspecting a relationship candidate does not change the computation or accept the relationship.
           </div>
 
           <div
@@ -737,7 +734,12 @@ export default function PrimaryInvestigationManifold({
                     workspaceSelection.candidateId ===
                       intelligence
                         .identity
-                        .candidateId;
+                        .candidateId &&
+                    workspaceSelection.evaluationId === intelligence.identity.evaluationId &&
+                    workspaceSelection.leftKnowledgeObjectId === intelligence.identity.leftKnowledgeObjectId &&
+                    workspaceSelection.rightKnowledgeObjectId === intelligence.identity.rightKnowledgeObjectId;
+                  const selectedFromCurrentExecution = isSelected &&
+                    resolveCurrentExecutionCandidateSelection(workspaceSelection, completedExecution);
 
                   return (
 
@@ -823,7 +825,7 @@ export default function PrimaryInvestigationManifold({
                                 700,
                             }}
                           >
-                            CANDIDATE {
+                            RELATIONSHIP CANDIDATE {
                               index + 1
                             }
                           </span>
@@ -976,11 +978,11 @@ export default function PrimaryInvestigationManifold({
                           // Acceptance requires a synchronized projection.
 
                           disabled={
-                            accepted || conflict || !candidateAcceptanceAllowed
+                            accepted || conflict || !candidateAcceptanceAllowed || !selectedFromCurrentExecution
                           }
 
                           aria-disabled={
-                            accepted || conflict || !candidateAcceptanceAllowed
+                            accepted || conflict || !candidateAcceptanceAllowed || !selectedFromCurrentExecution
                           }
 
                           title={acceptanceDescription}
@@ -1021,12 +1023,12 @@ export default function PrimaryInvestigationManifold({
                               "#86efac",
 
                             cursor:
-                              candidateAcceptanceAllowed && !accepted && !conflict
+                              candidateAcceptanceAllowed && selectedFromCurrentExecution && !accepted && !conflict
                                 ? "pointer"
                                 : "not-allowed",
 
                             opacity:
-                              candidateAcceptanceAllowed || accepted
+                              (candidateAcceptanceAllowed && selectedFromCurrentExecution) || accepted
                                 ? 1
                                 : 0.48,
 
@@ -1051,9 +1053,9 @@ export default function PrimaryInvestigationManifold({
                               ? "RELATIONSHIP ACCEPTED"
                               : conflict
                               ? "RELATIONSHIP CONFLICT"
-                              : candidateAcceptanceAllowed
+                              : candidateAcceptanceAllowed && selectedFromCurrentExecution
                               ? "ACCEPT RELATIONSHIP"
-                              : "RESOLVE REQUIRED"
+                              : "RECOMPUTE REQUIRED"
                           }
                         </button>
 

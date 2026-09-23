@@ -302,6 +302,13 @@ export interface AvailableCanonicalAggregateSimilarity {
   participatingDimensions:
     readonly CanonicalFeatureDimension[];
 
+  /** Authoritative evaluator intermediates retained for audit; consumers must not recalculate them. */
+  weightedNumerator:
+    number;
+
+  weightedContributions:
+    readonly Readonly<{ dimension: CanonicalFeatureDimension; similarity: number; configuredWeight: number; weightedContribution: number }>[];
+
 }
 
 export interface UnavailableCanonicalAggregateSimilarity {

@@ -5,7 +5,7 @@ import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeCon
 import { useResolveRuntime, useResolveRuntimeState } from "./ResolveRuntimeContext";
 import { ResolveRuntimeStatus } from "./ResolveRuntimeTypes";
 import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
-import { WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
+import { WorkspaceSelectionKind, type WorkspaceCandidateSelection } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 import type { WorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntime";
 import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
 import type { ResolveExecutionRecord } from "./ResolveRuntimeTypes";
@@ -55,13 +55,38 @@ export interface ActiveResolvePair {
   readonly comparison?: KnowledgeObject;
 }
 
-export function resolveActiveResolvePair(workspaceRuntime: WorkspaceRuntime, knowledgeObjects: readonly KnowledgeObject[]): ActiveResolvePair | undefined {
+export function resolveCurrentExecutionCandidateSelection(
+  selection: WorkspaceCandidateSelection,
+  execution: ResolveExecutionRecord | undefined,
+): boolean {
+  if (!execution?.result || selection.executionId !== execution.executionId) return false;
+  const matches = execution.result.candidateEvaluations.evaluations.filter(evaluation =>
+    evaluation.identity.candidateId === selection.candidateId &&
+    evaluation.identity.evaluationId === selection.evaluationId &&
+    evaluation.identity.leftKnowledgeObjectId === selection.leftKnowledgeObjectId &&
+    evaluation.identity.rightKnowledgeObjectId === selection.rightKnowledgeObjectId
+  );
+  return matches.length === 1;
+}
+
+export function resolveActiveResolvePair(
+  workspaceRuntime: WorkspaceRuntime,
+  knowledgeObjects: readonly KnowledgeObject[],
+  execution?: ResolveExecutionRecord,
+): ActiveResolvePair | undefined {
   const workspace = workspaceRuntime.getWorkspace();
   const selection = workspaceRuntime.getSelection();
   const focused = knowledgeObjects.find(object => object.type === "EVENT" && object.provenance.sourceId === workspace?.focused_event_id);
   if (!focused) return undefined;
+  const currentCandidateInspection = selection?.kind === WorkspaceSelectionKind.CANDIDATE &&
+    resolveCurrentExecutionCandidateSelection(selection, execution);
+  if (selection?.kind === WorkspaceSelectionKind.CANDIDATE && selection.executionId !== undefined && !currentCandidateInspection) {
+    return { focused };
+  }
   const comparisonKnowledgeObjectId = selection?.kind === WorkspaceSelectionKind.COMPARISON_TARGET
     ? selection.knowledgeObjectId
+    : currentCandidateInspection
+      ? execution?.commandContext?.comparisonKnowledgeObjectId
     : selection?.kind === WorkspaceSelectionKind.CANDIDATE
       ? [selection.leftKnowledgeObjectId, selection.rightKnowledgeObjectId].find(id => id !== focused.identity.id)
       : undefined;
@@ -103,7 +128,7 @@ export function useResolveExecutionCommand(): ResolveExecutionCommand {
   const knowledgeObjects = activeInvestigation
     ? composeGuestOperationalKnowledgeObjects(activeInvestigation.workspace, knowledgeRuntime.getObjects())
     : knowledgeRuntime.getObjects();
-  const pair = resolveActiveResolvePair(workspaceRuntime, knowledgeObjects);
+  const pair = resolveActiveResolvePair(workspaceRuntime, knowledgeObjects, resolveState.currentExecution);
   const currentExecution = resolveExecutionMatchesActiveResolveContext(resolveState.currentExecution, workspaceRuntime, pair)
     ? resolveState.currentExecution
     : undefined;
@@ -147,11 +172,11 @@ export function useResolveExecutionCommand(): ResolveExecutionCommand {
         if (!evaluation) throw new Error("the deterministic Resolve result contains no evaluation for the selected exact endpoints");
         const intelligence = resolveCandidateIntelligenceCollection([evaluation]).intelligence[0];
         if (!intelligence) throw new Error("the selected evaluation could not be projected as Resolve candidate intelligence");
-        workspaceRuntime.setSelection(createWorkspaceCandidateSelection(intelligence));
+        workspaceRuntime.setSelection(createWorkspaceCandidateSelection(intelligence, result.executionId));
       }
       const completed = {
         phase: "RESOLVE_COMPLETED",
-        message: "Resolve completed. No relationship has been accepted automatically. Next action: open LAYERS or inspect a Resolve candidate.",
+        message: "Computation produced non-canonical candidate relationships. Inspecting a relationship candidate does not change the computation or accept the relationship.",
         focusedLabel: knowledgeLabel(focused),
         comparisonLabel: comparison ? knowledgeLabel(comparison) : "Current canonical universe",
         candidateCount: result.candidateEvaluations.evaluations.length,
@@ -169,8 +194,8 @@ export function useResolveExecutionCommand(): ResolveExecutionCommand {
     : currentExecution && resolveState.status === ResolveRuntimeStatus.ERROR
       ? { phase: "RESOLVE_FAILED", message: `Resolve failed: ${currentExecution.failureReason ?? "unknown failure"}.`, executionId: currentExecution.executionId }
       : currentExecution?.result
-        ? { phase: "RESOLVE_COMPLETED", message: "Resolve completed. No relationship has been accepted automatically. Next action: open LAYERS or inspect a Resolve candidate.", focusedLabel: pair ? knowledgeLabel(pair.focused) : undefined, comparisonLabel: pair?.comparison ? knowledgeLabel(pair.comparison) : "Current canonical universe", candidateCount: currentExecution.result.candidateEvaluations.evaluations.length, executionId: currentExecution.executionId }
-        : { phase: "READY_TO_RESOLVE", message: "Ready to resolve the selected comparison." };
+        ? { phase: "RESOLVE_COMPLETED", message: "Computation produced non-canonical candidate relationships. Inspecting a relationship candidate does not change the computation or accept the relationship.", focusedLabel: pair ? knowledgeLabel(pair.focused) : undefined, comparisonLabel: pair?.comparison ? knowledgeLabel(pair.comparison) : "Current canonical universe", candidateCount: currentExecution.result.candidateEvaluations.evaluations.length, executionId: currentExecution.executionId }
+        : { phase: "READY_TO_RESOLVE", message: "Compute deterministic candidate relationships for the current context." };
 
   return {
     execute,
@@ -179,7 +204,7 @@ export function useResolveExecutionCommand(): ResolveExecutionCommand {
       ? "Unavailable: no active investigation."
       : executing
         ? "Resolve execution is in progress."
-        : "Runs the selected deterministic context. Empty layer selection is permitted.",
+        : "Compute deterministic candidate relationships for the current context. Empty layer selection is permitted.",
     feedback,
   };
 }

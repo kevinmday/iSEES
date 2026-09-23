@@ -280,9 +280,9 @@ export default function NarrativeWorkspace() {
     case NarrativeWorkspaceProjectionStatus.NO_FOCUSED_EVENT:
       return <State title="No focused EVENT" guidance="Open or focus a canonical case before entering NARRATIVE." details={[`Investigation: ${projection.investigationId}`]} />;
     case NarrativeWorkspaceProjectionStatus.NO_COMPARISON:
-      return <State title="Select a comparison in COMPARE" guidance="NARRATIVE does not choose a default comparison. Select a Resolve candidate through COMPARE." details={[`Focused EVENT: ${projection.focusedEventId}`]} />;
+      return <State title="Select a comparison in COMPARE" guidance="NARRATIVE does not choose a default comparison. Select a relationship candidate through COMPARE." details={[`Focused EVENT: ${projection.focusedEventId}`]} />;
     case NarrativeWorkspaceProjectionStatus.STALE_SELECTION:
-      return <State title="Selected comparison is stale" guidance="Reselect a Resolve candidate through COMPARE. NARRATIVE has not cleared or repaired the selection." details={[`Focused EVENT: ${projection.focusedEventId}`, projection.reason]} />;
+      return <State title="Selected comparison is stale" guidance="Reselect a relationship candidate through COMPARE. NARRATIVE has not cleared or repaired the selection." details={[`Focused EVENT: ${projection.focusedEventId}`, projection.reason]} />;
     case NarrativeWorkspaceProjectionStatus.UNAVAILABLE:
       return <State title="Narrative projection unavailable" guidance="The requested canonical projection cannot be shown; no partial narrative data has been fabricated." details={[...(projection.investigationId ? [`Investigation: ${projection.investigationId}`] : []), ...(projection.focusedEventId ? [`Focused EVENT: ${projection.focusedEventId}`] : []), projection.reason]} />;
     case NarrativeWorkspaceProjectionStatus.READY:

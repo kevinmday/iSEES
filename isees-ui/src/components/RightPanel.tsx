@@ -785,7 +785,7 @@ function EmptySelection() {
           "selection-intelligence__empty-copy"
         }
       >
-        Select a node, edge, cluster, or Resolve candidate
+        Select a node, edge, cluster, or relationship candidate
         to inspect its deterministic intelligence.
       </div>
     </div>

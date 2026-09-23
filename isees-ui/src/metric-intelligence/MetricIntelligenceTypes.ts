@@ -123,4 +123,6 @@ export interface GovernedMetricExplanation {
   readonly limitations: readonly string[];
   readonly unavailableInputs: readonly string[];
   readonly evaluatedSnapshot?: import("./EquationDocumentationTypes").EvaluatedMathematicalSnapshot;
+  readonly mathematicalExplanation?: import("./MetricExplanationContract").VisibleMathematics;
+  readonly mathematicsAuthorityIdentity?: string;
 }

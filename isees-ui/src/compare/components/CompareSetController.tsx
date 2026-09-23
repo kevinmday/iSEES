@@ -51,7 +51,7 @@ export default function CompareSetController() {
       <header className="compare-set__header">
         <div className="compare-set__eyebrow">COMPARE SET</div>
         <h2 className="compare-set__title">Pair Inspection</h2>
-        <p>Choose an inspectable Resolve candidate while preserving the focused canonical EVENT.</p>
+        <p>Choose an inspectable relationship candidate while preserving the focused canonical EVENT.</p>
       </header>
 
       {!investigation ? <State title="No active investigation" detail="COMPARE requires an active canonical investigation." /> : (
@@ -115,7 +115,7 @@ export default function CompareSetController() {
         </>
       )}
 
-      <aside className="compare-set__note">No relationship is accepted in COMPARE. Selection opens an inspectable Resolve candidate.</aside>
+      <aside className="compare-set__note">No relationship is accepted in COMPARE. Selection opens an inspectable relationship candidate.</aside>
     </div>
   );
 }

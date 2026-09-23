@@ -111,6 +111,8 @@ import type {
 export function createWorkspaceCandidateSelection(
   intelligence:
     ResolveCandidateIntelligence,
+  executionId?:
+    string,
 ): WorkspaceCandidateSelection {
 
   // ----------------------------------------------------------
@@ -144,6 +146,13 @@ export function createWorkspaceCandidateSelection(
     intelligence.identity.rightKnowledgeObjectId,
     "rightKnowledgeObjectId",
   );
+
+  if (executionId !== undefined) {
+    assertNonEmptyIdentity(
+      executionId,
+      "executionId",
+    );
+  }
 
   // ----------------------------------------------------------
   // CANDIDATE / EVALUATION LINEAGE CONSISTENCY
@@ -189,6 +198,8 @@ export function createWorkspaceCandidateSelection(
 
     kind:
       WorkspaceSelectionKind.CANDIDATE,
+
+    ...(executionId === undefined ? {} : { executionId }),
 
     candidateId:
       intelligence.identity.candidateId,
@@ -481,6 +492,13 @@ export function validateWorkspaceCandidateSelection(
   selection:
     WorkspaceCandidateSelection,
 ): void {
+
+  if (selection.executionId !== undefined) {
+    assertNonEmptyIdentity(
+      selection.executionId,
+      "executionId",
+    );
+  }
 
   assertNonEmptyIdentity(
     selection.candidateId,

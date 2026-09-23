@@ -22,6 +22,14 @@ function focusedEventKnowledgeObjectId(
   );
   if (!imported) return undefined;
 
+  const guestCandidate = investigation.workspace.guest_candidate_event;
+  if (
+    guestCandidate?.candidateId === focusedEventId &&
+    guestCandidate.knowledgeObject.type === KnowledgeObjectType.EVENT
+  ) {
+    return guestCandidate.knowledgeObject.identity.id;
+  }
+
   const matches = knowledgeObjects.filter(
     object =>
       object.type === KnowledgeObjectType.EVENT &&

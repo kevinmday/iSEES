@@ -275,6 +275,15 @@ export interface ResolveCandidateAggregateIntelligence {
   totalDimensionCount:
     number;
 
+  weightedNumerator:
+    number;
+
+  participatingWeight:
+    number;
+
+  weightedContributions:
+    readonly Readonly<{ dimension: CanonicalFeatureDimension; similarity: number; configuredWeight: number; weightedContribution: number }>[];
+
 }
 
 // ============================================================

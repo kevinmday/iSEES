@@ -4,6 +4,33 @@ import type { AuthorityClassification, EquationStatus } from "./MetricMathematic
 
 export const METRIC_EXPLANATION_SCHEMA_VERSION = "metric-explanation/v1" as const;
 
+export interface CalculationTraceDimension {
+  readonly dimension: string;
+  readonly availability: "AVAILABLE" | "UNAVAILABLE";
+  readonly similarity?: string;
+  readonly configuredWeight?: string;
+  readonly weightedContribution?: string;
+  readonly unavailableReason?: string;
+}
+
+export interface DeterministicCalculationTrace {
+  readonly kind: "DETERMINISTIC_CALCULATION_TRACE";
+  readonly dimensions: readonly CalculationTraceDimension[];
+  readonly numerator: string;
+  readonly denominator: string;
+  readonly exactResult: string;
+  readonly displayedResult: string;
+  readonly formattingRule: string;
+  readonly substitution: string;
+}
+
+export type VisibleMathematics =
+  | Readonly<{ equationStatus: "AUTHORIZED_EQUATION"; notationOnly: true }>
+  | Readonly<{ equationStatus: "IMPLEMENTATION_EQUATION"; notationOnly: false; trace?: DeterministicCalculationTrace }>
+  | Readonly<{ equationStatus: "PROCEDURE_ONLY"; notationOnly: false }>
+  | Readonly<{ equationStatus: "SOURCE_COPY"; notationOnly: false }>
+  | Readonly<{ equationStatus: "UNAVAILABLE"; notationOnly: false; unavailableReason: string }>;
+
 export type GovernedAvailability<T> =
   | Readonly<{ status: "AVAILABLE"; value: T }>
   | Readonly<{ status: "NOT_APPLICABLE"; reason: string }>

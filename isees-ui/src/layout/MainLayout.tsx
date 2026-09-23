@@ -468,7 +468,7 @@ export default function MainLayout({
                 ? "Inspect the experimental subjects, layers, wires, delta, contributions, and deterministic provenance."
                 : timelineMode
                   ? "Inspect temporal records, Event lanes, correspondences, provenance, and supporting evidence."
-                : "Deterministic inspection of the active node, edge, cluster, or Resolve candidate."}
+                : "Deterministic inspection of the active node, edge, cluster, or relationship candidate."}
             </div>
           </header>
 

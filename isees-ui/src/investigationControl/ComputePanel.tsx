@@ -21,17 +21,11 @@ import ManifoldProjectionStatus, {
   useManifoldProjectionStatus,
 } from "../components/workspace/ManifoldProjectionStatus";
 
-import { useResolveExecutionCommand }
-  from "../resolve/runtime/useResolveExecutionCommand";
-
 // ============================================================
 // COMPONENT
 // ============================================================
 
 export default function ComputePanel() {
-  const resolveCommand =
-    useResolveExecutionCommand();
-
   const projection =
     useManifoldProjectionStatus();
 
@@ -43,25 +37,15 @@ export default function ComputePanel() {
   return (
     <div className="investigation-library__compute">
 
-      <Section title="Resolve-Dissolve Computation">
+      <Section title="RELATIONSHIP ANALYSIS">
         <div className="investigation-library__compute-copy">
           Configure the deterministic context used to construct
-          the Investigation Manifold.
-        </div>
-        <div className="investigation-library__resolve-command">
-          <button
-            type="button"
-            data-guide-id="manifold.resolve.execute"
-            disabled={resolveCommand.disabled}
-            onClick={resolveCommand.execute}
-          >
-            RESOLVE
-          </button>
-          <span role="status">{resolveCommand.statusText}</span>
+          the Investigation Manifold. Compute non-canonical relationship
+          candidates for inspection.
         </div>
       </Section>
 
-      <Section title="Projection Status">
+      <Section title="Relationship Analysis Status">
         <div className="investigation-library__projection-status">
           <ManifoldProjectionStatus />
         </div>
@@ -138,16 +122,16 @@ function getProjectionGuidance(
 ): string {
   switch (status) {
     case ManifoldProjectionStatusValue.UNRESOLVED:
-      return "Review the selected context, then use RESOLVE in the manifold computation controls.";
+      return "Review the selected context, then compute relationships from the Computation instrument in the manifold.";
 
     case ManifoldProjectionStatusValue.RESOLVING:
       return "Resolve is constructing the deterministic manifold projection.";
 
     case ManifoldProjectionStatusValue.SYNCHRONIZED:
-      return "The current projection matches the selected context. Resolve candidates may be inspected.";
+      return "The result matches the governing context. Inspecting a relationship candidate does not change the computation or accept the relationship.";
 
     case ManifoldProjectionStatusValue.STALE:
-      return "The current layer selection differs from the completed Resolve execution. Run Resolve to compute a new projection for the selected context.";
+      return "The governing L, T, or S context differs from the current result. Recompute only after the governing context changes.";
 
     case ManifoldProjectionStatusValue.ERROR:
       return "The latest Resolve execution failed. Inspect the execution diagnostics before trying again.";

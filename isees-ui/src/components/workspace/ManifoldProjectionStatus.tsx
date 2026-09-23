@@ -217,9 +217,9 @@ Readonly<
   RESOLVING:
     "Resolve is constructing a deterministic projection from the selected L, T, and S context.",
   SYNCHRONIZED:
-    "The latest Resolve projection matches the currently selected L, T, and S context.",
+    "The result matches the governing L, T, and S context. Candidate inspection does not invalidate it.",
   STALE:
-    "The selected L, T, or S context differs from the latest completed Resolve projection.",
+    "The governing L, T, or S context differs from the latest completed Resolve projection. Recompute relationships.",
   ERROR:
     "The latest Resolve execution failed. The current projection is not synchronized.",
 };
@@ -257,7 +257,7 @@ ManifoldProjectionStatusSnapshot {
   const activeKnowledge = activeInvestigation
     ? composeGuestOperationalKnowledgeObjects(activeInvestigation.workspace, knowledgeRuntime.getObjects())
     : knowledgeRuntime.getObjects();
-  const activePair = resolveActiveResolvePair(workspaceRuntime, activeKnowledge);
+  const activePair = resolveActiveResolvePair(workspaceRuntime, activeKnowledge, latestExecution);
   const exactExecution = resolveExecutionMatchesActiveResolveContext(latestExecution, workspaceRuntime, activePair);
   const activeRevisionGraphFocused = isActiveOperationalGraphFocused(activeInvestigation);
 
@@ -360,7 +360,24 @@ export default function ManifoldProjectionStatus() {
           ],
       }}
     >
-      EVENT MANIFOLD: GRAPH {snapshot.graphSynchronized ? "SYNCHRONIZED" : "STALE"} · RESOLVE: {snapshot.status}
+      EVENT MANIFOLD: GRAPH {snapshot.graphSynchronized ? "SYNCHRONIZED" : "STALE"} · {projectionResultLabel(snapshot.status)}
     </span>
   );
+}
+
+function projectionResultLabel(
+  status: ManifoldProjectionStatusValue,
+): string {
+  switch (status) {
+    case ManifoldProjectionStatusValue.UNRESOLVED:
+      return "ANALYSIS READY";
+    case ManifoldProjectionStatusValue.RESOLVING:
+      return "COMPUTING";
+    case ManifoldProjectionStatusValue.SYNCHRONIZED:
+      return "RESULT CURRENT";
+    case ManifoldProjectionStatusValue.STALE:
+      return "RESULT OUT OF DATE";
+    case ManifoldProjectionStatusValue.ERROR:
+      return "ERROR";
+  }
 }

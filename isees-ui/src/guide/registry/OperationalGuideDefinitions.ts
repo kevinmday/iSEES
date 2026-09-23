@@ -16,7 +16,7 @@ const CONTENT: Readonly<Record<WorkspaceMode, Content>> = {
   },
   [WorkspaceMode.MANIFOLD]: {
     purpose: "Inspect the deterministic investigation topology and its canonical objects and relationships.", startHere: "Single-click a node or edge and review it in Selection Intelligence.",
-    steps: ["Single-click a node or edge to inspect it in Selection Intelligence.", "Double-click a qualified node or edge to add it to the Research Inbox; open the collapsed Research Inbox to review collected items.", "Use RESOLVE to compute the selected deterministic context when ready.", "Use DISSOLVE or COLLAPSE only for the behavior stated by those controls.", "Use the Projection and Camera controls to inspect the topology.", "Continue to COMPARE after a valid comparison context becomes available."],
+    steps: ["Single-click a node or edge to inspect it in Selection Intelligence.", "Double-click a qualified node or edge to add it to the Research Inbox; open the collapsed Research Inbox to review collected items.", "Use COMPUTE RELATIONSHIPS to analyze the selected deterministic context when ready.", "Use CLEAR MANIFOLD RESULT only to clear the legacy manifold runtime result.", "Use VIEW controls, including COLLAPSE, only to change the presentation.", "Continue to COMPARE after a valid comparison context becomes available."],
     nextMode: "COMPARE when ready; otherwise remain in MANIFOLD", nextModeReason: "COMPARE requires a valid comparison context from the existing workflow.", boundary: "Guide does not run RESOLVE, change the graph, or add anything to the Research Inbox.",
   },
   [WorkspaceMode.COMPARE]: {

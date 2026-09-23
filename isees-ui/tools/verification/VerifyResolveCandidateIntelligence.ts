@@ -389,6 +389,19 @@ const evaluation:
         totalDimensionCount:
           5,
 
+        weightedNumerator:
+          0.4225,
+
+        participatingWeight:
+          1,
+
+        weightedContributions: [
+          { dimension: NARRATIVE, similarity: 0.72, configuredWeight: 0.3, weightedContribution: 0.216 },
+          { dimension: OBSERVABILITY, similarity: 0, configuredWeight: 0.2, weightedContribution: 0 },
+          { dimension: TOPOLOGY, similarity: 0.83, configuredWeight: 0.25, weightedContribution: 0.2075 },
+          { dimension: GEOGRAPHY, similarity: 0.14, configuredWeight: 0.1, weightedContribution: 0.014 },
+        ],
+
       },
 
       evidence: {

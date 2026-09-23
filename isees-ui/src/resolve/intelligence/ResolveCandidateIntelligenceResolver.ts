@@ -183,6 +183,15 @@ export function resolveCandidateIntelligence(
       totalDimensionCount:
         evaluation.explanation.aggregate.totalDimensionCount,
 
+      weightedNumerator:
+        evaluation.explanation.aggregate.weightedNumerator ?? Number.NaN,
+
+      participatingWeight:
+        evaluation.explanation.aggregate.participatingWeight ?? Number.NaN,
+
+      weightedContributions:
+        (evaluation.explanation.aggregate.weightedContributions ?? []).map(value => ({ ...value })),
+
     };
 
   // ----------------------------------------------------------
