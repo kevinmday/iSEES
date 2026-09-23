@@ -80,6 +80,10 @@
   color: var(--text-caption);
 }
 
+.workspace-identity__preview {
+  max-width: min(42vw, 520px);
+}
+
 @media (max-width: 1050px) {
   .workspace-identity {
     align-items: flex-start;

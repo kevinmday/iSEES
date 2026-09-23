@@ -2,7 +2,7 @@
 
 **Status:** Normative Computational Canon
 
-**Scope:** LIBRARY workspace mode; OVERVIEW/LIBRARY responsibility split; investigation preview, selection, intake, opening, and resumption boundaries
+**Scope:** LIBRARY workspace mode and mode-specific shell; OVERVIEW/LIBRARY responsibility split; investigation preview, selection, visual-media provenance, intake, opening, and resumption boundaries
 
 **Depends on:** SC-003 Investigation Manifold; SC-009 Manifold Instrument Architecture; SC-010 Investigative Provenance and Graph Revision Architecture; SC-012 Computational Projection Architecture; SC-019 Computational Knowledge Curation and Promotion Architecture; SC-021 Computational Operator Session Architecture; SC-027 Researcher-Directed Evidence Intake and Web Discovery
 
@@ -106,12 +106,33 @@ LIBRARY SHALL NOT:
 - fabricate unavailable event, evidence, citation, repository, or investigation data;
 - create a parallel workspace runtime, router, selection store, account library, persistence system, or activation engine.
 
+### 5.1 Mode-specific Library shell
+
+LIBRARY is a collection, preview, intake, and investigation-selection surface. It is not an analytical instrument workspace. Its shell composition therefore SHALL:
+
+- omit the global left Navigator panel;
+- omit the global right Selection Intelligence panel;
+- neither render nor reserve space for the Research Inbox dock;
+- give LIBRARY the full workspace width available between the application shell and the bottom mode bar.
+
+This is an intentional mode-specific composition, not removal or weakening of shared analytical panels elsewhere. MANIFOLD and downstream analytical modes retain their established instrument panels. OVERVIEW remains governed by its separate orientation composition.
+
+LIBRARY SHALL use the reclaimed space as one bounded, mode-local two-panel canvas. The left Library command region owns orientation, truthful current-investigation and persistence status, intake and resume commands, search, authority filters, and authorized investigation continuity. The right Library collection region owns System Canon cards, the selected-record preview, and external research records. These are internal LIBRARY regions, not restored global Navigator or Selection Intelligence side panels. Selection, activation, persistence, evidence, Canon, computation, and Research Inbox boundaries remain unchanged.
+
+### 5.2 Mode-specific Overview shell
+
+OVERVIEW SHALL omit the global left Navigator, global right inspection panel, and Research Inbox space. It SHALL use the full workspace width for one bounded, mode-local two-panel orientation canvas: an orientation/command region and a research-flow/identity region.
+
+This visual similarity to LIBRARY does not create shared operational responsibility. OVERVIEW explains product identity, purpose, research philosophy, guided orientation, System Briefing, and the end-to-end research flow. Its entry actions route into LIBRARY-owned browsing and intake workflows. LIBRARY alone owns record selection, preview, intake state, activation, resumption, and investigation management.
+
 ## 6. Preview, selection, activation, and failure
 
 Library selection is preview-only. Selecting any Library item SHALL NOT:
 
 - activate an investigation;
+- replace the active investigation;
 - change the focused event or active workspace;
+- import data;
 - navigate to MANIFOLD;
 - mutate Canon, compute relationships, publish research, or alter the Research Inbox.
 
@@ -124,6 +145,22 @@ Activation and target-mode publication MUST form one authoritative transition. A
 A failed opening or resumption MUST leave the prior active investigation and mode unchanged and expose an accurate failure state. No successful qualified opening or resumption may unexpectedly return the researcher to OVERVIEW.
 
 Manual navigation from MANIFOLD to LIBRARY or OVERVIEW MUST NOT deactivate, recompute, or discard the active investigation.
+
+### 6.1 Mode-local preview behavior
+
+When no Library record is selected, the collection SHALL use the full available width. No empty global inspector rail SHALL be shown. A neutral preview explanation MAY remain compact and mode-local.
+
+When a record is selected on a wide display, the collection MAY narrow and a sticky mode-local **Library Preview** region MAY open beside it. The preview SHALL expose available governed record metadata, authority, image caption, image provenance, contextual-versus-evidentiary status, and explicit available actions.
+
+On narrow displays, Library Preview SHALL become a drawer, overlay, or region beneath the selected card. It MUST NOT force the collection into an unusably narrow column.
+
+Preview selection remains non-operational. Only an explicit **OPEN**, **RESUME**, **CONTINUE SETUP**, or governed intake action may change operational state, and each remains subject to its existing authority and success conditions.
+
+### 6.2 Library header semantics
+
+The Library workspace header MUST distinguish the active investigation, a current guest or session-local investigation, no active investigation, and a previewed Library record. Mode-appropriate labels include **ACTIVE INVESTIGATION**, **SESSION-LOCAL**, **NO ACTIVE INVESTIGATION**, and **PREVIEWING**.
+
+LIBRARY MUST NOT label a merely previewed record as the **FOCUSED EVENT**. A previewed record MUST NOT replace active-investigation identity unless and until explicit activation succeeds.
 
 ## 7. Empty saved investigations
 
@@ -217,18 +254,60 @@ Visual content MUST:
 - avoid presenting decorative illustration as evidence;
 - provide accessible text alternatives.
 
-Featured cards belong in the lower discovery section and SHALL NOT dominate first-contact or primary-task cognition. The preferred vertical hierarchy is:
+Featured cards belong in the lower discovery section and SHALL NOT dominate first-contact or primary-task cognition. The authoritative vertical hierarchy is:
 
-1. Library orientation
-2. Primary actions
-3. Search and filters
-4. Local or saved investigations
-5. Featured UAP events
-6. External repositories and additional collections
+1. Library orientation and primary actions
+2. Search and authority filters
+3. Current guest work and owned investigations
+4. System Canon and external records
+5. Featured Events
 
-The intended cognitive flow is `Understand → choose an action → locate existing work → explore notable events`.
+This ordering supersedes the earlier placement of Featured Events before external repositories while preserving the intended cognitive flow: `Understand → choose an action → locate existing work → inspect governed collections → explore notable events`.
 
 Featured graphics SHOULD have restrained visual weight until reached or intentionally engaged and MUST NOT displace primary actions above the fold. Autoplay, automatic motion, unsolicited narration, and visually dominant carousels MUST NOT interfere with onboarding or case management.
+
+### 13.1 System Canon card imagery
+
+System Canon event cards SHOULD support a governed visual header occupying approximately 35–45 percent of the card. Preferred visual classes are archival photography; contextual platform or location photography; maps; timelines; radar or sensor diagrams; restrained event topology; and clearly identified explanatory illustration.
+
+The treatment SHALL remain documentary and scientific rather than sensational or cinematic. It SHOULD apply a coherent iSEES presentation treatment comprising dark navy grading, restrained contrast, a readable gradient beneath text, cyan structural accents, a stable aspect ratio, useful alternative text, and visible focus and selection states.
+
+### 13.2 External-record imagery
+
+External research records SHOULD use restrained institutional identity treatments rather than dramatic event imagery. They MAY use authorized institutional marks, repository identity graphics, restrained contextual icons, or a neutral placeholder when no governed asset exists.
+
+External imagery MUST NOT imply partnership, endorsement, federation, live connectivity, System Canon authority, or evidentiary acceptance. Existing authority labels, including **EXTERNAL READING**, **REFERENCE**, and **PLANNED**, SHALL remain visually dominant.
+
+### 13.3 Governed visual-asset contract
+
+Every Library visual asset MUST have deterministic metadata sufficient to establish:
+
+- asset ID and associated record ID;
+- asset class, title, and caption;
+- source and creator when known;
+- license or usage authority;
+- capture or publication date when known;
+- useful alternative text;
+- integrity reference or content hash when locally governed;
+- whether the asset is archival, contextual, diagrammatic, or illustrative;
+- explicit reconstruction or generated-image disclosure where applicable.
+
+The authoritative asset classes are **ARCHIVAL**, **CONTEXTUAL**, **DIAGRAMMATIC**, **ILLUSTRATIVE**, **INSTITUTIONAL**, and **UNAVAILABLE**. Unknown metadata SHALL remain unknown or unavailable. Implementations MUST NOT fabricate provenance, dates, creators, licenses, or evidentiary meaning.
+
+### 13.4 Contextual imagery and evidence boundary
+
+Library imagery is presentational and contextual unless it is separately governed as evidence. Displaying an image on a Library card MUST NOT:
+
+- make it Investigation Evidence;
+- add it to Candidate Evidence or the Research Inbox;
+- make it Canon evidence;
+- assert that it depicts the event;
+- imply authenticity or verification;
+- participate in deterministic computation.
+
+An image that is also governed evidence MUST retain its independent evidence identity, provenance, authority, and acceptance state. Illustrative, reconstructed, or generated material SHALL be conspicuously labeled and MUST NOT be visually indistinguishable from authenticated archival evidence.
+
+An original generated contextual asset commissioned for iSEES MAY serve as a primary Library visual when it is classified **ILLUSTRATIVE · CONTEXTUAL**, carries the status **NOT_EVENT_EVIDENCE** and source type **ORIGINAL_GENERATED_ASSET**, and visibly states **AI-generated historical reconstruction. Not event evidence.** Its depiction MUST NOT authenticate people, light, positions, weather, landscape arrangement, infrastructure details, or any other event circumstance. A deterministic non-evidentiary fallback SHALL remain available, and neither visual acquires Canon, Evidence, Research Inbox, or computational authority through presentation.
 
 ## 14. Featured event card and Library Inspector
 
@@ -242,11 +321,29 @@ A featured event card MAY expose:
 - a restrained explanatory graphic;
 - **PREVIEW RECORD**.
 
-A card SHALL NOT activate an event merely by selection, imply evidentiary completeness through design, fabricate a score or completeness percentage, present similarity as probability, present candidate material as accepted knowledge, use unsupported source counts, or bypass the Library Inspector.
+A card SHALL NOT activate an event merely by selection, imply evidentiary completeness through design, fabricate a score or completeness percentage, present similarity as probability, present candidate material as accepted knowledge, use unsupported source counts, or bypass the Library Preview.
 
-Selecting a record MAY present a Library Inspector containing available governed fields such as event synopsis; time and place; classification; authority state; investigation vectors; participating entities; evidence availability; source and citation lineage; related events; persistence effect; and an explicit **OPEN IN WORKSPACE** or **CONTINUE SETUP** action.
+Selecting a record MAY present a mode-local Library Preview containing available governed fields such as event synopsis; time and place; classification; authority state; investigation vectors; participating entities; evidence availability; source and citation lineage; related events; persistence effect; image caption; asset class; source; attribution; license or usage status; contextual-versus-evidentiary status; and an explicit **OPEN IN WORKSPACE**, **RESUME INVESTIGATION**, or **CONTINUE SETUP** action.
 
-The Inspector MUST visibly distinguish preview from activation. Unknown values MUST remain unavailable rather than inferred or fabricated.
+The Library Preview MUST visibly distinguish preview from activation. Unknown values MUST remain unavailable rather than inferred or fabricated. Imagery MUST NOT be enlarged without retaining its caption and provenance.
+
+### 14.1 Featured Events visual extension
+
+Featured Events MAY later use richer maps, timelines, sensor diagrams, and topology graphics, but every such asset remains subject to the visual-asset contract and evidence boundary in this canon.
+
+### 14.2 Responsive, performance, and accessibility requirements
+
+Library visual presentation SHALL provide:
+
+- responsive image sizing and stable dimensions that avoid layout shift;
+- lazy loading for imagery below the initial viewport;
+- optimized local assets or governed delivery paths;
+- useful alternative text;
+- keyboard-operable cards and visible focus states;
+- reduced-motion compliance for any future animated graphics;
+- a deterministic fallback when an asset is unavailable or fails to load.
+
+A missing or failed image MUST NOT prevent record selection, preview, opening, or resumption.
 
 ## 15. Persistence and compatibility
 
@@ -323,6 +420,19 @@ Before implementation, repository discovery MUST identify the current owner of e
 
 These increments define preferred sequencing. They do not authorize runtime change within this Canon-adoption task.
 
+### I2 — Library visual records and mode-specific spatial architecture
+
+The recommended incremental sequence is:
+
+1. **I2A — Visual-asset contract and registry foundation**
+2. **I2B — Mode-specific full-width Library shell**
+3. **I2C — System Canon image-led card composition**
+4. **I2D — External institutional identity cards**
+5. **I2E — Responsive mode-local Library Preview**
+6. **I2F — Featured Events graphical collection**
+
+Implementation MAY divide these increments further, but MUST preserve the ownership, authority, activation, evidence, and mode-shell boundaries established by this canon.
+
 ## 18. Normative invariants
 
 1. OVERVIEW orients; LIBRARY selects and manages cases; MANIFOLD computes deterministic relationships.
@@ -337,6 +447,9 @@ These increments define preferred sequencing. They do not authorize runtime chan
 10. LIBRARY neither computes relationships nor mutates Canon or the Research Inbox through selection.
 11. UAP is a domain profile, not the iSEES product identity.
 12. Existing runtimes, stores, activation, intake, Guide, and projection owners are extended rather than duplicated.
+13. LIBRARY and OVERVIEW receive distinct mode-local full-width shells; analytical modes retain their established instrument panels, and the two-panel similarity does not transfer operational responsibility to OVERVIEW.
+14. Library visual assets have deterministic provenance metadata and remain presentational unless independently governed as evidence.
+15. Library Preview is mode-local, responsive, and never substitutes preview identity for active-investigation identity.
 
 ## 19. Acceptance obligations for implementation
 
@@ -351,10 +464,16 @@ Any production implementation claiming conformance MUST verify:
 - manual navigation without deactivation or recomputation;
 - Guide content, keyboard behavior, focus, disclosures, and accessibility;
 - truthful repository and featured-event availability and authority labels;
+- mode-specific full-width Library composition without global Navigator, Selection Intelligence, or Research Inbox space;
+- mode-specific full-width Overview composition without global operational panels or Research Inbox space;
+- Overview entry actions route into Library-owned workflows without taking ownership of browsing, preview, intake state, activation, or resumption;
+- responsive Library Preview behavior and accurate active, session-local, empty, and preview header semantics;
+- deterministic visual-asset metadata, fallback behavior, accessibility, provenance, and contextual-versus-evidentiary disclosure;
+- confirmation that imagery neither changes authority nor enters evidence, Inbox, Canon, or computation merely through display;
 - absence of duplicate runtime, router, persistence, intake, and activation owners.
 
 ## 20. Canonical conclusion
 
 LIBRARY answers what the researcher wants to investigate. OVERVIEW explains what iSEES is and where to begin. MANIFOLD remains the first deterministic analytical workspace.
 
-This separation preserves a calm front door, an explicit governed selection boundary, and one authoritative transition into investigation without weakening existing computation, provenance, ownership, persistence, Guide, System Canon, or publication authority.
+This separation preserves a calm front door, an explicit governed selection boundary, a Library-specific full-width collection and preview shell, and one authoritative transition into investigation without weakening existing computation, provenance, ownership, persistence, Guide, System Canon, Evidence, or publication authority.

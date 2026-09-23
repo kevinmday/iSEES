@@ -22,7 +22,9 @@ describe("P57-LIBRARY-I1A foundation retained through I1B migration", () => {
     expect(library).toContain("GuestCaseIntake");
     expect(library).toMatch(/Selection alone never activates/i);
     expect(library).toContain("MANIFOLD");
-    expect(library).not.toMatch(/new WorkspaceRuntime|executeResolve|ResolveRuntime|<video|<audio|<img|<svg/i);
+    expect(library).not.toMatch(/new WorkspaceRuntime|executeResolve|ResolveRuntime|<video|<audio|<svg/i);
+    expect(library).toMatch(/<img src=\{asset\.deliveryReference\} alt=\{asset\.alternativeText\}/);
+    expect(library).not.toMatch(/https?:\/\//);
   });
 
   it("provides distinct, bounded and actionable Library guidance", () => {

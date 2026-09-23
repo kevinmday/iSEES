@@ -6,6 +6,22 @@
   padding-bottom: var(--layers-inbox-collapsed-clearance);
 }
 
+.workspace-surface__projection--library {
+  gap: 0 !important;
+}
+
+.workspace-surface__projection--library > .workspace-identity {
+  margin: 12px 12px 0;
+}
+
+.workspace-surface__projection--overview {
+  gap: 0 !important;
+}
+
+.workspace-surface__projection--overview > .workspace-identity {
+  margin: 12px 12px 0;
+}
+
 .workspace-surface__projection--layers[data-research-inbox-expanded="true"] {
   box-sizing: border-box;
   padding-right: var(--layers-inbox-expanded-clearance);

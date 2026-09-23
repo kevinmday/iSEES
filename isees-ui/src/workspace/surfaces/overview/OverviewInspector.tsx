@@ -3,10 +3,10 @@ import { useOverviewCanonicalActivation } from "./OverviewCanonicalActivationCon
 import "./OverviewPanels.css";
 import "./OverviewCanonicalActivation.css";
 
-export default function OverviewInspector({ onOpenOwned, ownedBusy = false, emptyOwnedInvestigationId = null }: { readonly onOpenOwned?: (investigationId: string) => void; readonly ownedBusy?: boolean; readonly emptyOwnedInvestigationId?: string | null }) {
+export default function OverviewInspector({ onOpenOwned, ownedBusy = false, emptyOwnedInvestigationId = null, previewLabel }: { readonly onOpenOwned?: (investigationId: string) => void; readonly ownedBusy?: boolean; readonly emptyOwnedInvestigationId?: string | null; readonly previewLabel?: string }) {
   const { selection } = useOverviewSelection();
   const activation = useOverviewCanonicalActivation();
-  return <div className="overview-panel overview-inspector" aria-live="polite">{renderSelection(selection, activation, onOpenOwned, ownedBusy, emptyOwnedInvestigationId)}</div>;
+  return <div className="overview-panel overview-inspector" aria-live="polite">{previewLabel && <p className="overview-panel__eyebrow">{previewLabel}</p>}{renderSelection(selection, activation, onOpenOwned, ownedBusy, emptyOwnedInvestigationId)}</div>;
 }
 
 function renderSelection(selection: OverviewSelection, activation: ReturnType<typeof useOverviewCanonicalActivation>, onOpenOwned?: (investigationId: string) => void, ownedBusy = false, emptyOwnedInvestigationId: string | null = null) {

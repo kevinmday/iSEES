@@ -59,6 +59,7 @@ export default function MainLayout({
   const studioMode = workspaceMode === WorkspaceMode.RESEARCH;
   const overviewMode = workspaceMode === WorkspaceMode.OVERVIEW;
   const libraryMode = workspaceMode === WorkspaceMode.LIBRARY;
+  const modeLocalFullWidth = overviewMode || libraryMode;
   const layersMode = workspaceMode === WorkspaceMode.LAYERS;
   const timelineMode = workspaceMode === WorkspaceMode.TIMELINE;
   const leftInstrumentName = overviewMode ? "Orientation" : layersMode ? "Laboratory Navigator" : timelineMode ? "Timeline Navigator" : "Investigation Control";
@@ -223,7 +224,7 @@ export default function MainLayout({
           minWidth: 0,
           minHeight: 0,
           overflow: "hidden",
-          padding: "12px",
+          padding: modeLocalFullWidth ? 0 : "12px",
           gap: "12px",
           background: "#060b14",
         }}
@@ -235,7 +236,7 @@ export default function MainLayout({
 
         {/* LEFT PANEL RESTORE CONTROL */}
 
-        {!studioMode && !libraryMode && !workspaceExpanded && leftPanelCollapsed && (
+        {!studioMode && !modeLocalFullWidth && !workspaceExpanded && leftPanelCollapsed && (
           <div
             style={{
               display: "flex",
@@ -265,7 +266,7 @@ export default function MainLayout({
           </div>
         )}
 
-        {!studioMode && !libraryMode && <div
+        {!studioMode && !modeLocalFullWidth && <div
           style={{
             display:
               workspaceExpanded || leftPanelCollapsed
@@ -344,7 +345,7 @@ export default function MainLayout({
 
           {/* WORKSPACE LAYOUT CONTROL */}
 
-          {!studioMode && !libraryMode && <button
+          {!studioMode && !modeLocalFullWidth && <button
             type="button"
             onClick={() =>
               setWorkspaceExpanded(
@@ -393,7 +394,7 @@ export default function MainLayout({
               flexDirection: "column",
               overflow: "hidden",
               margin: 0,
-              padding: studioMode ? "0" : "16px",
+              padding: studioMode || modeLocalFullWidth ? "0" : "16px",
               boxSizing: "border-box",
             }}
           >
@@ -407,7 +408,7 @@ export default function MainLayout({
 
         {/* RIGHT PANEL RESTORE CONTROL */}
 
-        {!studioMode && !libraryMode && !workspaceExpanded && rightPanelCollapsed && (
+        {!studioMode && !modeLocalFullWidth && !workspaceExpanded && rightPanelCollapsed && (
           <div className="selection-intelligence-restore">
             <button
               type="button"
@@ -427,7 +428,7 @@ export default function MainLayout({
 
         {/* RIGHT PANEL SHELL */}
 
-        {!studioMode && !libraryMode && <aside
+        {!studioMode && !modeLocalFullWidth && <aside
           className={[
             "selection-intelligence",
             workspaceExpanded || rightPanelCollapsed

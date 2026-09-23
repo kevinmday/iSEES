@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-labelledby="title desc">
+  <title id="title">Diagrammatic Pacific naval tracking field</title>
+  <desc id="desc">Abstract carrier group geometry and a separated anomalous track marker.</desc>
+  <rect width="720" height="320" fill="#07131f"/>
+  <g stroke="#17394d" stroke-width="1" opacity=".8"><path d="M0 64h720M0 128h720M0 192h720M0 256h720M90 0v320M180 0v320M270 0v320M360 0v320M450 0v320M540 0v320M630 0v320"/></g>
+  <g fill="none" stroke="#2aa8c4" stroke-width="2"><circle cx="230" cy="174" r="83" opacity=".45"/><circle cx="230" cy="174" r="42" opacity=".7"/><path d="M230 68v212M124 174h212" opacity=".4"/><path d="M230 174L442 91" stroke-dasharray="7 8"/></g>
+  <g fill="#5fd3e6"><path d="M193 169l37-12 37 12-37 8z"/><circle cx="178" cy="218" r="5"/><circle cx="281" cy="224" r="5"/><circle cx="143" cy="135" r="4"/></g>
+  <g transform="translate(474 78)"><rect x="-28" y="-9" width="56" height="18" rx="9" fill="#f2b84b"/><path d="M0 18v26M-13 31h26" stroke="#f2b84b" stroke-width="2"/></g>
+  <path d="M474 78c42 8 76 27 108 61s62 46 106 48" fill="none" stroke="#f2b84b" stroke-width="2" stroke-dasharray="4 8"/>
+  <g fill="#78cddd" font-family="monospace" font-size="13"><text x="24" y="28">PACIFIC / NAVAL FIELD</text><text x="24" y="300">CONTEXTUAL GEOMETRY · NOT SENSOR EVIDENCE</text></g>
+</svg>

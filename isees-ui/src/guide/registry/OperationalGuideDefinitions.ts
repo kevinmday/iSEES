@@ -16,8 +16,8 @@ const CONTENT: Readonly<Record<WorkspaceMode, Content>> = {
   },
   [WorkspaceMode.LIBRARY]: {
     purpose: "Choose, preview, create, or resume an investigation without changing active investigative state.",
-    startHere: "Browse or search existing work and records; selection is preview-only until you choose an explicit open, resume, or create action.",
-    steps: ["Search or filter the available records.", "Select an item to preview its authority and available details without changing the workspace.", "Start or bring a new case, or explicitly open or resume qualified work.", "Keep empty saved investigations in LIBRARY and continue setup.", "Use MANIFOLD for deterministic relationship analysis after activation."],
+    startHere: "Use the Library command panel to search, filter, create, or resume; collection selection is preview-only until an explicit action.",
+    steps: ["Search or filter from the Library command panel.", "Select a collection item to open the mode-local Library Preview without changing active investigation identity.", "Treat Library imagery as contextual unless it is separately governed as evidence.", "Start or bring a new case, or explicitly open or resume qualified work.", "Keep empty saved investigations in LIBRARY and continue setup.", "Use MANIFOLD for deterministic relationship analysis after activation."],
     nextMode: "MANIFOLD after explicit qualified activation", nextModeReason: "MANIFOLD is the first deterministic analytical surface for a populated investigation.", boundary: "LIBRARY does not mutate protected Canon through selection, publish research, run Resolve, or compute relationships.",
     authenticationNote: "Guest work remains browser-session scoped; authenticated saved work uses the existing account ownership, authorization, and persistence authority.",
   },

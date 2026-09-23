@@ -26,10 +26,10 @@ assert((app.match(/<InvestigationLibraryRuntimeProvider>/g) ?? []).length === 1 
 pass("OVERVIEW orientation panels and shared Library preview ownership are explicit while existing branches remain");
 
 const layout = source("../../src/layout/MainLayout.tsx");
-assert(layout.includes('overviewMode ? "Orientation"') && layout.includes('overviewMode ? "Overview Boundary"'), "OVERVIEW orientation labels are absent");
-assert(layout.includes("enter Library for operational investigation work"), "front-door Library direction is absent");
-assert(layout.includes("!studioMode") && !layout.includes("overviewMode && <Research"), "Research Inbox shell visibility expanded into OVERVIEW");
-pass("MainLayout labels OVERVIEW without changing Studio suppression");
+assert(layout.includes("const modeLocalFullWidth = overviewMode || libraryMode"), "OVERVIEW does not share the mode-local full-width shell mechanism");
+assert((layout.match(/!modeLocalFullWidth/g) ?? []).length >= 5, "OVERVIEW global panel suppression is incomplete");
+assert(layout.includes('padding: modeLocalFullWidth ? 0 : "12px"'), "OVERVIEW does not reclaim global panel spacing");
+pass("MainLayout suppresses global panels only for the mode-local OVERVIEW/LIBRARY shells");
 
 const accountA = authority("account:A");
 const accountB = authority("account:B");

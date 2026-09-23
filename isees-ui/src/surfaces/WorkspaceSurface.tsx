@@ -246,7 +246,7 @@ export default function WorkspaceSurface() {
       */}
 
       <div
-        className={`workspace-surface__projection${activeMode === WorkspaceMode.LAYERS ? " workspace-surface__projection--layers" : ""}`}
+        className={`workspace-surface__projection${activeMode === WorkspaceMode.LAYERS ? " workspace-surface__projection--layers" : ""}${activeMode === WorkspaceMode.LIBRARY ? " workspace-surface__projection--library" : ""}${activeMode === WorkspaceMode.OVERVIEW ? " workspace-surface__projection--overview" : ""}`}
         data-research-inbox-expanded={
           researchInboxExpanded
         }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-labelledby="title desc">
+  <title id="title">Diagrammatic Atlantic aviation sensor grid</title>
+  <desc id="desc">Abstract training-area grid with restrained intersecting aviation tracks.</desc>
+  <rect width="720" height="320" fill="#081522"/>
+  <g fill="none" stroke="#184158"><path d="M40 52h640v220H40z" stroke-width="2"/><path d="M40 107h640M40 162h640M40 217h640M120 52v220M200 52v220M280 52v220M360 52v220M440 52v220M520 52v220M600 52v220"/></g>
+  <g fill="none" stroke="#56c6dc" stroke-width="2"><path d="M66 242C184 208 233 116 350 127s177 100 309 37"/><path d="M110 73c90 61 163 115 255 118s161-37 267-104" stroke-dasharray="9 7"/><circle cx="350" cy="127" r="16"/><circle cx="365" cy="191" r="10"/></g>
+  <g fill="#d85c9f"><circle cx="350" cy="127" r="5"/><circle cx="365" cy="191" r="4"/><path d="M475 109l12 5-12 5 4-5z"/></g>
+  <g stroke="#d85c9f" fill="none"><path d="M350 103v-16M326 127h-16M374 127h16"/><path d="M365 207v16M349 191h-16M381 191h16"/></g>
+  <g fill="#78cddd" font-family="monospace" font-size="13"><text x="24" y="28">ATLANTIC / TRAINING AREA</text><text x="24" y="300">CONTEXTUAL TRACK STUDY · NOT SENSOR EVIDENCE</text></g>
+</svg>
