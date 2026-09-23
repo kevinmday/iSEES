@@ -31,6 +31,7 @@ import {
 import { WorkspaceMode, WorkspaceSelectionKind } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 import { useResolveExecutionCommand } from "../../resolve/runtime/useResolveExecutionCommand";
 import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
+import { MetricIntelligenceTrigger, resolveAggregateMetricExplanation, resolveDimensionMetricExplanation } from "../../metric-intelligence";
 
 import {
   resolveComparePairProjection,
@@ -133,8 +134,10 @@ function CaseCard({
 
 function DimensionRow({
   item,
+  projection,
 }: {
   item: ResolveCandidateDimensionIntelligence;
+  projection: ComparePairProjectionReady;
 }) {
   const label = DIMENSION_LABELS[item.dimension];
 
@@ -159,7 +162,7 @@ function DimensionRow({
         <h3>{label}</h3>
         <span className="compare-workspace__badge compare-workspace__badge--available">AVAILABLE</span>
       </div>
-      <div className="compare-workspace__dimension-score">{textualValue}</div>
+      <div className="compare-workspace__dimension-score"><MetricIntelligenceTrigger metric={resolveDimensionMetricExplanation(projection,item,`compare:dimension:${item.dimension}`,"COMPARE")!}/></div>
       <div
         className="compare-workspace__meter"
         role="meter"
@@ -249,7 +252,7 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId, knowl
           <h2 id="compare-dimensions-title">Dimension correspondence</h2>
         </div>
         <ol className="compare-workspace__dimensions">
-          {projection.dimensions.map(item => <DimensionRow key={item.dimension} item={item} />)}
+          {projection.dimensions.map(item => <DimensionRow key={item.dimension} item={item} projection={projection} />)}
         </ol>
       </section>
 
@@ -261,7 +264,7 @@ function ReadyWorkspace({ projection, investigationId, resolveExecutionId, knowl
         <div className="compare-workspace__summary-grid">
           <div className="compare-workspace__summary-primary">
             <span>Aggregate similarity</span>
-            <strong>{formatPercent(projection.aggregate.aggregateSimilarity)}</strong>
+            <strong><MetricIntelligenceTrigger metric={resolveAggregateMetricExplanation(projection,"compare:aggregate","COMPARE")}/></strong>
             <span className="compare-workspace__badge compare-workspace__badge--available">AVAILABLE</span>
           </div>
           <dl className="compare-workspace__metrics">

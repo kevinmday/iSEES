@@ -23,6 +23,7 @@ import { useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeCon
 import "./NarrativeWorkspace.css";
 import { narrativePassageResearchAnchor } from "../../studio/sources/TypedResearchSourceAdapters";
 import { collectTypedResearchSource } from "../../studio/sources/DirectResearchPublication";
+import { MetricIntelligenceTrigger, resolveDimensionMetricExplanation } from "../../metric-intelligence";
 
 const EMPTY_CANDIDATE_EVALUATIONS = Object.freeze([]);
 
@@ -122,7 +123,7 @@ function ProfileDimension({ dimension, profile }: { dimension: typeof DIMENSION_
   return <div className="narrative-workspace__profile-dimension">{features.map(([name, feature]) => <Feature key={name} name={name} feature={feature} />)}</div>;
 }
 
-function DimensionResult({ result }: { result: ResolveCandidateDimensionIntelligence | undefined }) {
+function DimensionResult({ result, projection }: { result: ResolveCandidateDimensionIntelligence | undefined; projection: NarrativeWorkspaceReadyProjection }) {
   if (!result) return <p className="narrative-workspace__reason">Dimension result unavailable from the I1 projection.</p>;
   return (
     <div className="narrative-workspace__dimension-result">
@@ -131,7 +132,7 @@ function DimensionResult({ result }: { result: ResolveCandidateDimensionIntellig
         <div><dt>Status</dt><dd>{result.status}</dd></div>
         {result.source.availability === "AVAILABLE" ? (
           <>
-            <div><dt>Similarity</dt><dd>{(result.source.similarity * 100).toFixed(1)}%</dd></div>
+            <div><dt>Similarity</dt><dd><MetricIntelligenceTrigger metric={resolveDimensionMetricExplanation(projection.comparePair,result,`narrative:dimension:${result.dimension}`,"NARRATIVE")!}/></dd></div>
             <div><dt>Configured weight</dt><dd>{result.source.weight}</dd></div>
           </>
         ) : <div><dt>Reason</dt><dd>{result.source.reason}</dd></div>}
@@ -211,7 +212,7 @@ function NormalizedRegion({ projection, resolveExecutionId, knowledgeObjects }: 
             const result = normalizedCenter.resolveDimensions.find(item => item.dimension === dimension);
             return (
               <section className="narrative-workspace__dimension" key={dimension}>
-                <header><span>{dimension}</span><DimensionResult result={result} /></header>
+                <header><span>{dimension}</span><DimensionResult result={result} projection={projection} /></header>
                 <div className="narrative-workspace__profile-pair">
                   <div><h3>Focused profile</h3><ProfileDimension dimension={dimension} profile={normalizedCenter.focusedProfile} /></div>
                   <div><h3>Compared profile</h3><ProfileDimension dimension={dimension} profile={normalizedCenter.comparedProfile} /></div>

@@ -11,3 +11,4 @@ export * from "./TopologySimilarityMetricIntelligence";
 export * from "./MetricFindingResearchPublication";
 export * from "./MetricIntelligenceTrigger";
 export * from "./ContextualIntelligencePresentation";
+export * from "./GovernedMetricIntelligence";

@@ -106,6 +106,7 @@ import {
   resolveCurrentOperationalRevision,
 } from "../investigation/revision/OperationalGraphRevision";
 import { RexExploreControl } from "../rex/RexExploreControl.tsx";
+import { MetricIntelligenceTrigger, resolveCandidateAggregateMetricExplanation, resolveCandidateDimensionMetricExplanation } from "../metric-intelligence";
 import type {
   EntityEvidenceProfile,
   EntityProvenanceProfile,
@@ -503,14 +504,7 @@ function CandidateInspector({
 
       <InspectorSection title="Similarity">
         <div className="selection-intelligence__rows">
-          <PercentRow
-            label="Aggregate"
-            value={
-              explanation
-                .aggregate
-                .aggregateSimilarity
-            }
-          />
+          <IntelRow label="Aggregate" value={<MetricIntelligenceTrigger metric={resolveCandidateAggregateMetricExplanation(intelligence,"manifold:candidate:aggregate","MANIFOLD")}/>} />
 
           <IntelRow
             label="Participating"
@@ -584,6 +578,7 @@ function CandidateInspector({
                 intelligence={
                   dimension
                 }
+                candidate={intelligence}
               />
             )
           )
@@ -649,18 +644,20 @@ function CandidateInspector({
 
 function CandidateDimensionRow({
   intelligence,
+  candidate,
 }: {
   intelligence:
     ResolveCandidateDimensionIntelligence;
+  candidate: ResolveCandidateIntelligence;
 }) {
   const source =
     intelligence.source;
 
   const score =
-    "score" in source &&
-    typeof source.score ===
+    "similarity" in source &&
+    typeof source.similarity ===
       "number"
-      ? source.score
+      ? source.similarity
       : undefined;
 
   const scoreClassName = [
@@ -694,9 +691,7 @@ function CandidateDimensionRow({
         <div className={scoreClassName}>
           {
             score !== undefined
-              ? `${(
-                  score * 100
-                ).toFixed(1)}%`
+              ? <MetricIntelligenceTrigger metric={resolveCandidateDimensionMetricExplanation(candidate,intelligence,`manifold:candidate:dimension:${intelligence.dimension}`,"MANIFOLD")!}/>
               : formatLabel(
                   intelligence.status,
                 )
@@ -1441,27 +1436,6 @@ function RationaleList({
         )
       }
     </div>
-  );
-}
-
-// ============================================================
-// PERCENT ROW
-// ============================================================
-
-function PercentRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
-  return (
-    <IntelRow
-      label={label}
-      value={`${(
-        value * 100
-      ).toFixed(1)}%`}
-    />
   );
 }
 

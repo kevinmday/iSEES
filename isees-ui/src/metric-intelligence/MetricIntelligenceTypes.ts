@@ -106,3 +106,20 @@ export interface MetricBriefingTemplate {
   readonly version: string;
   readonly metricSemanticKind: MetricIntelligenceDefinition["semanticKind"];
 }
+
+export interface GovernedMetricExplanation {
+  readonly definitionId: string;
+  readonly semanticIdentity: string;
+  readonly surfaceId: string;
+  readonly activeMode: string;
+  readonly displayValue: string;
+  readonly exactValue: string;
+  readonly definition: string;
+  readonly interpretation: string;
+  readonly notice: string;
+  readonly provenance: readonly string[];
+  readonly sourceReferences: readonly string[];
+  readonly limitations: readonly string[];
+  readonly unavailableInputs: readonly string[];
+  readonly evaluatedSnapshot?: import("./EquationDocumentationTypes").EvaluatedMathematicalSnapshot;
+}

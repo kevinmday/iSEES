@@ -20,6 +20,13 @@ import { composeGuestOperationalKnowledgeObjects } from "../../knowledge/ingesti
 
 const pct = (value?: number) => value === undefined ? "UNAVAILABLE" : `${(value * 100).toFixed(1)}%`;
 const unavailableReason = (reason?: string) => reason?.replaceAll("_", " ") ?? "Evidence unavailable for the active baseline layers";
+export function LayersTopologyMetricValue({ projection, caseA, caseB }: { projection: import("../projection").LayersExperimentalPairProjection; caseA: string; caseB: string }) {
+  const bridge=useResearchBridge(); const desk=useResearchDesk();
+  const briefing=useMemo(()=>{try{return assembleTopologySimilarityBriefing(topologySimilaritySourceFromProjection(projection,{caseA:eventDisplayName(caseA),caseB:eventDisplayName(caseB)}));}catch{return undefined;}},[caseA,caseB,projection]);
+  if(!briefing)return <>{pct(projection.delta.experimentalScore)}</>;
+  const collected=desk.entries.some(entry=>entry.anchor.anchorId===researchAnchorId(briefing.source.investigationId,"METRIC_FINDING",briefing.findingId));
+  return <MetricIntelligenceTrigger briefing={briefing} collected={collected} onCollect={()=>collectMetricFinding(briefing,bridge)}/>;
+}
 export default function LayersExperimentalIntelligence() {
   const state = useLayersExperimentState();
   const workspaceRuntime = useWorkspaceRuntime();
@@ -45,11 +52,6 @@ export default function LayersExperimentalIntelligence() {
   }, [candidateSelection, completedResolve, investigation, knowledge, resolveState.currentExecution?.executionId, workspace]);
   const execution = isLayersExperimentExecutionCurrent(state.currentExecution, activeAuthority) ? state.currentExecution : undefined;
   const projection = execution?.result?.experimentalManifoldSnapshot;
-  const metricBriefing = useMemo(() => {
-    if (!projection) return undefined;
-    try { return assembleTopologySimilarityBriefing(topologySimilaritySourceFromProjection(projection, { caseA: eventDisplayName(projection.evaluatorInput.endpoints[0].subjectIdentity), caseB: eventDisplayName(projection.evaluatorInput.endpoints[1].subjectIdentity) })); } catch { return undefined; }
-  }, [projection]);
-  const metricCollected = !!metricBriefing && desk.entries.some(entry => entry.anchor.anchorId === researchAnchorId(metricBriefing.source.investigationId, "METRIC_FINDING", metricBriefing.findingId));
   const published = !!projection && desk.entries.some(entry => entry.anchor.anchorId === `research:${projection.investigationId}:EXPERIMENT:${projection.projectionId}`);
   const contribution = projection && (selection.kind === "LAYER" || selection.kind === "CONTRIBUTION") ? projection.layerContributions.find(item => item.layerId === selection.layerId) : undefined;
   const canPublish = isLayersExperimentExecutionCurrent(execution, activeAuthority);
@@ -73,7 +75,7 @@ export default function LayersExperimentalIntelligence() {
       <section><h2>{selection.kind.replaceAll("_", " ")}</h2>
         {contribution ? <><Row label="Layer ID / class" value={`${contribution.layerId} · ${contribution.classification}`}/><Row label="Mapping" value={`${contribution.operationalMappingStatus} · ${contribution.canonicalDimension ?? "UNMAPPED"}`}/><Row label="Availability" value={contribution.availability}/><Row label="Similarity" value={pct(contribution.similarity)}/><Row label="Canonical weight" value={contribution.canonicalWeight ?? "UNAVAILABLE"}/><Row label="Participating weight" value={contribution.participatingWeight}/><Row label="Weighted contribution" value={contribution.availability === "AVAILABLE" ? contribution.weightedContribution : "UNAVAILABLE"}/><Row label="Reason" value={contribution.unavailableReason ?? "—"}/><Row label="Membership" value={contributionMembership(projection, contribution.layerId)}/></>
         : selection.kind === "CASE_A" || selection.kind === "CASE_B" ? <FrozenEndpoint projection={projection} role={selection.kind}/>
-        : <><Row label="Baseline" value={pct(projection.delta.baselineScore)}/>{projection.baseline.relationship.availability === "UNAVAILABLE" && <p>{projection.provenance.baselineLayerIds.length === 0 ? "No active baseline layers" : unavailableReason(projection.baseline.relationship.reason)}</p>}<div className="layers-side__row"><span>Experimental</span><strong>{metricBriefing ? <MetricIntelligenceTrigger briefing={metricBriefing} collected={metricCollected} onCollect={() => collectMetricFinding(metricBriefing, bridge)}/> : pct(projection.delta.experimentalScore)}</strong></div><Row label="Delta" value={`${projection.delta.state}${projection.delta.scoreDelta === undefined ? " · NOT MEANINGFUL" : ` · ${projection.delta.scoreDelta >= 0 ? "+" : ""}${(projection.delta.scoreDelta * 100).toFixed(1)} pp`}`}/><Row label="Participating" value={projection.provenance.participatingLayerIds.join(" · ") || "NONE"}/><Row label="Unavailable" value={projection.provenance.unavailableLayerIds.join(" · ") || "NONE"}/><Row label="Execution" value={projection.executionId}/><p><strong>Experimental result.</strong> No canonical relationship was created.</p></>}
+        : <><Row label="Baseline" value={pct(projection.delta.baselineScore)}/>{projection.baseline.relationship.availability === "UNAVAILABLE" && <p>{projection.provenance.baselineLayerIds.length === 0 ? "No active baseline layers" : unavailableReason(projection.baseline.relationship.reason)}</p>}<div className="layers-side__row"><span>Experimental</span><strong><LayersTopologyMetricValue projection={projection} caseA={projection.evaluatorInput.endpoints[0].subjectIdentity} caseB={projection.evaluatorInput.endpoints[1].subjectIdentity}/></strong></div><Row label="Delta" value={`${projection.delta.state}${projection.delta.scoreDelta === undefined ? " · NOT MEANINGFUL" : ` · ${projection.delta.scoreDelta >= 0 ? "+" : ""}${(projection.delta.scoreDelta * 100).toFixed(1)} pp`}`}/><Row label="Participating" value={projection.provenance.participatingLayerIds.join(" · ") || "NONE"}/><Row label="Unavailable" value={projection.provenance.unavailableLayerIds.join(" · ") || "NONE"}/><Row label="Execution" value={projection.executionId}/><p><strong>Experimental result.</strong> No canonical relationship was created.</p></>}
       </section>
       <section><h2>Research publication</h2><button type="button" disabled={!canPublish || published} onClick={publish}>{published ? "PUBLISHED TO RESEARCH" : "Publish Experiment to Research"}</button>{published && <p>Experimental projection preserved.<br/>Canonical knowledge unchanged.</p>}</section>
     </>}
