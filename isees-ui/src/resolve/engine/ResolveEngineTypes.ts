@@ -71,14 +71,20 @@ import type {
 } from "./ResolveProvenance";
 
 // ============================================================
-// GOVERNING EQUATION
+// EVENT-SPACE MANIFOLD CONSTRUCTION NOTATION
 // ============================================================
 
-export const RESOLVE_GOVERNING_EQUATION =
+export const EVENT_SPACE_MANIFOLD_CONSTRUCTION_NOTATION =
   "M = g(L,T,S)" as const;
 
+export const EVIDENCE_CONDITIONED_MANIFOLD_INSTANTIATION_NOTATION =
+  "M_E = g(L_E,T_E,S_E)" as const;
+
+/** Compatibility alias. This notation constructs the event-space manifold; it is not a similarity or candidate-scoring equation. */
+export const RESOLVE_GOVERNING_EQUATION = EVENT_SPACE_MANIFOLD_CONSTRUCTION_NOTATION;
+
 export type ResolveGoverningEquation =
-  typeof RESOLVE_GOVERNING_EQUATION;
+  typeof EVENT_SPACE_MANIFOLD_CONSTRUCTION_NOTATION;
 
 // ============================================================
 // CANONICAL COMPUTATIONAL UNIVERSE

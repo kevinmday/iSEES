@@ -28,6 +28,7 @@ export interface EquationDocumentation {
   readonly verificationStatus: EquationVerificationStatus;
   readonly citationText: string;
   readonly provenanceRequirements: readonly string[];
+  readonly mathematicsAuthorityIdentity?: string;
 }
 
 export interface EquationInputSubstitution {

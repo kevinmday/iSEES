@@ -1,5 +1,6 @@
 import type { EquationDocumentation } from "./EquationDocumentationTypes";
 import type { IntelligenceDefinition } from "./MetricIntelligenceTypes";
+import type { MetricMathematicsRegistry, MetricMathematicsRegistryEntry } from "./MetricMathematicsRegistry.ts";
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/;
 const required = (value: string, name: string) => { if (!value?.trim()) throw new Error(`${name} is required.`); };
@@ -18,9 +19,10 @@ export interface IntelligenceRegistry {
   readonly getEquation: (equationId: string) => EquationDocumentation | undefined;
   readonly listDefinitions: () => readonly IntelligenceDefinition[];
   readonly listEquations: () => readonly EquationDocumentation[];
+  readonly getMathematics: (identity: string) => MetricMathematicsRegistryEntry | undefined;
 }
 
-export function createIntelligenceRegistry(definitions: readonly IntelligenceDefinition[]): IntelligenceRegistry {
+export function createIntelligenceRegistry(definitions: readonly IntelligenceDefinition[], mathematics?: MetricMathematicsRegistry): IntelligenceRegistry {
   const byDefinition = new Map<string, IntelligenceDefinition>();
   const byEquation = new Map<string, EquationDocumentation>();
   for (const definition of definitions) {
@@ -33,10 +35,11 @@ export function createIntelligenceRegistry(definitions: readonly IntelligenceDef
     if (definition.mathematicalDocumentationStatus.status === "AVAILABLE" && !equation) throw new Error(`Available mathematical documentation is missing for ${definition.definitionId}.`);
     if (definition.mathematicalDocumentationStatus.status !== "AVAILABLE" && equation) throw new Error(`Unexpected mathematical documentation for ${definition.definitionId}.`);
     if (definition.mathematicalDocumentationStatus.status === "DEFERRED_UNAVAILABLE") required(definition.mathematicalDocumentationStatus.reason ?? "", "Deferred mathematical documentation reason");
+    if (definition.mathematicsAuthorityIdentity && !mathematics?.get(definition.mathematicsAuthorityIdentity)) throw new Error(`Unknown mathematics authority identity for ${definition.definitionId}: ${definition.mathematicsAuthorityIdentity}.`);
     if (equation) { validateEquation(equation); if (byEquation.has(equation.equationId)) throw new Error(`Duplicate equation ID: ${equation.equationId}`); byEquation.set(equation.equationId, equation); }
     byDefinition.set(definition.definitionId, definition);
   }
   const orderedDefinitions = Object.freeze([...byDefinition.values()].sort((a,b) => a.definitionId.localeCompare(b.definitionId)));
   const orderedEquations = Object.freeze([...byEquation.values()].sort((a,b) => a.equationId.localeCompare(b.equationId)));
-  return Object.freeze({ getDefinition: (id: string) => byDefinition.get(id), getEquation: (id: string) => byEquation.get(id), listDefinitions: () => orderedDefinitions, listEquations: () => orderedEquations });
+  return Object.freeze({ getDefinition: (id: string) => byDefinition.get(id), getEquation: (id: string) => byEquation.get(id), listDefinitions: () => orderedDefinitions, listEquations: () => orderedEquations, getMathematics: (identity: string) => mathematics?.get(identity) });
 }

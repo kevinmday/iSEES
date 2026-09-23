@@ -1,9 +1,9 @@
-import { INTENTION_EQUATION_REGISTRY, IntentionEquationId, resolveIntentionEquation } from "../../src/intention/projection";
+import { INTENTION_EQUATION_REGISTRY, IntentionEquationId, resolveIntentionEquation } from "../../src/intention/contracts/IntentionEquationRegistry.ts";
 let count=0; const assert=(v:unknown,m:string)=>{if(!v)throw new Error(`VERIFY FAILED: ${m}`);count+=1;};
 assert(new Set(INTENTION_EQUATION_REGISTRY.map(e=>e.id)).size===INTENTION_EQUATION_REGISTRY.length,"equation IDs are unique");
 assert(Object.isFrozen(INTENTION_EQUATION_REGISTRY)&&INTENTION_EQUATION_REGISTRY.every(e=>Object.isFrozen(e)&&Object.isFrozen(e.inputs)),"registry is deeply immutable");
 assert(INTENTION_EQUATION_REGISTRY.every(e=>e.executable===false),"display equations are inert");
-assert(resolveIntentionEquation(IntentionEquationId.GOVERNING_MODEL).inputs.map(i=>i.id).join(",")==="L,T,S","semantic input order is preserved");
+const unavailableModel=resolveIntentionEquation(IntentionEquationId.GOVERNING_MODEL); assert(unavailableModel.inputs.length===0&&unavailableModel.displayExpression==="INTENTION governing model = unavailable"&&unavailableModel.description.includes("event-space manifold construction"),"manifold notation is not misrepresented as an INTENTION governing model");
 let threw=false;try{resolveIntentionEquation("unknown");}catch{threw=true;}assert(threw,"unknown IDs fail closed");
 assert(INTENTION_EQUATION_REGISTRY.every(e=>!(/=>|eval\s*\(|new Function/.test(e.displayExpression))),"no expression evaluation content exists");
 assert(INTENTION_EQUATION_REGISTRY.filter(e=>e.availability==="THEORETICAL").every(e=>e.executable===false&&!!e.reason),"unsupported scientific concepts have no executable claim");

@@ -12,3 +12,7 @@ export * from "./MetricFindingResearchPublication";
 export * from "./MetricIntelligenceTrigger";
 export * from "./ContextualIntelligencePresentation";
 export * from "./GovernedMetricIntelligence";
+export * from "./MetricMathematicsAuthorityTypes";
+export * from "./DeterministicProcedureTypes";
+export * from "./MetricExplanationContract";
+export * from "./MetricMathematicsRegistry";

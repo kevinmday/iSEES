@@ -19,6 +19,7 @@ export interface IntelligenceDefinitionBase {
   readonly provenanceRequirements: readonly string[];
   readonly mathematicalDocumentation?: EquationDocumentation;
   readonly mathematicalDocumentationStatus: Readonly<{ status: "AVAILABLE" | "NOT_APPLICABLE" | "DEFERRED_UNAVAILABLE"; reason?: string }>;
+  readonly mathematicsAuthorityIdentity?: string;
   readonly collectionEligible: boolean;
   readonly epistemicEffect: "CONTEXT_ONLY" | "DERIVED_NON_CANONICAL";
   readonly canonEffect: IntelligenceMutationEffect;

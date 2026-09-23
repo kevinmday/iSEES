@@ -3,6 +3,7 @@ import { layersContributionId, LayersContributionSet, type LayersExperimentalPai
 import type { MetricBriefingTemplate, MetricIntelligenceDefinition, MetricIntelligenceSource, MetricSignificanceBriefing } from "./MetricIntelligenceTypes.ts";
 import { createIntelligenceRegistry } from "./IntelligenceRegistry.ts";
 import { GOVERNED_METRIC_DEFINITIONS } from "./GovernedMetricIntelligence.ts";
+import { METRIC_MATHEMATICS_REGISTRY } from "./MetricMathematicsRegistry.ts";
 
 export const TOPOLOGY_SIMILARITY_TEMPLATE = Object.freeze<MetricBriefingTemplate>({ id: "metric-briefing/topology-similarity", version: "v1", metricSemanticKind: "TOPOLOGY_SIMILARITY" });
 export const METRIC_BRIEFING_TEMPLATE_REGISTRY = Object.freeze([TOPOLOGY_SIMILARITY_TEMPLATE]);
@@ -19,6 +20,7 @@ export const TOPOLOGY_SIMILARITY_DEFINITION = Object.freeze<MetricIntelligenceDe
   inclusionClassification: "INTERPRETIVE",
   provenanceRequirements: Object.freeze(["investigationId", "pairId", "executionId", "inputProjectionId", "ordered endpoint snapshots", "evaluator identity", "normalization identity"]),
   mathematicalDocumentationStatus: Object.freeze({ status: "DEFERRED_UNAVAILABLE", reason: "Governing equation unavailable" }),
+  mathematicsAuthorityIdentity: "resolve.dimension.topology-correspondence",
   collectionEligible: true,
   epistemicEffect: "DERIVED_NON_CANONICAL",
   canonEffect: "NONE",
@@ -33,7 +35,7 @@ export const TOPOLOGY_SIMILARITY_DEFINITION = Object.freeze<MetricIntelligenceDe
   briefingTemplateVersion: TOPOLOGY_SIMILARITY_TEMPLATE.version,
 });
 
-export const METRIC_INTELLIGENCE_REGISTRY = createIntelligenceRegistry([TOPOLOGY_SIMILARITY_DEFINITION, ...GOVERNED_METRIC_DEFINITIONS]);
+export const METRIC_INTELLIGENCE_REGISTRY = createIntelligenceRegistry([TOPOLOGY_SIMILARITY_DEFINITION, ...GOVERNED_METRIC_DEFINITIONS], METRIC_MATHEMATICS_REGISTRY);
 
 function canonical(value: unknown): string {
   if (value === undefined) return "undefined";

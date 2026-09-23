@@ -168,11 +168,20 @@ The Investigation Manifold is defined as
 
 \\\[
 
-M=g(L,T,S,E)
+M = g(L,T,S)
 
 \\]
 
 
+
+This is the general event-space manifold construction law. A manifold
+instantiated under governed evidence context E is written
+
+\\[
+
+M_E = g(L_E,T_E,S_E)
+
+\\]
 
 where
 
@@ -220,15 +229,30 @@ E
 
 =
 
-\\text{Evidence Corpus}
+\\text{Governed Evidence Context}
 
 \\]
 
 
 
-The manifold is therefore a deterministic function of the computational
+The subscripted terms are the layer configuration L_E, temporal context
+T_E, and investigative scale or scope S_E selected, populated, or
+resolved under governed evidence context E. Evidence therefore affects
+the manifold being instantiated through governed investigation state. E
+is an indexing or conditioning context, not a fourth peer argument
+supplied directly to g.
 
-universe and the available evidence.
+The construction operator g remains invariant. Different evidence
+contexts may yield different instantiated manifolds (E1 != E2 may
+produce M_E1 != M_E2) without introducing a new construction operator.
+
+The former notation M=g(L,T,S,E) is superseded by the two-level notation
+above because the four-argument form was ambiguous. This clarification
+preserves its historical proposition that evidence affects the
+instantiated manifold. Neither expression is a similarity or
+correspondence equation, weighted aggregate, Resolve candidate score,
+INTENTION governing model, or statement of probability, confidence,
+causation, proof, or truth.
 
 
 
