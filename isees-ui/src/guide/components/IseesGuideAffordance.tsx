@@ -6,7 +6,7 @@ export default function IseesGuideAffordance() {
   return (
     <button
       ref={registerAffordance}
-      className="isees-guide-affordance"
+      className="capture-global-link"
       type="button"
       aria-label={isOpen ? "Close iSEES Guide" : "Open iSEES Guide"}
       aria-expanded={isOpen}

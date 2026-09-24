@@ -51,6 +51,8 @@ export default function EventSpaceEvolution({ emphasis }: EventSpaceEvolutionPro
           </g>
           <path d="M136 70H178" className="event-space__canonical-edge" markerEnd={`url(#${arrowId})`} />
           <g className="event-space__topology" data-topology="initial">
+            <path className="event-space__depth-plane" d="M184 78 238 37 298 64 247 145 174 119Z" />
+            <path className="event-space__projected-edge" d="M184 78 190 106M238 37 222 54M298 64 278 78M247 145 244 126M174 119 190 106" />
             <path d="M222 54 278 78 244 126 190 106Z M222 54 244 126 M278 78 190 106" />
             <circle cx="222" cy="54" r="8" /><circle cx="278" cy="78" r="8" />
             <circle cx="244" cy="126" r="8" /><circle cx="190" cy="106" r="8" />
@@ -105,6 +107,8 @@ export default function EventSpaceEvolution({ emphasis }: EventSpaceEvolutionPro
           <text x="18" y="570" className="event-space__note">Draft, save, export, or candidate publication does not alter the Manifold.</text>
           <path d="M360 574C360 594 323 602 291 610" className="event-space__conditional-path" markerEnd={`url(#${arrowId})`} />
           <g className="event-space__topology event-space__topology--revised" data-topology="revised">
+            <path className="event-space__depth-plane" d="M178 594 238 570 305 598 280 670 204 665Z" />
+            <path className="event-space__projected-edge" d="M238 570 242 588M305 598 293 610M280 670 268 657M204 665 210 650M178 594 185 612" />
             <path d="M242 588 293 610 268 657 210 650 185 612Z M242 588 268 657 M293 610 210 650 M185 612 268 657" />
             <circle cx="242" cy="588" r="7" /><circle cx="293" cy="610" r="7" /><circle cx="268" cy="657" r="7" />
             <circle cx="210" cy="650" r="7" /><circle cx="185" cy="612" r="7" />

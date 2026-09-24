@@ -30,3 +30,8 @@ export function acknowledgeIseesIntroduction(storage: OnboardingAcknowledgementS
     // Explicit entry remains available when browser preference storage is unavailable.
   }
 }
+
+/** Records that the visitor completed the equivalent orientation on the unified public Overview. */
+export function acknowledgeUnifiedPublicOrientation(storage: OnboardingAcknowledgementStorage | undefined = browserStorage()): void {
+  acknowledgeIseesIntroduction(storage);
+}

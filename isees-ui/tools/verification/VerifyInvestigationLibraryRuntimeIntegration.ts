@@ -982,8 +982,11 @@ equal(strictFirstLoads.length, 0, "StrictMode rehearsal dispatched a request.");
 equal(strictCommittedLoads.join(","), "A", "StrictMode committed mount duplicated or omitted its request.");
 pass("mode boundary permits only OVERVIEW/LIBRARY, cancels exit work, reconciles return authority, and survives StrictMode rehearsal");
 
-for (const visible of ["Guided orientation", "Enter Library", "Bring Your Own Case", "Browsing, preview, intake, activation, resumption, and investigation management remain in Library."])
-  assert(overviewSource.includes(visible), `Current OVERVIEW orientation contract is missing ${visible}.`);
+const overviewPresentationSource = readFileSync(`${root}src/workspace/surfaces/overview/OverviewPresentation.tsx`, "utf8");
+for (const visible of ["Guided orientation", "Browsing, preview, intake, activation, resumption, and investigation management remain in Library."])
+  assert(overviewPresentationSource.includes(visible), `Current OVERVIEW orientation contract is missing ${visible}.`);
+for (const visible of ["ENTER LIBRARY", "BRING YOUR OWN CASE"])
+  assert(overviewSource.includes(visible), `Current operational OVERVIEW action contract is missing ${visible}.`);
 for (const visible of ["Investigation Library", "Your investigations", "SYSTEM CANON", "Resume Current Investigation", "Explicit opening enters MANIFOLD."])
   assert(librarySource.includes(visible), `Current LIBRARY ownership contract is missing ${visible}.`);
 assert(!overviewSource.includes('className="overview-dashboard"'), "Removed operational dashboard markup returned to OVERVIEW.");

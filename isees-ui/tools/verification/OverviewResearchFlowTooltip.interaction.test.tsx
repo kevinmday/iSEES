@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 
 const enterLibrary = vi.fn();
 const openOrientation = vi.fn();
@@ -9,6 +10,7 @@ vi.mock("../../src/workspace/surfaces/LibraryWorkspace", () => ({ useLibraryNavi
 vi.mock("../../src/guide/presentation/GuidePresentationContext", () => ({ useGuidePresentation: () => ({ openOrientation }) }));
 
 import OverviewWorkspace, { RESEARCH_STAGES } from "../../src/workspace/surfaces/OverviewWorkspace";
+import OverviewPresentation from "../../src/workspace/surfaces/overview/OverviewPresentation";
 import EventSpaceEvolution, { type OverviewFlowEmphasis } from "../../src/workspace/surfaces/overview/EventSpaceEvolution";
 import Tooltip from "../../src/components/Tooltip";
 
@@ -18,7 +20,7 @@ const renderOverview = () => render(<MemoryRouter><OverviewWorkspace /></MemoryR
 const visibleTooltip = () => screen.getAllByRole("tooltip", { hidden: true }).find(tip => tip.classList.contains("shared-tooltip__content--visible"));
 
 describe("Overview iterative research-flow tooltips", () => {
-  it("owns the five approved explanations and one concise semantic control per noninteractive row", () => {
+  it("owns the five approved explanations and keeps Library navigation separate from each tooltip", () => {
     renderOverview();
     expect(screen.getByText("This is an iterative research cycle, not a required sequence; as governed inputs evolve, the Manifold is recomputed and may expose new research vectors.")).toBeTruthy();
     expect(RESEARCH_STAGES.map(stage => stage.tooltip)).toEqual([
@@ -32,11 +34,12 @@ describe("Overview iterative research-flow tooltips", () => {
     expect(rows).toHaveLength(5);
     RESEARCH_STAGES.forEach((stage, index) => {
       const row = rows[index]!;
-      expect(within(row).getAllByRole("button")).toHaveLength(1);
+      expect(within(row).getAllByRole("button")).toHaveLength(index === 0 ? 2 : 1);
       expect(within(row).getByRole("button", { name: stage.tooltipLabel })).toBeTruthy();
       expect(row.hasAttribute("tabindex")).toBe(false);
       expect(row.hasAttribute("role")).toBe(false);
     });
+    expect(within(rows[0]!).getByRole("button", { name: "Open Investigation Library" }).textContent).toBe("Library");
   });
 
   it("exposes by hover, focus, and click; associates the trigger; and dismisses on Escape without moving focus", async () => {
@@ -77,7 +80,7 @@ describe("Overview iterative research-flow tooltips", () => {
       fireEvent.pointerLeave(rows[index]!);
       expect(figure.getAttribute("data-emphasis")).toBe("IDLE");
 
-      const trigger = within(rows[index]!).getByRole("button");
+      const trigger = within(rows[index]!).getByRole("button", { name: stage.tooltipLabel });
       fireEvent.focusIn(trigger);
       expect(figure.getAttribute("data-emphasis")).toBe(stage.verb);
       fireEvent.focusOut(trigger, { relatedTarget: document.body });
@@ -85,6 +88,31 @@ describe("Overview iterative research-flow tooltips", () => {
     });
     expect(enterLibrary).not.toHaveBeenCalled();
     expect(openOrientation).not.toHaveBeenCalled();
+  });
+
+  it("opens Library from only the step-01 label by keyboard without operating the tooltip", () => {
+    renderOverview();
+    const library = screen.getByRole("button", { name: "Open Investigation Library" });
+    library.focus();
+    fireEvent.keyDown(library, { key: "Enter" });
+    fireEvent.click(library);
+    expect(enterLibrary).toHaveBeenLastCalledWith(false);
+    expect(visibleTooltip()).toBeUndefined();
+    expect(document.querySelectorAll('.overview-flow__mode-action')).toHaveLength(1);
+  });
+
+  it("places the public Nimitz challenge after the five steps and invokes only its supplied governed action by keyboard", async () => {
+    const launchPreview = vi.fn();
+    const view = render(<OverviewPresentation primaryActionLabel="EXPLORE THE NIMITZ INVESTIGATION" secondaryActionLabel="BRING YOUR OWN CASE" onPrimaryAction={launchPreview} onSecondaryAction={vi.fn()} onLibraryAction={vi.fn()} onResearchChallengeAction={launchPreview} onGuidedOrientation={vi.fn()} onSystemBriefing={vi.fn()} />);
+    const stages = view.container.querySelector(".overview-flow__stages")!;
+    const challenge = view.container.querySelector(".overview-challenge")!;
+    expect(stages.compareDocumentPosition(challenge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(challenge).getByRole("heading", { name: "UAP events are strange. Are they also connected—and intentional?" })).toBeTruthy();
+    const action = within(challenge).getByRole("button", { name: "EXPLORE THE NIMITZ INVESTIGATION" });
+    expect(action.getAttribute("type")).toBe("button");
+    action.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(launchPreview).toHaveBeenCalledTimes(1);
   });
 
   it("renders one accessible, non-operational explanatory image with every layer in every state", () => {

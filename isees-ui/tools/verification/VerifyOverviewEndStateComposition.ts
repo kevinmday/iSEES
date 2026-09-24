@@ -32,7 +32,7 @@ assert(resolveOverviewCompositionKind(null) === "CLOSED", "unsettled authority d
 pass("Guest, New Account, Returning Account, and unresolved compositions are distinct");
 
 const overviewSource = readFileSync(new URL("../../src/workspace/surfaces/OverviewWorkspace.tsx", import.meta.url), "utf8");
-assert(overviewSource.includes("Enter Library") && overviewSource.includes("Bring Your Own Case"), "Library entry affordances are absent");
+assert(overviewSource.includes("ENTER LIBRARY") && overviewSource.includes("BRING YOUR OWN CASE"), "Library entry affordances are absent");
 assert(overviewSource.includes("library.enter(true)"), "Bring Your Own Case does not route to Library intake");
 assert(!/CanonCard|OVERVIEW_REPOSITORIES|OverviewInspector|GuestCaseIntake|activateInvestigation|importInvestigation/.test(overviewSource), "Overview retains operational behavior");
 pass("Overview is orientation-only and both operational entries route to Library");

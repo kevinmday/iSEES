@@ -13,7 +13,7 @@ function has(source: string, pattern: RegExp, message: string) { assert.match(so
 has(transition, /session\.investigation \? guestWorkspaceSessionLifecycle\.captureNow\(\) : null/, "empty/public-preview Guest must not produce a candidate");
 has(transition, /captureGuestAdoptionCandidate\(snapshot\)/, "active candidate must be captured before authentication");
 has(transition, /guestWorkspaceSessionLifecycle\.stop\(\).*freeze/s, "candidate must be frozen without deletion");
-has(transition, /onContinueAsGuest=\{preservation\.current\.candidate \? cancelAuthentication/, "pre-auth cancellation must restore Guest continuity");
+has(transition, /onCancelGuestAuthentication=\{accountEntryFromGuest \? cancelAuthentication : undefined\}/, "pre-auth cancellation must restore Guest continuity");
 has(transition, /preservation\.current\.authenticated\(\).*setPhase\("ready"\)/s, "authentication must await a decision");
 has(transition, /AWAITING_DECISION.*PRESERVING.*RECOVERABLE_ERROR/s, "decision and recovery states must render explicitly");
 has(transition, /Preserve investigation/, "preserve action missing");

@@ -17,10 +17,10 @@ const modeTypes = read("src/workspace/runtime/WorkspaceRuntimeTypes.ts");
 const modeBar = read("src/components/workspace/WorkspaceModeBar.tsx");
 
 const occurrences = (source: string, token: string): number => source.split(token).length - 1;
-assert.equal(occurrences(layout, "<IseesGuideHost />"), 1, "MainLayout must contain exactly one Guide host");
-assert.equal(occurrences(host, "<IseesGuideAffordance />"), 1, "Guide host must contain exactly one affordance");
+assert.equal(occurrences(layout, "<OperationalTopBar"), 1, "MainLayout must compose its shared operational top bar");
+assert.equal(occurrences(layout, "<IseesGuideAffordance />"), 1, "OperationalTopBar must contain exactly one Guide affordance");
 const capturePosition = layout.indexOf("<IseesCaptureGlobalLink />");
-const guidePosition = layout.indexOf("<IseesGuideHost />");
+const guidePosition = layout.indexOf("<IseesGuideAffordance />");
 const briefingPosition = layout.indexOf('to="/briefing"');
 assert.ok(capturePosition < guidePosition && guidePosition < briefingPosition, "GUIDE must follow Capture and precede System Briefing");
 assert.ok(layout.includes("<IseesCaptureGlobalLink />"), "Capture must remain present");

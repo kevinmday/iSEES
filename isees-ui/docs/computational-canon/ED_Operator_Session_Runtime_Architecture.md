@@ -822,3 +822,6 @@ future shell behavior is composed while preserving a consistent operator
 
 experience across all investigative workflows.
 
+# Consolidated orientation handoff (2026-09-24)
+
+For anonymous entry, the public Overview is the first-contact orientation. When its explicit Nimitz exploration action is used, the visual component does not write onboarding storage directly: `AccountFrontDoor` calls the established onboarding acknowledgement authority, then establishes/restores Guest identity through `OperatorIdentityRuntime`. Other entry paths that have not completed an equivalent orientation retain the introduction gate. Returning Guest and authenticated-account continuity remain unchanged, including permitted automatic server-session restoration.

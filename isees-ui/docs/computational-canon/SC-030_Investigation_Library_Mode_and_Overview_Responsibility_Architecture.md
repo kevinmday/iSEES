@@ -501,3 +501,8 @@ Any production implementation claiming conformance MUST verify:
 LIBRARY answers what the researcher wants to investigate. OVERVIEW explains what iSEES is and where to begin. MANIFOLD remains the first deterministic analytical workspace.
 
 This separation preserves a calm front door, an explicit governed selection boundary, a Library-specific full-width collection and preview shell, and one authoritative transition into investigation without weakening existing computation, provenance, ownership, persistence, Guide, System Canon, Evidence, or publication authority.
+# Unified public entry clarification (2026-09-24)
+
+The public Overview is also the first-contact orientation; a second promotional or introduction screen MUST NOT follow an equivalent public orientation. Explicit Nimitz exploration establishes Guest authority and opens `E-TICTAC-2004` as a governed LIBRARY preview only. LIBRARY owns preview and the later explicit “Open Event in Workspace” activation. Guest establishment is not activation, and Candidate Evidence remains outside Manifold membership.
+
+The transient handoff contains no Investigation payload, is consumed once by existing Library navigation and Overview selection ownership after operational providers mount, and fails closed without changing investigation state. Back/Forward restore OVERVIEW/LIBRARY presentation only; they MUST NOT repeat API work, identity establishment, Canon selection mutation, activation, or deactivation.

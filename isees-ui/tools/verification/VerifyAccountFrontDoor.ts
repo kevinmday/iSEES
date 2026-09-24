@@ -8,9 +8,13 @@ import { API_BASE_URL, resolveApiBaseUrl } from "../../src/api/ApiOrigin.ts";
 import { createAccountContinuityApi } from "../../src/investigation/continuity/AccountContinuityApi.ts";
 import { navigateAfterOwnedInvestigationOpen } from "../../src/account/AccountFrontDoorNavigation.ts";
 import { WorkspaceMode } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
+import { consumePublicOverviewLaunchIntent, requestPublicOverviewIntake, requestPublicOverviewLibrary, requestPublicOverviewNimitzPreview } from "../../src/account/PublicOverviewLaunchIntent.ts";
 
 const root = resolve(import.meta.dirname, "../..");
 const ui = readFileSync(resolve(root, "src/account/AccountFrontDoor.tsx"), "utf8");
+const uiCss = readFileSync(resolve(root, "src/account/AccountFrontDoor.css"), "utf8");
+const launchIntent = readFileSync(resolve(root, "src/account/PublicOverviewLaunchIntent.ts"), "utf8");
+const overviewPresentation = readFileSync(resolve(root, "src/workspace/surfaces/overview/OverviewPresentation.tsx"), "utf8");
 const api = readFileSync(resolve(root, "src/account/AccountFrontDoorApi.ts"), "utf8");
 const continuityApi = readFileSync(resolve(root, "src/investigation/continuity/AccountContinuityApi.ts"), "utf8");
 const originPolicy = readFileSync(resolve(root, "src/api/ApiOrigin.ts"), "utf8");
@@ -25,12 +29,15 @@ function requireText(source: string, text: string, label: string) { if (!source.
 for (const [text, label] of [
   ["Create account", "account creation"], ["Sign in", "sign in"], ["Researcher account", "identity label"],
   ["Sign out", "logout command"], ["Restoring your researcher account", "session restoration state"],
-  ["Continue as guest", "guest entry choice"],
-  ["Explore the complete iSEES workspace. Your work will not be saved after this guest session.", "guest capability and persistence explanation"],
+  ["EXPLORE THE NIMITZ INVESTIGATION", "explicit governed preview entry"],
+  ["NO ACCOUNT REQUIRED", "guest persistence explanation"],
+  ["TRY iSEES AS A GUEST", "prominent guest invitation"],
+  ["Nothing is saved during your guest session.", "guest session persistence boundary"],
+  ["Opens a governed Library preview", "truthful preview clarification"],
   ["Guest session", "guest status"], ["your work is not being saved", "guest non-persistence warning"],
 ] as const) requireText(ui, text, label);
 for (const [text, label] of [["Your investigations", "owned library"], ["Start or Bring a New Case", "creation command"], ["Resume Current Investigation", "open command"]] as const) requireText(librarySurface, text, label);
-for (const forbidden of ["Nimitz", "Tic Tac", "sampleReport", "defaultInvestigation"]) {
+for (const forbidden of ["Tic Tac", "sampleReport", "defaultInvestigation"]) {
   if (ui.includes(forbidden) || api.includes(forbidden)) throw new Error(`Canonical/default injection reference: ${forbidden}`);
 }
 requireText(ui, "coordinator.openOwnedInvestigation", "continuity opening path");
@@ -83,9 +90,32 @@ for (const mode of ["OVERVIEW", "LIBRARY", "MANIFOLD", "COMPARE", "NARRATIVE", "
   requireText(modeBar, `WorkspaceMode.${mode}`, `${mode} navigation`);
 }
 assert.equal((identityRuntime.match(/continueAsGuest\(recoveryIdentity\?: OperatorIdentity\): void/g) ?? []).length, 1, "exactly one guest identity authority must exist");
-for (const forbidden of ["demo", "preview", "public-only", "browse-only", "read-only mode"]) {
-  if (ui.toLowerCase().includes(forbidden)) throw new Error(`Guest front door must not describe reduced capability: ${forbidden}`);
-}
+assert.match(ui, /<OverviewPresentation[\s\S]*EXPLORE THE NIMITZ INVESTIGATION[\s\S]*BRING YOUR OWN CASE/, "public Overview must use the shared presentation before optional credentials");
+assert.ok(!ui.includes("public-overview-modebar"), "anonymous public Overview must not render operational navigation chrome");
+assert.match(ui, /publicGuestEntry && !publicLaunchPending && workspaceMode === WorkspaceMode\.OVERVIEW/, "browser Back to Overview must restore the compact public shell after Library launch completes");
+assert.match(overviewPresentation, /aria-label="Open Investigation Library"/, "Research Flow Library must be an independently named control");
+assert.equal((overviewPresentation.match(/className="overview-canvas"/g) ?? []).length, 1, "Overview presentation markup must have one owner");
+assert.equal(ui.includes('className="overview-canvas"'), false, "AccountFrontDoor must not duplicate Overview markup");
+assert.ok(!ui.includes("aria-pressed"), "ordinary public/account actions must not misuse aria-pressed");
+assert.match(ui, /<OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" \/>/, "public Overview must reuse the production operational top bar with explicit public status values");
+assert.doesNotMatch(ui, /public-overview-header|PUBLIC OVERVIEW|>SIGN IN<|>CREATE ACCOUNT</, "temporary public header must be absent");
+assert.match(ui, /role="dialog" aria-modal="true"/, "authentication must be a modal overlay");
+assert.match(ui, /event\.key === "Escape"/, "safe Escape dismissal must be implemented");
+assert.match(ui, /event\.key !== "Tab"/, "modal focus trapping must be implemented");
+assert.match(ui, /invokingButton\.current\?\.focus\(\)/, "modal close must restore invoking focus");
+assert.match(ui, /aria-hidden=\{modalOpen \|\| undefined\} inert=\{modalOpen \|\| undefined\}/, "modal background must be inaccessible");
+assert.ok(ui.indexOf('surface !== "overview"') < ui.indexOf('name="email"'), "credential fields must remain absent until authentication is selected");
+assert.match(uiCss, /height:100dvh[\s\S]*overflow:hidden/, "public shell must bound its scrollable workspace");
+assert.match(uiCss, /@media\(forced-colors:active\)/, "public Overview must support forced colors");
+assert.match(uiCss, /@media\(prefers-reduced-motion:reduce\)/, "decorative emphasis must stop for reduced motion");
+assert.equal(/Investigation|payload|activate|fetch|resolve|publish/i.test(launchIntent), false, "transient presentation intent must carry no operational authority or Investigation payload");
+requestPublicOverviewNimitzPreview();
+assert.deepEqual(consumePublicOverviewLaunchIntent(), { kind: "LIBRARY_CANON_PREVIEW", eventId: "E-TICTAC-2004" });
+assert.equal(consumePublicOverviewLaunchIntent(), null, "public launch intent must be consumed once");
+requestPublicOverviewIntake();
+assert.deepEqual(consumePublicOverviewLaunchIntent(), { kind: "LIBRARY_INTAKE" }, "public intake intent must carry no investigation or selection payload");
+requestPublicOverviewLibrary();
+assert.deepEqual(consumePublicOverviewLaunchIntent(), { kind: "LIBRARY" }, "public Library intent must carry no investigation or selection payload");
 
 let request: { url: string; init: RequestInit } | undefined;
 const reply = (status: number, body: unknown) => {

@@ -831,3 +831,8 @@ Future features should strengthen these boundaries rather than blur them.
 
 This document establishes the canonical cognitive architecture for P40 and serves as the foundation for future iterations of the iSEES platform.
 
+# Public Overview and workspace entry clarification (2026-09-24)
+
+The consolidated public Overview explains iSEES and fulfills first-contact orientation before operational providers mount. Its diagram is explanatory SVG, never live Manifold output. Explicit Guest exploration uses the established identity and onboarding authorities, then asks the mounted Library/Overview-selection owners to present Nimitz. No Investigation exists until the visitor explicitly invokes the Library opening action.
+
+Workspace browser history records and restores presentation modes only. Restoring LIBRARY presentation does not create a Guest, select or activate Canon again, compute, or change active-investigation state. Authenticated server-session restoration remains permitted before explicit visitor action so account continuity is not weakened.

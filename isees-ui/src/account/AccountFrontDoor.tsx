@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect */
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 import { createAccountContinuityApi } from "../investigation/continuity/AccountContinuityApi";
 import { AccountWorkspaceContinuityCoordinator } from "../investigation/continuity/AccountWorkspaceContinuityCoordinator";
 import { createLastActiveInvestigationStore } from "../investigation/continuity/LastActiveInvestigationStore";
@@ -23,6 +23,13 @@ import IseesIntroductionGate from "../onboarding/components/IseesIntroductionGat
 import { hasAcknowledgedIseesIntroduction } from "../onboarding/runtime/OnboardingAcknowledgement";
 import "./AccountFrontDoor.css";
 import { AccountInvestigationLibraryProvider } from "./AccountInvestigationLibraryContext";
+import OverviewPresentation from "../workspace/surfaces/overview/OverviewPresentation";
+import "../workspace/surfaces/OverviewWorkspace.css";
+import { acknowledgeUnifiedPublicOrientation } from "../onboarding/runtime/OnboardingAcknowledgement";
+import { requestPublicOverviewIntake, requestPublicOverviewLibrary, requestPublicOverviewNimitzPreview } from "./PublicOverviewLaunchIntent";
+import { WorkspaceMode } from "../workspace/runtime/WorkspaceRuntimeTypes";
+import { OperationalTopBar } from "../layout/MainLayout";
+import { GuidePresentationProvider } from "../guide/presentation/GuidePresentationContext";
 
 type Phase = "restoring" | "anonymous" | "loading-library" | "ready" | "working";
 const RESET_INVALID_MESSAGE = "This password reset link is invalid or has expired.";
@@ -47,6 +54,10 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [openRecovery, setOpenRecovery] = useState(false);
   const [anonymousMode, setAnonymousMode] = useState<"create" | "signin">("signin");
+  const [accountEntryFromGuest, setAccountEntryFromGuest] = useState(false);
+  const [publicGuestEntry, setPublicGuestEntry] = useState(false);
+  const [publicLaunchPending, setPublicLaunchPending] = useState(false);
+  const workspaceMode = useSyncExternalStore(callback => workspaceRuntime.subscribe(callback), () => workspaceRuntime.getActiveMode());
   const [phase, setPhase] = useState<Phase>("restoring");
   const [principal, setPrincipal] = useState<AccountSessionProjection | null>(null);
   const [items, setItems] = useState<readonly OwnedInvestigationSummary[]>([]);
@@ -74,7 +85,7 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
   function showAnonymous(status = ""): void {
     operatorIdentityRuntime.clearIdentity();
     setPrincipal(null); setItems([]); setActiveInvestigationId(null);
-    setPhase("anonymous"); setError(status);
+    setAccountEntryFromGuest(false); setPhase("anonymous"); setError(status);
   }
   function handleFailure(cause: unknown, ticket: number, fallbackPhase: Phase): void {
     if (!isCurrent(ticket)) return;
@@ -167,6 +178,34 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
     setPhase("ready"); setError("");
   }
 
+  function exploreNimitzAsGuest(): void {
+    setPublicGuestEntry(true);
+    setPublicLaunchPending(true);
+    acknowledgeUnifiedPublicOrientation();
+    requestPublicOverviewNimitzPreview();
+    continueAsGuest();
+  }
+
+  function bringCaseAsGuest(): void {
+    setPublicGuestEntry(true);
+    setPublicLaunchPending(true);
+    acknowledgeUnifiedPublicOrientation();
+    requestPublicOverviewIntake();
+    continueAsGuest();
+  }
+
+  function openLibraryAsGuest(): void {
+    setPublicGuestEntry(true);
+    setPublicLaunchPending(true);
+    acknowledgeUnifiedPublicOrientation();
+    requestPublicOverviewLibrary();
+    continueAsGuest();
+  }
+
+  useEffect(() => {
+    if (publicLaunchPending && workspaceMode !== WorkspaceMode.OVERVIEW) setPublicLaunchPending(false);
+  }, [publicLaunchPending, workspaceMode]);
+
   function enterAccountDoorFromGuest(mode: "create" | "signin"): void {
     const { ticket } = beginRequest();
     try {
@@ -180,6 +219,7 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
     operatorIdentityRuntime.clearIdentity();
     coordinator.cancelPendingRequests();
     if (isCurrent(ticket)) {
+      setAccountEntryFromGuest(true);
       setAnonymousMode(mode);
       setPrincipal(null); setItems([]); setActiveInvestigationId(null); setPhase("anonymous"); setError("");
       renderPreservation(value => value + 1);
@@ -221,6 +261,7 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
       guestWorkspaceSessionLifecycle.start();
       setPrincipal(null); setPhase("ready"); setError(""); renderPreservation(value => value + 1);
     } else continueAsGuest();
+    setAccountEntryFromGuest(false);
   }
 
   async function finishWithoutPreserving(): Promise<void> {
@@ -315,8 +356,8 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
   if (phase === "restoring") return <main className="account-door account-door--center" aria-busy="true"><p role="status">Restoring your researcher account…</p></main>;
   if ((preservation.current.phase === "AWAITING_DECISION" || preservation.current.phase === "PRESERVING" || preservation.current.phase === "RECOVERABLE_ERROR") && principal)
     return <PreservationDecision headingRef={preservationHeading} phase={preservation.current.phase} onPreserve={preserveGuestInvestigation} onDiscard={finishWithoutPreserving} />;
-  if (identityState.identity?.kind === "GUEST") return <IseesIntroductionGate identityKind="GUEST"><AccountInvestigationLibraryProvider value={{ available: false, items: [], activeInvestigationId: null, busy: false, error: "", create: async () => undefined, open: async () => undefined }}><div className="guest-session-shell"><GuestBar onAccountEntry={enterAccountDoorFromGuest} /><div className="guest-session-shell__workspace">{children}</div></div></AccountInvestigationLibraryProvider></IseesIntroductionGate>;
-  if (!principal) return <AnonymousDoor key={`${anonymousMode}-${openRecovery}`} initialMode={anonymousMode} initialRecovery={openRecovery} busy={phase === "working"} error={error} confirmation={resetConfirmation} onSubmit={authenticate} onContinueAsGuest={preservation.current.candidate ? cancelAuthentication : continueAsGuest} />;
+  if (identityState.identity?.kind === "GUEST" && !(publicGuestEntry && !publicLaunchPending && workspaceMode === WorkspaceMode.OVERVIEW)) return <IseesIntroductionGate identityKind="GUEST"><AccountInvestigationLibraryProvider value={{ available: false, items: [], activeInvestigationId: null, busy: false, error: "", create: async () => undefined, open: async () => undefined }}><div className="guest-session-shell"><GuestBar onAccountEntry={enterAccountDoorFromGuest} /><div className="guest-session-shell__workspace">{children}</div></div></AccountInvestigationLibraryProvider></IseesIntroductionGate>;
+  if (!principal) return <AnonymousDoor key={`${anonymousMode}-${openRecovery}`} initialMode={anonymousMode} initialRecovery={openRecovery} busy={phase === "working"} error={error} confirmation={resetConfirmation} onSubmit={authenticate} onExploreNimitz={exploreNimitzAsGuest} onOpenLibrary={openLibraryAsGuest} onBringCase={bringCaseAsGuest} onCancelGuestAuthentication={accountEntryFromGuest ? cancelAuthentication : undefined} />;
   const busy = phase === "working" || phase === "loading-library";
   return <IseesIntroductionGate identityKind="ACCOUNT" onEntered={enterAccountWorkspace}><AccountInvestigationLibraryProvider value={{ available: true, items, activeInvestigationId, busy, error, create, open }}><div className="account-authenticated-shell"><AccountBar principal={principal} busy={busy} onLogout={logout} /><div className="account-authenticated-shell__workspace">{children}</div></div></AccountInvestigationLibraryProvider></IseesIntroductionGate>;
 }
@@ -333,22 +374,46 @@ function PreservationDecision({ headingRef, phase, onPreserve, onDiscard }: { he
   </section></main>;
 }
 
-function AnonymousDoor({ initialMode, initialRecovery, busy, error, confirmation, onSubmit, onContinueAsGuest }: { initialMode: "create" | "signin"; initialRecovery: boolean; busy: boolean; error: string; confirmation: string; onSubmit(mode: "create" | "signin", email: string, password: string): Promise<void>; onContinueAsGuest(): void }) {
+function AnonymousDoor({ initialMode, initialRecovery, busy, error, confirmation, onSubmit, onExploreNimitz, onOpenLibrary, onBringCase, onCancelGuestAuthentication }: { initialMode: "create" | "signin"; initialRecovery: boolean; busy: boolean; error: string; confirmation: string; onSubmit(mode: "create" | "signin", email: string, password: string): Promise<void>; onExploreNimitz(): void; onOpenLibrary(): void; onBringCase(): void; onCancelGuestAuthentication?: () => void }) {
   const [mode, setMode] = useState<"create" | "signin">(initialMode);
-  const [surface, setSurface] = useState<"account" | "recovery">(initialRecovery ? "recovery" : "account");
+  const [surface, setSurface] = useState<"overview" | "account" | "recovery">(initialRecovery ? "recovery" : onCancelGuestAuthentication ? "account" : "overview");
   const [email, setEmail] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { heading.current?.focus(); }, [surface]);
+  const modal = useRef<HTMLDivElement>(null);
+  const invokingButton = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => { heading.current?.focus(); }, [surface, mode]);
+  useEffect(() => { if (surface === "overview") invokingButton.current?.focus(); }, [surface]);
+  function closeAuthentication(): void {
+    if (busy) return;
+    if (onCancelGuestAuthentication) onCancelGuestAuthentication(); else setSurface("overview");
+  }
+  function containModalFocus(event: KeyboardEvent<HTMLDivElement>): void {
+    if (event.key === "Escape" && !busy) { event.preventDefault(); closeAuthentication(); return; }
+    if (event.key !== "Tab") return;
+    const controls = Array.from(modal.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') ?? []);
+    if (controls.length === 0) return;
+    const first = controls[0]!; const last = controls[controls.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (busy) return;
     const data = new FormData(event.currentTarget);
     void onSubmit(mode, String(data.get("email")), String(data.get("password")));
   }
-  if (surface === "recovery") return <RecoveryRequestDoor initialEmail={email} onBack={(preservedEmail) => { setEmail(preservedEmail); setSurface("account"); }} />;
-  return <main className="account-door"><section className="account-door__card" aria-labelledby="account-title"><p className="account-door__brand">iSEES</p><h1 id="account-title" ref={heading} tabIndex={-1}>Your research begins here.</h1>{confirmation && <p className="account-door__success" role="status">{confirmation}</p>}<p>Sign in for private, durable investigations, create an account, or use the complete workspace as a guest.</p><div className="account-door__tabs"><button type="button" disabled={busy} aria-pressed={mode === "signin"} onClick={() => setMode("signin")}>Sign in</button><button type="button" disabled={busy} aria-pressed={mode === "create"} onClick={() => setMode("create")}>Create account</button></div><form onSubmit={submit} aria-busy={busy}><label>Email<input name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} required /></label><label>Password<input name="password" type="password" autoComplete={mode === "create" ? "new-password" : "current-password"} minLength={12} disabled={busy} required /></label>{mode === "signin" && <button className="account-door__text-action" type="button" disabled={busy} onClick={() => setSurface("recovery")}>Forgot email or password?</button>}<button className="account-door__primary" disabled={busy}>{busy ? "Please wait…" : mode === "create" ? "Create account" : "Sign in"}</button></form><div className="account-door__guest"><button type="button" disabled={busy} onClick={onContinueAsGuest}>Continue as guest</button><p>Explore the complete iSEES workspace. Your work will not be saved after this guest session.</p></div><p className="account-door__error" role="alert" aria-live="polite">{error}</p></section></main>;
+  const modalOpen = surface !== "overview";
+  return <GuidePresentationProvider><div className="public-overview-shell">
+    <div className="public-overview-shell__presentation" aria-hidden={modalOpen || undefined} inert={modalOpen || undefined}>
+      <OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" />
+      <div className="public-overview-shell__workspace"><OverviewPresentation primaryActionLabel="EXPLORE THE NIMITZ INVESTIGATION" secondaryActionLabel="BRING YOUR OWN CASE" primaryInvitation={["TRY iSEES AS A GUEST", "NO ACCOUNT REQUIRED"]} primarySupportingText={'Nothing is saved during your guest session.\nOpens a governed Library preview.'} onPrimaryAction={onExploreNimitz} onSecondaryAction={onBringCase} onLibraryAction={onOpenLibrary} onResearchChallengeAction={onExploreNimitz} onGuidedOrientation={() => document.getElementById("overview-flow-title")?.focus()} onSystemBriefing={() => document.getElementById("overview-flow-title")?.scrollIntoView({ block: "start" })} /></div>
+    </div>
+    {modalOpen && <div className="account-door__modal-backdrop"><div ref={modal} className="account-door__modal" role="dialog" aria-modal="true" aria-labelledby={surface === "recovery" ? "recovery-title" : "account-title"} onKeyDown={containModalFocus}>
+      {surface === "recovery" ? <RecoveryRequestDoor embedded initialEmail={email} onBack={(preservedEmail) => { setEmail(preservedEmail); setMode("signin"); setSurface("account"); }} /> : <section className="account-door__card"><button className="account-door__modal-close" type="button" disabled={busy} onClick={closeAuthentication} aria-label="Close authentication">×</button><p className="account-door__brand">iSEES</p><h1 id="account-title" ref={heading} tabIndex={-1}>{mode === "create" ? "Create your researcher account" : "Sign in to iSEES"}</h1>{confirmation && <p className="account-door__success" role="status">{confirmation}</p>}<form onSubmit={submit} aria-busy={busy}><label>Email<input name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} required /></label><label>Password<input name="password" type="password" autoComplete={mode === "create" ? "new-password" : "current-password"} minLength={12} disabled={busy} required /></label>{mode === "signin" && <button className="account-door__text-action" type="button" disabled={busy} onClick={() => setSurface("recovery")}>Forgot email or password?</button>}<button className="account-door__primary" disabled={busy}>{busy ? "Please wait…" : mode === "create" ? "Create account" : "Sign in"}</button></form><button className="account-door__secondary" type="button" disabled={busy} onClick={closeAuthentication}>{onCancelGuestAuthentication ? "Back to guest workspace" : "Back to public Overview"}</button><p className="account-door__error" role="alert" aria-live="polite">{error}</p></section>}
+    </div></div>}
+  </div></GuidePresentationProvider>;
 }
 
-function RecoveryRequestDoor({ initialEmail, onBack }: { initialEmail: string; onBack(email: string): void }) {
+function RecoveryRequestDoor({ initialEmail, onBack, embedded = false }: { initialEmail: string; onBack(email: string): void; embedded?: boolean }) {
   const [email, setEmail] = useState(initialEmail);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -365,7 +430,8 @@ function RecoveryRequestDoor({ initialEmail, onBack }: { initialEmail: string; o
     catch { if (!controller.current.signal.aborted) setError("Recovery instructions could not be requested. Please try again."); }
     finally { pendingRef.current = false; setPending(false); }
   }
-  return <main className="account-door"><section className="account-door__card" aria-labelledby="recovery-title" aria-busy={pending}><p className="account-door__brand">iSEES</p><h1 id="recovery-title" ref={heading} tabIndex={-1}>Recover your iSEES account</h1><form onSubmit={submit}><label htmlFor="recovery-email">Email</label><input id="recovery-email" name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={pending} required /><button className="account-door__primary" disabled={pending}>{pending ? "Sending recovery instructions…" : "Send recovery instructions"}</button></form>{pending && <p role="status">Sending recovery instructions…</p>}{message && <p className="account-door__success" role="status">{message}</p>}<p className="account-door__error" role="alert">{error}</p><button className="account-door__secondary" type="button" disabled={pending} onClick={() => onBack(email)}>Back to sign in</button><div className="account-door__guidance"><strong>Forgot your email?</strong><p>Your iSEES login is the email address used to create your researcher account. If you do not remember it, use the same verified contact channel used for your tester invitation.</p></div></section></main>;
+  const content = <section className="account-door__card" aria-labelledby="recovery-title" aria-busy={pending}><p className="account-door__brand">iSEES</p><h1 id="recovery-title" ref={heading} tabIndex={-1}>Recover your iSEES account</h1><form onSubmit={submit}><label htmlFor="recovery-email">Email</label><input id="recovery-email" name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={pending} required /><button className="account-door__primary" disabled={pending}>{pending ? "Sending recovery instructions…" : "Send recovery instructions"}</button></form>{pending && <p role="status">Sending recovery instructions…</p>}{message && <p className="account-door__success" role="status">{message}</p>}<p className="account-door__error" role="alert">{error}</p><button className="account-door__secondary" type="button" disabled={pending} onClick={() => onBack(email)}>Back to sign in</button><div className="account-door__guidance"><strong>Forgot your email?</strong><p>Your iSEES login is the email address used to create your researcher account. If you do not remember it, use the same verified contact channel used for your tester invitation.</p></div></section>;
+  return embedded ? content : <main className="account-door">{content}</main>;
 }
 
 function PasswordResetDoor({ capability, onCancel, onComplete }: { capability: string | null; onCancel(): void; onComplete(): void }) {

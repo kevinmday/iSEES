@@ -32,10 +32,131 @@ import SystemIdentityFooter
   from "../system/SystemIdentityFooter";
 import "../system/SystemIdentityFooter.css";
 import IseesCaptureGlobalLink from "../companion/capture/IseesCaptureGlobalLink";
-import IseesGuideHost from "../guide/components/IseesGuideHost";
+import IseesGuideAffordance from "../guide/components/IseesGuideAffordance";
+import OperationalGuideContextAdapter from "../guide/context/OperationalGuideContextAdapter";
 import { GuidePresentationProvider } from "../guide/presentation/GuidePresentationContext";
 
 import "../components/SelectionIntelligence.css";
+
+export function OperationalTopBar({
+  status,
+  mode,
+  manifold,
+  guideRuntime,
+}: {
+  status: string;
+  mode: string;
+  manifold: string;
+  guideRuntime?: ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        height: "var(--header-height)",
+        minHeight: "var(--header-height)",
+        borderBottom: "var(--surface-border)",
+        background: "var(--surface-2)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingLeft: "var(--space-lg)",
+        paddingRight: "var(--space-lg)",
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-lg)",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-family-mono)",
+            fontSize: "var(--font-workspace)",
+            fontWeight: "var(--weight-bold)",
+            lineHeight: "var(--line-tight)",
+            color: "var(--text-primary)",
+          }}
+        >
+          iSEES-UAP
+        </div>
+
+        <div
+          style={{
+            fontFamily: "var(--font-family-sans)",
+            fontSize: "var(--font-meta)",
+            color: "var(--text-caption)",
+            letterSpacing: "var(--tracking-system)",
+            textTransform: "uppercase",
+          }}
+        >
+          Emergence Detection System
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-xl)",
+          fontFamily: "var(--font-family-sans)",
+          fontSize: "var(--font-micro)",
+          color: "var(--text-caption)",
+          letterSpacing: "var(--tracking-system)",
+          textTransform: "uppercase",
+        }}
+      >
+        <IseesCaptureGlobalLink />
+
+        <IseesGuideAffordance />
+        {guideRuntime}
+
+        <Link
+          to="/briefing"
+          style={{
+            color: "var(--color-information)",
+            textDecoration: "none",
+            fontWeight: "var(--weight-semibold)",
+          }}
+        >
+          SYSTEM BRIEFING
+        </Link>
+
+        <span>
+          STATUS:
+          <span
+            style={{
+              color: "var(--color-success)",
+              marginLeft: "var(--space-xs)",
+              fontWeight: "var(--weight-bold)",
+            }}
+          >
+            {status}
+          </span>
+        </span>
+
+        <span>
+          MODE: {mode}
+        </span>
+
+        <span>
+          MANIFOLD:
+          <span
+            style={{
+              color: "var(--color-information)",
+              marginLeft: "var(--space-xs)",
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
+            {manifold}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
 
 // ============================================================
 // MAIN LAYOUT
@@ -103,115 +224,12 @@ export default function MainLayout({
       {/* TOP COMMAND BAR */}
       {/* ===================================================== */}
 
-      <div
-        style={{
-          height: "var(--header-height)",
-          minHeight: "var(--header-height)",
-          borderBottom: "var(--surface-border)",
-          background: "var(--surface-2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingLeft: "var(--space-lg)",
-          paddingRight: "var(--space-lg)",
-          flexShrink: 0,
-        }}
-      >
-
-        {/* LEFT */}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-lg)",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-family-mono)",
-              fontSize: "var(--font-workspace)",
-              fontWeight: "var(--weight-bold)",
-              lineHeight: "var(--line-tight)",
-              color: "var(--text-primary)",
-            }}
-          >
-            iSEES-UAP
-          </div>
-
-          <div
-            style={{
-              fontFamily: "var(--font-family-sans)",
-              fontSize: "var(--font-meta)",
-              color: "var(--text-caption)",
-              letterSpacing: "var(--tracking-system)",
-              textTransform: "uppercase",
-            }}
-          >
-            Emergence Detection System
-          </div>
-        </div>
-
-        {/* RIGHT */}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-xl)",
-            fontFamily: "var(--font-family-sans)",
-            fontSize: "var(--font-micro)",
-            color: "var(--text-caption)",
-            letterSpacing: "var(--tracking-system)",
-            textTransform: "uppercase",
-          }}
-        >
-          <IseesCaptureGlobalLink />
-
-          <IseesGuideHost />
-
-          <Link
-            to="/briefing"
-            style={{
-              color: "var(--color-information)",
-              textDecoration: "none",
-              fontWeight: "var(--weight-semibold)",
-            }}
-          >
-            SYSTEM BRIEFING
-          </Link>
-
-          <span>
-            STATUS:
-            <span
-              style={{
-                color: "var(--color-success)",
-                marginLeft: "var(--space-xs)",
-                fontWeight: "var(--weight-bold)",
-              }}
-            >
-              ACTIVE
-            </span>
-          </span>
-
-          <span>
-            MODE: {getWorkspaceModeLabel(workspaceMode)}
-          </span>
-
-          <span>
-            MANIFOLD:
-            <span
-              style={{
-                color: "var(--color-information)",
-                marginLeft: "var(--space-xs)",
-                fontWeight: "var(--weight-semibold)",
-              }}
-            >
-              ONLINE
-            </span>
-          </span>
-        </div>
-      </div>
+      <OperationalTopBar
+        status="ACTIVE"
+        mode={getWorkspaceModeLabel(workspaceMode)}
+        manifold="ONLINE"
+        guideRuntime={<OperationalGuideContextAdapter />}
+      />
 
       {/* ===================================================== */}
       {/* MAIN OPERATOR BODY */}

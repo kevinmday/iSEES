@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { ISEES_INTRODUCTION_ACKNOWLEDGEMENT_KEY, ISEES_INTRODUCTION_ACKNOWLEDGEMENT_VERSION, acknowledgeIseesIntroduction, hasAcknowledgedIseesIntroduction, type OnboardingAcknowledgementStorage } from "../../src/onboarding/runtime/OnboardingAcknowledgement.ts";
+import { ISEES_INTRODUCTION_ACKNOWLEDGEMENT_KEY, ISEES_INTRODUCTION_ACKNOWLEDGEMENT_VERSION, acknowledgeIseesIntroduction, acknowledgeUnifiedPublicOrientation, hasAcknowledgedIseesIntroduction, type OnboardingAcknowledgementStorage } from "../../src/onboarding/runtime/OnboardingAcknowledgement.ts";
 import { ISEES_V1_INTRODUCTION, ONBOARDING_RESEARCHER_GUIDE_TARGET_ID } from "../../src/onboarding/content/IseesIntroductionContent.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -17,6 +17,8 @@ assert.equal(values.size, 0, "render/read alone must not acknowledge");
 acknowledgeIseesIntroduction(storage);
 assert.equal(values.get(ISEES_INTRODUCTION_ACKNOWLEDGEMENT_KEY), ISEES_INTRODUCTION_ACKNOWLEDGEMENT_VERSION, "acknowledgement must be versioned");
 assert.equal(hasAcknowledgedIseesIntroduction(storage), true, "acknowledged browser must bypass Welcome");
+values.clear(); acknowledgeUnifiedPublicOrientation(storage);
+assert.equal(hasAcknowledgedIseesIntroduction(storage), true, "unified public orientation must hand off through onboarding authority");
 const failing: OnboardingAcknowledgementStorage = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } };
 assert.equal(hasAcknowledgedIseesIntroduction(failing), false, "storage read failure must fail closed to Welcome");
 assert.doesNotThrow(() => acknowledgeIseesIntroduction(failing), "storage failure must not block explicit entry");

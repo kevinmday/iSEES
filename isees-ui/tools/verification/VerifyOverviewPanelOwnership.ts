@@ -59,7 +59,7 @@ for (const selection of [canon, owned, Object.freeze({ kind: "EXTERNAL_REPOSITOR
 pass("selection variants contain public presentation data only");
 
 const center = source("../../src/workspace/surfaces/OverviewWorkspace.tsx");
-assert(center.includes("Enter Library") && center.includes("Bring Your Own Case"), "Overview entry actions are absent");
+assert(center.includes("ENTER LIBRARY") && center.includes("BRING YOUR OWN CASE"), "Overview entry actions are absent");
 assert(!/selectCanonEvent|selectRepository|OverviewInspector|GuestCaseIntake/.test(center), "Overview retains operational catalog, inspector, or intake");
 pass("Overview center is orientation-only and routes operational work to Library");
 

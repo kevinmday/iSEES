@@ -78,6 +78,10 @@ import {
 import { OverviewSelectionProvider } from "./workspace/surfaces/overview/OverviewSelectionContext";
 import { OverviewCanonicalActivationProvider } from "./workspace/surfaces/overview/OverviewCanonicalActivationContext";
 import { LibraryNavigationProvider } from "./workspace/surfaces/LibraryWorkspace";
+import { useLibraryNavigation } from "./workspace/surfaces/LibraryWorkspace";
+import { consumePublicOverviewLaunchIntent, PUBLIC_OVERVIEW_NIMITZ_EVENT_ID } from "./account/PublicOverviewLaunchIntent";
+import { projectHydratedOverviewEvents } from "./workspace/surfaces/overview/OverviewEndStateModel";
+import { useOverviewSelection } from "./workspace/surfaces/overview/OverviewSelectionContext";
 
 import {
   EventProvider,
@@ -460,12 +464,29 @@ function ModeAwareOperatorLayoutContent() {
       <InvestigationLibraryRuntimeProvider>
         <OverviewSelectionProvider>
           <OverviewCanonicalActivationProvider>
+            <PublicOverviewLaunchBridge />
             <OperatorLayout />
           </OverviewCanonicalActivationProvider>
         </OverviewSelectionProvider>
       </InvestigationLibraryRuntimeProvider>
     )
     : <OperatorLayout />;
+}
+
+function PublicOverviewLaunchBridge() {
+  const overview = useOverviewSelection();
+  const library = useLibraryNavigation();
+  useEffect(() => {
+    const intent = consumePublicOverviewLaunchIntent();
+    if (intent?.kind === "LIBRARY") { library.enter(false); return; }
+    if (intent?.kind === "LIBRARY_INTAKE") { library.enter(true); return; }
+    if (intent?.kind !== "LIBRARY_CANON_PREVIEW" || intent.eventId !== PUBLIC_OVERVIEW_NIMITZ_EVENT_ID) return;
+    const event = projectHydratedOverviewEvents().find(candidate => candidate.eventId === intent.eventId);
+    if (event === undefined) return;
+    overview.selectCanonEvent(event);
+    library.enter();
+  }, [library, overview]);
+  return null;
 }
 
 function ModeAwareLeftPanel() {
