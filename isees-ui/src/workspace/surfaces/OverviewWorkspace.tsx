@@ -1,19 +1,32 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import Tooltip from "../../components/Tooltip";
 import { useGuidePresentation } from "../../guide/presentation/GuidePresentationContext";
 import { useLibraryNavigation } from "./LibraryWorkspace";
+import EventSpaceEvolution, { type OverviewFlowEmphasis } from "./overview/EventSpaceEvolution";
 import "./OverviewWorkspace.css";
 
-const RESEARCH_STAGES = [
-  { number: "01", verb: "SELECT", mode: "Library", detail: "Choose, preview, create, or resume an investigation." },
-  { number: "02", verb: "CONSTRUCT", mode: "Manifold", detail: "Construct the deterministic event-space projection." },
-  { number: "03", verb: "EXAMINE", mode: "Analytical modes", detail: "Compare, Narrative, Evidence, Timeline, Layers, and Intention." },
-  { number: "04", verb: "PRESERVE", mode: "Research Inbox", detail: "Preserve researcher-selected, governed research anchors." },
-  { number: "05", verb: "PRODUCE", mode: "Studio", detail: "Draft and export governed research products." },
+export interface OverviewResearchStage {
+  readonly number: string;
+  readonly verb: Exclude<OverviewFlowEmphasis, "IDLE">;
+  readonly mode: string;
+  readonly detail: string;
+  readonly tooltip: string;
+  readonly tooltipLabel: string;
+}
+
+export const RESEARCH_STAGES: readonly OverviewResearchStage[] = [
+  { number: "01", verb: "SELECT", mode: "Library", detail: "Choose, preview, create, or resume an investigation.", tooltip: "Choose, preview, create, or resume an investigation. Library selection does not itself activate, compute, or change an investigation.", tooltipLabel: "About Library" },
+  { number: "02", verb: "CONSTRUCT", mode: "Manifold", detail: "Construct the deterministic event-space projection.", tooltip: "Compute the Investigation Manifold from governed inputs. It is deterministic and recomputable, and may expand or reshape after approved evidence or relationship changes.", tooltipLabel: "About Manifold" },
+  { number: "03", verb: "EXAMINE", mode: "Analytical modes", detail: "Compare, Narrative, Evidence, Timeline, Layers, and Intention.", tooltip: "Examine evidence and computed structure through different projections. Results and research vectors guide inquiry; they do not establish truth.", tooltipLabel: "About analytical modes" },
+  { number: "04", verb: "PRESERVE", mode: "Research Inbox", detail: "Preserve researcher-selected, governed research anchors.", tooltip: "Deliberately preserve selected research material with its identity and provenance. Preservation does not make it true, canonical, or part of the active Manifold.", tooltipLabel: "About Research Inbox" },
+  { number: "05", verb: "PRODUCE", mode: "Studio", detail: "Draft and export governed research products.", tooltip: "Create governed research products from selected material. AI may assist with drafting, but the researcher controls interpretation, meaning, and final authorship.", tooltipLabel: "About Studio" },
 ] as const;
 
 export default function OverviewWorkspace() {
   const library = useLibraryNavigation();
   const guide = useGuidePresentation();
+  const [flowEmphasis, setFlowEmphasis] = useState<OverviewFlowEmphasis>("IDLE");
 
   return (
     <main className="overview-workspace" aria-labelledby="overview-title">
@@ -52,15 +65,26 @@ export default function OverviewWorkspace() {
             </div>
             <span className="overview-flow__mark" aria-label="iSEES">iSEES</span>
           </header>
-          <p className="overview-flow__intro">These are researcher-directed workspaces, not an automatic sequence. Move between them as the investigation requires.</p>
-          <ol className="overview-flow__stages">
-            {RESEARCH_STAGES.map((stage) => (
-              <li key={stage.verb}>
-                <span className="overview-flow__number" aria-hidden="true">{stage.number}</span>
-                <div><strong>{stage.verb}</strong><span>{stage.mode}</span><p>{stage.detail}</p></div>
-              </li>
-            ))}
-          </ol>
+          <p className="overview-flow__intro">This is an iterative research cycle, not a required sequence; as governed inputs evolve, the Manifold is recomputed and may expose new research vectors.</p>
+          <div className="overview-flow__composition">
+            <ol className="overview-flow__stages">
+              {RESEARCH_STAGES.map((stage) => (
+                <li
+                  key={stage.verb}
+                  onPointerEnter={() => setFlowEmphasis(stage.verb)}
+                  onPointerLeave={() => setFlowEmphasis("IDLE")}
+                  onFocusCapture={() => setFlowEmphasis(stage.verb)}
+                  onBlurCapture={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) setFlowEmphasis("IDLE");
+                  }}
+                >
+                  <span className="overview-flow__number" aria-hidden="true">{stage.number}</span>
+                  <div><strong>{stage.verb}</strong><span className="overview-flow__mode">{stage.mode}</span><Tooltip text={stage.tooltip}><button type="button" className="overview-flow__info" aria-label={stage.tooltipLabel}>?</button></Tooltip><p>{stage.detail}</p></div>
+                </li>
+              ))}
+            </ol>
+            <EventSpaceEvolution emphasis={flowEmphasis} />
+          </div>
           <aside className="overview-principles" aria-labelledby="overview-principles-title">
             <p className="overview-section-label">Operating principle</p>
             <h3 id="overview-principles-title">Mathematics exposes relationships. The researcher governs meaning.</h3>

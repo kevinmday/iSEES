@@ -1,16 +1,6 @@
-// ============================================================
-// src/components/Tooltip.tsx
-// P32.2
-// OPERATOR TOOLTIP
-//
-// Lightweight reusable tooltip component.
-//
-// FULL DROP-IN REPLACEMENT
-// ============================================================
-
-import { useState } from "react";
-
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import "./Tooltip.css";
 
 interface TooltipProps {
   text: string;
@@ -18,114 +8,89 @@ interface TooltipProps {
   placement?: "left" | "right";
 }
 
+type TriggerProps = {
+  "aria-describedby"?: string;
+  onClick?: (event: React.MouseEvent) => void;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
+};
+
 export default function Tooltip({
   text,
   children,
   placement = "right",
 }: TooltipProps) {
-  const [hovered, setHovered] =
-    useState(false);
-  const [focused, setFocused] =
-    useState(false);
-  const visible = hovered || focused;
-  const opensLeft = placement === "left";
+  const generatedId = useId();
+  const tooltipId = `tooltip-${generatedId.replace(/:/g, "")}`;
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const [dismissedWhileFocused, setDismissedWhileFocused] = useState(false);
+  const [position, setPosition] = useState<CSSProperties>();
+  const visible = pinned || hovered || (focused && !dismissedWhileFocused);
+
+  useLayoutEffect(() => {
+    if (!visible || !containerRef.current || !tooltipRef.current) return;
+    const triggerBounds = containerRef.current.getBoundingClientRect();
+    const tooltipBounds = tooltipRef.current.getBoundingClientRect();
+    const gutter = 12;
+    const desiredLeft = placement === "left" ? triggerBounds.right - tooltipBounds.width : triggerBounds.left;
+    setPosition({
+      left: Math.max(gutter, Math.min(desiredLeft, window.innerWidth - tooltipBounds.width - gutter)),
+      top: Math.max(gutter, triggerBounds.top - tooltipBounds.height - 14),
+    });
+  }, [placement, text, visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setPinned(false);
+      setHovered(false);
+      setDismissedWhileFocused(true);
+    };
+    const dismissOutside = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setPinned(false);
+    };
+    window.addEventListener("keydown", dismiss);
+    document.addEventListener("pointerdown", dismissOutside);
+    return () => {
+      window.removeEventListener("keydown", dismiss);
+      document.removeEventListener("pointerdown", dismissOutside);
+    };
+  }, [visible]);
+
+  const child = isValidElement(children) ? children as ReactElement<TriggerProps> : null;
+  const trigger = child ? cloneElement(child, {
+    "aria-describedby": visible ? tooltipId : child.props["aria-describedby"],
+    onClick: event => {
+      child.props.onClick?.(event);
+      if (!event.defaultPrevented) setPinned(value => !value);
+    },
+    onKeyDown: event => child.props.onKeyDown?.(event),
+  }) : children;
 
   return (
-    <div
-      style={{
-        position: "relative",
-        display: "inline-flex",
-      }}
-      onMouseEnter={() => setHovered(true)}
+    <span
+      ref={containerRef}
+      className="shared-tooltip"
+      onMouseEnter={() => { setHovered(true); setDismissedWhileFocused(false); }}
       onMouseLeave={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      onFocus={() => { setFocused(true); setDismissedWhileFocused(false); }}
+      onBlur={event => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocused(false);
+          setPinned(false);
+          setDismissedWhileFocused(false);
+        }
+      }}
     >
-      {children}
-
-      <div
-        style={{
-          position: "absolute",
-
-          bottom: "calc(100% + 14px)",
-
-          left: opensLeft ? "auto" : 0,
-
-          right: opensLeft ? 0 : "auto",
-
-          width: opensLeft ? 232 : 340,
-
-          maxWidth: "calc(100vw - 32px)",
-
-          boxSizing: "border-box",
-
-          whiteSpace: "normal",
-
-          overflowWrap: "anywhere",
-
-          padding: "12px 14px",
-
-          background: "#0b1220",
-
-          color: "#d1d5db",
-
-          border: "1px solid #334155",
-
-          borderRadius: 8,
-
-          fontSize: 12,
-
-          lineHeight: 1.55,
-
-          boxShadow:
-            "0 10px 30px rgba(0,0,0,.45)",
-
-          textAlign: "left",
-
-          zIndex: 9999,
-
-          pointerEvents: "none",
-
-          opacity: visible ? 1 : 0,
-
-          transform: visible
-            ? "translateY(0)"
-            : "translateY(4px)",
-
-          transition:
-            "opacity 140ms ease, transform 140ms ease",
-
-          visibility: visible
-            ? "visible"
-            : "hidden",
-        }}
-      >
+      {trigger}
+      <span ref={tooltipRef} id={tooltipId} role="tooltip" className={`shared-tooltip__content shared-tooltip__content--${placement}${visible ? " shared-tooltip__content--visible" : ""}`} style={position}>
         {text}
-
-        <div
-          style={{
-            position: "absolute",
-
-            top: "100%",
-
-            left: opensLeft ? "auto" : 22,
-
-            right: opensLeft ? 22 : "auto",
-
-            width: 0,
-            height: 0,
-
-            borderLeft:
-              "7px solid transparent",
-
-            borderRight:
-              "7px solid transparent",
-
-            borderTop:
-              "7px solid #334155",
-          }}
-        />
-      </div>
-    </div>
+        <span className="shared-tooltip__arrow" aria-hidden="true" />
+      </span>
+    </span>
   );
 }
