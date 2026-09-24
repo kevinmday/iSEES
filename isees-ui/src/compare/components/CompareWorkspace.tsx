@@ -324,7 +324,7 @@ function GuestCandidateWorkspace({ candidate, knowledgeObjects }: { readonly can
   const operationalKnowledge = useMemo(() => composeGuestOperationalKnowledgeObjects(workspaceRuntime.getWorkspace(), knowledgeObjects), [knowledgeObjects, workspaceRuntime]);
   const resolveOnManifold = () => {
     if (!comparison) return;
-    workspaceRuntime.setActiveMode(WorkspaceMode.MANIFOLD);
+    workspaceRuntime.navigateToMode(WorkspaceMode.MANIFOLD);
   };
   const candidateFields = [
     ["Title", candidate.content.workingTitle], ["Location", candidate.content.observationLocation], ["Local date", candidate.content.localObservationDate],

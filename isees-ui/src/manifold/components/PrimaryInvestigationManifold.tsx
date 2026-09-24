@@ -170,6 +170,8 @@ import type {
 } from "../../resolve/intelligence/ResolveCandidateIntelligenceTypes";
 import { useResearchBridge } from "../../research/ResearchBridgeContext";
 import { reconcilePublishedCompareCandidates } from "../../compare/research/CompareCandidateResearchPublication";
+import { useSessionStudioCandidates, type SessionStudioCandidateKnowledge } from "../../studio/candidate/SessionStudioCandidate";
+import { useOperatorIdentity } from "../../identity/runtime/OperatorIdentityRuntimeContext";
 
 // ============================================================
 // TYPES
@@ -208,6 +210,10 @@ export default function PrimaryInvestigationManifold({
 
   const workspaceRuntime =
     useWorkspaceRuntime();
+
+  const operatorIdentity = useOperatorIdentity();
+  const sessionStudioCandidates = useSessionStudioCandidates(operatorIdentity.identity?.kind === "GUEST" ? workspaceRuntime.getActiveInvestigation()?.id : undefined).filter(() => operatorIdentity.identity?.kind === "GUEST");
+  const [selectedStudioCandidate, setSelectedStudioCandidate] = useState<SessionStudioCandidateKnowledge | undefined>();
 
   const researchBridgeRuntime = useResearchBridge();
 
@@ -560,6 +566,13 @@ export default function PrimaryInvestigationManifold({
           "relative",
       }}
     >
+
+      {sessionStudioCandidates.length > 0 && <aside className="manifold-session-candidates" aria-label="Session Candidate Knowledge overlay" style={{ position:"absolute", left:12, top:118, zIndex:1000, width:300, padding:12, border:"2px dashed #c084fc", borderRadius:10, background:"rgba(30, 10, 50, .96)", color:"#f5d0fe" }}>
+        <strong style={{ display:"block", letterSpacing:".1em" }}>CANDIDATE KNOWLEDGE</strong><span style={{ display:"block", color:"#f0abfc", fontSize:11 }}>SESSION ONLY · NON-CANONICAL</span>
+        <p style={{ fontSize:11, color:"#d8b4fe" }}>Inspectable Studio publications. Excluded from canonical topology, accepted relationship counts, and Resolve inputs.</p>
+        <div style={{ display:"grid", gap:6 }}>{sessionStudioCandidates.map(candidate => <button key={candidate.candidateId} type="button" onClick={() => setSelectedStudioCandidate(candidate)} style={{ padding:8, border:"1px dashed #d8b4fe", background:selectedStudioCandidate?.candidateId === candidate.candidateId ? "#581c87" : "#2e1065", color:"#fff", textAlign:"left", cursor:"pointer" }}><strong>{candidate.title}</strong><small style={{ display:"block" }}>UNACCEPTED · Canon effect NONE</small></button>)}</div>
+        {selectedStudioCandidate && <dl style={{ display:"grid", gridTemplateColumns:"38% 1fr", gap:4, marginBottom:0, fontSize:10 }}><dt>Summary</dt><dd>{selectedStudioCandidate.summary}</dd><dt>Document</dt><dd>{selectedStudioCandidate.sourceDocumentId}</dd><dt>Content hash</dt><dd>{selectedStudioCandidate.contentHash}</dd><dt>Provenance</dt><dd>Explicit Studio publication</dd><dt>Sources</dt><dd>{selectedStudioCandidate.sourceAnchors.length}</dd></dl>}
+      </aside>}
 
 
       {/* =================================================== */}

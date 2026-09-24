@@ -90,7 +90,7 @@ function StudioShellContent() {
           <span>STUDIO / INVESTIGATION REQUIRED</span>
           <h1>No active Investigation</h1>
           <p>STUDIO consumes an already-active Investigation. Return to OVERVIEW to open or create an Investigation before authoring.</p>
-          <button type="button" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.OVERVIEW)}>
+          <button type="button" onClick={() => workspaceRuntime.navigateToMode(WorkspaceMode.OVERVIEW)}>
             Return to OVERVIEW
           </button>
         </div>

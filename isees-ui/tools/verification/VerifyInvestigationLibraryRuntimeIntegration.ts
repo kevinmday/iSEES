@@ -88,7 +88,7 @@ function pass(message: string): void {
 }
 
 let requests = 0;
-const constructionRuntime = new InvestigationLibraryRuntime(Object.freeze({
+new InvestigationLibraryRuntime(Object.freeze({
   listInvestigations: async () => { requests += 1; return Object.freeze({ items: Object.freeze([]) }); },
   getInvestigation: async () => summary("unused"),
 }));
@@ -339,6 +339,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const contextSource = readFileSync(`${root}src/investigation/library/InvestigationLibraryRuntimeContext.tsx`, "utf8");
 const adapterSource = readFileSync(`${root}src/investigation/frontDoor/OverviewFrontDoorRuntimeProjection.ts`, "utf8");
 const overviewSource = readFileSync(`${root}src/workspace/surfaces/OverviewWorkspace.tsx`, "utf8");
+const librarySource = readFileSync(`${root}src/workspace/surfaces/LibraryWorkspace.tsx`, "utf8");
 const appSource = readFileSync(`${root}src/App.tsx`, "utf8");
 
 function functionCalls(source: string, fileName: string, functionName: string): readonly string[] {
@@ -518,7 +519,7 @@ assert(Object.isFrozen(exposedB) && Object.isFrozen(exposedB.summaries), "Mismat
 assert(!JSON.stringify(exposedB).includes("A"), "Mismatch state serialized prior authority data.");
 pass("provider mismatch reconciliation is recursively immutable, fresh, and non-aliased");
 
-let authorityRequests = 0;
+const authorityRequests = 0;
 let authorityMutations = 0;
 const observedReadyA = new Proxy(readyA, {
   set: () => { authorityMutations += 1; return false; },
@@ -937,18 +938,18 @@ const operatorApplicationClose = appSource.indexOf("function ModeAwarePrimarySur
 const publicReport = appSource.indexOf('path="/report"');
 assert(providerOpen > operatorApplicationClose, "Library provider remained application-wide.");
 assert(publicReport > operatorApplicationOpen && publicReport < operatorApplicationClose, "Public route moved inside provider.");
-assert(appSource.includes("mode === WorkspaceMode.OVERVIEW") && appSource.includes("center={\n                                <ModeAwarePrimarySurface />"), "OVERVIEW mode boundary is not the live primary surface.");
-pass("provider placement is restricted to OVERVIEW and preserves public routes outside operator runtime");
+assert(appSource.includes("mode === WorkspaceMode.OVERVIEW || mode === WorkspaceMode.LIBRARY") && appSource.includes("center={\n                                <ModeAwarePrimarySurface />"), "OVERVIEW/LIBRARY boundary is not the live primary surface.");
+pass("provider placement is restricted to OVERVIEW/LIBRARY and preserves public routes outside operator runtime");
 
-const operationalModes = ["OVERVIEW", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "STUDIO"] as const;
+const operationalModes = ["OVERVIEW", "LIBRARY", "MANIFOLD", "COMPARE", "NARRATIVE", "EVIDENCE", "TIMELINE", "LAYERS", "INTENTION", "RESEARCH"] as const;
 for (const mode of operationalModes) {
   const modeQueue: Array<() => void> = [];
   const modeLoads: string[] = [];
   const modeController = providerAuthority.createInvestigationLibraryAuthorityController(task => modeQueue.push(task));
   modeController.commit(authorityA);
-  if (mode === "OVERVIEW") modeController.attach({ setPrincipal: () => undefined, load: principal => { modeLoads.push(principal); } });
+  if (mode === "OVERVIEW" || mode === "LIBRARY") modeController.attach({ setPrincipal: () => undefined, load: principal => { modeLoads.push(principal); } });
   flush(modeQueue);
-  equal(modeLoads.length, mode === "OVERVIEW" ? 1 : 0, `${mode} request containment differed.`);
+  equal(modeLoads.length, mode === "OVERVIEW" || mode === "LIBRARY" ? 1 : 0, `${mode} request containment differed.`);
 }
 const leaveQueue: Array<() => void> = [];
 const leaveLoads: string[] = [];
@@ -979,49 +980,16 @@ strictController.attach(strictCommitted);
 flush(strictQueue);
 equal(strictFirstLoads.length, 0, "StrictMode rehearsal dispatched a request.");
 equal(strictCommittedLoads.join(","), "A", "StrictMode committed mount duplicated or omitted its request.");
-pass("mode boundary permits only OVERVIEW, cancels exit work, reconciles return authority, and survives StrictMode rehearsal");
+pass("mode boundary permits only OVERVIEW/LIBRARY, cancels exit work, reconciles return authority, and survives StrictMode rehearsal");
 
-for (const visible of [
-  'className="overview-dashboard"', "Active Investigation",
-  "Current Investigative Focus", "Active Layers", "No Event Selected",
-]) assert(overviewSource.includes(visible), `Existing OVERVIEW structure missing ${visible}.`);
-const overviewSourceFile = ts.createSourceFile("OverviewWorkspace.tsx", overviewSource, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
-let hardenedProjectionDeclaration = false;
-let discardedProjection = false;
-let guestWelcomeRenderCount = 0;
-let exactProjectionRenderCount = 0;
-function inspectOverviewProjectionSeam(node: ts.Node): void {
-  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === "frontDoorProjection") {
-    hardenedProjectionDeclaration = node.initializer !== undefined
-      && ts.isCallExpression(node.initializer)
-      && ts.isIdentifier(node.initializer.expression)
-      && node.initializer.expression.text === "resolveOverviewFrontDoorRuntimeProjection";
-  }
-  if (ts.isVoidExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "frontDoorProjection") {
-    discardedProjection = true;
-  }
-  if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
-      && ts.isIdentifier(node.tagName) && node.tagName.text === "GuestWelcomeOverview") {
-    guestWelcomeRenderCount += 1;
-    const projectionAttribute = node.attributes.properties.find(property =>
-      ts.isJsxAttribute(property) && ts.isIdentifier(property.name) && property.name.text === "projection"
-    );
-    if (projectionAttribute !== undefined && ts.isJsxAttribute(projectionAttribute)
-        && projectionAttribute.initializer !== undefined && ts.isJsxExpression(projectionAttribute.initializer)
-        && projectionAttribute.initializer.expression !== undefined
-        && ts.isIdentifier(projectionAttribute.initializer.expression)
-        && projectionAttribute.initializer.expression.text === "frontDoorProjection") {
-      exactProjectionRenderCount += 1;
-    }
-  }
-  ts.forEachChild(node, inspectOverviewProjectionSeam);
-}
-inspectOverviewProjectionSeam(overviewSourceFile);
-assert(hardenedProjectionDeclaration, "OVERVIEW does not resolve the hardened front-door projection at the welcome seam.");
-assert(!discardedProjection, "OVERVIEW discards the hardened front-door projection.");
-equal(guestWelcomeRenderCount, 1, "GuestWelcomeOverview render count no longer has one auditable projection seam.");
-equal(exactProjectionRenderCount, guestWelcomeRenderCount, "GuestWelcomeOverview received no projection or an alternate/fallback projection.");
-pass("existing OVERVIEW structure remains present and its welcome seam consumes only the exact hardened projection");
+for (const visible of ["Guided orientation", "Enter Library", "Bring Your Own Case", "Browsing, preview, intake, activation, resumption, and investigation management remain in Library."])
+  assert(overviewSource.includes(visible), `Current OVERVIEW orientation contract is missing ${visible}.`);
+for (const visible of ["Investigation Library", "Your investigations", "SYSTEM CANON", "Resume Current Investigation", "Explicit opening enters MANIFOLD."])
+  assert(librarySource.includes(visible), `Current LIBRARY ownership contract is missing ${visible}.`);
+assert(!overviewSource.includes('className="overview-dashboard"'), "Removed operational dashboard markup returned to OVERVIEW.");
+assert(overviewSource.includes("library.enter(false)") && overviewSource.includes("library.enter(true)"), "OVERVIEW does not delegate entry and intake to LIBRARY.");
+assert(librarySource.includes("useOverviewSelection()") && librarySource.includes("useAccountInvestigationLibrary()"), "LIBRARY does not own governed selection and account investigation access.");
+pass("OVERVIEW owns orientation while LIBRARY owns selection, intake, activation, resumption, and investigation management");
 
 assert(!JSON.stringify(returningGuest).includes("activateInvestigation"), "Projection exposed activation behavior.");
 assert(Object.isFrozen(returningGuest) && Object.isFrozen(returningGuest?.library), "Projection is not recursively immutable.");

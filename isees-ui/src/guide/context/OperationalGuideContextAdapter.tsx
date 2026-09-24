@@ -68,7 +68,7 @@ export default function OperationalGuideContextAdapter() {
       activeInvestigationId={investigation?.id}
       workspaceContextKey={`${workspace?.id ?? "none"}:${workspaceState.operator.activeMode}:${workspaceState.operator.layoutMode}`}
       onClose={closeGuide}
-      onBeginFirstInvestigation={() => workspaceRuntime.setActiveMode(WorkspaceMode.OVERVIEW)}
+      onBeginFirstInvestigation={() => workspaceRuntime.navigateToMode(WorkspaceMode.OVERVIEW)}
     />}
   </>;
 }

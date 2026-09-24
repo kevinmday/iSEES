@@ -372,7 +372,7 @@ export default function RightPanel() {
                     currentExecution.completedAt !== undefined
                   }
                   goToCompare={() =>
-                    workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)
+                    workspaceRuntime.navigateToMode(WorkspaceMode.COMPARE)
                   }
                 />
               )

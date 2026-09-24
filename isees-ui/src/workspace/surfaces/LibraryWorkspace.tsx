@@ -18,7 +18,7 @@ const LibraryNavigationContext = createContext<LibraryNavigationValue | undefine
 export function LibraryNavigationProvider({ children }: { readonly children: ReactNode }) {
   const runtime = useWorkspaceRuntime();
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const value = useMemo(() => Object.freeze({ intakeOpen, enter(intake = false) { setIntakeOpen(intake); runtime.setActiveMode(WorkspaceMode.LIBRARY); }, closeIntake() { setIntakeOpen(false); } }), [intakeOpen, runtime]);
+  const value = useMemo(() => Object.freeze({ intakeOpen, enter(intake = false) { setIntakeOpen(intake); runtime.navigateToMode(WorkspaceMode.LIBRARY); }, closeIntake() { setIntakeOpen(false); } }), [intakeOpen, runtime]);
   return <LibraryNavigationContext.Provider value={value}>{children}</LibraryNavigationContext.Provider>;
 }
 
@@ -65,7 +65,7 @@ export default function LibraryWorkspace() {
         <section className="library-workspace__status" aria-labelledby="current-investigation-title"><p className="library-workspace__eyebrow">Current investigation</p><h2 id="current-investigation-title">{active?.name ?? "No active investigation"}</h2><p>{active === undefined ? "Start a case or preview a Library record when you are ready." : isGuest ? "SESSION-LOCAL · NOT DURABLY SAVED" : "ACTIVE INVESTIGATION · ACCOUNT OWNED"}</p></section>
         <section className="library-workspace__actions" aria-label="Investigation actions">
           {isGuest ? <button className="library-workspace__primary" type="button" onClick={() => navigation.enter(true)}>Start or Bring a New Case</button> : <form onSubmit={create}><label htmlFor="library-new-title">New investigation title</label><input id="library-new-title" name="title" maxLength={200} disabled={account.busy} required /><button className="library-workspace__primary" disabled={account.busy}>Start or Bring a New Case</button></form>}
-          {active && active.revisions.length > 0 && <button type="button" onClick={() => runtime.setActiveMode(WorkspaceMode.MANIFOLD)}>Resume Current Investigation</button>}
+          {active && active.revisions.length > 0 && <button type="button" onClick={() => runtime.navigateToMode(WorkspaceMode.MANIFOLD)}>Resume Current Investigation</button>}
           {emptyOwnedInvestigationId && <div className="library-workspace__setup" role="status"><strong>{active?.name}</strong><span>This saved investigation has no focused event or operational content.</span><button type="button" disabled>Continue Setup</button></div>}
         </section>
         <section className="library-workspace__search" aria-label="Search and filters"><label htmlFor="library-search">Search records</label><input id="library-search" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search titles, identifiers, places, or repositories" /><div role="group" aria-label="Authority filter">{(["ALL", "CANON", "REFERENCE"] as const).map(value => <button key={value} type="button" aria-pressed={authority === value} onClick={() => setAuthority(value)}>{value === "CANON" ? "SYSTEM CANON" : value === "REFERENCE" ? "EXTERNAL" : "ALL"}</button>)}</div></section>

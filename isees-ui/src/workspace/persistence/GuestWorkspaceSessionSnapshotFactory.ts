@@ -67,6 +67,7 @@ import type {
 import {
   createGuestWorkspaceSessionSnapshot,
 } from "./GuestWorkspaceSessionPersistence";
+import type { SessionStudioCandidateKnowledge } from "../../studio/candidate/SessionStudioCandidate";
 
 
 // ============================================================
@@ -98,6 +99,8 @@ export interface GuestWorkspaceSessionSnapshotFactoryInput {
 
   authoring:
     AuthorDocumentRuntimeState;
+
+  candidateOverlay?: readonly SessionStudioCandidateKnowledge[];
 
   /**
    * Existing snapshot creation time.
@@ -321,6 +324,10 @@ export function createGuestWorkspaceSnapshotFromRuntimeState(
       activeDocument:
         input.authoring.activeDocument,
 
+    },
+
+    candidateOverlay: {
+      candidates: input.candidateOverlay ?? [],
     },
 
   });

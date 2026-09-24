@@ -137,7 +137,7 @@ export default function WorkspaceModeBar() {
 
             onClick={() => {
 
-              runtime.setActiveMode(
+              runtime.navigateToMode(
                 mode,
               );
 

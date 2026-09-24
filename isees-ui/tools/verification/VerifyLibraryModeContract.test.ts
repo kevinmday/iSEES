@@ -20,6 +20,7 @@ function emptySnapshot(activeMode: string) {
     workspace: { operator: { activeMode, layoutMode: "NORMAL" }, computational: { activeLayers: [] } },
     research: { desk: { entries: [] } },
     authoring: {},
+    candidateOverlay: { candidates: [] },
   };
 }
 

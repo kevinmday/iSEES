@@ -57,6 +57,7 @@ import type {
 import type {
   ComputationalAuthorDocument,
 } from "../../author/model/AuthorDocument";
+import type { SessionStudioCandidateKnowledge } from "../../studio/candidate/SessionStudioCandidate";
 
 
 // ============================================================
@@ -71,7 +72,7 @@ import type {
 // ============================================================
 
 export const GUEST_WORKSPACE_SESSION_SCHEMA_VERSION =
-  1 as const;
+  2 as const;
 
 export type GuestWorkspaceSessionSchemaVersion =
   typeof GUEST_WORKSPACE_SESSION_SCHEMA_VERSION;
@@ -197,6 +198,10 @@ export interface PersistedGuestAuthoringState {
 
 }
 
+export interface PersistedGuestCandidateOverlayState {
+  candidates: readonly SessionStudioCandidateKnowledge[];
+}
+
 
 // ============================================================
 // OWNERSHIP PROVENANCE
@@ -269,6 +274,9 @@ export interface GuestWorkspaceSessionSnapshot {
 
   authoring:
     PersistedGuestAuthoringState;
+
+  candidateOverlay:
+    PersistedGuestCandidateOverlayState;
 
 }
 

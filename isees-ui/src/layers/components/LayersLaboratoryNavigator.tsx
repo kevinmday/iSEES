@@ -43,7 +43,7 @@ export default function LayersLaboratoryNavigator() {
       <Row label="Case A" value={workspace?.focused_event_id ?? "NO FOCUSED EVENT"}/>
       <Row label="Case B" value={selectedComparisonEventId ?? state.scope?.comparisonEventId ?? "NO SELECTED COMPARISON EVENT"}/>
       <Row label="Candidate" value={selection?.kind === WorkspaceSelectionKind.CANDIDATE ? selection.candidateId : "UNAVAILABLE"}/>
-      <button type="button" onClick={() => workspaceRuntime.setActiveMode(WorkspaceMode.COMPARE)}>Change Pair in COMPARE</button>
+      <button type="button" onClick={() => workspaceRuntime.navigateToMode(WorkspaceMode.COMPARE)}>Change Pair in COMPARE</button>
     </Section>
     <Section title="Baseline configuration">
       <Row label="Active layers" value={list(state.baseline?.canonicalStartingLayerIds ?? workspace?.active_layers ?? [])}/>

@@ -72,6 +72,7 @@ import {
 } from "./GuestWorkspaceSessionPersistence";
 import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes";
 import { decideGuestWorkspaceRestoration } from "./GuestWorkspaceRestorationPolicy";
+import { sessionStudioCandidateRuntime } from "../../studio/candidate/SessionStudioCandidate";
 
 import type {
   GuestWorkspaceSessionSnapshot,
@@ -159,6 +160,8 @@ export class GuestWorkspaceSessionLifecycle {
   private unsubscribeAuthor:
     (() => void) | null =
       null;
+
+  private unsubscribeCandidate: (() => void) | null = null;
 
 
   private captureSuppressed =
@@ -303,6 +306,10 @@ export class GuestWorkspaceSessionLifecycle {
         }
     } else if (decision.kind === "RECOVER_CLEAN") {
       this.recoverCleanWorkspace(decision.diagnostic);
+    } else if (decision.kind === "EMPTY") {
+      // A new browser/Guest session must never inherit an in-memory overlay
+      // retained from a prior principal epoch.
+      sessionStudioCandidateRuntime.clear();
     } else if (this.pendingInvalidSnapshotRecovery) {
       this.recoverCleanWorkspace("INVALID_SNAPSHOT");
     }
@@ -335,6 +342,7 @@ export class GuestWorkspaceSessionLifecycle {
       workspaceRuntime.setActiveMode(WorkspaceMode.OVERVIEW);
       researchBridgeRuntime.clearDesk();
       authorDocumentRuntime.clearAccountState();
+      sessionStudioCandidateRuntime.clear();
     } finally {
       this.captureSuppressed = false;
     }
@@ -427,6 +435,8 @@ export class GuestWorkspaceSessionLifecycle {
 
         authoring:
           authorDocumentRuntime.getState(),
+
+        candidateOverlay: sessionStudioCandidateRuntime.getCandidates(),
 
       });
 
@@ -545,6 +555,8 @@ export class GuestWorkspaceSessionLifecycle {
 
         authorDocumentRuntime,
 
+        candidateRuntime: sessionStudioCandidateRuntime,
+
       });
 
     }
@@ -585,6 +597,8 @@ export class GuestWorkspaceSessionLifecycle {
         this.handleRuntimeChange,
       );
 
+    this.unsubscribeCandidate = sessionStudioCandidateRuntime.subscribe(this.handleRuntimeChange);
+
   }
 
 
@@ -600,6 +614,7 @@ export class GuestWorkspaceSessionLifecycle {
     this.unsubscribeResearch?.();
 
     this.unsubscribeAuthor?.();
+    this.unsubscribeCandidate?.();
 
 
     this.unsubscribeWorkspace =
@@ -610,6 +625,7 @@ export class GuestWorkspaceSessionLifecycle {
 
     this.unsubscribeAuthor =
       null;
+    this.unsubscribeCandidate = null;
 
   }
 

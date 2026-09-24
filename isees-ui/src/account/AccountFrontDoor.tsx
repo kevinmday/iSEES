@@ -5,6 +5,7 @@ import { AccountWorkspaceContinuityCoordinator } from "../investigation/continui
 import { createLastActiveInvestigationStore } from "../investigation/continuity/LastActiveInvestigationStore";
 import type { AccountSessionProjection } from "../investigation/continuity/OwnedInvestigationContinuity";
 import { workspaceRuntime } from "../workspace/runtime/WorkspaceRuntime";
+import { navigateAfterOwnedInvestigationOpen } from "./AccountFrontDoorNavigation";
 import { researchBridgeRuntime } from "../research/ResearchBridgeRuntime";
 import { authorDocumentRuntime } from "../author/runtime/AuthorDocumentRuntime";
 import { operatorIdentityRuntime } from "../identity/runtime/OperatorIdentityRuntime";
@@ -254,7 +255,11 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
     const { ticket } = beginRequest(); setPhase("working"); setError("");
     try {
       const receipt = await coordinator.openOwnedInvestigation(investigationId);
-      if (isCurrent(ticket)) { setActiveInvestigationId(receipt.investigationId); setPhase("ready"); }
+      if (isCurrent(ticket)) {
+        setActiveInvestigationId(receipt.investigationId);
+        navigateAfterOwnedInvestigationOpen(workspaceRuntime);
+        setPhase("ready");
+      }
     } catch (cause) { handleFailure(cause, ticket, "ready"); }
     finally { commandPending.current = false; }
   }
@@ -270,7 +275,8 @@ export function AccountFrontDoor({ children, navigationGuard }: { children: Reac
       setItems(previous => Object.freeze([created, ...previous.filter(item => item.investigationId !== created.investigationId)]));
       const receipt = await coordinator.openOwnedInvestigation(created.investigationId);
       if (!isCurrent(ticket)) return;
-      setActiveInvestigationId(receipt.investigationId); setPhase("ready");
+      setActiveInvestigationId(receipt.investigationId);
+      setPhase("ready");
     } catch (cause) { handleFailure(cause, ticket, "ready"); }
     finally { commandPending.current = false; }
   }

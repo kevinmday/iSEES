@@ -6,6 +6,8 @@ import {
 } from "../../src/account/AccountFrontDoorApi.ts";
 import { API_BASE_URL, resolveApiBaseUrl } from "../../src/api/ApiOrigin.ts";
 import { createAccountContinuityApi } from "../../src/investigation/continuity/AccountContinuityApi.ts";
+import { navigateAfterOwnedInvestigationOpen } from "../../src/account/AccountFrontDoorNavigation.ts";
+import { WorkspaceMode } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
 
 const root = resolve(import.meta.dirname, "../..");
 const ui = readFileSync(resolve(root, "src/account/AccountFrontDoor.tsx"), "utf8");
@@ -27,12 +29,14 @@ for (const [text, label] of [
   ["Explore the complete iSEES workspace. Your work will not be saved after this guest session.", "guest capability and persistence explanation"],
   ["Guest session", "guest status"], ["your work is not being saved", "guest non-persistence warning"],
 ] as const) requireText(ui, text, label);
-for (const [text, label] of [["Your investigations", "owned library"], ["Start New Investigation", "creation command"], ["Resume Investigation", "open command"]] as const) requireText(librarySurface, text, label);
+for (const [text, label] of [["Your investigations", "owned library"], ["Start or Bring a New Case", "creation command"], ["Resume Current Investigation", "open command"]] as const) requireText(librarySurface, text, label);
 for (const forbidden of ["Nimitz", "Tic Tac", "sampleReport", "defaultInvestigation"]) {
   if (ui.includes(forbidden) || api.includes(forbidden)) throw new Error(`Canonical/default injection reference: ${forbidden}`);
 }
 requireText(ui, "coordinator.openOwnedInvestigation", "continuity opening path");
 requireText(ui, "coordinator.restoreLastActiveInvestigation", "reload continuity path");
+requireText(ui, "navigateAfterOwnedInvestigationOpen(workspaceRuntime)", "canonical post-open navigation path");
+assert.ok(!ui.includes("history.pushState"), "AccountFrontDoor must not write browser history directly");
 requireText(ui, "generation.current", "stale completion gate");
 requireText(ui, "commandPending.current", "synchronous duplicate-submission gate");
 requireText(ui, "useState(() => new AccountWorkspaceContinuityCoordinator", "component-owned coordinator");
@@ -53,6 +57,18 @@ requireText(vite, "'/api/v1'", "Vite same-origin API proxy");
 requireText(vite, "target: 'http://127.0.0.1:8000'", "Vite backend target");
 assert.equal(API_BASE_URL, "", "default API base must be relative and same-origin");
 assert.equal(resolveApiBaseUrl("https://api.example.test/"), "https://api.example.test");
+
+const navigations: WorkspaceMode[] = [];
+const navigationRuntime = {
+  active: { revisions: [{}] } as { revisions: readonly unknown[] } | undefined,
+  getActiveInvestigation() { return this.active; },
+  navigateToMode(mode: WorkspaceMode) { navigations.push(mode); },
+};
+navigateAfterOwnedInvestigationOpen(navigationRuntime);
+assert.deepEqual(navigations, [WorkspaceMode.MANIFOLD], "revision-bearing owned activation must explicitly enter MANIFOLD");
+navigationRuntime.active = { revisions: [] };
+navigateAfterOwnedInvestigationOpen(navigationRuntime);
+assert.deepEqual(navigations, [WorkspaceMode.MANIFOLD], "empty owned activation must remain in LIBRARY");
 if (/owner(?:Id|PrincipalId)/.test(api)) throw new Error("Client request must not project an owner identity");
 requireText(app, "<AccountFrontDoor>", "application composition");
 assert.ok(app.indexOf("<OperatorIdentityRuntimeProvider>") < app.indexOf("<AccountFrontDoor>"), "established identity authority must wrap the account front door");

@@ -192,6 +192,16 @@ Preparation and dispatch **MUST** honor `excludeFromAiProcessing`, privacy, auth
 
 Tavily results remain ephemeral discovery references until explicitly captured. Captured results remain Candidate Evidence under EVIDENCE-001 and SC-027, with zero automatic Canon or graph effect. Search, capture, and authored citation **MUST NOT** establish truth, corroboration, or Manifold membership.
 
+### 13.1 Volatile Guest Studio publication
+
+A local draft alone is not Candidate Knowledge. An established Guest may explicitly choose **Publish Candidate to Manifold** when the active Investigation's document contains researcher-authored or explicitly applied, source-backed content with valid lineage. That act creates Investigation-scoped `CANDIDATE_KNOWLEDGE` with epistemic classification `CANDIDATE`, `SESSION` durability, `NON_CANONICAL` standing, Canon effect `NONE`, and acceptance state `UNACCEPTED`.
+
+Guest publication is non-authoritative and browser-session-local. It may be selected and inspected in a visually and structurally separate Manifold candidate overlay, but it **MUST NOT** enter canonical Knowledge Objects, an `OperationalGraphRevision`, accepted topology or relationship statistics, or Resolve inputs. Publication does not establish truth, proof, acceptance, promotion, or Canon admission. Repeating publication of unchanged document content is idempotent.
+
+The Guest overlay is persisted only through the existing `sessionStorage` Guest workspace lifecycle, fails closed on malformed records, disappears when that browser session is cleared, and **MUST NOT** migrate silently into account-owned persistence. Account sign-in changes durability options, not access to authoring and research participation. The unavailable durable publication adapter remains fail-closed; a Guest **MUST NOT** be routed through authenticated Studio APIs to simulate it.
+
+Saving an authoritative `AuthorRevision`, exporting a child PDF/DOCX/HTML projection, publishing Candidate Knowledge, reviewing a candidate, and accepting knowledge are separate explicit acts. Implementations **MUST NOT** use readiness for one as readiness for another, and unapplied AI drafting proposals are not authored content.
+
 ## 14. Document relationships and identity effects
 
 | Relationship | Required identity behavior | Canonical meaning |

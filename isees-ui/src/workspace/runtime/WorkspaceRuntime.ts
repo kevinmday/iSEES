@@ -81,6 +81,8 @@ import type {
 type WorkspaceRuntimeListener =
   () => void;
 
+type WorkspaceNavigationRecorder = (mode: WorkspaceModeType) => void;
+
 // ============================================================
 // DEFAULT COMPUTATIONAL CONFIGURATION
 // ============================================================
@@ -114,6 +116,8 @@ WorkspaceComputationalConfiguration = {
 // ============================================================
 
 export class WorkspaceRuntime {
+
+  private navigationRecorder: WorkspaceNavigationRecorder | undefined;
 
   private state:
     WorkspaceRuntimeState = {
@@ -1137,6 +1141,22 @@ export class WorkspaceRuntime {
 
     this.notify();
 
+  }
+
+  /** Explicit operator navigation. Presentation history is recorded after validation. */
+  navigateToMode(mode: WorkspaceModeType): void {
+    if (!this.getModeAvailability(mode).available) return;
+    this.setActiveMode(mode);
+    this.navigationRecorder?.(mode);
+  }
+
+  /** Browser/bootstrap restoration. This never writes a browser-history entry. */
+  restoreActiveMode(mode: WorkspaceModeType): void {
+    this.setActiveMode(mode);
+  }
+
+  attachNavigationRecorder(recorder: WorkspaceNavigationRecorder | undefined): void {
+    this.navigationRecorder = recorder;
   }
 
   /** Activates a session-only researcher candidate with its real initial operational revision. */

@@ -457,6 +457,21 @@ Examples include:
 The Authoring Studio consumes curated material from the Research Desk.
 
 
+\---
+
+
+\## Browser navigation contract
+
+
+Explicit Workspace MODE navigation participates in browser history. Back and Forward restore the Workspace Runtime presentation mode and retain the active Investigation and its guest, Research Inbox, Manifold, and Author session state.
+
+
+Browser history is presentation navigation, not research persistence. Restoring a history entry must not activate, recreate, resolve, mutate, fetch, or substitute an Investigation. History state contains only a versioned iSEES ownership marker, Workspace MODE, and the active Investigation identity needed to validate analytical-mode restoration.
+
+
+Malformed navigation state fails closed. An analytical MODE whose referenced Investigation is unavailable degrades to LIBRARY; an unknown MODE degrades to the front-door OVERVIEW contract. Bootstrap may annotate the current entry once, while popstate restoration never pushes a replacement navigation entry.
+
+
 
 \---
 

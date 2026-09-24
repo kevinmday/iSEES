@@ -57,6 +57,7 @@ import {
 import type {
   WorkspaceRuntime,
 } from "./WorkspaceRuntime";
+import { createBrowserWorkspaceNavigationPort, WorkspaceNavigationHistory } from "./WorkspaceNavigationHistory";
 
 // ============================================================
 // CONTEXT
@@ -152,7 +153,15 @@ export function WorkspaceRuntimeProvider({
         .revision,
     );
 
-    return unsubscribe;
+    const navigation = new WorkspaceNavigationHistory(workspaceRuntime, createBrowserWorkspaceNavigationPort(window));
+    workspaceRuntime.attachNavigationRecorder(mode => navigation.recordNavigation(mode));
+    const stopNavigation = navigation.synchronizeInitialNavigation();
+
+    return () => {
+      stopNavigation();
+      workspaceRuntime.attachNavigationRecorder(undefined);
+      unsubscribe();
+    };
 
   }, []);
 

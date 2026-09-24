@@ -59,6 +59,7 @@ import type {
 } from "./GuestWorkspaceSessionPersistenceTypes.ts";
 import { migrateResearchAnchor } from "../../research/ResearchAnchorContract.ts";
 import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes.ts";
+import { isSessionStudioCandidateKnowledge } from "../../studio/candidate/SessionStudioCandidate.ts";
 
 
 // ============================================================
@@ -518,6 +519,8 @@ export function isGuestWorkspaceSessionSnapshot(
     return false;
   }
 
+  if (!isRecord(value.candidateOverlay) || !Array.isArray(value.candidateOverlay.candidates) || !value.candidateOverlay.candidates.every(isSessionStudioCandidateKnowledge)) return false;
+
   return true;
 
 }
@@ -640,6 +643,12 @@ export function restoreGuestWorkspaceSession():
 
   }
 
+  // Candidate records are independently fail-closed: discard malformed overlay
+  // entries while preserving an otherwise valid Guest workspace recovery.
+  if (isRecord(parsed) && isRecord(parsed.candidateOverlay) && Array.isArray(parsed.candidateOverlay.candidates)) {
+    parsed = { ...parsed, candidateOverlay: { ...parsed.candidateOverlay, candidates: parsed.candidateOverlay.candidates.filter(isSessionStudioCandidateKnowledge) } };
+  }
+
   if (
     !isGuestWorkspaceSessionSnapshot(
       parsed,
@@ -748,12 +757,15 @@ export function createGuestWorkspaceSessionSnapshot(
       | "schemaVersion"
       | "createdAt"
       | "updatedAt"
+      | "candidateOverlay"
     > & {
       createdAt?:
         string;
 
       updatedAt?:
         string;
+
+      candidateOverlay?: GuestWorkspaceSessionSnapshot["candidateOverlay"];
     },
 ): GuestWorkspaceSessionSnapshot {
 
@@ -775,6 +787,8 @@ export function createGuestWorkspaceSessionSnapshot(
     updatedAt:
       input.updatedAt ??
       now,
+
+    candidateOverlay: input.candidateOverlay ?? { candidates: [] },
 
   };
 

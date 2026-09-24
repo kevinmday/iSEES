@@ -67,6 +67,7 @@ import { NIMITZ_TIC_TAC_EVENT_DOSSIER_REVISION_1, NIMITZ_TIC_TAC_EVENT_ID } from
 import type { Investigation } from "../../investigation/investigationTypes.ts";
 import type { InvestigationGraph } from "../../manifold/graphTypes.ts";
 import { restoreStudioDocument } from "../../studio/api/StudioDocumentRestoration";
+import type { SessionStudioCandidateRuntime } from "../../studio/candidate/SessionStudioCandidate";
 
 
 // ============================================================
@@ -97,6 +98,8 @@ export interface GuestWorkspaceSessionRestorerDependencies {
 
   authorDocumentRuntime:
     AuthorDocumentRuntime;
+
+  candidateRuntime?: SessionStudioCandidateRuntime;
 
 }
 
@@ -828,6 +831,8 @@ export function restoreGuestWorkspaceSessionIntoRuntimes(
       input.snapshot,
       input.authorDocumentRuntime,
     );
+
+  input.candidateRuntime?.restore(input.snapshot.candidateOverlay.candidates);
 
   // ----------------------------------------------------------
   // POSTCONDITIONS

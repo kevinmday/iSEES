@@ -2,6 +2,7 @@ import type { OperatorIdentityState } from "../../identity/runtime/OperatorIdent
 import type { Investigation } from "../../investigation/investigationTypes";
 import type { GuestCandidateEvent } from "../workspaceTypes";
 import type { WorkspaceRuntime } from "../runtime/WorkspaceRuntime";
+import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes";
 import { mapFormStateToContent, validateNativeCaseDraftForm, type NativeCaseDraftFormState } from "../../nativeCaseDraft/NativeCaseDraftFieldState.ts";
 import type { NativeCaseDraftContent } from "../../nativeCaseDraft/NativeCaseDraftTypes.ts";
 import {
@@ -114,6 +115,7 @@ export function submitGuestCase(
   const result = createGuestCandidateInvestigation(form, identity, recordedAt, crypto.randomUUID(), operationalContext);
   if (result.status === "CREATED") {
     runtime.activateGuestCandidateInvestigation(result.investigation);
+    runtime.navigateToMode(WorkspaceMode.MANIFOLD);
   }
   return result;
 }
