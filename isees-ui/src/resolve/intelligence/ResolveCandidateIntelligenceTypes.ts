@@ -282,7 +282,7 @@ export interface ResolveCandidateAggregateIntelligence {
     number;
 
   weightedContributions:
-    readonly Readonly<{ dimension: CanonicalFeatureDimension; similarity: number; configuredWeight: number; weightedContribution: number }>[];
+    readonly Readonly<{ dimension: CanonicalFeatureDimension; similarity: number; configuredWeight: number; weightedContribution: number; normalizedContribution?: number }>[];
 
 }
 

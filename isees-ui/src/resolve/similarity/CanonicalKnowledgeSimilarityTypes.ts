@@ -118,6 +118,21 @@ export interface AvailableCanonicalDimensionSimilarity {
   weight:
     number;
 
+  /** Lossless evaluator-owned substitutions and intermediates for inspection. */
+  calculationTrace?: CanonicalDimensionCalculationTrace;
+
+}
+
+export interface CanonicalCalculationValue {
+  readonly label: string;
+  readonly value: string;
+}
+
+export interface CanonicalDimensionCalculationTrace {
+  readonly algorithm: string;
+  readonly inputs: readonly CanonicalCalculationValue[];
+  readonly intermediates: readonly CanonicalCalculationValue[];
+  readonly substitution: string;
 }
 
 // ============================================================
@@ -307,7 +322,7 @@ export interface AvailableCanonicalAggregateSimilarity {
     number;
 
   weightedContributions:
-    readonly Readonly<{ dimension: CanonicalFeatureDimension; similarity: number; configuredWeight: number; weightedContribution: number }>[];
+    readonly Readonly<{ dimension: CanonicalFeatureDimension; similarity: number; configuredWeight: number; weightedContribution: number; normalizedContribution?: number }>[];
 
 }
 

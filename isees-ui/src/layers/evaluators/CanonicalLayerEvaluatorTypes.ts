@@ -1,5 +1,6 @@
 import type { CanonicalSimilarityCandidateEvaluation } from "../../resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes.ts";
 import type { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes.ts";
+import type { CanonicalDimensionCalculationTrace } from "../../resolve/similarity/CanonicalKnowledgeSimilarityTypes.ts";
 import type { CanonicalLayerEvaluatorInputProjection } from "./CanonicalLayerEvaluatorInputProjection.ts";
 
 export const CanonicalLayerEvaluationAvailability = { AVAILABLE: "AVAILABLE", UNAVAILABLE: "UNAVAILABLE" } as const;
@@ -50,6 +51,7 @@ export interface AvailableCanonicalLayerEvaluation extends CanonicalLayerEvaluat
   readonly rawRightSubjectComponents?: Readonly<Record<string, unknown>>;
   readonly normalization?: CanonicalLayerNormalizationIdentity;
   readonly normalizedResult?: number;
+  readonly calculationTrace?: CanonicalDimensionCalculationTrace;
 }
 
 export interface UnavailableCanonicalLayerEvaluation extends CanonicalLayerEvaluationBase {

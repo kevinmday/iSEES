@@ -448,6 +448,15 @@ function verifyIdenticalFeatures(): void {
     "All five dimensions must participate for complete identical fixtures.",
   );
 
+  const traces = [result.dimensions.narrative, result.dimensions.observability, result.dimensions.infrastructure, result.dimensions.topology, result.dimensions.geography];
+  assert(traces.every(dimension => dimension.availability === CanonicalSimilarityAvailability.AVAILABLE && dimension.calculationTrace), "All five available dimensions must retain evaluator-owned runtime traces.");
+  assert(result.dimensions.narrative.availability === CanonicalSimilarityAvailability.AVAILABLE && result.dimensions.narrative.calculationTrace?.substitution === "J(A,B) = 3 / 3 = 1", "Narrative trace must retain its Jaccard substitution.");
+  assert(result.dimensions.observability.availability === CanonicalSimilarityAvailability.AVAILABLE && result.dimensions.observability.calculationTrace?.intermediates.some(value => value.label === "Duration similarity"), "Observability trace must retain duration arithmetic.");
+  assert(result.dimensions.infrastructure.availability === CanonicalSimilarityAvailability.AVAILABLE && result.dimensions.infrastructure.calculationTrace?.inputs[0]?.label.includes("facility-type"), "Infrastructure trace must retain normalized facility inputs.");
+  assert(result.dimensions.topology.availability === CanonicalSimilarityAvailability.AVAILABLE && result.dimensions.topology.calculationTrace?.intermediates.length === 4, "Topology trace must retain four evaluator-owned component similarities.");
+  assert(result.dimensions.geography.availability === CanonicalSimilarityAvailability.AVAILABLE && result.dimensions.geography.calculationTrace?.substitution === "G = 1", "Geography trace must retain exact-equality output.");
+  assert(result.aggregate.weightedContributions.every(value => value.normalizedContribution !== undefined), "Aggregate must retain normalized contributions separately from raw weighted products.");
+
   console.log(
     "PASS — identical canonical features produce similarity 1",
   );

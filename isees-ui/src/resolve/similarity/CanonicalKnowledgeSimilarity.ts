@@ -306,14 +306,17 @@ function compareNarrative(
 
   }
 
-  return availableDimension(
-    CanonicalFeatureDimension.NARRATIVE,
-    jaccardSimilarity(
-      source.value,
-      target.value,
-    ),
-    weight,
-  );
+  const left = normalizedSet(source.value);
+  const right = normalizedSet(target.value);
+  const intersection = left.filter(value => right.includes(value));
+  const union = [...new Set([...left, ...right])].sort(compareCanonicalStrings);
+  const similarity = jaccardSimilarity(source.value, target.value);
+  return availableDimension(CanonicalFeatureDimension.NARRATIVE, similarity, weight, {
+    algorithm: "Jaccard similarity over normalized narrative trait sets.",
+    inputs: [{ label: "Case A normalized endpoint trait set", value: JSON.stringify(left) }, { label: "Case B normalized endpoint trait set", value: JSON.stringify(right) }],
+    intermediates: [{ label: "Intersection", value: JSON.stringify(intersection) }, { label: "Union", value: JSON.stringify(union) }],
+    substitution: `J(A,B) = ${intersection.length} / ${union.length} = ${similarity}`,
+  });
 
 }
 
@@ -384,15 +387,13 @@ function compareObservability(
       100,
     );
 
-  return availableDimension(
-    CanonicalFeatureDimension.OBSERVABILITY,
-    (
-      confidenceSimilarity +
-      durationSimilarity
-    ) /
-      2,
-    weight,
-  );
+  const similarity = (confidenceSimilarity + durationSimilarity) / 2;
+  return availableDimension(CanonicalFeatureDimension.OBSERVABILITY, similarity, weight, {
+    algorithm: "Mean of confidence and duration distance similarities.",
+    inputs: [{ label: "Case A confidence", value: String(sourceConfidence.value) }, { label: "Case B confidence", value: String(targetConfidence.value) }, { label: "Case A duration (minutes)", value: String(sourceDuration.value) }, { label: "Case B duration (minutes)", value: String(targetDuration.value) }],
+    intermediates: [{ label: "Confidence similarity", value: `max(0, 1 - abs(${sourceConfidence.value} - ${targetConfidence.value})) = ${confidenceSimilarity}` }, { label: "Duration similarity", value: `max(0, 1 - abs(${sourceDuration.value} - ${targetDuration.value}) / 100) = ${durationSimilarity}` }],
+    substitution: `O = (${confidenceSimilarity} + ${durationSimilarity}) / 2 = ${similarity}`,
+  });
 
 }
 
@@ -454,14 +455,17 @@ function compareInfrastructure(
         entity.facilityType,
     );
 
-  return availableDimension(
-    CanonicalFeatureDimension.INFRASTRUCTURE,
-    jaccardSimilarity(
-      sourceTypes,
-      targetTypes,
-    ),
-    weight,
-  );
+  const left = normalizedSet(sourceTypes);
+  const right = normalizedSet(targetTypes);
+  const intersection = left.filter(value => right.includes(value));
+  const union = [...new Set([...left, ...right])].sort(compareCanonicalStrings);
+  const similarity = jaccardSimilarity(sourceTypes, targetTypes);
+  return availableDimension(CanonicalFeatureDimension.INFRASTRUCTURE, similarity, weight, {
+    algorithm: "Jaccard similarity over normalized facility-type sets.",
+    inputs: [{ label: "Case A normalized facility-type set", value: JSON.stringify(left) }, { label: "Case B normalized facility-type set", value: JSON.stringify(right) }],
+    intermediates: [{ label: "Intersection", value: JSON.stringify(intersection) }, { label: "Union", value: JSON.stringify(union) }],
+    substitution: `J(A,B) = ${intersection.length} / ${union.length} = ${similarity}`,
+  });
 
 }
 
@@ -507,11 +511,17 @@ function compareTopology(
 
   }
 
-  return availableDimension(
-    CanonicalFeatureDimension.TOPOLOGY,
-    compareCanonicalTopologyStateVectors(source.value, target.value),
-    weight,
-  );
+  const names = ["Contradiction density", "Residual instability", "Entanglement score", "Cluster fragmentation"];
+  const left = [source.value.contradictionDensity, source.value.residualInstability, source.value.entanglementScore, source.value.clusterFragmentation];
+  const right = [target.value.contradictionDensity, target.value.residualInstability, target.value.entanglementScore, target.value.clusterFragmentation];
+  const components = left.map((value, index) => numericSimilarity(value, right[index]!, 1));
+  const similarity = compareCanonicalTopologyStateVectors(source.value, target.value);
+  return availableDimension(CanonicalFeatureDimension.TOPOLOGY, similarity, weight, {
+    algorithm: "Arithmetic mean of four per-component clamped distance similarities.",
+    inputs: [{ label: "Case A topology vector", value: `[${left.join(", ")}]` }, { label: "Case B topology vector", value: `[${right.join(", ")}]` }],
+    intermediates: components.map((value, index) => ({ label: `${names[index]} similarity`, value: `max(0, 1 - abs(${left[index]} - ${right[index]})) = ${value}` })),
+    substitution: `T = (${components.join(" + ")}) / 4 = ${similarity}`,
+  });
 
 }
 
@@ -588,14 +598,13 @@ function compareGeography(
 
   }
 
-  return availableDimension(
-    CanonicalFeatureDimension.GEOGRAPHY,
-    sourceState ===
-      targetState
-      ? 1
-      : 0,
-    weight,
-  );
+  const similarity = sourceState === targetState ? 1 : 0;
+  return availableDimension(CanonicalFeatureDimension.GEOGRAPHY, similarity, weight, {
+    algorithm: "Exact equality of normalized geographic state strings.",
+    inputs: [{ label: "Case A normalized state/location", value: sourceState }, { label: "Case B normalized state/location", value: targetState }],
+    intermediates: [{ label: "Exact-equality decision", value: `${JSON.stringify(sourceState)} === ${JSON.stringify(targetState)} is ${sourceState === targetState}` }],
+    substitution: `G = ${similarity}`,
+  });
 
 }
 
@@ -733,6 +742,7 @@ function computeAggregateSimilarity(
         similarity: dimension.similarity,
         configuredWeight: dimension.weight,
         weightedContribution: dimension.weight * dimension.similarity,
+        normalizedContribution: (dimension.weight * dimension.similarity) / participatingWeight,
       })),
 
   };
@@ -902,6 +912,7 @@ function availableDimension(
     number,
   weight:
     number,
+  calculationTrace?: AvailableCanonicalDimensionSimilarity["calculationTrace"],
 ): AvailableCanonicalDimensionSimilarity {
 
   if (
@@ -942,6 +953,8 @@ function availableDimension(
       ),
 
     weight,
+
+    ...(calculationTrace ? { calculationTrace } : {}),
 
   };
 
@@ -1059,6 +1072,10 @@ function jaccardSimilarity(
       ),
   );
 
+}
+
+function normalizedSet(values: readonly string[]): string[] {
+  return [...new Set(values.map(normalizeString))].sort(compareCanonicalStrings);
 }
 
 // ============================================================

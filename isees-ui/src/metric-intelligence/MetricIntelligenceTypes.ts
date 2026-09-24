@@ -78,6 +78,9 @@ export interface MetricIntelligenceSource {
   readonly canonicalConfiguredWeight: number;
   readonly participatingNormalizedWeight: number;
   readonly componentSimilarities?: Readonly<Record<string, number>>;
+  readonly calculationTrace?: import("../resolve/similarity/CanonicalKnowledgeSimilarityTypes").CanonicalDimensionCalculationTrace;
+  readonly rawWeightedProduct?: number;
+  readonly normalizedAggregateContribution?: number;
   readonly classification: MetricEpistemicClassification;
 }
 
@@ -125,4 +128,8 @@ export interface GovernedMetricExplanation {
   readonly evaluatedSnapshot?: import("./EquationDocumentationTypes").EvaluatedMathematicalSnapshot;
   readonly mathematicalExplanation?: import("./MetricExplanationContract").VisibleMathematics;
   readonly mathematicsAuthorityIdentity?: string;
+  readonly mathematicalRole?: string;
+  readonly configuredWeight?: string;
+  readonly rawWeightedProduct?: string;
+  readonly normalizedAggregateContribution?: string;
 }

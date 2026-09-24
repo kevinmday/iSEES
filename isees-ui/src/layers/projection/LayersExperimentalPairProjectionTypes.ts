@@ -2,6 +2,7 @@ import type { ArmedLayer, LayersExperimentExecutionInput, LayersExperimentUnavai
 import type { CanonicalSimilarityCandidateEvaluation } from "../../resolve/evaluation/CanonicalSimilarityCandidateEvaluationTypes";
 import type { CanonicalFeatureDimension } from "../../resolve/features/CanonicalKnowledgeFeatureTypes";
 import type { CanonicalKnowledgeSimilarityPair } from "../../resolve/similarity/CanonicalKnowledgeSimilarityMatrixTypes";
+import type { CanonicalDimensionCalculationTrace } from "../../resolve/similarity/CanonicalKnowledgeSimilarityTypes";
 import type { CanonicalLayerInputLineageIdentity, CanonicalLayerMissingInputIdentity, CanonicalLayerNormalizationIdentity } from "../evaluators/CanonicalLayerEvaluatorTypes";
 import type { CANONICAL_LAYER_CATALOG_VERSION, LAYERS_EXPERIMENT_SCHEMA_VERSION } from "../catalog/CanonicalLayerCatalogTypes";
 import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject";
@@ -66,11 +67,13 @@ export interface LayersLayerContribution {
   rawRightSubjectComponents?: Readonly<Record<string, unknown>>;
   normalization?: CanonicalLayerNormalizationIdentity;
   normalizedResult?: number;
+  calculationTrace?: CanonicalDimensionCalculationTrace;
   availableInputLineage?: readonly CanonicalLayerInputLineageIdentity[];
   availability: LayersPairAvailability;
   similarity?: number;
   canonicalWeight?: number;
   participatingWeight: number;
+  rawWeightedProduct?: number;
   weightedContribution: number;
   unavailableReason?: string;
   sourceEvaluationId: string;

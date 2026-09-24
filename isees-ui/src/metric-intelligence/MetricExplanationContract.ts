@@ -1,6 +1,7 @@
 import type { DeterministicProcedure } from "./DeterministicProcedureTypes.ts";
 import type { EquationDocumentation, EquationSymbolDefinition } from "./EquationDocumentationTypes.ts";
 import type { AuthorityClassification, EquationStatus } from "./MetricMathematicsAuthorityTypes.ts";
+import type { CanonicalDimensionCalculationTrace } from "../resolve/similarity/CanonicalKnowledgeSimilarityTypes.ts";
 
 export const METRIC_EXPLANATION_SCHEMA_VERSION = "metric-explanation/v1" as const;
 
@@ -24,10 +25,17 @@ export interface DeterministicCalculationTrace {
   readonly substitution: string;
 }
 
+export interface DimensionWeightingTrace {
+  readonly configuredWeight: string;
+  readonly rawWeightedProduct: string;
+  readonly participatingWeight: string;
+  readonly normalizedAggregateContribution: string;
+}
+
 export type VisibleMathematics =
   | Readonly<{ equationStatus: "AUTHORIZED_EQUATION"; notationOnly: true }>
   | Readonly<{ equationStatus: "IMPLEMENTATION_EQUATION"; notationOnly: false; trace?: DeterministicCalculationTrace }>
-  | Readonly<{ equationStatus: "PROCEDURE_ONLY"; notationOnly: false }>
+  | Readonly<{ equationStatus: "PROCEDURE_ONLY"; notationOnly: false; dimensionTrace?: CanonicalDimensionCalculationTrace; weighting?: DimensionWeightingTrace; finalScore?: string }>
   | Readonly<{ equationStatus: "SOURCE_COPY"; notationOnly: false }>
   | Readonly<{ equationStatus: "UNAVAILABLE"; notationOnly: false; unavailableReason: string }>;
 

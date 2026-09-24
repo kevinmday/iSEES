@@ -25,7 +25,7 @@ assert.equal(JSON.stringify(projection),before); assert(Object.isFrozen(trace)&&
 pass("trace projects evaluator-owned weights, contributions, unavailable reasons, exact result, and display formatting without mutation or reverse calculation");
 
 const ui=readFileSync("src/metric-intelligence/ContextualIntelligencePresentation.tsx","utf8");
-for(const token of ["Authority and provenance","Philosophy and limits","This result","How the deterministic procedure works","trigger.current?.focus()","event.key===\"Tab\"","overflow-wrap:anywhere"]) assert(ui.includes(token)||readFileSync("src/metric-intelligence/MetricIntelligence.css","utf8").includes(token),token);
+for(const token of ["Authority and provenance","How iSEES mathematics works","Worked deterministic calculation","How the deterministic procedure works","trigger.current?.focus()","event.key===\"Tab\"","overflow-wrap:anywhere"]) assert(ui.includes(token)||readFileSync("src/metric-intelligence/MetricIntelligence.css","utf8").includes(token),token);
 for(const boundary of ISEES_EPISTEMIC_BOUNDARIES) assert(boundary.length>0);
 pass("visible explainer includes authority, trace, progressive procedure, philosophy, focus trap/return, and long-identifier handling");
 
