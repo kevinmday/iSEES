@@ -6,7 +6,8 @@ import type { FederationAdapter } from "../../src/federation/adapters/Federation
 import { adaptSystemCanonToKnowledge } from "../../src/knowledge/ingestion/SystemCanonKnowledgeAdapter";
 import { WorkspaceRuntime } from "../../src/workspace/runtime/WorkspaceRuntime";
 import { WorkspaceMode } from "../../src/workspace/runtime/WorkspaceRuntimeTypes";
-import { executeOverviewCanonicalActivation } from "../../src/workspace/surfaces/overview/OverviewCanonicalActivationCommand";
+import { executeOverviewCanonicalActivation, executeOverviewCanonicalActivationAndEnterWorkspace } from "../../src/workspace/surfaces/overview/OverviewCanonicalActivationCommand";
+import { resumeCurrentInvestigation } from "../../src/workspace/surfaces/LibraryInvestigationResumeCommand";
 
 const source = (path: string) => readFileSync(path, "utf8");
 const inspector = source("src/workspace/surfaces/overview/OverviewInspector.tsx");
@@ -36,6 +37,19 @@ async function verify(): Promise<void> {
   assert.equal(guestPersistenceNotifications, 1, "existing runtime subscriber path was not notified");
   for (const mode of Object.values(WorkspaceMode)) assert.equal(runtime.getModeAvailability(mode).available, true, `${mode} did not derive availability from the active runtime`);
 
+  const enteringRuntime = new WorkspaceRuntime();
+  enteringRuntime.navigateToMode(WorkspaceMode.LIBRARY);
+  let navigationEntries = 0;
+  enteringRuntime.attachNavigationRecorder(() => { navigationEntries += 1; });
+  const entered = await executeOverviewCanonicalActivationAndEnterWorkspace({ adapter: systemCanon, eventId: "E-TICTAC-2004", runtime: enteringRuntime, admittedKnowledge: knowledge, activationStillCurrent: () => true });
+  assert.equal(entered.status, "SUCCEEDED");
+  assert.equal(enteringRuntime.getActiveMode(), WorkspaceMode.MANIFOLD, "successful OPEN did not enter the established operational destination");
+  assert.equal(navigationEntries, 1, "successful OPEN did not record exactly one navigation entry");
+  const enteredInvestigation = enteringRuntime.getActiveInvestigation();
+  assert.equal(resumeCurrentInvestigation(enteringRuntime), true, "current operational investigation was not resumable");
+  assert.equal(enteringRuntime.getActiveInvestigation(), enteredInvestigation, "resume replaced or duplicated the current investigation");
+  assert.equal(navigationEntries, 1, "resuming an already-visible destination duplicated navigation history");
+
   let releasePreview!: () => void;
   const previewGate = new Promise<void>(resolve => { releasePreview = resolve; });
   let previewCalls = 0;
@@ -59,6 +73,7 @@ async function verify(): Promise<void> {
   const failed = await executeOverviewCanonicalActivation({ adapter: retryAdapter, eventId: "E-TICTAC-2004", runtime: retryRuntime, admittedKnowledge: knowledge, activationStillCurrent: () => true });
   assert.equal(failed.status, "ERROR");
   assert.equal(retryRuntime.getActiveInvestigation(), undefined, "failed construction mutated runtime");
+  assert.notEqual(retryRuntime.getActiveMode(), WorkspaceMode.MANIFOLD, "failed activation navigated");
   assert.equal((await executeOverviewCanonicalActivation({ adapter: retryAdapter, eventId: "E-TICTAC-2004", runtime: retryRuntime, admittedKnowledge: knowledge, activationStillCurrent: () => true })).status, "SUCCEEDED", "ERROR did not permit retry");
 
   let current = true;
@@ -76,9 +91,12 @@ async function verify(): Promise<void> {
   assert.match(context, /const canActivate = selectedEventId !== null/, "activation must require explicit canonical-event selection");
   assert.match(context, /mounted\.current = true[\s\S]*return \(\) => \{[\s\S]*mounted\.current = false/, "StrictMode replay-safe mount acknowledgement is absent");
   assert.match(context, /if \(pending\.current !== null\) return pending\.current/, "production rapid-click promise lock is absent");
+  assert.match(context, /executeOverviewCanonicalActivationAndEnterWorkspace/, "successful activation is not coupled to the established workspace entry command");
+  assert.match(context, /canResume=alreadyActive&&!canImport/, "the selected current session-local canonical event is not projected as resumable");
   assert.match(context, /status: "STARTING"[\s\S]*status: "SUCCEEDED"[\s\S]*status: "ERROR"/, "pending, success, and failure states must be explicit");
   assert.match(context, /generation\.current \+= 1[\s\S]*feedback\?\.eventId === selectedEventId/, "selection changes must invalidate stale completion UI");
   assert.match(inspector, /<button[\s\S]*type="button"[\s\S]*void activation\.activate\(\)[\s\S]*>Open Event in Workspace<\/button>/, "activation must be an explicit native button with approved copy");
+  assert.match(inspector, /activation\.canResume[\s\S]*onClick=\{activation\.resume\}>Resume Current Investigation<\/button>/, "the selected current event must expose an enabled resume action");
   assert.match(inspector, /Loads a local investigation workspace from this canonical event\. It does not create a saved account investigation\./);
   assert.match(inspector, /aria-describedby="overview-canonical-activation-boundary"/, "the action must expose its local-only boundary accessibly");
   assert.match(app, /<OverviewSelectionProvider>[\s\S]*<OverviewCanonicalActivationProvider>[\s\S]*<OperatorLayout/);

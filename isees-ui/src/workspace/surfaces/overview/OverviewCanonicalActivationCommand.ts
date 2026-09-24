@@ -5,6 +5,7 @@ import {
 } from "../../../federation/services/importInvestigation";
 import type { KnowledgeObject } from "../../../knowledge/model/KnowledgeObject";
 import type { WorkspaceRuntime } from "../../runtime/WorkspaceRuntime";
+import { resumeCurrentInvestigation } from "../LibraryInvestigationResumeCommand";
 
 export type OverviewCanonicalActivationOutcome =
   | Readonly<{ status: "SUCCEEDED"; result: CanonicalInvestigationImportResult }>
@@ -46,4 +47,13 @@ export async function executeOverviewCanonicalActivation(
   } catch (error) {
     return Object.freeze({ status: "ERROR", error: asActivationError(error) });
   }
+}
+
+/** Explicit Library open: activate through the canonical authority, then enter. */
+export async function executeOverviewCanonicalActivationAndEnterWorkspace(
+  request: OverviewCanonicalActivationRequest,
+): Promise<OverviewCanonicalActivationOutcome> {
+  const outcome = await executeOverviewCanonicalActivation(request);
+  if (outcome.status === "SUCCEEDED") resumeCurrentInvestigation(request.runtime);
+  return outcome;
 }
