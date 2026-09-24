@@ -97,7 +97,7 @@ assert.match(overviewPresentation, /aria-label="Open Investigation Library"/, "R
 assert.equal((overviewPresentation.match(/className="overview-canvas"/g) ?? []).length, 1, "Overview presentation markup must have one owner");
 assert.equal(ui.includes('className="overview-canvas"'), false, "AccountFrontDoor must not duplicate Overview markup");
 assert.ok(!ui.includes("aria-pressed"), "ordinary public/account actions must not misuse aria-pressed");
-assert.match(ui, /<OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" \/>/, "public Overview must reuse the production operational top bar with explicit public status values");
+assert.match(ui, /<OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" guideEntryPoint="orientation" guideRuntime=\{<PublicOverviewGuideHost/, "public Overview must reuse the production operational top bar with an external canonical Guide host");
 assert.doesNotMatch(ui, /public-overview-header|PUBLIC OVERVIEW|>SIGN IN<|>CREATE ACCOUNT</, "temporary public header must be absent");
 assert.match(ui, /role="dialog" aria-modal="true"/, "authentication must be a modal overlay");
 assert.match(ui, /event\.key === "Escape"/, "safe Escape dismissal must be implemented");

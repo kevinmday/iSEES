@@ -16,11 +16,17 @@ vi.mock("../../src/investigation/continuity/AccountWorkspaceContinuityCoordinato
 }));
 
 import { AccountFrontDoor } from "../../src/account/AccountFrontDoor";
+import { workspaceRuntime } from "../../src/workspace/runtime/WorkspaceRuntime";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("AccountFrontDoor runtime boundary", () => {
   it("renders the established public top bar without WorkspaceRuntimeProvider", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const pushState = vi.spyOn(window.history, "pushState");
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    const workspaceBefore = workspaceRuntime.getState();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(
       <MemoryRouter>
@@ -53,8 +59,35 @@ describe("AccountFrontDoor runtime boundary", () => {
     expect(guide.classList.contains("capture-global-link")).toBe(true);
     expect(guide.classList.contains("isees-guide-affordance")).toBe(false);
 
+    const topBar = document.querySelector<HTMLElement>('[data-operational-top-bar="true"]')!;
+    const topBarHeight = topBar.style.height;
+    const topBarChildren = topBar.childElementCount;
+    guide.focus();
     fireEvent.click(guide);
     expect(screen.getByRole("button", { name: "Close iSEES Guide" }).getAttribute("aria-expanded")).toBe("true");
+    const dialog = screen.getByRole("dialog", { name: "iSEES Guided Orientation" });
+    expect(topBar.contains(dialog)).toBe(false);
+    expect(topBar.style.height).toBe(topBarHeight);
+    expect(topBar.childElementCount).toBe(topBarChildren);
+    expect(document.activeElement).toBe(dialog);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Exit Orientation" })[0]!);
+    await waitFor(() => expect(document.activeElement).toBe(guide));
+    expect(screen.queryByRole("dialog", { name: "iSEES Guided Orientation" })).toBeNull();
+
+    const start = screen.getByRole("button", { name: "Start Guided Orientation" });
+    start.focus();
+    fireEvent.keyDown(start, { key: "Enter" });
+    fireEvent.click(start);
+    expect(screen.getByRole("dialog", { name: "iSEES Guided Orientation" })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(document.activeElement).toBe(start));
+    expect(screen.queryByRole("dialog", { name: "iSEES Guided Orientation" })).toBeNull();
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(pushState).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
+    expect(workspaceRuntime.getState()).toBe(workspaceBefore);
     expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });

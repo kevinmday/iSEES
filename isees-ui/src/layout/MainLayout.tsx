@@ -43,14 +43,18 @@ export function OperationalTopBar({
   mode,
   manifold,
   guideRuntime,
+  guideEntryPoint = "contextual",
 }: {
   status: string;
   mode: string;
   manifold: string;
   guideRuntime?: ReactNode;
+  guideEntryPoint?: "contextual" | "orientation";
 }) {
   return (
+    <>
     <div
+      data-operational-top-bar="true"
       style={{
         height: "var(--header-height)",
         minHeight: "var(--header-height)",
@@ -110,8 +114,7 @@ export function OperationalTopBar({
       >
         <IseesCaptureGlobalLink />
 
-        <IseesGuideAffordance />
-        {guideRuntime}
+        <IseesGuideAffordance entryPoint={guideEntryPoint} />
 
         <Link
           to="/briefing"
@@ -155,6 +158,8 @@ export function OperationalTopBar({
         </span>
       </div>
     </div>
+    {guideRuntime}
+    </>
   );
 }
 

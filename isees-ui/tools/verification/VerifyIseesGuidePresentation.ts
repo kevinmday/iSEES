@@ -18,9 +18,9 @@ const modeBar = read("src/components/workspace/WorkspaceModeBar.tsx");
 
 const occurrences = (source: string, token: string): number => source.split(token).length - 1;
 assert.equal(occurrences(layout, "<OperationalTopBar"), 1, "MainLayout must compose its shared operational top bar");
-assert.equal(occurrences(layout, "<IseesGuideAffordance />"), 1, "OperationalTopBar must contain exactly one Guide affordance");
+assert.equal(occurrences(layout, "<IseesGuideAffordance"), 1, "OperationalTopBar must contain exactly one Guide affordance");
 const capturePosition = layout.indexOf("<IseesCaptureGlobalLink />");
-const guidePosition = layout.indexOf("<IseesGuideAffordance />");
+const guidePosition = layout.indexOf("<IseesGuideAffordance");
 const briefingPosition = layout.indexOf('to="/briefing"');
 assert.ok(capturePosition < guidePosition && guidePosition < briefingPosition, "GUIDE must follow Capture and precede System Briefing");
 assert.ok(layout.includes("<IseesCaptureGlobalLink />"), "Capture must remain present");
@@ -30,10 +30,12 @@ assert.equal(modeBar.includes("IseesGuide"), false, "Guide must not appear in th
 assert.match(context, /useState<GuideShellPresentation>\(GuideShellPresentation\.CLOSED\)/, "initial state must be CLOSED");
 assert.equal(/useEffect[\s\S]{0,300}setPresentation\(GuideShellPresentation\.OPEN\)/.test(context), false, "no effect may open Guide automatically");
 assert.match(affordance, /<button[\s\S]*?type="button"/, "affordance must be a native button");
-assert.match(affordance, /isOpen \? "Close iSEES Guide" : "Open iSEES Guide"/);
-assert.match(affordance, /aria-expanded=\{isOpen\}/);
-assert.match(affordance, /aria-controls=\{GUIDE_PANEL_ID\}/);
+assert.match(affordance, /expanded \? "Close iSEES Guide" : "Open iSEES Guide"/);
+assert.match(affordance, /aria-expanded=\{expanded\}/);
+assert.match(affordance, /aria-controls=\{entryPoint === "orientation" \? GUIDE_ORIENTATION_DIALOG_ID : GUIDE_PANEL_ID\}/);
 assert.match(context, /GUIDE_PANEL_ID = "isees-guide-panel"/);
+assert.match(context, /GUIDE_ORIENTATION_DIALOG_ID = "isees-guide-orientation"/);
+assert.ok(layout.indexOf("{guideRuntime}") > layout.indexOf('data-operational-top-bar="true"'), "Guide runtime must render after the operational top-bar element");
 assert.match(panel, /role="complementary"/);
 assert.match(panel, /aria-labelledby=\{GUIDE_PANEL_HEADING_ID\}/);
 assert.match(panel, /<h2[\s\S]*?>iSEES Guide<\/h2>/);

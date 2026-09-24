@@ -48,8 +48,8 @@ describe("P57-OVERVIEW-I2 two-panel orientation workspace", () => {
 
   it("retains the guest invitation, both entry actions, and accepted top-bar instruments", () => {
     for (const copy of ["TRY iSEES AS A GUEST", "NO ACCOUNT REQUIRED", "EXPLORE THE NIMITZ INVESTIGATION", "BRING YOUR OWN CASE"]) expect(frontDoor).toContain(copy);
-    expect(frontDoor).toContain('<OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" />');
-    expect(layout.indexOf("<IseesCaptureGlobalLink />")).toBeLessThan(layout.indexOf("<IseesGuideAffordance />"));
+    expect(frontDoor).toContain('<OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" guideEntryPoint="orientation"');
+    expect(layout.indexOf("<IseesCaptureGlobalLink />")).toBeLessThan(layout.indexOf("<IseesGuideAffordance"));
   });
 
   it("explains but does not operate the research flow", () => {

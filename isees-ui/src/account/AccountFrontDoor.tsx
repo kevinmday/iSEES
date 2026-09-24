@@ -29,7 +29,8 @@ import { acknowledgeUnifiedPublicOrientation } from "../onboarding/runtime/Onboa
 import { requestPublicOverviewIntake, requestPublicOverviewLibrary, requestPublicOverviewNimitzPreview } from "./PublicOverviewLaunchIntent";
 import { WorkspaceMode } from "../workspace/runtime/WorkspaceRuntimeTypes";
 import { OperationalTopBar } from "../layout/MainLayout";
-import { GuidePresentationProvider } from "../guide/presentation/GuidePresentationContext";
+import { GuidePresentationProvider, useGuidePresentation } from "../guide/presentation/GuidePresentationContext";
+import GuidedOrientationDialog from "../guide/components/GuidedOrientationDialog";
 import { WorkspaceModeBarPresentation } from "../components/workspace/WorkspaceModeBar";
 
 type Phase = "restoring" | "anonymous" | "loading-library" | "ready" | "working";
@@ -405,14 +406,25 @@ function AnonymousDoor({ initialMode, initialRecovery, busy, error, confirmation
   const modalOpen = surface !== "overview";
   return <GuidePresentationProvider><div className="public-overview-shell">
     <div className="public-overview-shell__presentation" aria-hidden={modalOpen || undefined} inert={modalOpen || undefined}>
-      <OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" />
-      <div className="public-overview-shell__workspace"><OverviewPresentation primaryActionLabel="EXPLORE THE NIMITZ INVESTIGATION" secondaryActionLabel="BRING YOUR OWN CASE" primaryInvitation={["TRY iSEES AS A GUEST", "NO ACCOUNT REQUIRED"]} primarySupportingText={'Nothing is saved during your guest session.\nOpens a governed Library preview.'} onPrimaryAction={onExploreNimitz} onSecondaryAction={onBringCase} onLibraryAction={onOpenLibrary} onResearchChallengeAction={onExploreNimitz} onGuidedOrientation={() => document.getElementById("overview-flow-title")?.focus()} onSystemBriefing={() => document.getElementById("overview-flow-title")?.scrollIntoView({ block: "start" })} /></div>
+      <OperationalTopBar status="ACTIVE" mode="OVERVIEW" manifold="ONLINE" guideEntryPoint="orientation" guideRuntime={<PublicOverviewGuideHost onBeginFirstInvestigation={onExploreNimitz} />} />
+      <div className="public-overview-shell__workspace"><PublicOverviewPresentation onExploreNimitz={onExploreNimitz} onBringCase={onBringCase} onOpenLibrary={onOpenLibrary} /></div>
       <div className="public-overview-shell__modebar" data-guide-id="shell.workspace-modes"><WorkspaceModeBarPresentation activeMode={WorkspaceMode.OVERVIEW} getModeAvailability={(candidate) => candidate === WorkspaceMode.OVERVIEW || candidate === WorkspaceMode.LIBRARY ? { available: true } : { available: false, reason: "Import or activate an investigation before entering this workspace mode." }} onNavigate={(candidate) => { if (candidate === WorkspaceMode.LIBRARY) onOpenLibrary(); }} /></div>
     </div>
     {modalOpen && <div className="account-door__modal-backdrop"><div ref={modal} className="account-door__modal" role="dialog" aria-modal="true" aria-labelledby={surface === "recovery" ? "recovery-title" : "account-title"} onKeyDown={containModalFocus}>
       {surface === "recovery" ? <RecoveryRequestDoor embedded initialEmail={email} onBack={(preservedEmail) => { setEmail(preservedEmail); setMode("signin"); setSurface("account"); }} /> : <section className="account-door__card"><button className="account-door__modal-close" type="button" disabled={busy} onClick={closeAuthentication} aria-label="Close authentication">×</button><p className="account-door__brand">iSEES</p><h1 id="account-title" ref={heading} tabIndex={-1}>{mode === "create" ? "Create your researcher account" : "Sign in to iSEES"}</h1>{confirmation && <p className="account-door__success" role="status">{confirmation}</p>}<form onSubmit={submit} aria-busy={busy}><label>Email<input name="email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy} required /></label><label>Password<input name="password" type="password" autoComplete={mode === "create" ? "new-password" : "current-password"} minLength={12} disabled={busy} required /></label>{mode === "signin" && <button className="account-door__text-action" type="button" disabled={busy} onClick={() => setSurface("recovery")}>Forgot email or password?</button>}<button className="account-door__primary" disabled={busy}>{busy ? "Please wait…" : mode === "create" ? "Create account" : "Sign in"}</button></form><button className="account-door__secondary" type="button" disabled={busy} onClick={closeAuthentication}>{onCancelGuestAuthentication ? "Back to guest workspace" : "Back to public Overview"}</button><p className="account-door__error" role="alert" aria-live="polite">{error}</p></section>}
     </div></div>}
   </div></GuidePresentationProvider>;
+}
+
+function PublicOverviewPresentation({ onExploreNimitz, onBringCase, onOpenLibrary }: { onExploreNimitz(): void; onBringCase(): void; onOpenLibrary(): void }) {
+  const guide = useGuidePresentation();
+  return <OverviewPresentation primaryActionLabel="EXPLORE THE NIMITZ INVESTIGATION" secondaryActionLabel="BRING YOUR OWN CASE" primaryInvitation={["TRY iSEES AS A GUEST", "NO ACCOUNT REQUIRED"]} primarySupportingText={'Nothing is saved during your guest session.\nOpens a governed Library preview.'} onPrimaryAction={onExploreNimitz} onSecondaryAction={onBringCase} onLibraryAction={onOpenLibrary} onResearchChallengeAction={onExploreNimitz} onGuidedOrientation={invoker => guide.openOrientation(invoker)} onSystemBriefing={() => document.getElementById("overview-flow-title")?.scrollIntoView({ block: "start" })} />;
+}
+
+function PublicOverviewGuideHost({ onBeginFirstInvestigation }: { onBeginFirstInvestigation(): void }) {
+  const guide = useGuidePresentation();
+  if (!guide.isOrientationOpen) return null;
+  return <GuidedOrientationDialog activeInvestigationId={undefined} workspaceContextKey="public-overview" onClose={guide.closeGuide} onBeginFirstInvestigation={onBeginFirstInvestigation} />;
 }
 
 function RecoveryRequestDoor({ initialEmail, onBack, embedded = false }: { initialEmail: string; onBack(email: string): void; embedded?: boolean }) {

@@ -10,6 +10,7 @@ import {
 
 export const GUIDE_PANEL_ID = "isees-guide-panel" as const;
 export const GUIDE_PANEL_HEADING_ID = "isees-guide-panel-heading" as const;
+export const GUIDE_ORIENTATION_DIALOG_ID = "isees-guide-orientation" as const;
 
 export const GuideShellPresentation = {
   CLOSED: "CLOSED",

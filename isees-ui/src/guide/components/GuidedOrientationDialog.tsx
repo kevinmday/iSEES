@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GOVERNED_ORIENTATION_V1 } from "../registry/GovernedOrientationV1.ts";
 import { GuideNarrationController, type GuideNarrationStatus } from "../presentation/GuideNarrationController.ts";
 import GuideSpotlight from "./GuideSpotlight.tsx";
+import { GUIDE_ORIENTATION_DIALOG_ID } from "../presentation/GuidePresentationContext.tsx";
 
 const SESSION_KEY = "isees.guided-orientation.v1.progress";
 
@@ -60,7 +61,7 @@ export default function GuidedOrientationDialog({ activeInvestigationId, workspa
   }, [chapter.chapterId, chapterIndex, isFinal]);
 
   return <div className="isees-orientation-backdrop">
-    <div ref={dialogRef} className="isees-orientation" role="dialog" aria-modal="true" aria-labelledby="isees-orientation-title" aria-describedby="isees-orientation-summary" tabIndex={-1}>
+    <div id={GUIDE_ORIENTATION_DIALOG_ID} ref={dialogRef} className="isees-orientation" role="dialog" aria-modal="true" aria-labelledby="isees-orientation-title" aria-describedby="isees-orientation-summary" tabIndex={-1}>
       <header className="isees-orientation__header">
         <div><p>Governed first-contact orientation</p><h2 id="isees-orientation-title">{GOVERNED_ORIENTATION_V1.title}</h2></div>
         <button type="button" aria-label="Exit Orientation" onClick={close}>×</button>
