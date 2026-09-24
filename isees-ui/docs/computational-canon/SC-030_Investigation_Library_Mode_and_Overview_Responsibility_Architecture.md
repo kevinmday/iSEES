@@ -278,6 +278,12 @@ External research records SHOULD use restrained institutional identity treatment
 
 External imagery MUST NOT imply partnership, endorsement, federation, live connectivity, System Canon authority, or evidentiary acceptance. Existing authority labels, including **EXTERNAL READING**, **REFERENCE**, and **PLANNED**, SHALL remain visually dominant.
 
+Active External Research records are outbound reading references, not Library previews or operational connections. Each active record MUST use a verified HTTPS destination governed by an exact approved hostname and matching displayed domain, MUST reject credentials, unsafe or malformed URLs, lookalike or unapproved hosts, redirects encoded into unapproved destination variants, and domain-label mismatches, and MUST fail loudly during development or verification when configuration is invalid.
+
+An active record SHALL be a keyboard-accessible semantic link with a visible focus state, an external-link indication, its governed destination domain, and accessible notice that it opens in a new tab. It SHALL open the official reading destination in a new tab while preserving the current iSEES session. Activation MUST NOT select or alter the Library Preview; activate or mutate an investigation; change the focused event, workspace mode, browser history, Canon, Evidence, Research Inbox, or computation; or invoke an API, import, discovery, preload, federation adapter, research publication, or telemetry mutation. Listing an outbound reference implies no partnership or endorsement.
+
+A **PLANNED** external record MUST remain visibly disabled, non-focusable, URL-less, and non-navigable until its destination and activation are separately governed. It MUST have no link destination, click handler, or keyboard activation.
+
 ### 13.3 Governed visual-asset contract
 
 Every Library visual asset MUST have deterministic metadata sufficient to establish:

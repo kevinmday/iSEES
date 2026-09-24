@@ -43,7 +43,38 @@ export function projectHydratedOverviewEvents(events: readonly CanonicalReplayEv
   }));
 }
 
-export interface OverviewRepository { readonly name: string; readonly state: "REFERENCE" | "EXTERNAL READING" | "PLANNED"; readonly note: string; }
+interface OverviewRepositoryBase { readonly repositoryId: string; readonly name: string; readonly state: "REFERENCE" | "EXTERNAL READING" | "PLANNED"; readonly note: string; }
+export type OverviewRepository =
+  | Readonly<OverviewRepositoryBase & { readonly navigationAvailable: true; readonly destinationUrl: string; readonly destinationDomain: string }>
+  | Readonly<OverviewRepositoryBase & { readonly navigationAvailable: false; readonly state: "PLANNED"; readonly destinationUrl: null; readonly destinationDomain: null }>;
+
+const APPROVED_REPOSITORY_DESTINATIONS = Object.freeze({
+  scu: Object.freeze({ url: "https://www.explorescu.org/", hostname: "www.explorescu.org", domain: "explorescu.org" }),
+  aaro: Object.freeze({ url: "https://www.aaro.mil/", hostname: "www.aaro.mil", domain: "aaro.mil" }),
+  nuforc: Object.freeze({ url: "https://nuforc.org/", hostname: "nuforc.org", domain: "nuforc.org" }),
+  zenodo: Object.freeze({ url: "https://zenodo.org/", hostname: "zenodo.org", domain: "zenodo.org" }),
+  national_archives: Object.freeze({ url: "https://www.nationalarchives.gov.uk/explore-the-collection/explore-by-time-period/postwar/ufo-reports/", hostname: "www.nationalarchives.gov.uk", domain: "nationalarchives.gov.uk" }),
+} as const);
+
+type ApprovedRepositoryId = keyof typeof APPROVED_REPOSITORY_DESTINATIONS;
+
+export function validateOverviewRepositoryDestination(repositoryId: string, destinationUrl: string, destinationDomain: string): void {
+  const approved = APPROVED_REPOSITORY_DESTINATIONS[repositoryId as ApprovedRepositoryId];
+  if (approved === undefined) throw new Error(`Unapproved Library repository ID: ${repositoryId}`);
+  let parsed: URL;
+  try { parsed = new URL(destinationUrl); } catch { throw new Error(`Malformed Library destination for ${repositoryId}`); }
+  if (parsed.protocol !== "https:") throw new Error(`Library destination must use HTTPS: ${repositoryId}`);
+  if (parsed.username !== "" || parsed.password !== "") throw new Error(`Library destination must not contain credentials: ${repositoryId}`);
+  if (parsed.hostname !== approved.hostname) throw new Error(`Library destination hostname is not approved: ${repositoryId}`);
+  if (destinationDomain !== approved.domain) throw new Error(`Library destination display domain does not match: ${repositoryId}`);
+  if (parsed.href !== approved.url) throw new Error(`Library destination URL is not the exact approved destination: ${repositoryId}`);
+}
+
+function activeRepository(repository: OverviewRepository): OverviewRepository {
+  if (!repository.navigationAvailable) throw new Error(`Active Library repository lacks navigation: ${repository.repositoryId}`);
+  validateOverviewRepositoryDestination(repository.repositoryId, repository.destinationUrl, repository.destinationDomain);
+  return Object.freeze(repository);
+}
 
 export type OverviewSelection =
   | Readonly<{ readonly kind: "NONE" }>
@@ -77,12 +108,12 @@ export function resolveOverviewSelection(envelope: OverviewSelectionEnvelope | n
 }
 
 export const OVERVIEW_REPOSITORIES: readonly OverviewRepository[] = Object.freeze([
-  Object.freeze({ name: "SCU", state: "EXTERNAL READING", note: "Independent source material; no live connection." }),
-  Object.freeze({ name: "AARO", state: "REFERENCE", note: "Public reference orientation only." }),
-  Object.freeze({ name: "MUFON", state: "PLANNED", note: "Connectivity is not operational." }),
-  Object.freeze({ name: "NUFORC", state: "EXTERNAL READING", note: "Browse outside iSEES; no data is imported here." }),
-  Object.freeze({ name: "Zenodo", state: "REFERENCE", note: "General research repository orientation." }),
-  Object.freeze({ name: "National Archives", state: "EXTERNAL READING", note: "Public archival reading; no federation implied." }),
+  activeRepository({ repositoryId: "scu", name: "SCU", state: "EXTERNAL READING", note: "Independent source material; no live connection.", navigationAvailable: true, destinationUrl: "https://www.explorescu.org/", destinationDomain: "explorescu.org" }),
+  activeRepository({ repositoryId: "aaro", name: "AARO", state: "REFERENCE", note: "Public reference orientation only.", navigationAvailable: true, destinationUrl: "https://www.aaro.mil/", destinationDomain: "aaro.mil" }),
+  Object.freeze({ repositoryId: "mufon", name: "MUFON", state: "PLANNED", note: "Connectivity is not operational.", navigationAvailable: false, destinationUrl: null, destinationDomain: null }),
+  activeRepository({ repositoryId: "nuforc", name: "NUFORC", state: "EXTERNAL READING", note: "Browse outside iSEES; no data is imported here.", navigationAvailable: true, destinationUrl: "https://nuforc.org/", destinationDomain: "nuforc.org" }),
+  activeRepository({ repositoryId: "zenodo", name: "Zenodo", state: "REFERENCE", note: "General research repository orientation.", navigationAvailable: true, destinationUrl: "https://zenodo.org/", destinationDomain: "zenodo.org" }),
+  activeRepository({ repositoryId: "national_archives", name: "National Archives", state: "EXTERNAL READING", note: "Public archival reading; no federation implied.", navigationAvailable: true, destinationUrl: "https://www.nationalarchives.gov.uk/explore-the-collection/explore-by-time-period/postwar/ufo-reports/", destinationDomain: "nationalarchives.gov.uk" }),
 ] as const);
 
 export const CANON_PRESENTATION_VISUAL = Object.freeze({ label: "Abstract presentation graphic; shared across cards and not event evidence", provenance: null, evidence: null });

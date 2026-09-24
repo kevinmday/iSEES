@@ -33,13 +33,14 @@ describe("P57-LIBRARY-I2E two-panel Library command and collection workspace", (
     expect(collection).toContain("library-workspace__canon-cards");
     expect(collection).toContain("Selected record preview");
     expect(collection).toContain("EXTERNAL RESEARCH");
-    expect(collection).toContain("VISUAL UNAVAILABLE");
+    expect(collection).toContain("ExternalResearchTile");
     expect(css).toContain("grid-template-columns:repeat(3,minmax(0,1fr))");
   });
 
   it("preserves preview-only selection and explicit activation", () => {
     expect(workspace).toContain("useOverviewSelection");
     expect(workspace).toContain("overview.selectCanonEvent(item)");
+    expect(workspace).not.toContain("overview.selectRepository(item)");
     expect(workspace).toContain("overview.clearSelection");
     expect(workspace).toContain("scrollTo({ top: 0 })");
     expect(workspace).toMatch(/Selection alone never activates/i);

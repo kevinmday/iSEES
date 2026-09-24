@@ -7,3 +7,15 @@
 @media(max-width:1180px){.library-workspace__canvas{grid-template-columns:minmax(290px,40fr) minmax(440px,60fr)}.library-workspace__canon-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.library-workspace__external-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.library-workspace__canvas{grid-template-columns:minmax(0,1fr)}.library-workspace__command{position:static;max-height:none;overflow:visible}.library-workspace__canon-cards{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.library-workspace__preview{max-height:none}.library-workspace__collection-header{align-items:start;flex-direction:column}.library-workspace__helper{text-align:left}.library-workspace__boundary{margin-bottom:calc(var(--modebar-height) + 12px)}}
 @media(max-width:560px){.library-workspace{padding:10px}.library-workspace__actions form,.library-workspace__search>div,.library-workspace__canon-cards,.library-workspace__external-tiles{grid-template-columns:1fr}.library-workspace__external>div:first-child{align-items:start;flex-direction:column}.library-workspace__preview-visuals{grid-template-columns:1fr}.library-workspace__visual-preview+.library-workspace__visual-preview{border-left:0}.library-workspace__visual-preview dl div{grid-template-columns:1fr}}
+
+.library-workspace__external-state{color:#67e8f9;font:700 10px var(--type-system-family);letter-spacing:.13em;text-transform:uppercase}
+.library-workspace__external-tile{position:relative;display:grid;min-width:0;min-height:70px;padding:8px 28px 8px 9px;gap:3px;border:1px solid #41596d;border-radius:5px;background:#0c1b29;color:#e4f0f7;text-align:left;text-decoration:none}
+.library-workspace__external-tile:hover{border-color:#67e8f9;background:#102536}
+.library-workspace__external-tile:focus-visible{outline:3px solid #67e8f9;outline-offset:2px}
+.library-workspace__external-tile strong{font-size:12px}
+.library-workspace__external-tile small{color:#718698;font-size:9px;letter-spacing:.07em}
+.library-workspace__external-domain{overflow-wrap:anywhere;text-transform:lowercase}
+.library-workspace__external-indicator{position:absolute;top:9px;right:10px;color:#8fdde3;font-size:14px}
+.library-workspace__external-tile--disabled{border-color:#293b49;background:#09141e;color:#8294a2;cursor:not-allowed;opacity:.68}
+.library-workspace__external-tile--disabled .library-workspace__external-state{color:#91a0aa}
+.library-workspace__sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

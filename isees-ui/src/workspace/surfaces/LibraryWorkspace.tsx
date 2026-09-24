@@ -8,7 +8,7 @@ import { useWorkspaceRuntime } from "../runtime/WorkspaceRuntimeContext";
 import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes";
 import GuestCaseIntake from "./GuestCaseIntake";
 import OverviewInspector from "./overview/OverviewInspector";
-import { OVERVIEW_REPOSITORIES, projectHydratedOverviewEvents } from "./overview/OverviewEndStateModel";
+import { OVERVIEW_REPOSITORIES, projectHydratedOverviewEvents, type OverviewRepository } from "./overview/OverviewEndStateModel";
 import { useOverviewSelection } from "./overview/OverviewSelectionContext";
 import "./LibraryWorkspace.css";
 
@@ -75,11 +75,18 @@ export default function LibraryWorkspace() {
       <section className="library-workspace__collection" aria-label="Library collection">
         {overview.selection.kind === "NONE" ? <header className="library-workspace__collection-header"><div><p className="library-workspace__eyebrow">Protected collection</p><h2>SYSTEM CANON</h2><p>Protected canonical records. Selection previews only.</p></div><p className="library-workspace__helper">Select a record to preview source, provenance, and rights.</p></header> : <section ref={previewRef} className="library-workspace__preview" aria-label="Selected record preview" tabIndex={-1}><div className="library-workspace__preview-toolbar"><span>Selected record preview</span><button type="button" onClick={overview.clearSelection} aria-label="Close selected record preview">Close preview</button></div>{overview.selection.kind === "CANON_EVENT" && <LibraryVisualPreview recordId={overview.selection.eventId} />}<OverviewInspector previewLabel="Library Preview" ownedBusy={account.busy} emptyOwnedInvestigationId={emptyOwnedInvestigationId} onOpenOwned={account.available ? id => { void account.open(id); } : undefined} />{account.error && <p role="alert">{account.error}</p>}</section>}
         <section className="library-workspace__canon" aria-labelledby="system-canon-title"><h2 id="system-canon-title" className="library-workspace__section-label">SYSTEM CANON</h2><div className="library-workspace__canon-cards">{canon.map(item => <button className="library-workspace__canon-card" key={item.eventId} type="button" aria-pressed={overview.selection.kind === "CANON_EVENT" && overview.selection.eventId === item.eventId} onClick={() => overview.selectCanonEvent(item)}><LibraryVisualBoundary recordId={item.eventId} /><span className="library-workspace__classification">{resolveLibraryVisualAsset(item.eventId).assetClass} · CONTEXTUAL</span><small>{item.eventId}</small><strong>{item.title}</strong><span>{item.year} · {item.location}</span></button>)}</div>{canon.length === 0 && <p className="library-workspace__empty">No System Canon records match the current search and filter.</p>}</section>
-        <section className="library-workspace__external" aria-labelledby="external-repositories-title"><div><h2 id="external-repositories-title">EXTERNAL RESEARCH</h2><p>Orientation and reading references only; no partnership, federation, endorsement, or Canon authority is implied.</p></div><div className="library-workspace__external-tiles">{repositories.map(item => <button key={item.name} type="button" aria-pressed={overview.selection.kind === "EXTERNAL_REPOSITORY" && overview.selection.name === item.name} onClick={() => overview.selectRepository(item)}><span>{item.state}</span><strong>{item.name}</strong><small>VISUAL UNAVAILABLE</small></button>)}</div>{repositories.length === 0 && <p className="library-workspace__empty">No external records match the current search and filter.</p>}</section>
+        <section className="library-workspace__external" aria-labelledby="external-repositories-title"><div><h2 id="external-repositories-title">EXTERNAL RESEARCH</h2><p>Orientation and reading references only; no partnership, federation, endorsement, or Canon authority is implied.</p></div><div className="library-workspace__external-tiles">{repositories.map(item => <ExternalResearchTile key={item.repositoryId} repository={item} />)}</div>{repositories.length === 0 && <p className="library-workspace__empty">No external records match the current search and filter.</p>}</section>
       </section>
     </div>
     <p className="library-workspace__boundary">Selection alone never activates a workspace. LIBRARY does not run Resolve, compute relationships, mutate System Canon, admit Investigation Evidence, or publish to the Research Inbox. Explicit opening enters MANIFOLD.</p>
   </main>;
+}
+
+export function ExternalResearchTile({ repository }: { readonly repository: OverviewRepository }) {
+  const content = <><span className="library-workspace__external-state">{repository.state}</span><strong>{repository.name}</strong>{repository.navigationAvailable ? <><small className="library-workspace__external-domain">{repository.destinationDomain}</small><span className="library-workspace__external-indicator" aria-hidden="true">↗</span><span className="library-workspace__sr-only">Opens official reading destination in a new tab.</span></> : <small>External access planned.</small>}</>;
+  return repository.navigationAvailable
+    ? <a className="library-workspace__external-tile" href={repository.destinationUrl} target="_blank" rel="noopener noreferrer" aria-label={`${repository.name}: opens official reading destination at ${repository.destinationDomain} in a new tab`}>{content}</a>
+    : <article className="library-workspace__external-tile library-workspace__external-tile--disabled" aria-disabled="true">{content}</article>;
 }
 
 function LibraryVisualBoundary({ recordId }: { readonly recordId: string }) {
