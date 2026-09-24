@@ -37,6 +37,11 @@ MarketMindAI_ARCHIVE/**
 **/*.jpg
 **/*.jpeg
 **/*.webp
+
+# Governed Library visuals required by the production frontend.
+!isees-ui/src/assets/library/archival/derivatives/nimitz-flir1-frame-00-00-30.000.png
+!isees-ui/src/assets/library/archival/derivatives/roosevelt-gimbal-frame-00-00-20.000.png
+!isees-ui/src/assets/library/canon/rendlesham-forest-1980-illustrative.png
 **/*.zip
 **/*.tar
 **/*.tar.gz
