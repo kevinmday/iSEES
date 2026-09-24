@@ -66,7 +66,6 @@ legacy_tests
 scripts
 docs
 regime_ui
-runtime
 
 # Runtime state, outputs, logs, databases, and secrets.
 /runtime/**
