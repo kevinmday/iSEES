@@ -29,6 +29,10 @@ describe("AccountFrontDoor runtime boundary", () => {
     )).not.toThrow();
 
     await waitFor(() => expect(screen.getByText("iSEES-UAP")).toBeTruthy());
+    expect(screen.getByRole("navigation", { name: "Operator workspace modes" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "OVERVIEW" }).getAttribute("aria-pressed")).toBe("true");
+    expect((screen.getByRole("button", { name: "LIBRARY" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "MANIFOLD" }) as HTMLButtonElement).disabled).toBe(true);
     const page = document.body.textContent ?? "";
     const normalizedPage = page.replace(/\s+/g, " ").replace(/: /g, ":").toUpperCase();
     for (const label of [

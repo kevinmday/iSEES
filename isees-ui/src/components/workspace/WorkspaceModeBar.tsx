@@ -30,6 +30,7 @@ import {
 
 import {
   WorkspaceMode,
+  type WorkspaceModeAvailability,
 } from "../../workspace/runtime/WorkspaceRuntimeTypes";
 
 import {
@@ -43,7 +44,7 @@ import "./WorkspaceModeBar.css";
 // MODES
 // ============================================================
 
-const MODES = [
+export const WORKSPACE_MODE_BAR_MODES = [
 
   WorkspaceMode.OVERVIEW,
 
@@ -79,8 +80,22 @@ export default function WorkspaceModeBar() {
   const runtime =
     useWorkspaceRuntime();
 
-  const activeMode =
-    runtime.getActiveMode();
+  return <WorkspaceModeBarPresentation
+    activeMode={runtime.getActiveMode()}
+    getModeAvailability={(mode) => runtime.getModeAvailability(mode)}
+    onNavigate={(mode) => runtime.navigateToMode(mode)}
+  />;
+}
+
+export function WorkspaceModeBarPresentation({
+  activeMode,
+  getModeAvailability,
+  onNavigate,
+}: {
+  activeMode: WorkspaceMode;
+  getModeAvailability(mode: WorkspaceMode): WorkspaceModeAvailability;
+  onNavigate(mode: WorkspaceMode): void;
+}) {
 
 
   return (
@@ -93,13 +108,13 @@ export default function WorkspaceModeBar() {
 
     >
 
-      {MODES.map((mode) => {
+      {WORKSPACE_MODE_BAR_MODES.map((mode) => {
 
         const active =
           activeMode === mode;
 
         const availability =
-          runtime.getModeAvailability(
+          getModeAvailability(
             mode,
           );
 
@@ -137,9 +152,7 @@ export default function WorkspaceModeBar() {
 
             onClick={() => {
 
-              runtime.navigateToMode(
-                mode,
-              );
+              onNavigate(mode);
 
             }}
 
