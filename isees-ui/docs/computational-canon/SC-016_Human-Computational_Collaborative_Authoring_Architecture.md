@@ -654,5 +654,9 @@ The researcher remains the investigator.
 
 The computational document remains the canonical expression of knowledge produced through their collaboration.
 
+## Structured projection boundary
+
+Human-computational authoring MAY assist a researcher in preparing structured Manifold declarations, but only declarations saved into an immutable `AuthorRevision` by the existing governed authoring process are projection inputs. No model or renderer may infer declarations from prose during `MANIFOLD_ARTIFACT` generation, and projection does not confer acceptance, truth, confidence, admission, or graph authority.
+
 
 

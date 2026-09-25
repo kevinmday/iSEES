@@ -891,6 +891,7 @@ function NodeInspector({
   intelligence: GraphNodeIntelligence;
 }) {
   const entity = intelligence.entitySpecific;
+  const artifact = intelligence.metadata?.subtype === "MANIFOLD_ARTIFACT" ? intelligence.metadata : undefined;
   const hiddenRelationships = entity.relationships.totalCount - entity.relationships.returnedCount;
   const subjectNoun = entity.governedDossier.availability === "AVAILABLE" && entity.governedDossier.operationalProfile.profileId === "EVENT"
     ? "event"
@@ -929,6 +930,26 @@ function NodeInspector({
           <AvailabilityRow label="Epistemic status" availability={entity.evidence.epistemicStatus} />
         </div>
       </InspectorSection>
+
+      {artifact && <InspectorSection title="MANIFOLD ARTIFACT LINEAGE">
+        <div className="selection-intelligence__rows">
+          <IntelRow label="Artifact identity" value={intelligence.nodeId} />
+          <IntelRow label="Subtype" value="MANIFOLD_ARTIFACT" />
+          <IntelRow label="Source Studio artifact" value={String(artifact.studioArtifactId)} />
+          <IntelRow label="Source .author revision" value={`${String(artifact.authorRevisionId)} · revision ${String(artifact.authorRevisionNumber)}`} />
+          <IntelRow label="Source content hash" value={String(artifact.authorRevisionContentHash)} />
+          <IntelRow label="Projection identity" value={String(artifact.projectionId)} />
+          <IntelRow label="Projection output hash" value={String(artifact.projectionOutputHash)} />
+          <IntelRow label="Schema version" value={String(artifact.schemaVersion)} />
+          <IntelRow label="Declaration counts" value={JSON.stringify(artifact.declarationCounts)} />
+          <IntelRow label="Research-vector count" value={String((artifact.declarationCounts as Record<string,unknown>)?.RESEARCH_VECTOR ?? 0)} />
+          <IntelRow label="Admitted relationship count" value={String(artifact.admittedRelationshipCount ?? 0)} />
+          <IntelRow label="Admission receipt" value={String(artifact.admissionReceiptId)} />
+          <IntelRow label="Resulting operational revision" value={String(artifact.resultingOperationalRevisionId)} />
+          <IntelRow label="Provenance / lineage" value={JSON.stringify(artifact.lineage)} />
+        </div>
+        <p className="selection-intelligence__plain-language">Declarations are qualified artifact metadata and are not automatically established facts. Research vectors are inspectable metadata only and are not executed by selection.</p>
+      </InspectorSection>}
 
       <GovernedDossierInspector dossier={entity.governedDossier} />
 

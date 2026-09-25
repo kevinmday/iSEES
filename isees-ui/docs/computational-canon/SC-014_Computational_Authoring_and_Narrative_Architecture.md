@@ -650,5 +650,9 @@ Writing becomes one expression of that knowledge rather than its definition.
 
 This distinction establishes the Computational Authoring and Narrative Architecture as the canonical bridge between investigative observation and human understanding within the iSEES platform.
 
+## Structured Manifold declarations
+
+When an Author artifact is intended to support a future `MANIFOLD_ARTIFACT` projection, investigative meaning MUST be expressed through explicit typed declarations rather than inferred from narrative prose. Researcher assertions, unknowns, contradictions, proposed relationships, research vectors, scope constraints, and exclusions preserve their declared epistemic class and source/reference binding; authoring them does not accept them as truth or mutate Knowledge or the Manifold.
+
 
 

@@ -141,6 +141,7 @@ export interface EntityRelationshipSummary {
 
 export interface NodeEntityIntelligence {
   readonly identity: EntityIdentityProfile;
+  readonly metadata?: Readonly<Record<string, unknown>>;
   readonly classification: EntityClassificationProfile;
   readonly investigationRole: "ISOLATED" | "TERMINAL" | "CONNECTOR" | "HUB";
   readonly provenance: EntityProvenanceProfile;

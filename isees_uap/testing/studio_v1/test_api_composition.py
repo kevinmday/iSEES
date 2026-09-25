@@ -16,6 +16,7 @@ from isees_uap.studio.v1.lifecycle import (
     StudioV1LifecycleConfiguration,
     StudioV1LifecycleFailure,
 )
+from isees_uap.system_identity import SystemIdentity
 
 
 def enabled_config(tmp_path, **changes):
@@ -85,9 +86,10 @@ def test_application_state_exposes_only_private_owner(tmp_path):
     application = create_application(enabled_config(tmp_path))
     with TestClient(application):
         state = vars(application.state).get("_state", {})
-        assert set(state) == {"private_studio_v1_lifecycle_owner"}
+        assert set(state) == {"private_studio_v1_lifecycle_owner", "system_identity"}
         assert isinstance(state["private_studio_v1_lifecycle_owner"],
                           PrivateStudioV1LifecycleOwner)
+        assert isinstance(state["system_identity"], SystemIdentity)
         forbidden = ("facade", "store", "service", "connection", "configuration", "environment")
         assert not any(token in key.lower() for key in state for token in forbidden)
 
@@ -166,6 +168,9 @@ def test_routes_openapi_middleware_handlers_and_dependencies_are_unchanged():
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/source-snapshots/{snapshot_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections/manifold-artifact",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections/{projection_id}",
+        "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/projections/{projection_id}/download",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/exports",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/exports/{export_id}",
         "/api/v1/investigations/{investigation_id}/studio-v1/artifacts/{artifact_id}/revisions/{revision_id}/exports/{export_id}/download",

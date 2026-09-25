@@ -248,6 +248,14 @@ Audit records **MUST** be immutable or tamper-evident and sufficient to reconstr
 
 Secrets, hidden provider reasoning, and unauthorized private content **MUST NOT** be copied into audit logs. Redaction **MUST** retain a governed indication that protected material influenced or was excluded from an operation where disclosure is permitted.
 
+### 16.1 Deterministic Manifold Artifact child
+
+The governed Studio projection format `MANIFOLD_ARTIFACT` is a machine-readable child projection of one exact immutable `AuthorRevision`, under `studio-manifold-artifact-manifest/v1`. It extracts only explicit structured Studio declarations and bound frozen-source identities; prose inference is prohibited. The declaration vocabulary is limited to researcher assertion, declared unknown, declared contradiction, proposed relationship, research vector, scope constraint, and exclusion. Existing `CLAIM` remains authored document content, while runtime REX vectors, contradiction findings, and relationship candidates remain owned by their runtime authorities and are not silently converted into Studio declarations.
+
+Creation has `CanonEffect.NONE`. Save, projection, export, and future admission remain separate acts. The manifest may reference accepted relationships only through explicit governed relationship identity plus its governance authority and revision. Proposed relationships remain proposed. Because an `AuthorRevision` does not carry an authoritative operational graph revision, the projection contract neither requires nor fabricates one; a future admission receipt may bind a later operational revision outside deterministic projection identity.
+
+Canonical manifest identity includes exact revision and content hash, frozen snapshot/anchor ancestry, explicit Knowledge and Evidence/citation references, structured declarations, normalized provenance, and versioned projection configuration. Timestamps, job/export metadata, UI/provider state, admission identity/time, and later operational revisions are excluded. Equal revision input plus equal configuration yields equal canonical bytes and hash. New revisions yield new projections; historical admitted projections remain valid. A projection cannot corroborate its source revision, and siblings sharing source ancestry are dependent evidence.
+
 ## 17. V1 and later-phase boundaries
 
 V1 **MUST** preserve the existing Studio V1 profiles and contracts, immutable `AuthorRevision` saves, frozen sources, bounded proposals, deterministic projections, and governed knowledge boundary. A V1 implementation **MAY** expose only one actively edited document at a time, but it **MUST NOT** claim that an investigation canonically owns only one `.author` artifact.
@@ -294,3 +302,6 @@ This canon does not:
 | Workbench/Studio responsibility boundary | EA-001 |
 
 **Canonical conclusion:** `.author` is the authoritative saved source for its own artifact lineage, never an automatic authority over the Investigation Manifold. Content returns from a revision only as provenance-complete, revision-bound candidates, and only explicit researcher-governed acceptance may produce a new operational Manifold revision.
+# Governed projection/admission separation
+
+Creating or inspecting a `.author` `MANIFOLD_ARTIFACT` projection has no Manifold effect. Admission is a separate explicit authenticated command governed by `MANIFOLD-ADMISSION-001` and the operational revision authority.

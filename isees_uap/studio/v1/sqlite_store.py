@@ -81,6 +81,10 @@ CREATE TABLE IF NOT EXISTS studio_v1_exports(
  UNIQUE(owner_id, investigation_id, idempotency_key),
  FOREIGN KEY(job_id) REFERENCES studio_v1_projection_jobs(job_id),
  FOREIGN KEY(owner_id, investigation_id, artifact_id, revision_id) REFERENCES studio_v1_revisions(owner_id, investigation_id, artifact_id, revision_id));
+CREATE TABLE IF NOT EXISTS studio_v1_manifold_materializations(
+ projection_id TEXT PRIMARY KEY, export_id TEXT NOT NULL UNIQUE,
+ configuration_identity TEXT NOT NULL, configuration_version TEXT NOT NULL,
+ FOREIGN KEY(export_id) REFERENCES studio_v1_exports(export_id));
 CREATE TRIGGER IF NOT EXISTS studio_v1_revisions_immutable BEFORE UPDATE ON studio_v1_revisions BEGIN SELECT RAISE(ABORT,'immutable revision'); END;
 CREATE TRIGGER IF NOT EXISTS studio_v1_snapshots_immutable BEFORE UPDATE ON studio_v1_source_snapshots BEGIN SELECT RAISE(ABORT,'immutable snapshot'); END;
 CREATE TRIGGER IF NOT EXISTS studio_v1_representations_immutable BEFORE UPDATE ON studio_v1_source_representations BEGIN SELECT RAISE(ABORT,'immutable representation'); END;
@@ -315,6 +319,33 @@ class SQLiteStudioV1Store:
             row=db.execute("SELECT * FROM studio_v1_exports WHERE owner_id=? AND investigation_id=? AND artifact_id=? AND revision_id=? AND export_id=?",(owner_id,investigation_id,artifact_id,revision_id,export_id)).fetchone()
             if not row: self._fail(FailureCode.EXPORT_NOT_FOUND,"Export was not found.")
             return self._export(row)
+
+    def get_projection_output(self, owner_id, investigation_id, artifact_id, revision_id, projection_id):
+        with self._connect() as db:
+            self._scoped_artifact(db, owner_id, investigation_id, artifact_id)
+            row = db.execute(
+                "SELECT * FROM studio_v1_exports WHERE owner_id=? AND investigation_id=? "
+                "AND artifact_id=? AND revision_id=? AND projection_id=? "
+                "ORDER BY CASE state WHEN 'CURRENT' THEN 0 ELSE 1 END, completed_at DESC, export_id LIMIT 1",
+                (owner_id, investigation_id, artifact_id, revision_id, projection_id)).fetchone()
+            if not row: self._fail(FailureCode.EXPORT_NOT_FOUND, "Projection materialization was not found.")
+            return self._export(row)
+
+    def register_manifold_materialization(self, projection_id, export_id,
+                                          configuration_identity, configuration_version):
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            prior = db.execute(
+                "SELECT * FROM studio_v1_manifold_materializations WHERE projection_id=?",
+                (projection_id,)).fetchone()
+            if prior and (prior["configuration_identity"] != configuration_identity
+                          or prior["configuration_version"] != configuration_version):
+                self._fail(FailureCode.EXPORT_CONFIGURATION_INVALID,
+                           "Projection configuration identity conflicts.")
+            if not prior:
+                db.execute("INSERT INTO studio_v1_manifold_materializations VALUES(?,?,?,?)",
+                           (projection_id, export_id, configuration_identity, configuration_version))
+            db.commit()
 
     def update_export_state(self, export_id, state, *, output_hash=None, storage_key=None, media_type=None, safe_filename=None, byte_length=None, failure_code=None, safe_failure_message=None, completed_at=None):
         with self._connect() as db:

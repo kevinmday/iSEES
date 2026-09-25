@@ -76,9 +76,11 @@ def test_list_order_is_deterministic_and_lifecycle_aware(tmp_path):
         datetime(2025, 12, 30, tzinfo=timezone.utc),
         datetime(2025, 12, 30, tzinfo=timezone.utc),
         datetime(2025, 12, 31, tzinfo=timezone.utc),
-        datetime(2025, 12, 31, tzinfo=timezone.utc),
-        datetime(2026, 1, 2, tzinfo=timezone.utc),
-        datetime(2026, 1, 2, tzinfo=timezone.utc),
+            datetime(2025, 12, 31, tzinfo=timezone.utc),
+            datetime(2025, 12, 31, tzinfo=timezone.utc),
+            datetime(2025, 12, 31, tzinfo=timezone.utc),
+            datetime(2026, 1, 2, tzinfo=timezone.utc),
+            datetime(2026, 1, 2, tzinfo=timezone.utc),
     ])
     repo = _repo(tmp_path, clock=lambda: next(times))
     for investigation_id in ("INV-old", "INV-z", "INV-a"):
@@ -106,7 +108,7 @@ def test_concurrent_cold_start_and_reinitialization_are_safe(tmp_path):
     with sqlite3.connect(path) as connection:
         assert connection.execute(
             "SELECT version FROM investigation_schema_migrations"
-            ).fetchall() == [(1,), (2,), (3,), (4,)]
+            ).fetchall() == [(1,), (2,), (3,), (4,), (5,), (6,)]
 
 
 def test_concurrent_create_has_one_winner_and_no_corruption(tmp_path):

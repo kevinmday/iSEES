@@ -24,8 +24,8 @@ const identity = { status: "READY" as const, identity: { kind: "GUEST" as const,
 const blank = restoreNativeCaseDraftContent(createBlankNativeCaseDraftContent());
 const form = Object.freeze({ ...blank, workingTitle: suppliedEnvelope("Case 37 Medford Observation"), observationNarrative: suppliedEnvelope("lights"), objectShape: suppliedEnvelope("sphere_orb"), observationLocation: suppliedEnvelope("Medford, Oregon"), environmentalConditions: unknownEnvelope() });
 const canonical = buildKnowledgeBootstrapPopulation();
-const first = createGuestCandidateInvestigation(form, identity, at, "stable-candidate", canonical);
-const repeated = createGuestCandidateInvestigation(form, identity, at, "stable-candidate", canonical);
+const first = createGuestCandidateInvestigation(form, identity, at, "stable-candidate");
+const repeated = createGuestCandidateInvestigation(form, identity, at, "stable-candidate");
 assert.equal(first.status, "CREATED");
 assert.deepEqual(first, repeated, "same candidate identity and content is idempotent");
 if (first.status !== "CREATED") throw new Error("unreachable");
@@ -36,9 +36,9 @@ assert.equal(candidate.knowledgeObject.identity.id, candidate.candidateId);
 assert.equal(candidate.knowledgeObject.type, "EVENT");
 assert.equal(candidate.knowledgeObject.relationships.length, 2);
 assert.deepEqual(candidate.knowledgeObject.graph, []);
-assert.equal(graph.nodes.length, canonical.length + 3);
-assert.equal(graph.edges.length, canonical.flatMap(object => object.relationships).length + 2);
-assert.deepEqual(graph.statistics, { nodeCount: 19, edgeCount: 15, eventCount: 4, facilityCount: 10, artifactCount: 0, personCount: 0, organizationCount: 0, locationCount: 4, narrativeCount: 1, hypothesisCount: 0 });
+assert.equal(graph.nodes.length, 3);
+assert.equal(graph.edges.length, 2);
+assert.deepEqual(graph.statistics, { nodeCount: 3, edgeCount: 2, eventCount: 1, facilityCount: 0, artifactCount: 0, personCount: 0, organizationCount: 0, locationCount: 1, narrativeCount: 1, hypothesisCount: 0 });
 assert.equal(graph.nodes.filter(node => node.id === candidate.candidateId && node.label === "Case 37 Medford Observation").length, 1);
 assert.equal(resolveActiveOperationalGraphProjection(first.investigation).centerNodeId, candidate.candidateId);
 assert.equal(isActiveOperationalGraphFocused(first.investigation), true);
@@ -53,7 +53,7 @@ assert.equal(Object.hasOwn(payload.operationalFeatures, "environmentalConditions
 assert.equal(graph.nodes.some(node => node.label === "Medford, Oregon" && node.type === "LOCATION"), true, "the researcher-supplied LOCATION is materialized");
 
 const target = canonical.find(object => object.type === "EVENT" && object.provenance.sourceType === "SYSTEM_CANON")!;
-assert.ok(graph.nodes.some(node => node.id === target.identity.id), "selected Canon comparison context is present in the active revision");
+assert.equal(graph.nodes.some(node => node.id === target.identity.id), false, "selected Canon comparison context is not implicit revision input");
 const knowledge = composeGuestOperationalKnowledgeObjects(first.investigation.workspace, canonical);
 assert.equal(knowledge.filter(object => object.identity.id === candidate.candidateId).length, 1);
 

@@ -4,10 +4,10 @@ import json
 from pathlib import Path
 import pytest
 from pydantic import ValidationError
-from isees_uap.studio.v1.contracts import ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES
+from isees_uap.studio.v1.contracts import ARTIFACT_PROFILES, ASSISTANCE_MODES, CITATION_STYLES, GOVERNED_CONCLUSIONS, MANIFOLD_ARTIFACT_SCHEMA_VERSION, MANIFOLD_DECLARATION_TYPES, PROJECTION_FORMATS, PROJECTION_STATES, SEMANTIC_NODE_TYPES
 from isees_uap.studio.v1.hashing import canonical_serialize, canonical_sha256
 from isees_uap.studio.v1.schemas import ArtifactIdentity, SemanticDocument, SensitiveSourceDirectives
-from isees_uap.studio.v1.validation import effective_sensitivity, validate_inference, validate_projection, validate_projection_transition, validate_proposal, validate_revision, validate_snapshot
+from isees_uap.studio.v1.validation import effective_sensitivity, validate_inference, validate_manifold_artifact_manifest, validate_manifold_declaration, validate_projection, validate_projection_transition, validate_proposal, validate_revision, validate_snapshot
 
 FIXTURES = json.loads((Path(__file__).parents[3] / "contracts/studio-v1/fixtures/studio-v1-contract-fixtures.json").read_text(encoding="utf-8"))
 
@@ -23,7 +23,7 @@ def test_source_backed_author_ingestion_payload_validates_with_python_contract()
 
 def test_exact_vocabulary_and_cross_language_golden_hashes():
     vocabulary = FIXTURES["vocabulary"]
-    assert vocabulary == {"artifactProfiles": list(ARTIFACT_PROFILES), "citationStyles": list(CITATION_STYLES), "semanticNodeTypes": list(SEMANTIC_NODE_TYPES), "projectionFormats": list(PROJECTION_FORMATS), "projectionStates": list(PROJECTION_STATES), "assistanceModes": list(ASSISTANCE_MODES), "governedConclusions": list(GOVERNED_CONCLUSIONS)}
+    assert vocabulary == {"artifactProfiles": list(ARTIFACT_PROFILES), "citationStyles": list(CITATION_STYLES), "semanticNodeTypes": list(SEMANTIC_NODE_TYPES), "projectionFormats": list(PROJECTION_FORMATS), "manifoldArtifactSchemaVersion": MANIFOLD_ARTIFACT_SCHEMA_VERSION, "manifoldDeclarationTypes": list(MANIFOLD_DECLARATION_TYPES), "projectionStates": list(PROJECTION_STATES), "assistanceModes": list(ASSISTANCE_MODES), "governedConclusions": list(GOVERNED_CONCLUSIONS)}
     revision = validate_revision(FIXTURES["scientificRevision"])
     snapshot = validate_snapshot(FIXTURES["entireInboxSnapshot"])
     assert canonical_sha256(FIXTURES["scientificRevision"]["semanticContent"]) == revision.contentHash
@@ -42,6 +42,29 @@ def test_valid_proposal_projection_and_inference_contracts():
     validate_projection_transition("CURRENT", "STALE")
     validate_projection_transition("FAILED", "QUEUED")
     with pytest.raises(ValueError): validate_projection_transition("PUBLISHED", "CURRENT")
+
+def test_manifold_artifact_contract_is_strict_deterministic_and_non_admitting():
+    declarations = [validate_manifold_declaration(x) for x in FIXTURES["manifoldDeclarations"]]
+    assert {x.declarationType for x in declarations} == set(MANIFOLD_DECLARATION_TYPES)
+    manifest = validate_manifold_artifact_manifest(FIXTURES["manifoldArtifactManifest"])
+    assert manifest.kind == "MANIFOLD_ARTIFACT" and manifest.canonEffect == "NONE"
+    assert canonical_sha256(FIXTURES["manifoldArtifactManifest"]) == canonical_sha256(deepcopy(FIXTURES["manifoldArtifactManifest"]))
+    assert canonical_sha256(FIXTURES["manifoldArtifactManifest"]) == FIXTURES["manifoldArtifactOutputHash"]
+    assert manifest.declarations[0].proposalState == "PROPOSED"
+    assert declarations[1].declarationType == "DECLARED_UNKNOWN"
+    assert all(not ({"accepted", "truth", "graphMutation", "confidence"} & set(x.model_fields_set)) for x in declarations)
+    manifold_projection = {**deepcopy(FIXTURES["projections"][0]), "projectionId":"manifold-1", "format":"MANIFOLD_ARTIFACT"}
+    validate_projection(manifold_projection, FIXTURES["scientificRevision"]["contentHash"])
+    for declaration in FIXTURES["manifoldDeclarations"]:
+        incomplete = deepcopy(declaration); incomplete.pop("source")
+        with pytest.raises((ValidationError, ValueError)): validate_manifold_declaration(incomplete)
+        unknown = deepcopy(declaration); unknown["unknownField"] = True
+        with pytest.raises((ValidationError, ValueError)): validate_manifold_declaration(unknown)
+    for extra in ({"createdAt":"2026-09-10T13:00:00.000Z"}, {"unknownField":True}):
+        invalid = {**deepcopy(FIXTURES["manifoldArtifactManifest"]), **extra}
+        with pytest.raises((ValidationError, ValueError)): validate_manifold_artifact_manifest(invalid)
+    unknown_format = {**deepcopy(FIXTURES["projections"][0]), "format":"UNKNOWN"}
+    with pytest.raises((ValidationError, ValueError)): validate_projection(unknown_format, FIXTURES["scientificRevision"]["contentHash"])
 
 def test_author_revision_and_legacy_classifications_are_readable_without_registration_claim():
     base = {"artifactId":"artifact-1","investigationId":"investigation-1","authorPrincipalId":"principal-1","profile":"INVESTIGATION_REPORT","profileCapability":"VERIFIED_AVAILABLE","createdAt":"2026-09-10T18:00:00.000Z","workingDraft":{"state":"UNSAVED"}}

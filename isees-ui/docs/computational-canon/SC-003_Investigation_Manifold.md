@@ -968,3 +968,6 @@ user interface—it is the computational heart of every investigation
 
 performed within iSEES.
 
+# Governed artifact membership
+
+An admitted Studio projection becomes a member only as one existing `ARTIFACT` node, subtype `MANIFOLD_ARTIFACT`, in an authoritative operational revision. Projection creation and inspection do not establish membership.

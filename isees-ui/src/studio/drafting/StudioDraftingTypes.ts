@@ -1,5 +1,6 @@
 import type { ResearchDeskEntry } from "../../research/researchBridgeTypes";
 import type { ComputationalAuthorDocument } from "../../author/model/AuthorDocument";
+import type { ManifoldArtifactManifest } from "../contracts/StudioV1Contract";
 
 export const STUDIO_DRAFTING_CONTEXT_VERSION = "studio-drafting-context/v1" as const;
 export const STUDIO_DRAFTING_REQUEST_VERSION = "studio-drafting-request/v1" as const;
@@ -23,6 +24,11 @@ export interface StudioDraftProposalBlock { blockId: string; blockType: "PARAGRA
 export interface StudioDraftProposal { proposalId: string; proposalContractVersion: typeof STUDIO_DRAFT_PROPOSAL_VERSION; contextContractVersion: typeof STUDIO_DRAFTING_CONTEXT_VERSION; investigationId: string; documentId: string; baseIdentity: DraftingBaseIdentity; contextHash: string; artifactDesign: DraftingArtifactDesign; providerId: string; modelId: string; outcome: "GENERATED"; blocks: StudioDraftProposalBlock[]; warnings: string[]; unsupportedClaimDisclosures: string[]; contradictionDisclosures: string[]; uncertaintyDisclosures: string[]; generatedAt: string }
 export interface AssembleStudioDraftingContextInput { investigationId: string; document: ComputationalAuthorDocument; documentRuntimeRevision: number; durableBase?: { artifactId: string; artifactVersionId: string; artifactRevision: number }; sourceSelectionMode?: DraftingSelectionMode; selectedSourceAnchorIds: readonly string[]; selectedResearcherNoteNodeIds: readonly string[]; researchProjection: { status: string; investigationId?: string; entries: readonly ResearchDeskEntry[] }; artifactDesign: DraftingArtifactDesign; draftingInstruction: string }
 export interface AssembledStudioDraftingContext { context: StudioDraftingContext; canonicalContext: string; contextHash: string }
+export interface StudioManifoldArtifactDraft {
+  kind: "MANIFOLD_ARTIFACT_DRAFT"; schemaVersion: "studio-manifold-artifact-draft/v1"; authorityState: "UNAPPLIED_LOCAL_PROJECTION";
+  contextManifest: StudioDraftingContext & { contextHash: string; proposalEffect: "CREATES_UNAPPLIED_LOCAL_PROJECTION_ONLY" };
+  projection: ManifoldArtifactManifest; outputHash: string;
+}
 
 export class StudioDraftingValidationError extends Error {
   readonly code: string;

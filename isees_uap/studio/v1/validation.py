@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from pydantic import ValidationError
-from .schemas import AiDraftProposal, AuthorRevision, ChildProjection, FrozenResearchSourceSnapshot, InferencePackage, SensitiveSourceDirectives
+from .schemas import AiDraftProposal, AuthorRevision, ChildProjection, FrozenResearchSourceSnapshot, InferencePackage, ManifoldArtifactManifest, ManifoldDeclaration, SensitiveSourceDirectives
 
 UNSUPPORTED_CONFIDENCE_FIELDS = frozenset({"probability", "confidence", "confidenceValue", "bayesianProbability"})
 def reject_unsupported_confidence(value: object) -> None:
@@ -27,6 +27,13 @@ def validate_projection(value: object, parent_content_hash: str) -> ChildProject
     if projection.state in {"CURRENT", "PUBLISHED", "RETRACTED"} and not projection.outputHash: raise ValueError("successful projection requires output hash")
     if projection.state == "FAILED" and (not projection.failure or not projection.priorSuccessfulProjectionId): raise ValueError("failed projection must preserve prior success")
     return projection
+def validate_manifold_declaration(value: object) -> ManifoldDeclaration:
+    reject_unsupported_confidence(value)
+    from pydantic import TypeAdapter
+    return TypeAdapter(ManifoldDeclaration).validate_python(value)
+def validate_manifold_artifact_manifest(value: object) -> ManifoldArtifactManifest:
+    reject_unsupported_confidence(value)
+    return ManifoldArtifactManifest.model_validate(value)
 LEGAL_PROJECTION_TRANSITIONS = {"NOT_GENERATED": ("QUEUED",), "QUEUED": ("REBUILDING", "FAILED"), "REBUILDING": ("CURRENT", "FAILED"), "CURRENT": ("STALE", "SUPERSEDED", "PUBLISHED"), "STALE": ("QUEUED", "SUPERSEDED"), "FAILED": ("QUEUED", "SUPERSEDED"), "SUPERSEDED": (), "PUBLISHED": ("RETRACTED", "SUPERSEDED"), "RETRACTED": ()}
 def validate_projection_transition(from_state: str, to_state: str) -> None:
     if to_state not in LEGAL_PROJECTION_TRANSITIONS.get(from_state, ()): raise ValueError(f"illegal projection transition {from_state} -> {to_state}")

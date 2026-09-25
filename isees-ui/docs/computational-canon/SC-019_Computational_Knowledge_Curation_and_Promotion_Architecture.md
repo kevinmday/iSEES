@@ -982,6 +982,8 @@ unfiltered investigative collections.
 
 iSEES platform.
 
+11\. A Studio `MANIFOLD_ARTIFACT` projection is not promoted Knowledge. Its creation has `CanonEffect.NONE` and MUST NOT create Knowledge Objects, Evidence, relationships, or Manifold revisions. A future explicit admission MAY create the existing top-level `KnowledgeObjectType.ARTIFACT` with governed subtype `MANIFOLD_ARTIFACT`; that admission has its own identity, authority, time, validation, and operational receipt outside deterministic projection identity.
+
 
 
 \---
@@ -992,3 +994,6 @@ iSEES platform.
 
 \# ============================================================
 
+# Studio admission boundary
+
+Admission of a `MANIFOLD_ARTIFACT` is curation into an operational revision, not Canon promotion, truth promotion, confidence computation, or automatic research activity.

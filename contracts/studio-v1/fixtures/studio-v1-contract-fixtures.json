@@ -3,7 +3,9 @@
     "artifactProfiles": ["INVESTIGATION_REPORT", "EXECUTIVE_BRIEF", "SCIENTIFIC_PAPER", "INTENTION_HYPOTHESIS_ASSESSMENT"],
     "citationStyles": ["APA", "CHICAGO", "IEEE"],
     "semanticNodeTypes": ["HEADING", "SECTION", "PARAGRAPH", "CLAIM", "QUOTATION", "CITATION_REFERENCE", "FOOTNOTE", "EQUATION", "FIGURE", "TABLE", "APPENDIX", "RESEARCHER_NOTE"],
-    "projectionFormats": ["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST"],
+    "projectionFormats": ["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST", "MANIFOLD_ARTIFACT"],
+    "manifoldArtifactSchemaVersion": "studio-manifold-artifact-manifest/v1",
+    "manifoldDeclarationTypes": ["RESEARCHER_ASSERTION", "DECLARED_UNKNOWN", "DECLARED_CONTRADICTION", "PROPOSED_RELATIONSHIP", "RESEARCH_VECTOR", "SCOPE_CONSTRAINT", "EXCLUSION"],
     "projectionStates": ["NOT_GENERATED", "QUEUED", "REBUILDING", "CURRENT", "STALE", "FAILED", "SUPERSEDED", "PUBLISHED", "RETRACTED"],
     "assistanceModes": ["BUILD_OUTLINE", "DRAFT_SELECTED_SECTIONS", "DRAFT_COMPLETE_ARTIFACT", "REVIEW_SCHOLARLY_INTEGRITY"],
     "governedConclusions": ["CONSISTENT_WITH", "INSUFFICIENT_EVIDENCE", "NOT_DISTINGUISHABLE", "H0_WEAKENED", "H0_REJECTED_UNDER_DECLARED_TEST", "H1_VIABLE", "FURTHER_INVESTIGATION_REQUIRED"]
@@ -52,6 +54,28 @@
     "outputClassification":["ABDUCTIVE","CANDIDATE"],"proposalState":"UNAPPLIED","governedConclusion":{"conclusion":"NOT_DISTINGUISHABLE","evidenceScope":["result-1"],"assumptions":["assumption-1"],"unresolvedAlternatives":["alternative-1"]}
   },
   "proposal": {"proposalId":"proposal-1","artifactId":"artifact-paper-1","baseRevisionId":"artifact-paper-1.r1","baseContentHash":"sha256:0000000000000000000000000000000000000000000000000000000000000000","sourceSnapshots":[{"snapshotId":"snapshot-inbox-1","snapshotHash":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}],"assistanceMode":"DRAFT_COMPLETE_ARTIFACT","providerProvenance":{"providerId":"provider-example","modelId":"model-example","modelVersion":"1","configurationHash":"sha256:5555555555555555555555555555555555555555555555555555555555555555","promptContractVersion":"prompt/v1"},"units":[{"proposalUnitId":"proposal-unit-1","operation":{"operation":"INSERT_AFTER","targetNodeId":"heading-1","proposedNode":{"id":"paragraph-proposed-1","type":"PARAGRAPH","text":"Proposed text."}},"state":"UNAPPLIED","disposition":"PENDING"}],"authorityState":"UNAPPLIED_PROPOSAL","staleBase":{"rejected":false},"unsupportedClaimFindings":[],"incompleteCitationFindings":[]},
+  "manifoldDeclarations": [
+    {"declarationId":"declaration-assertion-1","declarationType":"RESEARCHER_ASSERTION","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[{"kind":"SEMANTIC_NODE","identity":"claim-1"}],"statement":"The recorded quantities satisfy the declared relation."},
+    {"declarationId":"declaration-unknown-1","declarationType":"DECLARED_UNKNOWN","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[],"question":"Which mechanism accounts for the relation?"},
+    {"declarationId":"declaration-contradiction-1","declarationType":"DECLARED_CONTRADICTION","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[],"statement":"The two governed records conflict.","conflictingReferences":[{"kind":"EVIDENCE","identity":"evidence-1","integrityHash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},{"kind":"EVIDENCE","identity":"evidence-2","integrityHash":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]},
+    {"declarationId":"declaration-relationship-1","declarationType":"PROPOSED_RELATIONSHIP","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[],"subject":{"kind":"KNOWLEDGE_OBJECT","identity":"knowledge-1"},"predicate":"RELATES_TO","object":{"kind":"ARTIFACT","identity":"$ADMITTED_ARTIFACT"},"proposalState":"PROPOSED"},
+    {"declarationId":"declaration-vector-1","declarationType":"RESEARCH_VECTOR","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[],"researchQuestion":"What independent record could resolve the conflict?","targetReferences":[{"kind":"KNOWLEDGE_OBJECT","identity":"knowledge-1"}]},
+    {"declarationId":"declaration-scope-1","declarationType":"SCOPE_CONSTRAINT","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[],"constraint":"Limit analysis to the declared observation interval."},
+    {"declarationId":"declaration-exclusion-1","declarationType":"EXCLUSION","source":{"authorship":"GOVERNED_SOURCE","sourceIdentity":"policy-1"},"references":[],"excludedReference":{"kind":"RESEARCH_ANCHOR","identity":"anchor-restricted"},"rationale":"The frozen source policy excludes artifact use."}
+  ],
+  "manifoldArtifactManifest": {
+    "kind":"MANIFOLD_ARTIFACT","schemaVersion":"studio-manifold-artifact-manifest/v1",
+    "source":{"artifactId":"artifact-paper-1","documentId":"document-paper-1","revisionId":"artifact-paper-1.r1","revisionNumber":1,"contentHash":"sha256:f2b642b23cabc869590c0132ccaffdcdbf88bcc675c3d0365009af1e1279a523","investigationId":"investigation-1"},
+    "frozenSourceAnchors":[{"snapshotId":"snapshot-inbox-1","snapshotHash":"sha256:5c8da5718932eff88b1cc92b109b1733ccb531535c17cd79d4eaf5e2c430ec3c","anchorIds":["anchor-public","anchor-restricted"]}],
+    "sourceKnowledgeIdentities":[{"kind":"KNOWLEDGE_OBJECT","identity":"knowledge-1"}],
+    "evidenceReferences":[{"kind":"EVIDENCE","identity":"evidence-1","integrityHash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+    "declarations":[{"declarationId":"declaration-relationship-1","declarationType":"PROPOSED_RELATIONSHIP","source":{"authorship":"RESEARCHER","sourceIdentity":"principal-1"},"references":[],"subject":{"kind":"KNOWLEDGE_OBJECT","identity":"knowledge-1"},"predicate":"RELATES_TO","object":{"kind":"ARTIFACT","identity":"$ADMITTED_ARTIFACT"},"proposalState":"PROPOSED"}],
+    "acceptedRelationshipReferences":[{"relationshipIdentity":"relationship-accepted-1","governanceAuthorityIdentity":"manifold-governance","governanceRevisionIdentity":"manifold-revision-4"}],
+    "normalizedProvenance":[{"provenanceId":"provenance-1","sourceIdentity":"snapshot-inbox-1","reference":{"kind":"SOURCE_SNAPSHOT","identity":"snapshot-inbox-1","integrityHash":"sha256:5c8da5718932eff88b1cc92b109b1733ccb531535c17cd79d4eaf5e2c430ec3c"}}],
+    "projectionConfiguration":{"configurationIdentity":"manifold-artifact-default","configurationVersion":"1","configurationHash":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+    "canonEffect":"NONE"
+  },
+  "manifoldArtifactOutputHash":"sha256:fb09c4745288a006f106a6e7f1ff16b85d9c1d1992f5b40180d84787492bf90a",
   "projections": [
     {"projectionId":"pdf-1","parentArtifactId":"artifact-paper-1","parentRevisionId":"artifact-paper-1.r1","parentContentHash":"sha256:f2b642b23cabc869590c0132ccaffdcdbf88bcc675c3d0365009af1e1279a523","format":"PDF","state":"CURRENT","templateProfileVersion":"paper/1","rendererVersion":"pdf/1","configurationHash":"sha256:6666666666666666666666666666666666666666666666666666666666666666","outputHash":"sha256:7777777777777777777777777777777777777777777777777777777777777777"},
     {"projectionId":"docx-1","parentArtifactId":"artifact-paper-1","parentRevisionId":"artifact-paper-1.r1","parentContentHash":"sha256:8888888888888888888888888888888888888888888888888888888888888888","format":"DOCX","state":"STALE","templateProfileVersion":"paper/1","rendererVersion":"docx/1","configurationHash":"sha256:6666666666666666666666666666666666666666666666666666666666666666","outputHash":"sha256:9999999999999999999999999999999999999999999999999999999999999999","priorSuccessfulProjectionId":"docx-0"},

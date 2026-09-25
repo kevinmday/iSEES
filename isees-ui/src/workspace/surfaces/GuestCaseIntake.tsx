@@ -5,12 +5,10 @@ import { createBlankNativeCaseDraftContent, restoreNativeCaseDraftContent, valid
 import { useOperatorIdentity } from "../../identity/runtime/OperatorIdentityRuntimeContext";
 import { GUEST_WORKING_TITLE_REQUIRED_MESSAGE, submitGuestCase } from "../guestCase/GuestCaseIntake";
 import { useWorkspaceRuntime } from "../runtime/WorkspaceRuntimeContext";
-import { useKnowledgeObjects } from "../../knowledge/runtime/KnowledgeObjectRuntimeContext";
 
 export default function GuestCaseIntake({ onCancel, onCreated }: { readonly onCancel: () => void; readonly onCreated?: () => void }) {
   const identity = useOperatorIdentity();
   const runtime = useWorkspaceRuntime();
-  const knowledgeObjects = useKnowledgeObjects();
   const [form, setForm] = useState<NativeCaseDraftFormState>(() => restoreNativeCaseDraftContent(createBlankNativeCaseDraftContent()));
   const [validation, setValidation] = useState(() => validateNativeCaseDraftForm(form));
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -27,7 +25,7 @@ export default function GuestCaseIntake({ onCancel, onCreated }: { readonly onCa
     control?.focus();
   });
   const onSubmit = () => {
-    const result = submitGuestCase(form, identity, runtime, knowledgeObjects);
+    const result = submitGuestCase(form, identity, runtime);
     if (result.status === "INVALID") {
       setValidation(result.validation);
       const firstInvalid = result.workingTitleError ? "workingTitle" : result.validation.find(item => !item.valid)?.field;

@@ -16,15 +16,29 @@ from isees_uap.authentication.principal import (
     require_csrf_protected_principal,
 )
 from isees_uap.investigations.errors import (
-    InvalidInvestigationInput, InvestigationLibraryError,
+    InvalidInvestigationInput, InvestigationLibraryError, InvestigationNotFound,
 )
 from isees_uap.investigations.models import (
     Investigation, InvestigationAggregate, InvestigationLifecycle,
 )
 from isees_uap.investigations.service import InvestigationLibraryService
-from isees_uap.investigations.sqlite_repository import SQLiteInvestigationRepository
+from isees_uap.investigations.sqlite_repository import (SQLiteInvestigationRepository,
+                                                        operational_graph_fingerprint)
 
 router = APIRouter(prefix="/api/v1/investigations", tags=["investigations"])
+
+class AdmitManifoldArtifactCommand(BaseModel):
+    model_config=ConfigDict(extra="forbid")
+    projectionId: str = Field(min_length=1,max_length=300)
+    expectedOperationalHeadId: str | None = Field(default=None,max_length=300)
+    selectedRelationshipDeclarationIds: tuple[str,...] = ()
+    idempotencyKey: str = Field(min_length=1,max_length=200)
+
+    @field_validator("projectionId","idempotencyKey")
+    @classmethod
+    def non_blank(cls,value):
+        if value!=value.strip() or not value: raise ValueError("identity must be non-blank")
+        return value
 InvestigationPath = Annotated[str, Path(min_length=1, pattern=r".*\S.*")]
 
 
@@ -77,6 +91,17 @@ class InvestigationActivationResponse(InvestigationDetailResponse):
     access: InvestigationAccessProjection
     operationalState: EmptyOperationalState | dict
     freshnessToken: str
+    operationalRevisionHead: dict | None = None
+    operationalRevisionLineage: list[dict] = Field(default_factory=list)
+
+
+class OperationalRevisionSubmission(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expectedHeadId: str | None = Field(default=None, max_length=200)
+    graph: dict
+    fingerprint: str = Field(min_length=1)
+    algorithmVersion: str = Field(min_length=1, max_length=200)
+    recordedAt: datetime
 
 
 class CreateInvestigationCommand(BaseModel):
@@ -189,6 +214,7 @@ class AdoptGuestCommand(BaseModel):
     researchInbox: list[InboxEntry] = Field(default_factory=list, max_length=2000)
     artifacts: list[ArtifactState] = Field(default_factory=list, max_length=200)
     viewState: ViewState
+    operationalRevision: OperationalRevisionSubmission | None = None
 
     @field_validator("title", "idempotencyKey", mode="before")
     @classmethod
@@ -231,6 +257,7 @@ class ImportCanonEventCommand(BaseModel):
     idempotencyKey: str = Field(min_length=1, max_length=200)
     workspace: WorkspaceState
     viewState: ViewState
+    operationalRevision: OperationalRevisionSubmission | None = None
 
 class ImportCanonEventResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -276,6 +303,60 @@ def _detail_response(
     if replayed is None:
         return InvestigationDetailResponse(**values)
     return CreateInvestigationResponse(**values, replayed=replayed)
+
+
+def _revision_projection(revision) -> dict:
+    return {"investigationId": revision.investigation_id,
+            "revisionId": revision.operational_revision_id,
+            "revisionNumber": revision.revision_number,
+            "parentRevisionId": revision.parent_operational_revision_id,
+            "graph": revision.graph_snapshot, "fingerprint": revision.graph_fingerprint,
+            "graphSchemaVersion": revision.graph_schema_version,
+            "algorithmVersion": revision.algorithm_version,
+            "actorAuthority": revision.actor_authority,
+            "recordedAt": revision.recorded_at.isoformat().replace("+00:00", "Z"),
+            "mutationKind": revision.mutation_kind,
+            "sourceIdentity": revision.source_identity}
+
+
+def _activation_response(svc: InvestigationLibraryService, item: Investigation,
+                         aggregate: InvestigationAggregate, principal_id: str):
+    authority = svc.get_owned_activation(item.investigation_id, principal_id)
+    revisions = ([_revision_projection(value) for value in authority.operational_lineage.revisions]
+                 if authority.operational_lineage else [])
+    detail = _detail_response(item, aggregate).model_dump()
+    return InvestigationActivationResponse(
+        **detail, activationSchemaVersion="owned-investigation-activation/v1",
+        access=InvestigationAccessProjection(),
+        operationalState=(EmptyOperationalState(workspaceId=f"workspace:{item.investigation_id}")
+                          if aggregate.state == "EMPTY" else
+                          {"kind": "ADOPTED", "workspaceId": f"workspace:{item.investigation_id}", **aggregate.payload}),
+        freshnessToken=f"{item.version}:{aggregate.revision}",
+        operationalRevisionHead=revisions[-1] if revisions else None,
+        operationalRevisionLineage=revisions)
+
+
+def _workspace_operational_submission(workspace: WorkspaceState, recorded_at: datetime,
+                                      expected_head_id: str | None = None) -> dict:
+    nodes = [{"id": node.id, "label": node.title,
+              "type": "EVENT" if node.kind == "CANONICAL_EVENT" else
+                      "HYPOTHESIS" if node.kind == "QUESTION" else "NARRATIVE",
+              "metadata": ({"sourceId": node.canonicalEventId} if node.kind == "CANONICAL_EVENT"
+                           else {"adoptedKind": node.kind})} for node in workspace.nodes]
+    edges = [{"id": edge.id, "source": edge.sourceId, "target": edge.targetId,
+              "relationship": "ASSOCIATED_WITH" if edge.kind == "RELATED" else edge.kind,
+              "weight": 1, "rationale": ["Preserved guest adoption."]} for edge in workspace.edges]
+    graph = {"nodes": nodes, "edges": edges,
+             "statistics": {"nodeCount": len(nodes), "edgeCount": len(edges),
+                "eventCount": sum(node.kind == "CANONICAL_EVENT" for node in workspace.nodes),
+                "facilityCount": 0, "artifactCount": 0, "personCount": 0,
+                "organizationCount": 0, "locationCount": 0,
+                "narrativeCount": sum(node.kind == "NOTE" for node in workspace.nodes),
+                "hypothesisCount": sum(node.kind == "QUESTION" for node in workspace.nodes)}}
+    return {"expectedHeadId": expected_head_id, "graph": graph,
+            "fingerprint": operational_graph_fingerprint(graph),
+            "algorithmVersion": "COMPATIBILITY_WORKSPACE_PROJECTION_V1",
+            "recordedAt": recorded_at}
 
 
 @router.get("", response_model=InvestigationListResponse)
@@ -334,16 +415,13 @@ def adopt_guest_investigation(
             raise ValueError("focused event must retain an included canonical identity")
     except (ValidationError, ValueError) as error:
         raise InvalidInvestigationInput("Guest adoption input is invalid") from error
-    normalized = command.model_dump(mode="json", exclude={"idempotencyKey"})
+    normalized = command.model_dump(mode="json", exclude={"idempotencyKey", "operationalRevision"})
+    operational = (command.operationalRevision.model_dump(mode="python") if command.operationalRevision
+                   else _workspace_operational_submission(command.workspace, command.source.snapshotUpdatedAt))
     item, aggregate, receipt, replayed = svc.adopt_guest_owned(
         principal_id=principal.account_id, title=command.title, objective=command.objective,
-        idempotency_key=command.idempotencyKey, payload=normalized)
-    detail = _detail_response(item, aggregate).model_dump()
-    activation = InvestigationActivationResponse(
-        **detail, activationSchemaVersion="owned-investigation-activation/v1",
-        access=InvestigationAccessProjection(),
-        operationalState={"kind": "ADOPTED", "workspaceId": f"workspace:{item.investigation_id}", **aggregate.payload},
-        freshnessToken=f"{item.version}:{aggregate.revision}")
+        idempotency_key=command.idempotencyKey, payload=normalized, operational=operational)
+    activation = _activation_response(svc, item, aggregate, principal.account_id)
     return AdoptionResponse(
         adoptionSchemaVersion="guest-investigation-adoption-receipt/v1",
         investigationId=item.investigation_id,
@@ -365,12 +443,7 @@ def get_active_investigation_activation(
         from isees_uap.investigations.errors import InvestigationNotFound
         raise InvestigationNotFound("Investigation was not found")
     item, aggregate = active
-    detail = _detail_response(item, aggregate).model_dump()
-    return InvestigationActivationResponse(
-        **detail, activationSchemaVersion="owned-investigation-activation/v1",
-        access=InvestigationAccessProjection(),
-        operationalState={"kind": "ADOPTED", "workspaceId": f"workspace:{item.investigation_id}", **aggregate.payload},
-        freshnessToken=f"{item.version}:{aggregate.revision}")
+    return _activation_response(svc, item, aggregate, principal.account_id)
 
 
 @router.get("/{investigation_id}", response_model=InvestigationDetailResponse)
@@ -389,18 +462,9 @@ def get_investigation_activation(
     principal: AuthenticatedPrincipal = Depends(require_authenticated_principal),
     svc: InvestigationLibraryService = Depends(service),
 ) -> InvestigationActivationResponse:
-    """Return an owner-authorized runtime projection without mutating server state."""
+    """Return the owner-authorized aggregate and durable operational authority."""
     item, aggregate = svc.get_owned_detail(investigation_id, principal.account_id)
-    detail = _detail_response(item, aggregate).model_dump()
-    return InvestigationActivationResponse(
-        **detail,
-        activationSchemaVersion="owned-investigation-activation/v1",
-        access=InvestigationAccessProjection(),
-        operationalState=(EmptyOperationalState(workspaceId=f"workspace:{item.investigation_id}")
-                          if aggregate.state == "EMPTY" else
-                          {"kind": "ADOPTED", "workspaceId": f"workspace:{item.investigation_id}", **aggregate.payload}),
-        freshnessToken=f"{item.version}:{aggregate.revision}",
-    )
+    return _activation_response(svc, item, aggregate, principal.account_id)
 
 @router.post("/{investigation_id}/canon-events", response_model=ImportCanonEventResponse)
 def import_canon_event(investigation_id: InvestigationPath, payload: object = Body(...),
@@ -418,10 +482,43 @@ def import_canon_event(investigation_id: InvestigationPath, payload: object = Bo
     owned = svc.get_owned(investigation_id, principal.account_id)
     now = datetime.now().astimezone().isoformat()
     normalized = {"schemaVersion":"canon-event-import/v1","source":{"kind":"SYSTEM_CANON","eventId":command.eventId,"importedAt":now},"title":owned.title,"objective":owned.objective,"workspace":command.workspace.model_dump(mode="json"),"researchInbox":[],"artifacts":[],"viewState":command.viewState.model_dump(mode="json")}
-    item, aggregate, replayed, duplicate = svc.import_canon_event_owned(investigation_id=investigation_id, principal_id=principal.account_id, expected_revision=command.expectedAggregateRevision, idempotency_key=command.idempotencyKey, payload=normalized)
-    detail = _detail_response(item, aggregate).model_dump()
-    activation = InvestigationActivationResponse(**detail, activationSchemaVersion="owned-investigation-activation/v1", access={"kind":"RESEARCHER_OWNED"}, operationalState={"kind":"ADOPTED","workspaceId":f"workspace:{item.investigation_id}",**aggregate.payload}, freshnessToken=f"{item.version}:{aggregate.revision}")
+    operational = (command.operationalRevision.model_dump(mode="python") if command.operationalRevision
+                   else _workspace_operational_submission(command.workspace, datetime.fromisoformat(now)))
+    expected_head_id = command.operationalRevision.expectedHeadId if command.operationalRevision else None
+    item, aggregate, replayed, duplicate = svc.import_canon_event_owned(investigation_id=investigation_id, principal_id=principal.account_id, expected_revision=command.expectedAggregateRevision, idempotency_key=command.idempotencyKey, payload=normalized, operational=operational, expected_operational_head_id=expected_head_id)
+    activation = _activation_response(svc, item, aggregate, principal.account_id)
     return ImportCanonEventResponse(investigationId=item.investigation_id, aggregateRevision=aggregate.revision, replayed=replayed, duplicate=duplicate, activation=activation)
+
+@router.post("/{investigation_id}/manifold-artifact-admissions")
+def admit_manifold_artifact(investigation_id: InvestigationPath, request: Request,
+        payload: object=Body(...), principal: AuthenticatedPrincipal=Depends(require_csrf_protected_principal),
+        svc: InvestigationLibraryService=Depends(service)):
+    try: command=AdmitManifoldArtifactCommand.model_validate(payload)
+    except ValidationError as error: raise InvalidInvestigationInput("Manifold artifact admission is invalid") from error
+    from isees_uap.api.v1.studio_v1 import private_ready_facade
+    from isees_uap.studio.v1.persistence import StudioV1Failure
+    try:
+        verified=private_ready_facade(request).load_verified_manifold_projection(
+            principal.account_id,investigation_id,command.projectionId)
+    except StudioV1Failure as error:
+        raise InvestigationNotFound("Projection was not found") from error
+    receipt,replayed,authority=svc.admit_manifold_artifact(investigation_id=investigation_id,
+      principal_id=principal.account_id,verified_projection=verified,
+      expected_operational_head_id=command.expectedOperationalHeadId,
+      selected_relationship_declaration_ids=command.selectedRelationshipDeclarationIds,
+      idempotency_key=command.idempotencyKey)
+    activation=_activation_response(svc,authority.investigation,authority.aggregate,principal.account_id)
+    return {"receipt":{"receiptId":receipt.receipt_id,"investigationId":receipt.investigation_id,
+      "projectionId":receipt.projection_id,"verifiedOutputHash":receipt.verified_output_hash,
+      "admittedArtifactNodeId":receipt.admitted_artifact_node_id,
+      "selectedRelationshipDeclarationIds":receipt.selected_relationship_declaration_ids,
+      "createdRelationshipIds":receipt.created_relationship_ids,
+      "previousOperationalRevisionId":receipt.previous_operational_revision_id,
+      "resultingOperationalRevisionId":receipt.resulting_operational_revision_id,
+      "admittedAt":receipt.admitted_at.isoformat(),"effects":{"canon":"NONE","manifold":"REVISION_APPENDED",
+      "rex":"NONE","tavily":"NONE","webDiscovery":"NONE","candidateEvidence":"NONE","researchInbox":"NONE","confidence":"NONE","billing":"NONE"}},
+      "replayed":replayed,"authoritativeCurrentHead":receipt.resulting_operational_revision_id,
+      "activation":activation.model_dump(mode="json")}
 
 
 def investigation_error_handler(

@@ -23,7 +23,8 @@ class StudioOutputStore:
         if not all(c in "0123456789abcdef" for c in digest) or len(digest) != 64:
             raise OutputStoreFailure("Output hash is invalid.")
         safe_id = hashlib.sha256(export_id.encode("utf-8")).hexdigest()[:24]
-        extension = {"PDF": "pdf", "DOCX": "docx"}.get(format)
+        extension = {"PDF": "pdf", "DOCX": "docx",
+                     "MANIFOLD_ARTIFACT": "manifold-artifact.projection"}.get(format)
         if extension is None: raise OutputStoreFailure("Output format is invalid.")
         return f"{extension}/{digest[:2]}/{safe_id}-{digest}.{extension}"
 

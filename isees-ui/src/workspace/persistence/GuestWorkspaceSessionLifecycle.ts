@@ -77,6 +77,16 @@ import { sessionStudioCandidateRuntime } from "../../studio/candidate/SessionStu
 import type {
   GuestWorkspaceSessionSnapshot,
 } from "./GuestWorkspaceSessionPersistenceTypes";
+import type { Investigation } from "../../investigation/investigationTypes";
+
+export function isSessionOnlyCanonicalGuestInvestigation(investigation: Investigation | undefined): boolean {
+  if (!investigation || investigation.workspace.guest_candidate_event || investigation.workspace.guest_canonical_working_copy) return false;
+  const references = investigation.workspace.imported_events;
+  return investigation.status === "ACTIVE" &&
+    investigation.revisions.some(revision => revision.id === investigation.currentRevisionId) &&
+    references.length === 1 &&
+    ["SYSTEM_CANON", "RESEARCH_CANON"].includes(references[0]!.source);
+}
 
 
 // ============================================================
@@ -504,6 +514,19 @@ export class GuestWorkspaceSessionLifecycle {
 
         return;
 
+      }
+
+      const activeInvestigation = workspaceRuntime.getActiveInvestigation();
+
+      // Canonical Library previews and their mutation forks are deliberately
+      // memory-only. A mode change (including Studio artifact review) must not
+      // reclassify either one as a restorable Guest-owned workspace.
+      if (
+        isSessionOnlyCanonicalGuestInvestigation(activeInvestigation) ||
+        activeInvestigation?.workspace.guest_canonical_working_copy !== undefined
+      ) {
+        clearGuestWorkspaceSession();
+        return;
       }
 
 

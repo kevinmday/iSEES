@@ -54,7 +54,10 @@ import type {
 import type {
   Investigation,
 } from "../../investigation/investigationTypes";
+import type { StudioManifoldArtifactDraft } from "../../studio/drafting/StudioDraftingTypes";
+import { validateManifoldArtifactManifest } from "../../studio/contracts/StudioCanonicalSerialization";
 import type { MaterializedOwnedActivation } from "../../investigation/continuity/OwnedInvestigationContinuity";
+import { computeGuestManifoldArtifactAdmission, type GuestAdmissionCommand, type GuestAdmissionResult } from "../../studio/runtime/GuestManifoldArtifactAdmission";
 
 import {
   validateOperationalRevisionInvestigation,
@@ -116,6 +119,11 @@ WorkspaceComputationalConfiguration = {
 // ============================================================
 
 export class WorkspaceRuntime {
+  private manifoldArtifactReview?: StudioManifoldArtifactDraft;
+
+  private readonly guestArtifactAdmissions = new Map<string, { signature: string; result: GuestAdmissionResult }>();
+
+  private readonly guestCanonicalWorkingCopies = new Map<string, Investigation>();
 
   private navigationRecorder: WorkspaceNavigationRecorder | undefined;
 
@@ -1150,6 +1158,34 @@ export class WorkspaceRuntime {
     this.navigationRecorder?.(mode);
   }
 
+  /**
+   * Carries a disposable Studio projection into MANIFOLD for read-only review.
+   * This session-only handoff is deliberately outside canonical Investigation,
+   * Workspace, graph, Research Inbox, and persistence state.
+   */
+  reviewStudioManifoldArtifact(artifact: StudioManifoldArtifactDraft): void {
+    const investigationId = this.getActiveInvestigation()?.id;
+    if (
+      artifact.kind !== "MANIFOLD_ARTIFACT_DRAFT" ||
+      artifact.authorityState !== "UNAPPLIED_LOCAL_PROJECTION" ||
+      artifact.contextManifest.investigationId !== investigationId ||
+      artifact.projection.source.investigationId !== investigationId
+    ) throw new Error("Studio Manifold Artifact review requires the active Investigation and an unapplied local projection.");
+    validateManifoldArtifactManifest(artifact.projection);
+    this.manifoldArtifactReview = artifact;
+    this.navigateToMode(WorkspaceMode.MANIFOLD);
+  }
+
+  getStudioManifoldArtifactReview(): StudioManifoldArtifactDraft | undefined {
+    const review = this.manifoldArtifactReview;
+    return review?.contextManifest.investigationId === this.getActiveInvestigation()?.id ? review : undefined;
+  }
+
+  clearStudioManifoldArtifactReview(artifact?: StudioManifoldArtifactDraft): void {
+    if (artifact !== undefined && this.manifoldArtifactReview !== artifact) return;
+    this.manifoldArtifactReview = undefined;
+  }
+
   /** Browser/bootstrap restoration. This never writes a browser-history entry. */
   restoreActiveMode(mode: WorkspaceModeType): void {
     this.setActiveMode(mode);
@@ -1157,6 +1193,45 @@ export class WorkspaceRuntime {
 
   attachNavigationRecorder(recorder: WorkspaceNavigationRecorder | undefined): void {
     this.navigationRecorder = recorder;
+  }
+
+  /** Atomically appends one session-local guest artifact revision through the active runtime owner. */
+  admitGuestManifoldArtifact(command: GuestAdmissionCommand): GuestAdmissionResult & { readonly replayed:boolean } {
+    const source=this.state.session.investigation;
+    if(!source||this.state.session.workspace!==source.workspace)throw new Error("Guest admission requires one unambiguous active investigation.");
+    const provenance=source.workspace.guest_canonical_working_copy;
+    const sourceId=provenance?.sourceInvestigationId??source.id;
+    if(sourceId!==command.investigationId)throw new Error("Guest admission investigation identity is ambiguous.");
+    const key=`${sourceId}:${command.idempotencyKey}`;
+    const signature=JSON.stringify({projectionId:command.projectionId,expectedOperationalHeadId:command.expectedOperationalHeadId,selected:[...command.selectedRelationshipDeclarationIds].sort(),outputHash:command.outputHash});
+    const prior=this.guestArtifactAdmissions.get(key);
+    if(prior){if(prior.signature!==signature||this.state.session.investigation?.id!==prior.result.investigation.id)throw new Error("Guest admission idempotency conflict.");return{...prior.result,replayed:true}}
+    const active=source.workspace.guest_candidate_event||provenance?source:this.createGuestCanonicalWorkingCopy(source,command.expectedOperationalHeadId);
+    const result=computeGuestManifoldArtifactAdmission(active,{...command,investigationId:active.id});
+    this.state={...this.state,status:"ACTIVE",session:{...this.state.session,workspace:result.investigation.workspace,investigation:result.investigation,artifacts:[...result.investigation.workspace.artifacts]},operator:{...this.state.operator,selection:{kind:"NODE",nodeId:result.receipt.admittedArtifactNodeId}},revision:this.state.revision+1};
+    this.guestArtifactAdmissions.set(key,{signature,result});this.manifoldArtifactReview=undefined;this.notify();return{...result,replayed:false};
+  }
+
+  canAdmitGuestManifoldArtifact(investigationId: string | undefined): boolean {
+    const active=this.state.session.investigation;
+    if(!active||!investigationId)return false;
+    if(active.workspace.guest_candidate_event)return active.id===investigationId&&active.status==="DRAFT";
+    const copy=active.workspace.guest_canonical_working_copy;
+    if(copy)return copy.sourceInvestigationId===investigationId;
+    return active.id===investigationId&&active.status==="ACTIVE"&&active.revisions.some(item=>item.id===active.currentRevisionId)&&active.workspace.imported_events.length===1&&["SYSTEM_CANON","RESEARCH_CANON"].includes(active.workspace.imported_events[0]!.source);
+  }
+
+  private createGuestCanonicalWorkingCopy(source: Investigation, expectedHeadId: string | null): Investigation {
+    if(!expectedHeadId||source.currentRevisionId!==expectedHeadId)throw new Error("The canonical investigation changed. Review before confirming again.");
+    const revision=source.revisions.filter(item=>item.id===expectedHeadId);
+    const reference=source.workspace.imported_events;
+    if(revision.length!==1||reference.length!==1||!["SYSTEM_CANON","RESEARCH_CANON"].includes(reference[0]!.source))throw new Error("Canonical source identity or active revision is ambiguous.");
+    const copyKey=`${source.id}\u0000${source.workspace.id}\u0000${expectedHeadId}\u0000${reference[0]!.event_id}`;
+    const existing=this.guestCanonicalWorkingCopies.get(copyKey);
+    if(existing)return existing;
+    const workspace={...source.workspace,name:`${source.name} — Guest working copy`,guest_canonical_working_copy:Object.freeze({kind:"GUEST_CANONICAL_WORKING_COPY" as const,sourceInvestigationId:source.id,sourceWorkspaceId:source.workspace.id,sourceRevisionId:expectedHeadId,sourceEventId:reference[0]!.event_id})};
+    const copy={...source,name:`${source.name} — Disposable guest working copy`,description:`Disposable guest working copy derived from ${source.name}. Nothing will be saved.`,createdBy:"GUEST_SESSION",status:"DRAFT" as const,workspace};
+    validateOperationalRevisionInvestigation(copy);this.guestCanonicalWorkingCopies.set(copyKey,copy);return copy;
   }
 
   /** Activates a session-only researcher candidate with its real initial operational revision. */
@@ -1175,6 +1250,10 @@ export class WorkspaceRuntime {
     ) throw new Error("Guest candidate activation rejected a non-candidate or non-operational payload.");
 
     validateOperationalRevisionInvestigation(investigation);
+
+    this.guestArtifactAdmissions.clear();
+
+    this.guestCanonicalWorkingCopies.clear();
 
     this.state = { ...this.state, status: "ACTIVE",
       session: { workspace, investigation, focusedEvent: candidate.candidateId, artifacts: [] },
@@ -1244,6 +1323,14 @@ export class WorkspaceRuntime {
     this.notify();
   }
 
+  /** Installs an authoritative mutation response without changing the current surface. */
+  refreshAdoptedOwnedInvestigation(activation: MaterializedOwnedActivation): void {
+    const activeMode = this.state.operator.activeMode;
+    this.activateAdoptedOwnedInvestigationState(activation);
+    this.state = { ...this.state, operator: { ...this.state.operator, activeMode } };
+    this.notify();
+  }
+
   private activateAdoptedOwnedInvestigationState(activation: MaterializedOwnedActivation): void {
     validateOperationalRevisionInvestigation(activation.investigation);
     const workspace = activation.investigation.workspace;
@@ -1283,6 +1370,10 @@ export class WorkspaceRuntime {
 
   deactivate():
     void {
+
+    this.guestArtifactAdmissions.clear();
+
+    this.guestCanonicalWorkingCopies.clear();
 
     this.state = {
 

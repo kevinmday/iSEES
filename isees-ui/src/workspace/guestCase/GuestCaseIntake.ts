@@ -11,7 +11,6 @@ import {
   serializeGuestCandidateContent,
 } from "../../knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
 import { materializeInitialOperationalRevision } from "../../investigation/revision/OperationalGraphRevision.ts";
-import type { KnowledgeObject } from "../../knowledge/model/KnowledgeObject.ts";
 
 export type GuestCaseIntakeResult =
   | Readonly<{ status: "INVALID"; validation: ReturnType<typeof validateNativeCaseDraftForm>; workingTitleError?: string }>
@@ -31,7 +30,6 @@ export function createGuestCandidateInvestigation(
   identity: OperatorIdentityState,
   recordedAt: string,
   sessionIdentity = crypto.randomUUID(),
-  operationalContext: readonly KnowledgeObject[] = [],
 ): GuestCaseIntakeResult {
   const validation = validateNativeCaseDraftForm(form);
   if (validation.some(result => !result.valid)) {
@@ -99,7 +97,7 @@ export function createGuestCandidateInvestigation(
   });
   const investigation = materializeInitialOperationalRevision(
     revisionless,
-    [...operationalContext, ...guestKnowledgeObjects],
+    guestKnowledgeObjects,
     { recordedAt },
   );
   return Object.freeze({ status: "CREATED", investigation, candidate });
@@ -109,10 +107,9 @@ export function submitGuestCase(
   form: NativeCaseDraftFormState,
   identity: OperatorIdentityState,
   runtime: WorkspaceRuntime,
-  operationalContext: readonly KnowledgeObject[],
   recordedAt = new Date().toISOString(),
 ): GuestCaseIntakeResult {
-  const result = createGuestCandidateInvestigation(form, identity, recordedAt, crypto.randomUUID(), operationalContext);
+  const result = createGuestCandidateInvestigation(form, identity, recordedAt, crypto.randomUUID());
   if (result.status === "CREATED") {
     runtime.activateGuestCandidateInvestigation(result.investigation);
     runtime.navigateToMode(WorkspaceMode.MANIFOLD);

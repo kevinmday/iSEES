@@ -1,5 +1,6 @@
 import type { GuestWorkspaceSessionSnapshot } from "../workspace/persistence/GuestWorkspaceSessionPersistenceTypes";
 import { resolveApiBaseUrl } from "../api/ApiOrigin.ts";
+import { createOperationalGraphFingerprint } from "../investigation/revision/OperationalGraphRevision.ts";
 
 export type AdoptionPhase = "IDLE" | "GUEST_CANDIDATE_CAPTURED" | "AUTHENTICATING" | "AWAITING_DECISION" | "PRESERVING" | "OWNED_ACTIVE" | "RECOVERABLE_ERROR" | "DISCARDED";
 
@@ -11,6 +12,7 @@ export interface GuestAdoptionCommand {
   readonly workspace: { readonly sourceWorkspaceId: string; readonly nodes: readonly unknown[]; readonly edges: readonly unknown[] };
   readonly researchInbox: readonly unknown[]; readonly artifacts: readonly unknown[];
   readonly viewState: { readonly activeMode: string; readonly focusedEventId: string | null; readonly activeLayers: readonly string[]; readonly temporalContext: string | null; readonly investigativeScale: string | null };
+  readonly operationalRevision: { readonly expectedHeadId: null; readonly graph: unknown; readonly fingerprint: string; readonly algorithmVersion: string; readonly recordedAt: string };
 }
 
 export interface FrozenGuestCandidate { readonly snapshot: GuestWorkspaceSessionSnapshot; readonly command: GuestAdoptionCommand }
@@ -28,6 +30,7 @@ export function captureGuestAdoptionCandidate(snapshot: GuestWorkspaceSessionSna
   const workspace = snapshot.workspace.workspace ?? investigation.workspace;
   if (workspace.guest_candidate_event) throw new Error("Researcher-supplied guest candidates cannot cross the account adoption boundary in this increment.");
   const revision = investigation.revisions.find(item => item.id === investigation.currentRevisionId) ?? investigation.revisions.at(-1);
+  if (!revision) throw new Error("Guest operational revision authority is unavailable for adoption.");
   const graphNodes = revision?.manifold.graph.nodes ?? [];
   const graphEdges = revision?.manifold.graph.edges ?? [];
   const canonicalIds = new Set(workspace.imported_events.map(item => item.event_id));
@@ -78,6 +81,9 @@ export function captureGuestAdoptionCandidate(snapshot: GuestWorkspaceSessionSna
       activeLayers: Object.freeze([...snapshot.workspace.computational.activeLayers]),
       temporalContext: text(snapshot.workspace.computational.temporalContext, "Temporal context"),
       investigativeScale: text(snapshot.workspace.computational.investigativeScale, "Investigative scale") }),
+    operationalRevision: Object.freeze({ expectedHeadId: null, graph: revision!.manifold.graph,
+      fingerprint: createOperationalGraphFingerprint(revision!.manifold.graph),
+      algorithmVersion: revision!.manifold.algorithmVersion, recordedAt: revision!.timestamp }),
   });
   return Object.freeze({ snapshot, command });
 }

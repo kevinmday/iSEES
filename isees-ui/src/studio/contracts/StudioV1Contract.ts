@@ -3,13 +3,28 @@ export const STUDIO_V1_CONTRACT_VERSION = "studio-v1/domain-contract/1" as const
 export const ARTIFACT_PROFILES = ["INVESTIGATION_REPORT", "EXECUTIVE_BRIEF", "SCIENTIFIC_PAPER", "INTENTION_HYPOTHESIS_ASSESSMENT"] as const;
 export const CITATION_STYLES = ["APA", "CHICAGO", "IEEE"] as const;
 export const SEMANTIC_NODE_TYPES = ["HEADING", "SECTION", "PARAGRAPH", "CLAIM", "QUOTATION", "CITATION_REFERENCE", "FOOTNOTE", "EQUATION", "FIGURE", "TABLE", "APPENDIX", "RESEARCHER_NOTE"] as const;
-export const PROJECTION_FORMATS = ["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST"] as const;
+export const PROJECTION_FORMATS = ["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST", "MANIFOLD_ARTIFACT"] as const;
+export const MANIFOLD_ARTIFACT_SCHEMA_VERSION = "studio-manifold-artifact-manifest/v1" as const;
+export const ADMITTED_ARTIFACT_REFERENCE = Object.freeze({ kind: "ARTIFACT", identity: "$ADMITTED_ARTIFACT" } as const);
+export const MANIFOLD_DECLARATION_TYPES = ["RESEARCHER_ASSERTION", "DECLARED_UNKNOWN", "DECLARED_CONTRADICTION", "PROPOSED_RELATIONSHIP", "RESEARCH_VECTOR", "SCOPE_CONSTRAINT", "EXCLUSION"] as const;
 export const PROJECTION_STATES = ["NOT_GENERATED", "QUEUED", "REBUILDING", "CURRENT", "STALE", "FAILED", "SUPERSEDED", "PUBLISHED", "RETRACTED"] as const;
 export const ASSISTANCE_MODES = ["BUILD_OUTLINE", "DRAFT_SELECTED_SECTIONS", "DRAFT_COMPLETE_ARTIFACT", "REVIEW_SCHOLARLY_INTEGRITY"] as const;
 export const GOVERNED_CONCLUSIONS = ["CONSISTENT_WITH", "INSUFFICIENT_EVIDENCE", "NOT_DISTINGUISHABLE", "H0_WEAKENED", "H0_REJECTED_UNDER_DECLARED_TEST", "H1_VIABLE", "FURTHER_INVESTIGATION_REQUIRED"] as const;
 export const PROHIBITED_STUDIO_MUTATIONS = ["SYSTEM_CANON", "INVESTIGATION_EVIDENCE", "DETERMINISTIC_RESULTS", "RESEARCH_INBOX", "SOURCE_SYSTEMS", "INTENTION"] as const;
 export type ArtifactProfile = typeof ARTIFACT_PROFILES[number];
 export type SemanticNodeType = typeof SEMANTIC_NODE_TYPES[number];
+
+export type ManifoldReferenceKind = "SOURCE_SNAPSHOT" | "RESEARCH_ANCHOR" | "KNOWLEDGE_OBJECT" | "EVIDENCE" | "CITATION" | "SEMANTIC_NODE" | "GOVERNED_RELATIONSHIP" | "ARTIFACT";
+export interface ManifoldReference { kind: ManifoldReferenceKind; identity: string; integrityHash?: string }
+export interface ManifoldDeclarationBase { declarationId: string; declarationType: typeof MANIFOLD_DECLARATION_TYPES[number]; source: { authorship: "RESEARCHER" | "GOVERNED_SOURCE"; sourceIdentity: string }; references: readonly ManifoldReference[] }
+export type ManifoldDeclaration =
+  | (ManifoldDeclarationBase & { declarationType: "RESEARCHER_ASSERTION"; statement: string })
+  | (ManifoldDeclarationBase & { declarationType: "DECLARED_UNKNOWN"; question: string })
+  | (ManifoldDeclarationBase & { declarationType: "DECLARED_CONTRADICTION"; statement: string; conflictingReferences: readonly [ManifoldReference, ManifoldReference, ...ManifoldReference[]] })
+  | (ManifoldDeclarationBase & { declarationType: "PROPOSED_RELATIONSHIP"; subject: ManifoldReference; predicate: string; object: ManifoldReference; proposalState: "PROPOSED" })
+  | (ManifoldDeclarationBase & { declarationType: "RESEARCH_VECTOR"; researchQuestion: string; targetReferences: readonly ManifoldReference[] })
+  | (ManifoldDeclarationBase & { declarationType: "SCOPE_CONSTRAINT"; constraint: string })
+  | (ManifoldDeclarationBase & { declarationType: "EXCLUSION"; excludedReference: ManifoldReference; rationale: string });
 
 export interface SourceLineage { sourceSnapshotId: string; sourceRepresentationId: string; sourceHash: string }
 export interface CitationMetadata { citationId: string; authors?: readonly string[]; institutionalAuthor?: string; title: string; container?: string; publisher?: string; publicationDate?: string; accessedDate?: string; volume?: string; issue?: string; edition?: string; pagesOrLocator?: string; doi?: string; url?: string; isbn?: string; reportOrAccessionId?: string; sourceSnapshotId: string; completeness: "COMPLETE" | "INCOMPLETE"; missingRequiredFields: readonly string[] }
@@ -28,7 +43,7 @@ export type SemanticNode =
   | { id: string; type: "FIGURE"; caption: string; altText: string; assetId: string; sourceAttribution: string; lineage: readonly SourceLineage[] }
   | { id: string; type: "TABLE"; caption: string; altText: string; dataId: string; columns: readonly string[]; rows: readonly (readonly string[])[]; sourceAttribution: string; lineage: readonly SourceLineage[] }
   | { id: string; type: "APPENDIX"; title: string; childNodeIds: readonly string[] };
-export interface SemanticDocument { documentId: string; schemaVersion: "studio-author-semantic/v1"; title: string; nodeOrder: readonly string[]; nodes: readonly SemanticNode[]; citations: readonly CitationMetadata[]; citationStyle: CitationStyleConfiguration }
+export interface SemanticDocument { documentId: string; schemaVersion: "studio-author-semantic/v1"; title: string; nodeOrder: readonly string[]; nodes: readonly SemanticNode[]; citations: readonly CitationMetadata[]; citationStyle: CitationStyleConfiguration; manifoldDeclarations?: readonly ManifoldDeclaration[] }
 
 export type AuthorRevisionClassification = "AUTHOR_REVISION" | "CANDIDATE_KNOWLEDGE";
 export interface ArtifactIdentity { artifactId: string; investigationId: string; authorPrincipalId: string; profile: ArtifactProfile; profileCapability: "ADMITTED_UNVERIFIED" | "VERIFIED_AVAILABLE"; lifecycleClassification: AuthorRevisionClassification; createdAt: string; currentSavedRevisionId?: string; workingDraft: { state: "UNSAVED"; basedOnRevisionId?: string } }
@@ -43,6 +58,22 @@ export interface AiDraftProposal { proposalId: string; artifactId: string; baseR
 
 export interface ChildProjection { projectionId: string; parentArtifactId: string; parentRevisionId: string; parentContentHash: string; format: typeof PROJECTION_FORMATS[number]; state: typeof PROJECTION_STATES[number]; templateProfileVersion: string; rendererVersion: string; configurationHash: string; outputHash?: string; priorSuccessfulProjectionId?: string; failure?: { code: string; safeMessage: string }; publication?: { publicationId: string; status: "PUBLISHED" | "RETRACTED" } }
 export interface StudioAuthorityBoundary { authoritativeSource: "AUTHOR_REVISION"; aiResponseAuthority: "PROHIBITED"; projectionAuthority: "PROHIBITED"; prohibitedMutations: typeof PROHIBITED_STUDIO_MUTATIONS }
+
+export interface ManifoldArtifactManifest {
+  kind: "MANIFOLD_ARTIFACT"; schemaVersion: typeof MANIFOLD_ARTIFACT_SCHEMA_VERSION;
+  source: { artifactId: string; documentId: string; revisionId: string; revisionNumber: number; contentHash: string; investigationId: string };
+  frozenSourceAnchors: readonly { snapshotId: string; snapshotHash: string; anchorIds: readonly string[] }[];
+  sourceKnowledgeIdentities: readonly ManifoldReference[]; evidenceReferences: readonly ManifoldReference[];
+  declarations: readonly ManifoldDeclaration[];
+  acceptedRelationshipReferences: readonly { relationshipIdentity: string; governanceAuthorityIdentity: string; governanceRevisionIdentity: string }[];
+  normalizedProvenance: readonly { provenanceId: string; sourceIdentity: string; reference: ManifoldReference }[];
+  projectionConfiguration: { configurationIdentity: string; configurationVersion: string; configurationHash: string };
+  canonEffect: "NONE";
+}
+/** Stored outside the canonical manifest and excluded from projection identity. */
+export interface ManifoldArtifactBuildMetadata { projectionId: string; createdAt?: string; jobTime?: string; exportTime?: string }
+/** Reserved for a future explicit admission action; never part of projection identity. */
+export interface ManifoldArtifactAdmissionMetadata { admissionId: string; admissionTime: string; operationalRevisionId: string }
 
 export interface IntentionResultReference { resultId: string; executionId: string; projectionId: string; resultHash: string; completionStatus: "COMPLETED"; immutableStatus: "IMMUTABLE"; access: "READ_ONLY" }
 export interface GovernedConclusion { conclusion: typeof GOVERNED_CONCLUSIONS[number]; evidenceScope: readonly string[]; assumptions: readonly string[]; unresolvedAlternatives: readonly string[]; declaredTest?: string }

@@ -30,7 +30,7 @@ afterEach(() => { cleanup(); workspaceRuntime.deactivate(); vi.restoreAllMocks()
 function establishGuestInvestigation() {
   const canonical = buildKnowledgeBootstrapPopulation();
   const content = restoreNativeCaseDraftContent(createBlankNativeCaseDraftContent());
-  const created = createGuestCandidateInvestigation(Object.freeze({ ...content, workingTitle: suppliedEnvelope("Guest Selection Case"), observationNarrative: suppliedEnvelope("A stable luminous object was observed by several witnesses.") }), { status: "READY", identity: principal, persistence: "SESSION", revision: 1 }, establishedAt, "candidate-selection", canonical);
+  const created = createGuestCandidateInvestigation(Object.freeze({ ...content, workingTitle: suppliedEnvelope("Guest Selection Case"), observationNarrative: suppliedEnvelope("A stable luminous object was observed by several witnesses.") }), { status: "READY", identity: principal, persistence: "SESSION", revision: 1 }, establishedAt, "candidate-selection");
   if (created.status !== "CREATED") throw new Error(created.message);
   workspaceRuntime.activateGuestCandidateInvestigation(created.investigation);
   const target = canonical.find(object => object.type === "EVENT" && object.provenance.sourceType === "SYSTEM_CANON");

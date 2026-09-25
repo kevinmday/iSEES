@@ -22,6 +22,13 @@ from isees_uap.studio.v1.pdf_renderer import (CONFIGURATION_HASH, MEDIA_TYPE,
 from isees_uap.studio.v1.docx_renderer import (CONFIGURATION_HASH as DOCX_CONFIGURATION_HASH,
     MEDIA_TYPE as DOCX_MEDIA_TYPE, RENDERER_VERSION as DOCX_RENDERER_VERSION,
     TEMPLATE_VERSION as DOCX_TEMPLATE_VERSION, render_docx)
+from isees_uap.studio.v1.manifold_artifact_renderer import (
+    CONFIGURATION_HASH as MANIFOLD_CONFIGURATION_HASH,
+    CONFIGURATION_IDENTITY as MANIFOLD_CONFIGURATION_IDENTITY,
+    CONFIGURATION_VERSION as MANIFOLD_CONFIGURATION_VERSION,
+    RENDERER_VERSION as MANIFOLD_RENDERER_VERSION,
+    TEMPLATE_VERSION as MANIFOLD_TEMPLATE_VERSION,
+)
 from isees_uap.studio.v1.render_model import (RenderModelFailure,
     build_current_draft_render_model)
 from isees_uap.studio.v1.lifecycle import LifecycleState, PrivateStudioV1LifecycleOwner
@@ -215,6 +222,38 @@ class CreateExportRequest(StrictRequest):
     idempotencyKey: Identity = Field(max_length=200)
 
 
+class MaterializeManifoldArtifactRequest(StrictRequest):
+    schemaVersion: Literal["studio-manifold-artifact-manifest/v1"]
+    rendererVersion: Literal["studio-v1-manifold-artifact/1"]
+    configurationIdentity: Literal["manifold-artifact-default"]
+    configurationVersion: Literal["1"]
+    configurationHash: Sha256
+    idempotencyKey: Identity = Field(max_length=200)
+
+
+class ProjectionMaterializationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    projectionId: str
+    artifactId: str
+    revisionId: str
+    revisionNumber: int
+    parentContentHash: str
+    format: Literal["MANIFOLD_ARTIFACT"]
+    state: str
+    schemaVersion: str
+    rendererVersion: str
+    configurationIdentity: str
+    configurationVersion: str
+    configurationHash: str
+    outputHash: str | None = None
+    mediaType: str | None = None
+    filename: str | None = None
+    byteLength: int | None = None
+    failureCategory: str | None = None
+    failureMessage: str | None = None
+    downloadAvailable: bool
+
+
 class ExportResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     exportId: str
@@ -247,6 +286,25 @@ def _export_response(record) -> ExportResponse:
         configurationHash=record.configuration_hash, exportedAt=record.exported_at,
         outputHash=record.output_hash, mediaType=record.media_type, filename=record.safe_filename,
         byteLength=record.byte_length, failureCode=record.failure_code,
+        failureMessage=record.safe_failure_message,
+        downloadAvailable=record.state == "CURRENT" and record.storage_key is not None)
+
+
+def _materialization_response(record) -> ProjectionMaterializationResponse:
+    if record.format != "MANIFOLD_ARTIFACT":
+        raise StudioV1ApiError("STUDIO_V1_PROJECTION_NOT_FOUND",
+                               "Studio V1 projection was not found", 404)
+    return ProjectionMaterializationResponse(
+        projectionId=record.projection_id, artifactId=record.artifact_id,
+        revisionId=record.revision_id, revisionNumber=record.revision_number,
+        parentContentHash=record.source_hash, format="MANIFOLD_ARTIFACT",
+        state=record.state, schemaVersion=record.template_profile_version,
+        rendererVersion=record.renderer_version,
+        configurationIdentity=MANIFOLD_CONFIGURATION_IDENTITY,
+        configurationVersion=MANIFOLD_CONFIGURATION_VERSION,
+        configurationHash=record.configuration_hash, outputHash=record.output_hash,
+        mediaType=record.media_type, filename=record.safe_filename,
+        byteLength=record.byte_length, failureCategory=record.failure_code,
         failureMessage=record.safe_failure_message,
         downloadAvailable=record.state == "CURRENT" and record.storage_key is not None)
 
@@ -534,6 +592,56 @@ def get_projection_statuses(
             parentRevisionId=job.revision_id, state=job.state,
             failureCategory=job.failure_code, outputHash=job.output_hash,
         ) for job in jobs])
+
+
+@router.post("/{artifact_id}/revisions/{revision_id}/projections/manifold-artifact",
+             response_model=ProjectionMaterializationResponse,
+             status_code=status.HTTP_201_CREATED)
+def materialize_manifold_artifact(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    payload: MaterializeManifoldArtifactRequest,
+    owner: str = Depends(owned_mutation_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    if (payload.schemaVersion != MANIFOLD_TEMPLATE_VERSION
+            or payload.rendererVersion != MANIFOLD_RENDERER_VERSION
+            or payload.configurationIdentity != MANIFOLD_CONFIGURATION_IDENTITY
+            or payload.configurationVersion != MANIFOLD_CONFIGURATION_VERSION
+            or payload.configurationHash != MANIFOLD_CONFIGURATION_HASH):
+        raise StudioV1ApiError("INVALID_STUDIO_V1_PROJECTION",
+                               "Studio V1 projection configuration is invalid", 422)
+    record = facade.create_export(owner, investigation_id, artifact_id, revision_id,
+        format="MANIFOLD_ARTIFACT", template_version=payload.schemaVersion,
+        renderer_version=payload.rendererVersion,
+        configuration_hash=payload.configurationHash,
+        idempotency_key=payload.idempotencyKey)
+    return _materialization_response(record)
+
+
+@router.get("/{artifact_id}/revisions/{revision_id}/projections/{projection_id}",
+            response_model=ProjectionMaterializationResponse)
+def get_projection_materialization(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    projection_id: IdentityPath, owner: str = Depends(owned_read_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    return _materialization_response(facade.get_projection_materialization(
+        owner, investigation_id, artifact_id, revision_id, projection_id))
+
+
+@router.get("/{artifact_id}/revisions/{revision_id}/projections/{projection_id}/download")
+def download_projection_materialization(
+    investigation_id: IdentityPath, artifact_id: IdentityPath, revision_id: IdentityPath,
+    projection_id: IdentityPath, owner: str = Depends(owned_read_principal),
+    facade: PrivateStudioV1Application = Depends(private_ready_facade),
+):
+    record, data = facade.download_projection_materialization(
+        owner, investigation_id, artifact_id, revision_id, projection_id)
+    return Response(content=data, media_type=record.media_type, headers={
+        "Content-Disposition": f'attachment; filename="{record.safe_filename}"',
+        "ETag": f'"{record.output_hash}"', "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-store", "Pragma": "no-cache",
+    })
 
 
 @router.post("/{artifact_id}/revisions/{revision_id}/exports", response_model=ExportResponse,

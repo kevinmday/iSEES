@@ -38,7 +38,7 @@ function establishPair() {
     workingTitle: suppliedEnvelope("Case #39 Medford Geomagnetic Observation"),
     observationNarrative: suppliedEnvelope("Eight witnesses observed a luminous oval before rapid westward departure."),
   });
-  const created = createGuestCandidateInvestigation(form, identity, recordedAt, "composed-resolve", canonical);
+  const created = createGuestCandidateInvestigation(form, identity, recordedAt, "composed-resolve");
   if (created.status !== "CREATED") throw new Error(created.message);
   const target = canonical.find(object => object.type === "EVENT" && object.provenance.sourceId === "E-TICTAC-2004");
   if (!target) throw new Error("Nimitz comparison fixture unavailable.");

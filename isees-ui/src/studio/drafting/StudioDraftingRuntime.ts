@@ -2,30 +2,32 @@ import type { ComputationalAuthorDocument } from "../../author/model/AuthorDocum
 import type { ResearchInboxProjection } from "../../research/researchBridgeTypes";
 import type { StudioScope } from "../api/StudioApi";
 import { assembleStudioDraftingContext } from "./StudioDraftingContext.ts";
-import { STUDIO_DRAFTING_LIMITS, StudioDraftingValidationError, type AssembledStudioDraftingContext, type DraftingSelectionMode, type StudioDraftProposal, type StudioDraftingRequest } from "./StudioDraftingTypes.ts";
+import { STUDIO_DRAFTING_LIMITS, StudioDraftingValidationError, type AssembledStudioDraftingContext, type DraftingSelectionMode, type StudioDraftProposal, type StudioDraftingRequest, type StudioManifoldArtifactDraft } from "./StudioDraftingTypes.ts";
 import { STUDIO_ARTIFACT_DESIGNS, type StudioArtifactDesignDefinition } from "./StudioArtifactDesigns.ts";
+import { projectStudioManifoldArtifact } from "./StudioManifoldArtifactProjection.ts";
 
 export type StudioDraftingStatus = "NOT_READY" | "READY" | "PREPARING_CONTEXT" | "GENERATING" | "PROPOSAL_READY" | "GENERATION_FAILED" | "CANCELLED" | "STALE" | "DISCARDED";
 export interface StudioDraftingEnvironment { scope?: StudioScope; document?: ComputationalAuthorDocument; documentRuntimeRevision: number; researchRevision: number; researchProjection: ResearchInboxProjection }
 export interface StudioDraftingState {
   status: StudioDraftingStatus; sourceSelectionMode: DraftingSelectionMode; selectedSourceAnchorIds: readonly string[]; selectedResearcherNoteNodeIds: readonly string[];
-  design: StudioArtifactDesignDefinition; draftingInstruction: string; assembled?: AssembledStudioDraftingContext; proposal?: StudioDraftProposal; preservedProposal?: StudioDraftProposal; message: string; requestSequence: number;
+  design: StudioArtifactDesignDefinition; draftingInstruction: string; assembled?: AssembledStudioDraftingContext; proposal?: StudioDraftProposal; manifoldArtifact?: StudioManifoldArtifactDraft; preservedProposal?: StudioDraftProposal; message: string; requestSequence: number;
 }
 export interface StudioDraftingClient { generateDraftProposal(scope: StudioScope, command: StudioDraftingRequest, signal?: AbortSignal): Promise<StudioDraftProposal> }
 type Listener = () => void;
+export type StudioManifoldArtifactProjector = (assembled: AssembledStudioDraftingContext) => Promise<StudioManifoldArtifactDraft>;
 
 const initial = (): StudioDraftingState => ({ status: "NOT_READY", sourceSelectionMode: "SUBSET", selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: [], design: STUDIO_ARTIFACT_DESIGNS[0]!, draftingInstruction: "", message: "Select context and enter drafting instructions.", requestSequence: 0 });
 const sameEnvironment = (a: StudioDraftingEnvironment | undefined, b: StudioDraftingEnvironment) => a?.scope?.investigationId === b.scope?.investigationId && a?.scope?.principalId === b.scope?.principalId && a?.document?.identity.id === b.document?.identity.id && a?.documentRuntimeRevision === b.documentRuntimeRevision && a?.researchRevision === b.researchRevision;
 
 export class StudioDraftingRuntime {
-  private state = initial(); private environment?: StudioDraftingEnvironment; private listeners = new Set<Listener>(); private preparationSequence = 0; private requestSequence = 0; private abort?: AbortController; private readonly client: StudioDraftingClient;
-  constructor(client: StudioDraftingClient) { this.client = client; }
+  private state = initial(); private environment?: StudioDraftingEnvironment; private listeners = new Set<Listener>(); private preparationSequence = 0; private requestSequence = 0; private abort?: AbortController; private readonly client: StudioDraftingClient; private readonly manifoldProjector: StudioManifoldArtifactProjector;
+  constructor(client: StudioDraftingClient, manifoldProjector: StudioManifoldArtifactProjector = projectStudioManifoldArtifact) { this.client = client; this.manifoldProjector = manifoldProjector; }
   getState(): Readonly<StudioDraftingState> { return this.state; }
   subscribe(listener: Listener): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
   private publish(next: Partial<StudioDraftingState>): void { this.state = { ...this.state, ...next }; this.listeners.forEach(listener => listener()); }
   private invalidate(status: StudioDraftingStatus, message: string, resetSelection = false): void {
     this.abort?.abort(); this.abort = undefined; this.requestSequence += 1; this.preparationSequence += 1;
-    this.publish({ status, message, assembled: undefined, proposal: undefined, preservedProposal: undefined, requestSequence: this.requestSequence, ...(resetSelection ? { sourceSelectionMode: "SUBSET" as const, selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: [] } : {}) });
+    this.publish({ status, message, assembled: undefined, proposal: undefined, manifoldArtifact: undefined, preservedProposal: undefined, requestSequence: this.requestSequence, ...(resetSelection ? { sourceSelectionMode: "SUBSET" as const, selectedSourceAnchorIds: [], selectedResearcherNoteNodeIds: [] } : {}) });
   }
   updateEnvironment(environment: StudioDraftingEnvironment): void {
     if (sameEnvironment(this.environment, environment)) { this.environment = environment; return; }
@@ -33,10 +35,10 @@ export class StudioDraftingRuntime {
     const identityChanged = prior && (prior.scope?.investigationId !== environment.scope?.investigationId || prior.document?.identity.id !== environment.document?.identity.id);
     const revisionChanged = prior && !identityChanged && prior.documentRuntimeRevision !== environment.documentRuntimeRevision;
     const researchChanged = prior && !identityChanged && prior.researchRevision !== environment.researchRevision;
-    const becameStale = Boolean((revisionChanged || researchChanged) && (this.state.proposal || this.state.status === "GENERATING"));
+    const becameStale = Boolean((revisionChanged || researchChanged) && (this.state.proposal || this.state.manifoldArtifact || this.state.status === "GENERATING"));
     if (identityChanged) this.invalidate("NOT_READY", "The active Investigation or document changed. Drafting selection was cleared.", true);
-    else if (revisionChanged && (this.state.proposal || this.state.status === "GENERATING")) this.invalidate("STALE", "The document revision changed. The proposal is stale.");
-    else if (researchChanged && (this.state.proposal || this.state.status === "GENERATING")) this.invalidate("STALE", "The active Investigation source context changed. The proposal is stale.");
+    else if (revisionChanged && (this.state.proposal || this.state.manifoldArtifact || this.state.status === "GENERATING")) this.invalidate("STALE", "The document revision changed. The proposal is stale.");
+    else if (researchChanged && (this.state.proposal || this.state.manifoldArtifact || this.state.status === "GENERATING")) this.invalidate("STALE", "The active Investigation source context changed. The proposal is stale.");
     void this.prepare(becameStale);
   }
   setSourceSelectionMode(mode: DraftingSelectionMode): void { if (mode === this.state.sourceSelectionMode) return; this.selectionChanged({ sourceSelectionMode: mode, selectedSourceAnchorIds: [] }); }
@@ -46,7 +48,7 @@ export class StudioDraftingRuntime {
   setNoteSelected(nodeId: string, selected: boolean): void { const ids = new Set(this.state.selectedResearcherNoteNodeIds); if (selected) ids.add(nodeId); else ids.delete(nodeId); this.selectionChanged({ selectedResearcherNoteNodeIds: [...ids] }); }
   setDesign(design: StudioArtifactDesignDefinition): void { this.selectionChanged({ design }); }
   setDraftingInstruction(value: string): void { this.selectionChanged({ draftingInstruction: value }); }
-  private selectionChanged(next: Partial<StudioDraftingState>): void { this.abort?.abort(); this.abort = undefined; this.requestSequence += 1; const hadProposal = Boolean(this.state.proposal); this.publish({ ...next, proposal: undefined, preservedProposal: undefined, assembled: undefined, status: hadProposal ? "STALE" : "PREPARING_CONTEXT", message: hadProposal ? "Context selection changed. The previous proposal is stale." : "Preparing deterministic context…", requestSequence: this.requestSequence }); void this.prepare(hadProposal); }
+  private selectionChanged(next: Partial<StudioDraftingState>): void { this.abort?.abort(); this.abort = undefined; this.requestSequence += 1; const hadProposal = Boolean(this.state.proposal || this.state.manifoldArtifact); this.publish({ ...next, proposal: undefined, manifoldArtifact: undefined, preservedProposal: undefined, assembled: undefined, status: hadProposal ? "STALE" : "PREPARING_CONTEXT", message: hadProposal ? "Context selection changed. The previous proposal is stale." : "Preparing deterministic context…", requestSequence: this.requestSequence }); void this.prepare(hadProposal); }
   private eligibleSourceIds(): string[] { return (this.environment?.researchProjection.entries ?? []).filter(({ anchor }) => anchor.insertability.state === "INSERTABLE" && anchor.classification !== "UNDETERMINED").map(({ anchor }) => anchor.anchorId); }
   async prepare(retainStale = false): Promise<void> {
     const sequence = ++this.preparationSequence; const environment = this.environment;
@@ -60,8 +62,19 @@ export class StudioDraftingRuntime {
   async generate(): Promise<void> {
     if (this.state.status === "GENERATING" || !this.state.assembled || !this.environment?.scope) return;
     const assembled = this.state.assembled; const scope = this.environment.scope; const sequence = ++this.requestSequence; const controller = new AbortController(); this.abort = controller; const prior = this.state.proposal ?? this.state.preservedProposal;
-    this.publish({ status: "GENERATING", message: prior ? "Regenerating an unapplied proposal…" : "Generating an unapplied proposal…", requestSequence: sequence, preservedProposal: prior });
+    const isManifoldArtifact = assembled.context.artifactDesign.designId === "MANIFOLD_ARTIFACT";
+    this.publish({ status: "GENERATING", message: isManifoldArtifact ? "Generating local Manifold Artifact projection…" : prior ? "Regenerating an unapplied proposal…" : "Generating an unapplied proposal…", requestSequence: sequence, preservedProposal: prior });
     try {
+      if (isManifoldArtifact) {
+        // Cross a task boundary so React can paint and announce the pending state
+        // before deterministic local projection completes.
+        await new Promise<void>(done => setTimeout(done, 0));
+        if (sequence !== this.requestSequence || controller.signal.aborted) return;
+        const manifoldArtifact = await this.manifoldProjector(assembled);
+        if (sequence !== this.requestSequence || controller.signal.aborted) return;
+        this.publish({ status: "PROPOSAL_READY", manifoldArtifact, proposal: undefined, preservedProposal: undefined, message: "UNAPPLIED LOCAL PROJECTION ready. The .author document and Manifold are unchanged." });
+        return;
+      }
       const proposal = await this.client.generateDraftProposal(scope, { requestContractVersion: "studio-drafting-request/v1", investigationId: scope.investigationId, principalId: scope.principalId, contextHash: assembled.contextHash, context: assembled.context }, controller.signal);
       if (sequence !== this.requestSequence || controller.signal.aborted) return;
       const validIds = new Set(assembled.context.sources.map(source => source.anchorId)); const unknown = proposal.blocks.some(block => block.sourceReferences.some(reference => !validIds.has(reference.anchorId)));
@@ -70,9 +83,9 @@ export class StudioDraftingRuntime {
       this.publish({ status: "PROPOSAL_READY", proposal, preservedProposal: undefined, message: "UNAPPLIED DRAFT ready for review. The .author document is unchanged." });
     } catch {
       if (sequence !== this.requestSequence || controller.signal.aborted) return;
-      this.publish({ status: "GENERATION_FAILED", proposal: prior, preservedProposal: prior, message: "Draft generation is unavailable or failed safely. No document or artifact was changed." });
+      this.publish({ status: "GENERATION_FAILED", proposal: prior, manifoldArtifact: undefined, preservedProposal: prior, message: isManifoldArtifact ? "Manifold Artifact generation failed safely. No document, Research Inbox item, Investigation, or Manifold was changed." : "Draft generation is unavailable or failed safely. No document or artifact was changed." });
     } finally { if (this.abort === controller) this.abort = undefined; }
   }
   cancel(): void { if (this.state.status !== "GENERATING") return; this.abort?.abort(); this.abort = undefined; this.requestSequence += 1; this.publish({ status: "CANCELLED", message: "Generation cancelled. Late responses will be ignored.", requestSequence: this.requestSequence, proposal: this.state.preservedProposal }); }
-  discard(): void { this.abort?.abort(); this.abort = undefined; this.requestSequence += 1; this.publish({ status: "DISCARDED", proposal: undefined, preservedProposal: undefined, message: "The transient proposal was discarded. The .author document is unchanged.", requestSequence: this.requestSequence }); }
+  discard(): void { this.abort?.abort(); this.abort = undefined; this.requestSequence += 1; this.publish({ status: "DISCARDED", proposal: undefined, manifoldArtifact: undefined, preservedProposal: undefined, message: "The transient proposal was discarded. The .author document and Manifold are unchanged.", requestSequence: this.requestSequence }); }
 }

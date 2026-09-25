@@ -1152,3 +1152,34 @@ SC-009 defines the Manifold Instrument Architecture.
 
 
 
+# Durable operational revision authority (Phase D1)
+
+For authenticated Investigations, `isees_uap.investigations` and its SQLite
+transaction are the durable commit authority for operational graph revisions.
+An operational revision is an immutable, validated graph snapshot with a
+deterministic `KNOWLEDGE_TOPOLOGY_V1`-compatible fingerprint, schema and
+algorithm version, actor authority, mutation provenance, timestamp, and source
+identity. The initial revision has no parent; every later revision has exactly
+one parent and must extend the current head. Each Investigation has at most one
+unambiguous current operational head.
+
+`investigation_aggregate.revision` remains an optimistic-concurrency counter for
+the mutable current-state projection. It is not an operational revision number.
+The aggregate remains a read/current-state projection and is updated atomically
+with a new operational head. Browser runtime may validate and render returned
+authority, but it does not commit authenticated revisions.
+
+Guest Bring Your Own Case remains session-authoritative under the current
+policy. Adoption may establish the first owned revision only through the same
+authenticated Investigation transaction. Existing adopted aggregates without
+revision rows may yield one deterministic `MIGRATION_BASELINE` revision only
+after their current graph validates; this is explicitly not a claim that the
+baseline is the historical `REV-0001`, and malformed or ambiguous data fails
+closed.
+
+This foundation does not admit `MANIFOLD_ARTIFACT`, create ARTIFACT nodes, call
+REX or Web Discovery/Tavily, mutate Candidate Evidence, publish Research Inbox
+entries, alter confidence, or promote Canon.
+# Manifold artifact lineage
+
+Each successful governed artifact admission appends one immutable child operational revision and preserves Studio artifact, AuthorRevision, projection, configuration, source snapshot, and declaration lineage.

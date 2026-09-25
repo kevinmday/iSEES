@@ -18,6 +18,16 @@ class RevisionConflict(InvestigationLibraryError):
     status_code = 409
 
 
+class OperationalRevisionConflict(InvestigationLibraryError):
+    code = "OPERATIONAL_REVISION_CONFLICT"
+    status_code = 409
+
+
+class InvalidOperationalGraph(InvestigationLibraryError):
+    code = "INVALID_OPERATIONAL_GRAPH"
+    status_code = 422
+
+
 class InvalidPrincipal(InvestigationLibraryError):
     code = "INVALID_PRINCIPAL"
     status_code = 422
@@ -40,4 +50,12 @@ class InvalidInvestigationInput(InvestigationLibraryError):
 
 class IdempotencyKeyReuse(InvestigationLibraryError):
     code = "IDEMPOTENCY_KEY_REUSE"
+    status_code = 409
+
+class InvalidManifoldArtifactAdmission(InvestigationLibraryError):
+    code = "INVALID_MANIFOLD_ARTIFACT_ADMISSION"
+    status_code = 422
+
+class ManifoldArtifactAlreadyAdmitted(InvestigationLibraryError):
+    code = "MANIFOLD_ARTIFACT_ALREADY_ADMITTED"
     status_code = 409

@@ -626,6 +626,10 @@ projections generated from canonical computational artifacts.
 
 They never replace the originating computational objects.
 
+`MANIFOLD_ARTIFACT` is a governed Studio projection subtype, not a new top-level artifact family. Before admission it is an immutable `.projection` child with no Canon or Manifold effect. A future separately governed admission uses the existing `KnowledgeObjectType.ARTIFACT` top-level type and `MANIFOLD_ARTIFACT` subtype; projection identity and admission identity MUST remain distinct. Volatile build/export metadata and future admission receipts are not part of canonical manifest identity.
+
+Its governed durable filename ends in `.manifold-artifact.projection` and its media type is `application/vnd.isees.manifold-artifact+json`. The content is canonical UTF-8 JSON, but an unqualified `.json` filename is prohibited because it loses the governed projection semantics; `.author` is prohibited because the projection is not an independently authoritative author document.
+
 
 
 \---
@@ -970,3 +974,6 @@ of the iSEES platform.
 
 \# ============================================================
 
+# MANIFOLD_ARTIFACT subtype
+
+An admitted Studio manifold projection uses the existing top-level `ARTIFACT` node type with subtype `MANIFOLD_ARTIFACT`; its declarations remain qualified lineage metadata unless a proposed relationship is explicitly admitted.

@@ -54,14 +54,37 @@ class FigureNode(StrictModel): id: Identity; type: Literal["FIGURE"]; caption: I
 class TableNode(StrictModel): id: Identity; type: Literal["TABLE"]; caption: Identity; altText: Identity; dataId: Identity; columns: tuple[Identity, ...]; rows: tuple[tuple[str, ...], ...]; sourceAttribution: Identity; lineage: tuple[SourceLineage, ...]
 class AppendixNode(StrictModel): id: Identity; type: Literal["APPENDIX"]; title: Identity; childNodeIds: tuple[Identity, ...]
 SemanticNode = Annotated[HeadingNode | SectionNode | TextNode | ClaimNode | QuotationNode | CitationReferenceNode | FootnoteNode | EquationNode | FigureNode | TableNode | AppendixNode, Field(discriminator="type")]
+class ManifoldReference(StrictModel):
+    kind: Literal["SOURCE_SNAPSHOT", "RESEARCH_ANCHOR", "KNOWLEDGE_OBJECT", "EVIDENCE", "CITATION", "SEMANTIC_NODE", "GOVERNED_RELATIONSHIP", "ARTIFACT"]
+    identity: Identity; integrityHash: Sha256 | None = None
+    @model_validator(mode="after")
+    def integrity(self):
+        if (self.identity == "$ADMITTED_ARTIFACT") != (self.kind == "ARTIFACT"): raise ValueError("invalid admitted artifact reference")
+        if self.kind in {"SOURCE_SNAPSHOT", "EVIDENCE"} and not self.integrityHash: raise ValueError("integrity hash required for immutable source and Evidence references")
+        return self
+class DeclarationSource(StrictModel): authorship: Literal["RESEARCHER", "GOVERNED_SOURCE"]; sourceIdentity: Identity
+class DeclarationBase(StrictModel): declarationId: Identity; source: DeclarationSource; references: tuple[ManifoldReference, ...]
+class ResearcherAssertion(DeclarationBase): declarationType: Literal["RESEARCHER_ASSERTION"]; statement: Identity
+class DeclaredUnknown(DeclarationBase): declarationType: Literal["DECLARED_UNKNOWN"]; question: Identity
+class DeclaredContradiction(DeclarationBase):
+    declarationType: Literal["DECLARED_CONTRADICTION"]; statement: Identity; conflictingReferences: tuple[ManifoldReference, ...] = Field(min_length=2)
+class ProposedRelationship(DeclarationBase):
+    declarationType: Literal["PROPOSED_RELATIONSHIP"]; subject: ManifoldReference; predicate: Identity; object: ManifoldReference; proposalState: Literal["PROPOSED"]
+class ResearchVectorDeclaration(DeclarationBase):
+    declarationType: Literal["RESEARCH_VECTOR"]; researchQuestion: Identity; targetReferences: tuple[ManifoldReference, ...] = Field(min_length=1)
+class ScopeConstraint(DeclarationBase): declarationType: Literal["SCOPE_CONSTRAINT"]; constraint: Identity
+class Exclusion(DeclarationBase): declarationType: Literal["EXCLUSION"]; excludedReference: ManifoldReference; rationale: Identity
+ManifoldDeclaration = Annotated[ResearcherAssertion | DeclaredUnknown | DeclaredContradiction | ProposedRelationship | ResearchVectorDeclaration | ScopeConstraint | Exclusion, Field(discriminator="declarationType")]
 class SemanticDocument(StrictModel):
     documentId: Identity; schemaVersion: Literal["studio-author-semantic/v1"]; title: Identity; nodeOrder: tuple[Identity, ...]
     nodes: tuple[SemanticNode, ...]; citations: tuple[CitationMetadata, ...]; citationStyle: CitationStyleConfiguration
+    manifoldDeclarations: tuple[ManifoldDeclaration, ...] | None = None
     @model_validator(mode="after")
     def identities(self):
         ids = tuple(node.id for node in self.nodes)
         if len(set(ids)) != len(ids): raise ValueError("duplicate semantic IDs")
         if self.nodeOrder != ids: raise ValueError("nodeOrder must exactly match node serialization order")
+        if self.manifoldDeclarations is not None and len({x.declarationId for x in self.manifoldDeclarations}) != len(self.manifoldDeclarations): raise ValueError("duplicate manifold declaration identities")
         return self
 class SnapshotReference(StrictModel): snapshotId: Identity; snapshotHash: Sha256
 class AuthorRevision(StrictModel):
@@ -114,10 +137,31 @@ class FailureDetails(StrictModel): code: Identity; safeMessage: Identity
 class Publication(StrictModel): publicationId: Identity; status: Literal["PUBLISHED", "RETRACTED"]
 class ChildProjection(StrictModel):
     projectionId: Identity; parentArtifactId: Identity; parentRevisionId: Identity; parentContentHash: Sha256
-    format: Literal["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST"]
+    format: Literal["PDF", "DOCX", "HTML", "LATEX", "BIBLIOGRAPHY_MANIFEST", "SOURCE_PROVENANCE_MANIFEST", "MANIFOLD_ARTIFACT"]
     state: Literal["NOT_GENERATED", "QUEUED", "REBUILDING", "CURRENT", "STALE", "FAILED", "SUPERSEDED", "PUBLISHED", "RETRACTED"]
     templateProfileVersion: Identity; rendererVersion: Identity; configurationHash: Sha256; outputHash: Sha256 | None = None
     priorSuccessfulProjectionId: Identity | None = None; failure: FailureDetails | None = None; publication: Publication | None = None
+class ManifoldArtifactSource(StrictModel):
+    artifactId: Identity; documentId: Identity; revisionId: Identity; revisionNumber: int = Field(ge=1); contentHash: Sha256; investigationId: Identity
+class FrozenSourceAnchorSet(StrictModel): snapshotId: Identity; snapshotHash: Sha256; anchorIds: tuple[Identity, ...]
+class AcceptedRelationshipReference(StrictModel): relationshipIdentity: Identity; governanceAuthorityIdentity: Identity; governanceRevisionIdentity: Identity
+class NormalizedProvenance(StrictModel): provenanceId: Identity; sourceIdentity: Identity; reference: ManifoldReference
+class ProjectionConfiguration(StrictModel): configurationIdentity: Identity; configurationVersion: Identity; configurationHash: Sha256
+class ManifoldArtifactManifest(StrictModel):
+    kind: Literal["MANIFOLD_ARTIFACT"]; schemaVersion: Literal["studio-manifold-artifact-manifest/v1"]
+    source: ManifoldArtifactSource; frozenSourceAnchors: tuple[FrozenSourceAnchorSet, ...]
+    sourceKnowledgeIdentities: tuple[ManifoldReference, ...]; evidenceReferences: tuple[ManifoldReference, ...]
+    declarations: tuple[ManifoldDeclaration, ...]; acceptedRelationshipReferences: tuple[AcceptedRelationshipReference, ...]
+    normalizedProvenance: tuple[NormalizedProvenance, ...]; projectionConfiguration: ProjectionConfiguration; canonEffect: Literal["NONE"]
+    @model_validator(mode="after")
+    def identities(self):
+        groups = ((x.snapshotId for x in self.frozenSourceAnchors), (x.declarationId for x in self.declarations), (x.relationshipIdentity for x in self.acceptedRelationshipReferences), (x.provenanceId for x in self.normalizedProvenance))
+        if any(len(values := tuple(group)) != len(set(values)) for group in groups): raise ValueError("duplicate manifold artifact identity")
+        if any(x.kind != "KNOWLEDGE_OBJECT" for x in self.sourceKnowledgeIdentities): raise ValueError("sourceKnowledgeIdentities must be KNOWLEDGE_OBJECT references")
+        if any(x.kind not in {"EVIDENCE", "CITATION"} for x in self.evidenceReferences): raise ValueError("invalid evidence reference")
+        return self
+class ManifoldArtifactBuildMetadata(StrictModel): projectionId: Identity; createdAt: UtcTimestamp | None = None; jobTime: UtcTimestamp | None = None; exportTime: UtcTimestamp | None = None
+class ManifoldArtifactAdmissionMetadata(StrictModel): admissionId: Identity; admissionTime: UtcTimestamp; operationalRevisionId: Identity
 class IntentionCapabilities(StrictModel): mutation: Literal["PROHIBITED"]; testConfiguration: Literal["PROHIBITED"]; execution: Literal["PROHIBITED"]; navigation: Literal["PROHIBITED"]; directInvocation: Literal["PROHIBITED"]
 class IntentionResultReference(StrictModel): resultId: Identity; executionId: Identity; projectionId: Identity; resultHash: Sha256; completionStatus: Literal["COMPLETED"]; immutableStatus: Literal["IMMUTABLE"]; access: Literal["READ_ONLY"]
 class InferenceStatement(StrictModel): id: Identity; text: Identity; authorship: Literal["RESEARCHER", "AI"]; epistemicClass: Literal["ABDUCTIVE"]

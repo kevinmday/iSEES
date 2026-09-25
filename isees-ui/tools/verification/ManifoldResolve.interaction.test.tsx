@@ -25,7 +25,7 @@ function establishGuestPair() {
   const canonical = buildKnowledgeBootstrapPopulation();
   const content = restoreNativeCaseDraftContent(createBlankNativeCaseDraftContent());
   const form = Object.freeze({ ...content, workingTitle: suppliedEnvelope("Guest Case Alpha"), observationNarrative: suppliedEnvelope("A stable luminous object was observed.") });
-  const created = createGuestCandidateInvestigation(form, identity, establishedAt, "resolve-interaction-candidate", canonical);
+  const created = createGuestCandidateInvestigation(form, identity, establishedAt, "resolve-interaction-candidate");
   if (created.status !== "CREATED") throw new Error(created.message);
   const targets = canonical.filter(object => object.type === "EVENT" && object.provenance.sourceType === "SYSTEM_CANON");
   const target = targets[0]!;

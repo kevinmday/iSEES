@@ -9,7 +9,7 @@ const projections:ProjectionStatusList={artifactId:"artifact",revisionId:prior,i
  {projectionId:"docx-r1",format:"DOCX",parentRevisionId:prior,state:"FAILED",failureCategory:"RENDERER_UNAVAILABLE",outputHash:null},
 ]};
 const priorFamily=projectStudioArtifactFamily(projections,prior);
-assert.deepEqual(priorFamily.map(item=>item.format),["PDF","DOCX","HTML"],"PDF, DOCX, and HTML form the governed child family");
+assert.deepEqual(priorFamily.map(item=>item.format),["PDF","DOCX","HTML","MANIFOLD_ARTIFACT"],"MANIFOLD_ARTIFACT joins PDF, DOCX, and HTML without changing their order");
 assert.equal(priorFamily[0]?.state,"CURRENT","current requires an exact authoritative parent and output hash");
 assert.equal(priorFamily[0]?.parentRevisionId,prior,"child exposes its exact parent revision");
 assert.equal(priorFamily[1]?.state,"FAILED","authoritative failure remains explicit");

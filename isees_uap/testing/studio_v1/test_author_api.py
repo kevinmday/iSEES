@@ -14,6 +14,13 @@ from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepos
 from isees_uap.investigations.sqlite_repository import SQLiteInvestigationRepository
 from isees_uap.studio.v1.hashing import canonical_sha256
 from isees_uap.studio.v1.schemas import SemanticDocument
+from isees_uap.studio.v1.manifold_artifact_renderer import (
+    CONFIGURATION_HASH as MANIFOLD_CONFIGURATION_HASH,
+    CONFIGURATION_IDENTITY as MANIFOLD_CONFIGURATION_IDENTITY,
+    CONFIGURATION_VERSION as MANIFOLD_CONFIGURATION_VERSION,
+    MEDIA_TYPE as MANIFOLD_MEDIA_TYPE, RENDERER_VERSION as MANIFOLD_RENDERER_VERSION,
+    TEMPLATE_VERSION as MANIFOLD_TEMPLATE_VERSION,
+)
 from isees_uap.testing.studio_v1.test_api_composition import enabled_config
 from isees_uap.testing.studio_v1.test_persistence import make_command, second
 
@@ -81,10 +88,44 @@ def test_exact_route_surface_and_no_worker_or_publication_mutations(api):
     application, _, _, _ = api
     paths = application.openapi()["paths"]
     studio = {path: set(methods) for path, methods in paths.items() if "/studio-v1/" in path}
-    assert len(studio) == 11
-    assert sum(len(methods) for methods in studio.values()) == 13
+    assert len(studio) == 14
+    assert sum(len(methods) for methods in studio.values()) == 16
     assert all(not any(word in path for word in ("claim", "complete", "fail", "retry", "publish"))
                for path in studio)
+
+
+def test_manifold_artifact_materialization_status_download_and_scope(api):
+    _, investigations, client, owner, base = prepare(api)
+    command = make_command(projections=0, owner=owner)
+    assert client.post(base, json=wire(command), headers=csrf(client)).status_code == 201
+    revision = f"{base}/{command.artifact.artifactId}/revisions/{command.revision.revisionId}"
+    payload = {"schemaVersion": MANIFOLD_TEMPLATE_VERSION,
+        "rendererVersion": MANIFOLD_RENDERER_VERSION,
+        "configurationIdentity": MANIFOLD_CONFIGURATION_IDENTITY,
+        "configurationVersion": MANIFOLD_CONFIGURATION_VERSION,
+        "configurationHash": MANIFOLD_CONFIGURATION_HASH,
+        "idempotencyKey": "manifold-api-1"}
+    created = client.post(revision + "/projections/manifold-artifact", json=payload,
+                          headers=csrf(client))
+    assert created.status_code == 201
+    body = created.json(); projection_id = body["projectionId"]
+    assert body["format"] == "MANIFOLD_ARTIFACT" and body["state"] == "CURRENT"
+    assert body["mediaType"] == MANIFOLD_MEDIA_TYPE and body["downloadAvailable"]
+    assert body["filename"].endswith(".manifold-artifact.projection")
+    status_response = client.get(revision + "/projections/" + projection_id)
+    assert status_response.status_code == 200 and status_response.json() == body
+    downloaded = client.get(revision + "/projections/" + projection_id + "/download")
+    assert downloaded.status_code == 200 and downloaded.content
+    assert downloaded.headers["content-type"] == MANIFOLD_MEDIA_TYPE
+    assert downloaded.headers["etag"] == f'"{body["outputHash"]}"'
+    statuses = client.get(revision + "/projections").json()["items"]
+    assert any(item["projectionId"] == projection_id and item["format"] == "MANIFOLD_ARTIFACT"
+               for item in statuses)
+    foreign, foreign_id = api[2]("manifold-foreign")
+    investigations.create(investigation_id="foreign-manifold", owner_principal_id=foreign_id,
+                          title="Foreign")
+    assert foreign.get(revision + "/projections/" + projection_id).status_code == 404
+    assert foreign.get(revision + "/projections/" + projection_id + "/download").status_code == 404
 
 
 def test_save_requires_author_revision_and_has_no_registration_or_publication_effect(api):

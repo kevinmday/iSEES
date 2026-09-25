@@ -152,6 +152,7 @@ import {
   AuthorDocumentRuntimeProvider,
 
 } from "./author/runtime/AuthorDocumentRuntimeContext";
+import { StudioSaveActionProvider } from "./studio/runtime/StudioSaveActionProvider";
 
 import {
 
@@ -299,6 +300,8 @@ function OperatorUI({ routeSurface }: { routeSurface?: ReactNode }) {
 
                     <GuestWorkspaceSessionLifecycleBridge />
 
+                    <StudioSaveActionProvider>
+
                     <FederationProvider>
 
                       <IntelligenceBriefProvider>
@@ -322,6 +325,8 @@ function OperatorUI({ routeSurface }: { routeSurface?: ReactNode }) {
                       </IntelligenceBriefProvider>
 
                     </FederationProvider>
+
+                    </StudioSaveActionProvider>
 
                   </AuthorDocumentRuntimeProvider>
 

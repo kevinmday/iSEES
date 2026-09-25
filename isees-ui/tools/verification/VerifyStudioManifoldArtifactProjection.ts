@@ -1,0 +1,28 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { manifoldArtifactOutputHash } from "../../src/studio/contracts/StudioCanonicalSerialization.ts";
+import type { ManifoldArtifactManifest } from "../../src/studio/contracts/StudioV1Contract.ts";
+import { projectStudioArtifactFamily } from "../../src/studio/components/StudioArtifactFamilySemantics.ts";
+import { summarizeManifoldArtifact } from "../../src/studio/components/StudioManifoldArtifactSemantics.ts";
+import { createStudioV1AuthorApiClient } from "../../src/studio/v1/api/StudioV1AuthorApiClient.ts";
+
+const fixtures=JSON.parse(readFileSync("../contracts/studio-v1/fixtures/studio-v1-contract-fixtures.json","utf8"));
+const manifest=fixtures.manifoldArtifactManifest as ManifoldArtifactManifest,outputHash=manifoldArtifactOutputHash(manifest);
+const status={projectionId:"projection-manifold-1",artifactId:manifest.source.artifactId,revisionId:manifest.source.revisionId,revisionNumber:manifest.source.revisionNumber,parentContentHash:manifest.source.contentHash,format:"MANIFOLD_ARTIFACT",state:"CURRENT",schemaVersion:"studio-manifold-artifact-manifest/v1",rendererVersion:"studio-v1-manifold-artifact/1",configurationIdentity:"manifold-artifact-default",configurationVersion:"1",configurationHash:"sha256:c09c4148dfafd4193cf3abad180990ab8ab4dc8a093262a7d3b4c9f9322d56e5",outputHash,mediaType:"application/vnd.isees.manifold-artifact+json",filename:"artifact-r0001.manifold-artifact.projection",byteLength:JSON.stringify(manifest).length,failureCategory:null,failureMessage:null,downloadAvailable:true};
+const calls:{url:string;init?:RequestInit}[]=[];
+const fetcher:typeof fetch=async(input,init)=>{calls.push({url:String(input),init});return String(input).endsWith("/download")?new Response(JSON.stringify(manifest),{status:200,headers:{"Content-Type":"application/vnd.isees.manifold-artifact+json","Content-Disposition":`attachment; filename="${status.filename}"`}}):new Response(JSON.stringify(status),{status:201,headers:{"Content-Type":"application/json"}})};
+const client=createStudioV1AuthorApiClient({baseUrl:"https://studio.test",fetch:fetcher,readCsrfToken:()=>"csrf"});
+assert.equal(calls.length,0,"no request occurs before explicit activation");
+const created=await client.materializeManifoldArtifact("investigation-1",status.artifactId,status.revisionId,{schemaVersion:"studio-manifold-artifact-manifest/v1",rendererVersion:"studio-v1-manifold-artifact/1",configurationIdentity:"manifold-artifact-default",configurationVersion:"1",configurationHash:status.configurationHash,idempotencyKey:"explicit-materialization"});
+assert.equal(created.revisionId,status.revisionId);assert.match(calls[0]!.url,new RegExp(`/revisions/${status.revisionId}/projections/manifold-artifact$`));assert.equal(calls[0]!.init?.method,"POST");assert.doesNotMatch(String(calls[0]!.init?.body),/semanticContent|workingDraft/);
+const downloaded=await client.downloadManifoldArtifact("investigation-1",status.artifactId,status.revisionId,status.projectionId,outputHash);assert.equal(downloaded.filename,status.filename);assert.deepEqual(downloaded.manifest,manifest);assert.equal(calls.length,2,"manifest bytes are requested only on explicit download or inspection");
+const summary=summarizeManifoldArtifact(manifest);assert.equal(summary.frozenSnapshots,1);assert.equal(summary.sourceAnchors,2);assert.equal(summary.totalDeclarations,1);assert.deepEqual(Object.values(summary.declarations),[0,0,0,1,0,0,0]);assert.equal(manifest.canonEffect,"NONE");
+const list={artifactId:status.artifactId,revisionId:status.revisionId,items:[{projectionId:status.projectionId,format:"MANIFOLD_ARTIFACT" as const,parentRevisionId:status.revisionId,state:"CURRENT" as const,failureCategory:null,outputHash}]};
+assert.equal(projectStudioArtifactFamily(list,status.revisionId)[3]!.label,"CURRENT");assert.equal(projectStudioArtifactFamily(list,"revision-newer")[3]!.state,"STALE");
+const malformedFetcher:typeof fetch=async()=>new Response('{"kind":"MANIFOLD_ARTIFACT"}',{status:200,headers:{"Content-Type":"application/vnd.isees.manifold-artifact+json","Content-Disposition":`attachment; filename="${status.filename}"`}});
+await assert.rejects(()=>createStudioV1AuthorApiClient({baseUrl:"https://studio.test",fetch:malformedFetcher}).downloadManifoldArtifact("investigation-1",status.artifactId,status.revisionId,status.projectionId,outputHash),/contract or integrity/);
+const family=readFileSync("src/studio/components/StudioArtifactFamily.tsx","utf8"),inspector=readFileSync("src/studio/components/StudioManifoldArtifactInspector.tsx","utf8");
+for(const language of ["CREATE MANIFOLD ARTIFACT","INSPECT MANIFEST","DOWNLOAD MANIFOLD ARTIFACT","Projected · Not admitted to Manifold","Unsaved changes are not projected","no prose parsing or AI interpretation"])assert.ok(family.includes(language),language);
+for(const language of ["Canon Effect","Admitted to Manifold","Knowledge mutation","Operational revision","REX execution","Tavily execution","Raw validated manifest"])assert.ok(inspector.includes(language),language);
+assert.match(inspector,/role="dialog"[\s\S]*aria-modal="true"/);assert.match(inspector,/event\.key==="Escape"/);assert.match(family,/inspectTrigger\.current\?\.focus/);assert.doesNotMatch(family,/history\.|navigate|Research Inbox.*=|Knowledge Object|Tavily.*\(|REX.*\(/);
+console.log("PASS VerifyStudioManifoldArtifactProjection — exact revision materialization, strict manifest validation, counts, lifecycle/freshness, immutable download metadata, authority language, and accessibility verified");

@@ -29,6 +29,14 @@ export type GuestCandidateEvent = Readonly<{
   knowledgeObject: KnowledgeObject;
 }>;
 
+export type GuestCanonicalWorkingCopy = Readonly<{
+  kind: "GUEST_CANONICAL_WORKING_COPY";
+  sourceInvestigationId: string;
+  sourceWorkspaceId: string;
+  sourceRevisionId: string;
+  sourceEventId: string;
+}>;
+
 export type WorkspaceReference = {
 
   event_id: string;
@@ -64,6 +72,9 @@ export type Workspace = {
 
   guest_candidate_event?:
     GuestCandidateEvent;
+
+  guest_canonical_working_copy?:
+    GuestCanonicalWorkingCopy;
 
   investigations:
     WorkspaceInvestigation[];

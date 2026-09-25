@@ -44,7 +44,6 @@ import "./StudioShell.css";
 import { useActiveInvestigation, useWorkspaceRuntime } from "../../workspace/runtime/WorkspaceRuntimeContext";
 import { useAuthorDocumentRuntime } from "../runtime/AuthorDocumentRuntimeContext";
 import { WorkspaceMode } from "../../workspace/runtime/WorkspaceRuntimeTypes";
-import { StudioSaveActionProvider } from "../../studio/runtime/StudioSaveActionProvider.tsx";
 
 // ============================================================
 // STYLES
@@ -145,4 +144,4 @@ function StudioShellContent() {
 
 }
 
-export default function StudioShell(){return <StudioSaveActionProvider><StudioShellContent /></StudioSaveActionProvider>}
+export default function StudioShell(){return <StudioShellContent />}

@@ -175,6 +175,18 @@ Concurrent saves MUST fail closed on a stale expected head and SHOULD provide a 
 
 Violation of an invariant MUST fail closed, preserve recoverable state, and produce an auditable error without claiming success.
 
+### 14.1 MANIFOLD_ARTIFACT projection contract
+
+`MANIFOLD_ARTIFACT` is a governed Studio V1 projection format with manifest schema `studio-manifold-artifact-manifest/v1`. It is a deterministic, immutable, machine-readable child of exactly one saved `AuthorRevision`; it is not an operational Manifold revision and its creation has `CanonEffect.NONE`. Projection creation MUST NOT create or mutate Knowledge, Inbox, Evidence, Canon, Manifold, REX, provider, or admission state. Any future admission is a separate governed action and, if admitted, uses the existing top-level `KnowledgeObjectType.ARTIFACT` with governed subtype `MANIFOLD_ARTIFACT`.
+
+The renderer MUST consume only structured `.author` declarations and frozen source snapshots. It MUST NOT parse prose, `PARAGRAPH`, `RESEARCHER_NOTE`, `CLAIM`, or other display content to infer investigative meaning. A saved semantic document MAY carry declarations discriminated as `RESEARCHER_ASSERTION`, `DECLARED_UNKNOWN`, `DECLARED_CONTRADICTION`, `PROPOSED_RELATIONSHIP`, `RESEARCH_VECTOR`, `SCOPE_CONSTRAINT`, or `EXCLUSION`. Each declaration MUST have stable identity, researcher or governed-source identity, exact typed references where applicable, strict validation, and canonical serialization. These declarations state authored semantics only; they do not imply truth, acceptance, corroboration, Canon effect, or graph mutation. A proposed relationship MUST remain `PROPOSED`.
+
+The canonical manifest contains its kind and schema version; exact source artifact, document, revision identity and number, content hash, and investigation; frozen snapshot and anchor identities; explicitly present Knowledge identities; Evidence/citation identities and integrity hashes where present; declarations; explicitly governed accepted-relationship references; normalized provenance; projection configuration identity/version/hash; and `CanonEffect.NONE`. Creation, job, and export timestamps, UI or provider state, admission identity/time, and any operational revision later created by admission MUST remain outside the canonical manifest and MUST NOT affect its bytes or output hash. The saved revision does not currently provide an operational graph revision; this projection MUST NOT fabricate or require one.
+
+The durable representation is canonical UTF-8 JSON (sorted object keys, compact separators, no BOM, and no trailing newline), served as `application/vnd.isees.manifold-artifact+json`. Its governed filename ends in `.manifold-artifact.projection`; it MUST NOT use `.author` or an unqualified `.json` identity. The output hash is SHA-256 over those exact stored/downloaded bytes. Unordered identity/reference sets are lexicographically normalized while the saved declaration sequence preserves authored semantic order.
+
+For identical saved revision content and identical projection configuration, canonical manifest bytes and output hash MUST be identical. A newer `AuthorRevision` produces a distinct projection input. An older admitted projection remains historically valid. Projection identity and admission identity are distinct. Neither a projection nor its `.author` source can corroborate the other, and sibling projections with shared source ancestry are dependent evidence, not independent corroboration.
+
 ## 15. V1 versus V2 boundary
 
 ### Required in V1
@@ -186,3 +198,6 @@ V1 comprises the four named artifact profiles; structured `.author` authority an
 V2 MAY add direct Inference Box invocation from INTENTION, bidirectional navigation, round-trip requests to configure or execute INTENTION tests, additional artifact profiles, collaborative authoring, and further citation/export adapters. A V1 implementation MUST NOT include a dormant control or placeholder that implies these V2 capabilities are available.
 
 No V2 capability may weaken V1 authority, immutability, source-freezing, proposal, determinism, publication, privacy, or canonical-boundary invariants.
+# Phase D2 governed admission boundary
+
+`MANIFOLD_ARTIFACT` projection remains a no-effect Studio child projection. Only the explicit, authenticated adapter governed by `MANIFOLD-ADMISSION-001` may append it as an `ARTIFACT/MANIFOLD_ARTIFACT` node through the existing investigation operational revision authority; the browser and Studio projection store are not graph commit authorities.

@@ -506,3 +506,15 @@ This separation preserves a calm front door, an explicit governed selection boun
 The public Overview is also the first-contact orientation; a second promotional or introduction screen MUST NOT follow an equivalent public orientation. Explicit Nimitz exploration establishes Guest authority and opens `E-TICTAC-2004` as a governed LIBRARY preview only. LIBRARY owns preview and the later explicit “Open Event in Workspace” activation. Guest establishment is not activation, and Candidate Evidence remains outside Manifold membership.
 
 The transient handoff contains no Investigation payload, is consumed once by existing Library navigation and Overview selection ownership after operational providers mount, and fails closed without changing investigation state. Back/Forward restore OVERVIEW/LIBRARY presentation only; they MUST NOT repeat API work, identity establishment, Canon selection mutation, activation, or deactivation.
+# Authenticated activation revision continuity (Phase D1)
+
+Owned activation returns the persisted operational head and its immutable
+lineage from the existing Investigation repository. Reload reconstructs that
+exact authority and must not invent `REV-0001`. The Library, Overview, and
+Manifold remain projections/consumers; none is a graph commit authority.
+Revision compatibility for legacy owned aggregates is limited to the explicit,
+validated migration-baseline policy defined by SC-010. Guest BYOC creation and
+session restoration remain browser-session authoritative and unchanged.
+# Admission authority
+
+Durable Manifold artifact admission is authenticated and owner-scoped. Guest surfaces may explain the sign-in requirement but must not create an equivalent temporary admission.

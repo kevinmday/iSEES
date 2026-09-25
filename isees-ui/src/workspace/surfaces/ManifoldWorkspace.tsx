@@ -38,7 +38,10 @@ import PrimaryInvestigationManifold
 
 import {
   useActiveWorkspace,
+  useWorkspaceRuntime,
 } from "../runtime/WorkspaceRuntimeContext";
+import { WorkspaceMode } from "../runtime/WorkspaceRuntimeTypes";
+import StudioManifoldArtifactReview from "./StudioManifoldArtifactReview";
 
 // ============================================================
 // COMPONENT
@@ -48,6 +51,8 @@ export default function ManifoldWorkspace() {
 
   const activeWorkspace =
     useActiveWorkspace();
+  const runtime = useWorkspaceRuntime();
+  const artifactReview = runtime.getStudioManifoldArtifactReview();
 
   const focusedEventId =
     activeWorkspace
@@ -57,7 +62,7 @@ export default function ManifoldWorkspace() {
   // NO ACTIVE INVESTIGATION FOCUS
   // ==========================================================
 
-  if (!focusedEventId) {
+  if (!focusedEventId && !artifactReview) {
 
     return (
 
@@ -88,6 +93,7 @@ export default function ManifoldWorkspace() {
 
     <div
       style={{
+        position: "relative",
         flex: 1,
         width: "100%",
         height: "100%",
@@ -100,9 +106,15 @@ export default function ManifoldWorkspace() {
       }}
     >
 
-      <PrimaryInvestigationManifold
-        focusedEventId={focusedEventId}
-      />
+      {artifactReview
+        ? <StudioManifoldArtifactReview
+            artifact={artifactReview}
+            onReturnToStudio={() => {
+              runtime.clearStudioManifoldArtifactReview(artifactReview);
+              runtime.navigateToMode(WorkspaceMode.RESEARCH);
+            }}
+          />
+        : focusedEventId && <PrimaryInvestigationManifold focusedEventId={focusedEventId} />}
 
     </div>
 

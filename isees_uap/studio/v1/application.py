@@ -11,12 +11,23 @@ from typing import Callable
 from .legacy_adapter import legacy_version_to_author_revision
 from .export_service import StudioV1ExportService
 from .output_store import StudioOutputStore
+from .validation import validate_manifold_artifact_manifest
+import json
 from .persistence import (FailureCode, ProjectionJob, SaveCommand, SaveResult,
                           StudioV1Failure)
 from .save_service import StudioV1SaveService, request_fingerprint
 from .sqlite_store import ConnectionFactory, SQLiteStudioV1Store
 
 STUDIO_V1_CONTRACT_VERSION = "studio-v1"
+
+@dataclass(frozen=True)
+class VerifiedManifoldProjection:
+    record: object
+    stored_bytes: bytes
+    output_hash: str
+    artifact_identity: object
+    author_revision: object
+    manifest: object
 STUDIO_V1_SCHEMA_VERSION = 1
 
 
@@ -249,6 +260,49 @@ class PrivateStudioV1Application:
         self._require_ready()
         try: return self._export_service.download(owner_id, investigation_id, artifact_id, revision_id, export_id)
         except StudioV1Failure as exc: self._scope_failure(exc)
+
+    def get_projection_materialization(self, owner_id, investigation_id, artifact_id, revision_id, projection_id):
+        self._require_ready()
+        try:
+            return self._export_service.projection_status(owner_id, investigation_id, artifact_id,
+                                                          revision_id, projection_id)
+        except StudioV1Failure as exc: self._scope_failure(exc)
+
+    def download_projection_materialization(self, owner_id, investigation_id, artifact_id,
+                                            revision_id, projection_id):
+        self._require_ready()
+        try:
+            return self._export_service.download_projection(owner_id, investigation_id, artifact_id,
+                                                             revision_id, projection_id)
+        except StudioV1Failure as exc: self._scope_failure(exc)
+
+    def load_verified_manifold_projection(self, owner_id, investigation_id, projection_id):
+        """Load admission input exclusively through Studio's owner-scoped authority."""
+        self._require_ready()
+        matches = [record for artifact in self._store.list_artifacts(owner_id, investigation_id)
+                   for record in self._store.list_projection_jobs(owner_id, investigation_id, artifact.artifactId)
+                   if record.projection_id == projection_id]
+        if len(matches) != 1:
+            raise StudioV1Failure(FailureCode.EXPORT_NOT_FOUND, "Projection materialization was not found.")
+        job = matches[0]
+        record, data = self._export_service.download_projection(owner_id, investigation_id,
+            job.artifact_id, job.revision_id, projection_id)
+        revision = self._store.get_revision(owner_id, investigation_id, job.artifact_id, job.revision_id)
+        artifact = self._store.locate_artifact(owner_id, investigation_id, job.artifact_id)
+        try:
+            manifest = validate_manifold_artifact_manifest(json.loads(data.decode("utf-8")))
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            raise StudioV1Failure(FailureCode.OUTPUT_INTEGRITY_FAILURE,
+                                  "Stored projection validation failed.") from exc
+        source = manifest.source
+        if (record.format != "MANIFOLD_ARTIFACT" or record.state != "CURRENT"
+                or source.artifactId != artifact.artifactId or source.investigationId != investigation_id
+                or source.revisionId != revision.revisionId or source.revisionNumber != revision.revisionNumber
+                or source.contentHash != revision.contentHash
+                or artifact.currentSavedRevisionId != revision.revisionId):
+            raise StudioV1Failure(FailureCode.OUTPUT_INTEGRITY_FAILURE,
+                                  "Stored projection lineage validation failed.")
+        return VerifiedManifoldProjection(record, data, record.output_hash, artifact, revision, manifest)
 
     def convert_legacy_version(self, version, *, profile, profile_version, snapshot_references):
         self._require_ready()

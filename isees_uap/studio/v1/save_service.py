@@ -13,6 +13,7 @@ from .validation import validate_revision, validate_snapshot
 
 def projection_identity(command: SaveCommand, spec: ProjectionSpecification) -> str:
     digest = canonical_sha256({"artifactId": command.artifact.artifactId, "revisionId": command.revision.revisionId,
+        "parentContentHash": command.revision.contentHash,
         "format": spec.format, "templateProfileVersion": spec.template_profile_version,
         "rendererVersion": spec.renderer_version, "configurationHash": spec.configuration_hash}).split(":", 1)[1]
     return f"studio-v1-projection-{digest}"

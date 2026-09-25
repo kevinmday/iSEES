@@ -18,7 +18,7 @@ const responses:unknown[]=[save,save,discovery,head,{artifactId:revision.artifac
 const mock:typeof fetch=async(input,init)=>{calls.push({url:String(input),init});return new Response(JSON.stringify(responses.shift()),{status:init?.method==="POST"?201:200,headers:{"Content-Type":"application/json"}})};
 assert.equal(calls.length,0,"import causes no fetch");
 const api=createStudioV1AuthorApiClient({baseUrl:"https://api.test/",fetch:mock,readCsrfToken:()=>"secret-csrf"});
-assert.deepEqual(Object.keys(api).sort(),["createArtifact","discoverArtifacts","getArtifact","getRevision","getSourceSnapshot","listProjectionStatuses","listRevisions","saveRevision"].sort());
+assert.deepEqual(Object.keys(api).sort(),["createArtifact","createExport","discoverArtifacts","downloadExport","downloadManifoldArtifact","exportCurrentDraftDocx","exportCurrentDraftPdf","getArtifact","getExport","getManifoldArtifact","getRevision","getSourceSnapshot","listProjectionStatuses","listRevisions","materializeManifoldArtifact","saveRevision"].sort());
 const before=structuredClone(request);const controller=new AbortController();
 assert.deepEqual(await api.createArtifact("investigation-1",request,controller.signal),save);
 const next:SaveAuthorRequest={...request,artifact:{...request.artifact,currentSavedRevisionId:revision.revisionId,workingDraft:{state:"UNSAVED",basedOnRevisionId:revision.revisionId}},revision:{...request.revision,revisionId:`${revision.artifactId}.r2`,revisionNumber:2,parentRevisionId:revision.revisionId},expectedHeadRevisionId:revision.revisionId};await api.saveRevision("investigation-1",revision.artifactId,next);

@@ -9,7 +9,7 @@ import { buildKnowledgeBootstrapPopulation, bootstrapKnowledgeRuntime } from "..
 import { composeGuestOperationalKnowledgeObjects, GUEST_CANDIDATE_ADAPTER_VERSION, GUEST_CANDIDATE_SOURCE_TYPE, type GuestCandidateKnowledgePayload } from "../../src/knowledge/ingestion/GuestCandidateKnowledgeAdapter.ts";
 import { buildKnowledgeTopology } from "../../src/knowledge/topology/KnowledgeTopologyBuilder.ts";
 import { adaptKnowledgeTopology } from "../../src/knowledge/topology/KnowledgeTopologyAdapter.ts";
-import { resolveActiveOperationalGraphProjection } from "../../src/investigation/revision/OperationalGraphRevision.ts";
+import { createOperationalGraphFingerprint, resolveActiveOperationalGraphProjection } from "../../src/investigation/revision/OperationalGraphRevision.ts";
 import { WorkspaceRuntimeProvider } from "../../src/workspace/runtime/WorkspaceRuntimeContext.tsx";
 import { workspaceRuntime } from "../../src/workspace/runtime/WorkspaceRuntime.ts";
 import { WorkspaceMode, WorkspaceSelectionKind } from "../../src/workspace/runtime/WorkspaceRuntimeTypes.ts";
@@ -97,7 +97,7 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
     const strict = process.env.ISEES_REQUIRE_STRUCTURED_MAPPING === "1";
     const canonical = buildKnowledgeBootstrapPopulation();
     const canonBefore = JSON.stringify(canonical);
-    const created = createGuestCandidateInvestigation(case39Form(), identity, recordedAt, "case-39-structured-mapping", canonical);
+    const created = createGuestCandidateInvestigation(case39Form(), identity, recordedAt, "case-39-structured-mapping");
     expect(created.status).toBe("CREATED");
     if (created.status !== "CREATED") throw new Error("Case #39 intake unexpectedly failed validation.");
 
@@ -132,13 +132,16 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
 
     const knowledge = composeGuestOperationalKnowledgeObjects(created.investigation.workspace, canonical);
     const guestObjects = knowledge.filter(object => object.provenance.sourceType === GUEST_CANDIDATE_SOURCE_TYPE);
-    const topology = buildKnowledgeTopology([...knowledge]);
+    const topology = buildKnowledgeTopology([...guestObjects]);
     const adapted = adaptKnowledgeTopology(topology);
     const manifold = resolveActiveOperationalGraphProjection(created.investigation);
     expect(adapted.nodes).toEqual(manifold.nodes);
     expect(adapted.edges).toEqual(manifold.edges);
-    expect(manifold.nodes).toHaveLength(25);
-    expect(manifold.edges).toHaveLength(21);
+    expect(manifold.nodes).toHaveLength(9);
+    expect(manifold.edges).toHaveLength(8);
+    const canonicalIds = new Set(canonical.map(object => object.identity.id));
+    expect(manifold.nodes.every(node => !canonicalIds.has(node.id))).toBe(true);
+    expect(manifold.edges.every(edge => !canonicalIds.has(edge.source) && !canonicalIds.has(edge.target))).toBe(true);
     expect(guestObjects).toHaveLength(9);
     const guestEvent = guestObjects.find(object => object.identity.id === candidateId);
     expect(guestEvent?.type).toBe("EVENT");
@@ -169,19 +172,24 @@ describe("Case #39 structured Candidate Knowledge production mapping", () => {
     expect((guestEvent?.payload as GuestCandidateKnowledgePayload).representation).toMatchObject({ aggregateObservation: { observerContext: supplied.observerContext, witnessCount: 8, individualPersonObjectsMaterialized: false } });
     expect(guestObjects.filter(object => object.type === "NARRATIVE")).toHaveLength(1);
 
-    const reorderedTopology = buildKnowledgeTopology([...knowledge].reverse());
+    const reorderedTopology = buildKnowledgeTopology([...guestObjects].reverse());
     expect(JSON.stringify(reorderedTopology)).toBe(JSON.stringify(topology));
-    const repeated = createGuestCandidateInvestigation(case39Form(), identity, recordedAt, "case-39-structured-mapping", [...canonical].reverse());
+    workspaceRuntime.setSelection({ kind: WorkspaceSelectionKind.COMPARISON_TARGET, eventId: comparisonEventId, knowledgeObjectId: canonical[0]!.identity.id });
+    const repeated = createGuestCandidateInvestigation(case39Form(), identity, recordedAt, "case-39-structured-mapping");
     expect(repeated.status).toBe("CREATED");
     if (repeated.status !== "CREATED") throw new Error("Repeated Case #39 intake failed.");
     expect(repeated.candidate.canonicalSerialization).toBe(created.candidate.canonicalSerialization);
     expect(JSON.stringify(resolveActiveOperationalGraphProjection(repeated.investigation))).toBe(JSON.stringify(manifold));
+    expect(createOperationalGraphFingerprint(repeated.investigation.revisions[0]!.manifold.graph)).toBe(createOperationalGraphFingerprint(created.investigation.revisions[0]!.manifold.graph));
+    expect(repeated.investigation.revisions[0]).toEqual(created.investigation.revisions[0]);
 
     const target = canonical.find(object => object.type === "EVENT" && object.provenance.sourceId === comparisonEventId);
     expect(target?.metadata.title).toBe("Nimitz Tic Tac Encounter");
     if (!target) throw new Error("System Canon comparison target E-TICTAC-2004 is unavailable.");
     workspaceRuntime.activateGuestCandidateInvestigation(created.investigation);
     expect(workspaceRuntime.getActiveMode()).toBe(WorkspaceMode.MANIFOLD);
+    expect(workspaceRuntime.getSelection()).toBeUndefined();
+    expect(manifold.centerNodeId).toBe(candidateId);
     workspaceRuntime.setSelection({ kind: WorkspaceSelectionKind.COMPARISON_TARGET, eventId: comparisonEventId, knowledgeObjectId: target.identity.id });
 
     const executeSpy = vi.spyOn(ResolveRuntime.prototype, "execute");

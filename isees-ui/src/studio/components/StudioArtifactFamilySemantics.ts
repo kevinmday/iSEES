@@ -1,6 +1,6 @@
 import type { ProjectionStatus, ProjectionStatusList } from "../v1/api/StudioV1AuthorApiTypes.ts";
 
-export const STUDIO_CHILD_FORMATS = ["PDF", "DOCX", "HTML"] as const;
+export const STUDIO_CHILD_FORMATS = ["PDF", "DOCX", "HTML", "MANIFOLD_ARTIFACT"] as const;
 export type StudioChildFormat = typeof STUDIO_CHILD_FORMATS[number];
 export type StudioChildDisplayState = "CURRENT" | "STALE" | "VALIDATING" | "QUEUED" | "FAILED" | "UNAVAILABLE";
 
@@ -30,7 +30,8 @@ export function projectStudioArtifactFamily(projections: ProjectionStatusList | 
     if (!projections || !headRevisionId) return { format, state: "UNAVAILABLE", label: "Unavailable" };
     const candidates = projections.items.filter(item => item.format === format);
     const projection = candidates.find(item => item.parentRevisionId === headRevisionId) ?? candidates[0];
-    if (!projection) return { format, state: "UNAVAILABLE", label: "Not generated" };
-    return { format, parentRevisionId: projection.parentRevisionId, projection, ...serverState(projection, headRevisionId) };
+    if (!projection) return { format, state: "UNAVAILABLE", label: format === "MANIFOLD_ARTIFACT" ? "NOT_GENERATED" : "Not generated" };
+    const displayed=serverState(projection, headRevisionId);
+    return { format, parentRevisionId: projection.parentRevisionId, projection, ...displayed, label:format==="MANIFOLD_ARTIFACT"?projection.state:displayed.label };
   });
 }

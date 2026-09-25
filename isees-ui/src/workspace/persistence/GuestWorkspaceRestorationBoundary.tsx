@@ -5,7 +5,10 @@ import { guestWorkspaceSessionLifecycle } from "./GuestWorkspaceSessionLifecycle
 
 export class GuestWorkspaceRestorationBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
+  private readonly clearFailureForNavigation = (): void => this.setState({ failed: false });
   static getDerivedStateFromError(): { failed: boolean } { return { failed: true }; }
+  componentDidMount(): void { window.addEventListener("popstate", this.clearFailureForNavigation); }
+  componentWillUnmount(): void { window.removeEventListener("popstate", this.clearFailureForNavigation); }
   componentDidCatch(_error: unknown, _info: ErrorInfo): void {
     console.warn("[iSEES guest restoration] REACT_BOUNDARY");
   }
