@@ -143,3 +143,11 @@ Dependency declarations MUST permit a later committed Manifold revision, policy 
 A completion MUST be rejected from the current projection when its assignment revision, Manifold revision, input fingerprint, target, or declared dependency state no longer matches the active context. Rejection from the current projection does not erase historical execution records.
 
 Frontier Agent execution MUST NOT automatically publish to Research Inbox, create Published Candidate Knowledge, accept a candidate node or edge, or promote content to System Canon.
+
+## 16. Manifold-centered frontier proposal boundary
+
+A Frontier mission is anchored at a selected node with missing intelligence, a selected edge requiring validation, a contradiction, unresolved similarity, hypothesis, or evidence gap. The anchor supplies context and scope. Before any external or paid execution, the agent MUST create a free bounded proposal stating the question, relevance, providers, searches, expected evidence, capabilities, limitations, maximum cost, and stop conditions. The researcher may approve, modify, reject, or postpone it; no paid discovery begins without explicit authorization.
+
+Future live-source results enter the existing Candidate Evidence authority and remain quarantined outside canonical Manifold membership until researcher-governed acceptance. A Frontier Agent has no independent authority to modify the Manifold, promote Candidate Evidence, insert material into Research Inbox, resolve uncertainty as fact, change conclusions, begin additional paid work, or decide meaning. Governed acceptance may conditionally supply eligible input to deterministic recomputation; it does not itself establish truth.
+
+The scheduler, lifecycle, and bounded-refresh provisions above remain future runtime authority. Frontier Agents, proposal persistence, and Authorization Envelope persistence are not currently implemented, and this Canon does not present autonomous recurring execution as current behavior.

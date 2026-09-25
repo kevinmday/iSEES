@@ -155,6 +155,14 @@ Every proposal must disclose:
 
 The researcher may authorize, modify, decline, or save the proposal for later.
 
+### 7.1 Approved commercial transparency amendment
+
+For an implemented paid execution, customer-visible disclosure MUST separately identify the **Tavily provider charge**, **disclosed iSEES service margin**, **maximum authorized total**, and actual reconciled final charge. A disclosed percentage is a service markup over provider cost, not a gross-margin percentage. Internal credentials, provider contracts, negotiated rates, security controls, and unrelated implementation details remain private.
+
+Proposal creation is free. A complimentary first focused discovery is a future eligibility policy, not an implemented entitlement. No execution may begin before explicit authorization; the final charge MUST NOT exceed the authorized maximum. Additional or revised cost requires a revised proposal and new approval, and specialized providers require separate disclosure and authorization.
+
+This amendment supersedes prior customer-facing language that made provider cost categorically internal or required Research Credits as the sole customer unit. The present runtime remains planning-only: billing is disabled, displayed amounts are illustrative rather than quotes or active prices, and Tavily credits are not converted into customer currency.
+
 ## 8. Canonical authorization envelope
 
 An approved mission produces an immutable authorization envelope bound to:

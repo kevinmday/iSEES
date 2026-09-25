@@ -2,6 +2,17 @@ import type { RexReceipt } from "./RexApi.ts";
 
 export const REX_BILLING_STATUS = "DISABLED" as const;
 export const REX_FEE_POLICY = Object.freeze({ identity: "isees-governance-fee-planning", version: "planning-v1", state: "PLANNING_ONLY" as const });
+export const ILLUSTRATIVE_TAVILY_MARKUP_BASIS_POINTS = 3_750 as const;
+
+export interface IllustrativeRexReceiptProjection {
+  readonly status: "ILLUSTRATIVE_NO_AUTHORIZATION_CREATED";
+  readonly providerLabel: "Tavily provider charge";
+  readonly providerChargeMicros: number;
+  readonly marginLabel: "Disclosed iSEES margin";
+  readonly marginMicros: number;
+  readonly markupBasisPoints: typeof ILLUSTRATIVE_TAVILY_MARKUP_BASIS_POINTS;
+  readonly maximumAuthorizedTotalMicros: number;
+}
 
 export interface RexCostComponents {
   readonly externalProviderCapMicros: number;
@@ -31,6 +42,22 @@ const addMicros = (values: readonly number[]): number => {
   if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("The maximum authorization exceeds safe integer micros.");
   return Number(total);
 };
+
+export function createIllustrativeRexReceipt(providerChargeMicros: number): IllustrativeRexReceiptProjection {
+  const provider = validMicros(providerChargeMicros, "Illustrative Tavily provider charge");
+  const margin = Number((BigInt(provider) * BigInt(ILLUSTRATIVE_TAVILY_MARKUP_BASIS_POINTS)) / 10_000n);
+  return Object.freeze({
+    status: "ILLUSTRATIVE_NO_AUTHORIZATION_CREATED",
+    providerLabel: "Tavily provider charge",
+    providerChargeMicros: provider,
+    marginLabel: "Disclosed iSEES margin",
+    marginMicros: margin,
+    markupBasisPoints: ILLUSTRATIVE_TAVILY_MARKUP_BASIS_POINTS,
+    maximumAuthorizedTotalMicros: addMicros([provider, margin]),
+  });
+}
+
+export const ILLUSTRATIVE_REX_RECEIPT = createIllustrativeRexReceipt(400_000);
 
 export function formatUsdMicros(value: unknown): string {
   const micros = validMicros(value, "Cost");

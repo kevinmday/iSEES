@@ -164,3 +164,9 @@ Research Inbox insertion and Candidate Knowledge publication require separate ex
 Capability requirements MUST be expressed independently of a named model, search provider, source repository, framework, or storage engine. Source adapters retrieve and preserve source material; they possess no authority to perform topology ownership, candidacy decisions, publication, or Canon promotion.
 
 Every execution MUST declare and enforce cost, capability, privacy, source, temporal, and stopping policies. Stopping rules MUST cover completion criteria, marginal utility, duplication, time, request, token, byte, source-fee, monetary or credit, privacy, risk, cancellation, and researcher stop. Provider success cannot relax any boundary.
+
+## Future live-discovery and commercial boundary amendment
+
+The implemented runtime remains a deterministic, zero-cost local fixture producing Candidate Knowledge. It is not connected to Tavily; billing is disabled; and no production Candidate Evidence admission-to-Manifold recomputation bridge exists.
+
+A future Tavily execution MUST route discovered material through the existing Candidate Evidence authority, quarantined outside canonical Manifold membership until explicit researcher-governed acceptance. It MUST NOT create a parallel store or admission authority, automatically publish to Research Inbox, or mutate the Manifold. Before paid execution, the contract MUST expose the Tavily provider charge, disclosed iSEES service margin, maximum authorized total, and—after implementation—actual reconciled final charge. Revised cost requires a revised proposal and new authorization.

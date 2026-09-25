@@ -82,3 +82,9 @@ Resumption requires renewed entitlement, valid authorization, a governed state t
 - Every execution has immutable assignment and manifold bindings.
 - Every cost is estimated, reserved, measured, charged or released, and reconcilable.
 - Lifecycle, entitlement, and budget transitions preserve historical state.
+
+## Future proposal and governed-return amendment
+
+A Frontier assignment begins from a selected node or edge, contradiction, unresolved similarity, hypothesis, or evidence gap. Before execution it MUST produce a free bounded proposal declaring the question, relevance, providers, searches, expected evidence, capabilities, limitations, maximum cost, and stop conditions. The researcher may approve, modify, reject, or postpone it; no paid discovery begins before authorization.
+
+Future live-source results MUST enter the existing Candidate Evidence authority outside canonical Manifold membership. The runtime MUST NOT independently modify the Manifold, promote Candidate Evidence, publish to Research Inbox, resolve uncertainty as fact, change conclusions, begin additional paid work, or decide meaning. Only explicit governed acceptance may conditionally lead to deterministic recomputation. Frontier execution and proposal or Authorization Envelope persistence are not currently implemented; the existing scheduler and lifecycle clauses remain future authority rather than a claim of current operation.

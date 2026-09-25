@@ -547,4 +547,10 @@ The following states are distinct:
 
 Persistence does not make discovered information Canon, publish Candidate Knowledge, or make stale information current. Research Inbox insertion remains explicit. Candidate Knowledge publication remains explicit. Historical records may remain durable while current projection is stale, invalid, superseded, unpublished, or non-canonical.
 
+## 31. Live-discovery intake boundary and present runtime
+
+The current REX runtime is a deterministic, zero-cost local-fixture workflow. Its governed result bundle is **Candidate Knowledge**; it is not Tavily-derived Candidate Evidence. REX is not currently connected to Tavily, and no production bridge admits live-discovery results into Manifold recomputation.
+
+In the approved future live-discovery flow, Tavily-derived material MUST first enter through the existing Candidate Evidence authority and remain quarantined outside canonical Manifold membership. Only explicit researcher review and governed acceptance may make eligible investigation input available to deterministic recomputation. REX MUST NOT create a parallel Candidate Evidence store or admission authority, and Research Inbox publication remains a separate explicit act. This paragraph establishes future authority; it does not claim the bridge is implemented.
+
 Researcher authority governs candidacy, individual finding publication, relationship acceptance, exclusions, refresh requests, and stopping. REX has zero automatic System Canon mutation. No execution, persistence operation, restoration, ranking, validation, or projection may promote content into System Canon.
