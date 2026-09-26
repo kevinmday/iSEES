@@ -17,7 +17,7 @@ from .fixture import (CandidateKnowledgeBundle, CandidateLineage, CandidateNode,
 from .lifecycle import transition_assignment
 from .models import *
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 def _now() -> datetime: return datetime.now(timezone.utc)
 def _text_time(value: datetime) -> str:
@@ -74,6 +74,7 @@ class SQLiteRexRepository:
                 if 1 in versions:
                     required={"rex_assignments","rex_assignment_revisions","rex_eligibility_events","rex_authorization_decisions","rex_search_executions","rex_jobs","rex_budget_reservations","rex_usage_ledger","rex_candidate_bundles","rex_candidate_lineage","rex_research_publications","rex_state_history"}
                     if 2 in versions: required.add("rex_execution_receipts")
+                    if 3 in versions: required.add("rex_expansion_proposals")
                     present={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
                     if not required <= present: raise SchemaMismatch("REX database schema is incomplete")
                 if 1 not in versions:
@@ -82,6 +83,9 @@ class SQLiteRexRepository:
                 if 2 not in versions:
                     db.executescript(Path(__file__).with_name("migrations").joinpath("002_rex_execution_receipts.sql").read_text(encoding="utf-8"))
                     db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(2,_text_time(self.clock())))
+                if 3 not in versions:
+                    db.executescript(Path(__file__).with_name("migrations").joinpath("003_rex_expansion_proposals.sql").read_text(encoding="utf-8"))
+                    db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(3,_text_time(self.clock())))
                 db.commit()
         except SchemaMismatch: raise
         except (OSError,sqlite3.Error) as e: raise RepositoryUnavailable("REX repository is unavailable") from e
@@ -103,6 +107,33 @@ class SQLiteRexRepository:
             return obj
         except ContentHashMismatch: raise
         except Exception as e: raise InvalidStoredRecord("Stored REX record is invalid") from e
+
+    def create_expansion_proposal(self, proposal: dict, *, request_hash: str):
+        payload=canonical_bytes(proposal); content_hash=canonical_hash(proposal)
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                existing=db.execute("SELECT payload,content_hash FROM rex_expansion_proposals WHERE owner_subject_id=? AND investigation_id=? AND request_hash=?",(proposal["principalId"],proposal["investigationId"],request_hash)).fetchone()
+                if existing:
+                    value=_json(existing["payload"])
+                    if canonical_hash(value)!=existing["content_hash"]: raise ContentHashMismatch("Stored REX proposal content hash does not match")
+                    db.commit(); return value,True
+                db.execute("INSERT INTO rex_expansion_proposals VALUES(?,?,?,?,?,?,?,?,?,?,?)",(proposal["proposalId"],proposal["principalId"],proposal["investigationId"],proposal["selectedObject"]["kind"],proposal["selectedObject"]["id"],proposal["revision"]["id"],proposal["revision"]["hash"],request_hash,payload,content_hash,proposal["createdAt"]))
+                db.commit(); return proposal,False
+        except ContentHashMismatch: raise
+        except sqlite3.IntegrityError as e: raise DuplicateImmutableIdentity("REX proposal identity already exists") from e
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def get_expansion_proposal(self, proposal_id: str, *, owner_subject_id: str, investigation_id: str):
+        try:
+            with closing(self._connect()) as db:
+                row=db.execute("SELECT payload,content_hash FROM rex_expansion_proposals WHERE proposal_id=? AND owner_subject_id=? AND investigation_id=?",(proposal_id,owner_subject_id,investigation_id)).fetchone()
+            if not row: raise RecordNotFound("REX proposal was not found")
+            value=_json(row["payload"])
+            if canonical_hash(value)!=row["content_hash"]: raise ContentHashMismatch("Stored REX proposal content hash does not match")
+            return value
+        except (RecordNotFound,ContentHashMismatch): raise
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
 
     def create_assignment(self, revision: FrontierAssignmentRevision):
         if revision.revision_number!=1 or revision.parent_revision_id is not None or revision.lifecycle is not Lifecycle.SLEEPING: raise RevisionConflict("Initial assignment revision is invalid")

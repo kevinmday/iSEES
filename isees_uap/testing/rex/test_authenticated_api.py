@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import socket
 import sqlite3
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
@@ -16,8 +17,12 @@ from isees_uap.authentication.config import AuthenticationSettings
 from isees_uap.authentication.principal import authentication_repository
 from isees_uap.authentication.sqlite_repository import SQLiteAuthenticationRepository
 from isees_uap.investigations.sqlite_repository import SQLiteInvestigationRepository
+from isees_uap.investigations.models import OperationalGraphRevision
+from isees_uap.investigations.sqlite_repository import operational_graph_fingerprint
 from isees_uap.rex.application import RexApiApplicationService
 from isees_uap.rex.fixture import FixtureCandidateNormalizer, LocalFixtureSourceAdapter
+from isees_uap.rex.expansion_planner import ExpansionPlanUnavailable, build_expansion_plan
+from isees_uap.rex.errors import ContentHashMismatch
 from isees_uap.rex.sqlite_repository import SQLiteRexRepository
 
 HASH="sha256:"+"a"*64
@@ -42,6 +47,10 @@ def api(tmp_path):
     with TestClient(app) as client:
         response=client.post("/api/v1/auth/accounts",json={"email":"owner@example.test","password":"correct horse battery staple"})
         owner=response.json()["researcherId"]; investigations.create(investigation_id="i1",owner_principal_id=owner,title="Owned")
+        graph={"nodes":[{"id":"node-1","label":"Selected","type":"ENTITY"},{"id":"node-2","label":"Other","type":"ENTITY"}],"edges":[{"id":"edge-1","source":"node-1","target":"node-2","relationship":"RELATED","weight":1,"rationale":[]}]}
+        fingerprint=operational_graph_fingerprint(graph)
+        revision=OperationalGraphRevision("i1","revision-1",1,None,graph,fingerprint,"investigation-operational-graph/v1","test/v1","TEST",datetime.now(timezone.utc),"TEST_BASELINE")
+        investigations.append_operational_revision_owned(investigation_id="i1",owner_principal_id=owner,expected_operational_head_id=None,revision=revision,aggregate_payload={"graph":graph},expected_aggregate_revision=0)
         yield client,rex,adapter,normalizer,owner
 
 def csrf(client): return {"X-ISEES-CSRF":client.cookies.get("isees_csrf")}
@@ -182,6 +191,75 @@ def test_no_network_canon_or_research_publication(api,monkeypatch):
         assert db.execute("select count(*) from rex_research_publications").fetchone()[0]==0
         assert not any("canon" in row[0].lower() for row in db.execute("select name from sqlite_master where type='table'"))
 
+def proposal_payload(api,target_id="node-1",revision_id="revision-1",revision_hash=None):
+    parent=api[0].app.dependency_overrides[investigation_repository]()
+    current=parent.get_current_operational_revision(investigation_id="i1",owner_principal_id=api[4])
+    current_hash="sha256:"+hashlib.sha256(current.graph_fingerprint.encode("utf-8")).hexdigest()
+    return {"targetId":target_id,"targetKind":"NODE","operationalRevisionId":revision_id,"operationalRevisionHash":revision_hash or current_hash,"researcherQuestion":"What evidence could challenge this node?","researcherNotes":"Preserve contradictions."}
+
+def test_proposal_is_owned_idempotent_and_inspectable(api):
+    first=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=proposal_payload(api))
+    second=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=proposal_payload(api))
+    assert first.status_code==201 and second.status_code==200
+    assert first.json()["proposalId"]==second.json()["proposalId"] and second.json()["idempotencyDisposition"]=="REPLAYED"
+    plan=first.json()["plan"]
+    assert plan["plannerVersion"]=="rex-expansion-proposal-planner/v1"
+    assert plan["profile"]=={"id":"GENERAL_NODE","version":"rex-general-selection-profile/v1"}
+    assert plan["objectivePacks"]==[{"id":"GENERAL_EVIDENCE","version":"rex-general-evidence-objectives/v1"}]
+    assert first.json()["researcherQuestion"] not in plan["queryGuidance"]
+    assert plan["queryGuidance"]==first.json()["proposedQueryPlan"]
+    assert plan["limits"]==first.json()["limits"] and plan["stopRules"]==first.json()["stopRules"]
+    inspected=api[0].get(f"/api/v1/investigations/i1/rex/proposals/{first.json()['proposalId']}")
+    assert inspected.status_code==200 and inspected.json()["effects"]["manifold"]=="NONE"
+    assert inspected.json()["plan"]==plan
+
+def test_proposal_rejects_browser_authored_planning_policy(api):
+    payload=proposal_payload(api)|{"proposedQueries":["attacker query"],"limits":["unbounded"],"stopRules":["never"]}
+    response=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=payload)
+    assert response.status_code==422
+
+def test_planner_returns_unavailable_instead_of_fabricating_from_unlabelled_selection():
+    with pytest.raises(ExpansionPlanUnavailable,match="no governed label"):
+        build_expansion_plan(graph={"nodes":[{"id":"unlabelled","type":"ENTITY"}],"edges":[]},target_kind="NODE",target_id="unlabelled")
+
+def test_proposal_inspection_is_owner_scoped(api):
+    created=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=proposal_payload(api)).json()
+    api[0].post("/api/v1/auth/accounts",json={"email":"proposal-other@example.test","password":"correct horse battery staple"})
+    response=api[0].get(f"/api/v1/investigations/i1/rex/proposals/{created['proposalId']}")
+    assert response.status_code==404 and response.json()["error"]["code"]=="INVESTIGATION_NOT_FOUND"
+
+def test_proposal_restoration_rejects_payload_integrity_failure(api):
+    created=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=proposal_payload(api)).json()
+    with sqlite3.connect(api[1].path) as db:
+        db.execute("drop trigger rex_no_proposal_update")
+        db.execute("update rex_expansion_proposals set content_hash=? where proposal_id=?",("sha256:"+"0"*64,created["proposalId"]))
+    with pytest.raises(ContentHashMismatch):
+        api[1].get_expansion_proposal(created["proposalId"],owner_subject_id=api[4],investigation_id="i1")
+
+def test_unauthenticated_proposal_creation_is_rejected(api):
+    api[0].post("/api/v1/auth/logout",headers=csrf(api[0]))
+    response=api[0].post("/api/v1/investigations/i1/rex/proposals",json=proposal_payload(api))
+    assert response.status_code==401 and response.json()["error"]["code"]=="AUTHENTICATION_REQUIRED"
+
+@pytest.mark.parametrize("field,value,code",[("operationalRevisionId","stale","REX_STALE_REVISION"),("targetId","missing","REX_STALE_SELECTION")])
+def test_proposal_rejects_stale_revision_or_selection(api,field,value,code):
+    payload=proposal_payload(api); payload[field]=value
+    response=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=payload)
+    assert response.status_code==409 and response.json()["error"]["code"]==code
+
+def test_proposal_has_zero_downstream_effects(api,monkeypatch):
+    monkeypatch.setattr(socket,"create_connection",lambda *a,**k: (_ for _ in ()).throw(AssertionError("network")))
+    before=api[0].app.dependency_overrides[investigation_repository]().get_current_operational_revision(investigation_id="i1",owner_principal_id=api[4])
+    response=api[0].post("/api/v1/investigations/i1/rex/proposals",headers=csrf(api[0]),json=proposal_payload(api))
+    assert response.status_code==201 and response.json()["costEnvelope"]=={"status":"PLANNING_ONLY","providerComponent":"UNAVAILABLE","iseesMargin":"UNAVAILABLE","maximumCustomerPrice":"UNAVAILABLE","customerCharge":"$0.00 FOR PROPOSAL CREATION ONLY"}
+    after=api[0].app.dependency_overrides[investigation_repository]().get_current_operational_revision(investigation_id="i1",owner_principal_id=api[4])
+    assert before==after and api[2].calls==api[3].calls==0
+    assert set(response.json()["effects"].values())=={"NONE"}
+    with sqlite3.connect(api[1].path) as db:
+        assert db.execute("select count(*) from rex_candidate_bundles").fetchone()[0]==0
+        assert db.execute("select count(*) from rex_research_publications").fetchone()[0]==0
+        assert db.execute("select count(*) from rex_search_executions").fetchone()[0]==0
+
 def test_openapi_contains_exact_rex_surface(api):
     paths={p for p in api[0].get("/openapi.json").json()["paths"] if "/rex" in p}
-    assert paths=={"/api/v1/investigations/{investigation_id}/rex/assignments","/api/v1/investigations/{investigation_id}/rex/execution-preparations","/api/v1/investigations/{investigation_id}/rex/jobs/{job_id}/executions","/api/v1/investigations/{investigation_id}/rex/executions/{execution_id}/receipt","/api/v1/investigations/{investigation_id}/rex/candidate-bundles/{bundle_id}","/api/v1/investigations/{investigation_id}/rex/completed-discoveries"}
+    assert paths=={"/api/v1/investigations/{investigation_id}/rex/proposals","/api/v1/investigations/{investigation_id}/rex/proposals/{proposal_id}","/api/v1/investigations/{investigation_id}/rex/assignments","/api/v1/investigations/{investigation_id}/rex/execution-preparations","/api/v1/investigations/{investigation_id}/rex/jobs/{job_id}/executions","/api/v1/investigations/{investigation_id}/rex/executions/{execution_id}/receipt","/api/v1/investigations/{investigation_id}/rex/candidate-bundles/{bundle_id}","/api/v1/investigations/{investigation_id}/rex/completed-discoveries"}

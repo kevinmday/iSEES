@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:native-case-draft-interaction": "vitest run --environment jsdom tools/verification/NativeCaseDraftEditor.interaction.test.tsx",
+    "test:rex-proposal-interaction": "vitest run --environment jsdom tools/verification/RexExpansionProposal.interaction.test.tsx",
     "verify:candidate-evidence-contracts": "node --experimental-strip-types tools/verification/VerifyCandidateEvidenceContracts.ts",
     "verify:candidate-evidence-runtime": "node --experimental-strip-types VerifyCandidateEvidenceRuntime.ts",
     "verify:studio-final": "node --experimental-strip-types tools/verification/VerifyStudioFinalAcceptance.ts",

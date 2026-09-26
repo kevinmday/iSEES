@@ -46,7 +46,7 @@ from isees_uap.studio.v1.lifecycle import StudioV1LifecycleConfiguration
 from isees_uap.api.v1.studio_v1 import (
     router as studio_v1_router, StudioV1ApiError, studio_v1_error_handler,
 )
-from isees_uap.api.v1.rex import rex_error_handler, router as rex_router
+from isees_uap.api.v1.rex import RexApiError, rex_error_handler, router as rex_router
 from isees_uap.api.v1.system import router as system_router
 from isees_uap.rex.errors import RexExecutionError, RexRepositoryError
 from isees_uap.studio.v1.persistence import StudioV1Failure
@@ -375,6 +375,7 @@ def create_application(
     application.include_router(rex_router)
     application.add_exception_handler(RexRepositoryError, rex_error_handler)
     application.add_exception_handler(RexExecutionError, rex_error_handler)
+    application.add_exception_handler(RexApiError, rex_error_handler)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=[

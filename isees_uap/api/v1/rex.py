@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import hashlib
 from dataclasses import asdict
 from functools import lru_cache
 from datetime import datetime
@@ -18,6 +19,7 @@ from isees_uap.rex.canonical import canonical_hash
 from isees_uap.persistence import database_path
 from isees_uap.rex.contracts import TargetKind
 from isees_uap.rex.errors import RexExecutionError, RexRepositoryError
+from isees_uap.rex.expansion_planner import ExpansionPlanUnavailable, build_expansion_plan
 from isees_uap.rex.sqlite_repository import SQLiteRexRepository
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/rex", tags=["rex"])
@@ -41,6 +43,15 @@ class PreparationCommand(BaseModel):
     assignmentId: str = Field(min_length=1,max_length=200)
     manifoldRevisionId: str = Field(min_length=1,max_length=300)
     manifoldRevisionHash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+class ExpansionProposalCommand(BaseModel):
+    model_config=ConfigDict(extra="forbid")
+    targetId: str = Field(min_length=1,max_length=300)
+    targetKind: TargetKind
+    operationalRevisionId: str = Field(min_length=1,max_length=300)
+    operationalRevisionHash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    researcherQuestion: str = Field(min_length=1,max_length=2000)
+    researcherNotes: str | None = Field(default=None,max_length=4000)
 
 
 @lru_cache(maxsize=1)
@@ -66,6 +77,34 @@ def _manifold_binding(parent_repo, owner: str, investigation_id: str):
     payload = {"schemaVersion": aggregate.schema_version, "state": aggregate.state,
                "revision": aggregate.revision, "payload": aggregate.payload}
     return f"investigation-aggregate:{aggregate.revision}", canonical_hash(payload)
+
+def _operational_binding(parent_repo, owner: str, investigation_id: str, command: ExpansionProposalCommand):
+    revision=parent_repo.get_current_operational_revision(investigation_id=investigation_id,owner_principal_id=owner)
+    if revision is None:
+        raise RexApiError("REX_SELECTION_UNAVAILABLE","The investigation has no governed operational selection",409)
+    revision_hash="sha256:"+hashlib.sha256(revision.graph_fingerprint.encode("utf-8")).hexdigest()
+    if revision.operational_revision_id!=command.operationalRevisionId or revision_hash!=command.operationalRevisionHash:
+        raise RexApiError("REX_STALE_REVISION","The selected operational revision is stale",409)
+    collection="nodes" if command.targetKind is TargetKind.NODE else "edges"
+    values=revision.graph_snapshot.get(collection,[])
+    if not isinstance(values,list) or not any(isinstance(value,dict) and value.get("id")==command.targetId for value in values):
+        raise RexApiError("REX_STALE_SELECTION","The selected object is not present in the current operational revision",409)
+    return revision
+
+@router.post("/proposals",status_code=201)
+def create_proposal(investigation_id:IdentityPath,command:ExpansionProposalCommand,owner=Depends(owned_mutation),svc=Depends(service),parent_repo=Depends(investigation_repository)):
+    revision=_operational_binding(parent_repo,owner,investigation_id,command)
+    try: plan=build_expansion_plan(graph=revision.graph_snapshot,target_kind=command.targetKind.value,target_id=command.targetId).as_dict()
+    except ExpansionPlanUnavailable as error: raise RexApiError("REX_PLAN_UNAVAILABLE",f"A safe REX proposal is unavailable: {error}",422) from error
+    request={"principalId":owner,"investigationId":investigation_id,"selectedObject":{"kind":command.targetKind.value,"id":command.targetId},"revision":{"id":revision.operational_revision_id,"hash":command.operationalRevisionHash},"researcherQuestion":command.researcherQuestion,"researcherNotes":command.researcherNotes,"plan":plan}
+    request_hash=canonical_hash(request); now=svc.clock()
+    proposal={**request,"proposedQueryPlan":plan["queryGuidance"],"limits":plan["limits"],"stopRules":plan["stopRules"],"proposalId":f"rxp_{request_hash.removeprefix('sha256:')}","status":"PROPOSAL_ONLY","createdAt":now.isoformat().replace("+00:00","Z"),"inspectionWork":["Acquire permitted source content after separate approval","Inspect source content and preserve provenance","Report uncertainty and contradictions","Propose evidence-backed node or edge changes for researcher review"],"costEnvelope":{"status":"PLANNING_ONLY","providerComponent":"UNAVAILABLE","iseesMargin":"UNAVAILABLE","maximumCustomerPrice":"UNAVAILABLE","customerCharge":"$0.00 FOR PROPOSAL CREATION ONLY"},"effects":{"externalDispatch":"NONE","webpageAcquisition":"NONE","candidateEvidence":"NONE","researchInbox":"NONE","graphChanges":"NONE","canon":"NONE","manifold":"NONE","creditDebit":"NONE","billing":"NONE"}}
+    value,replayed=svc.repository.create_expansion_proposal(proposal,request_hash=request_hash)
+    return JSONResponse(status_code=200 if replayed else 201,content={**value,"idempotencyDisposition":"REPLAYED" if replayed else "CREATED"})
+
+@router.get("/proposals/{proposal_id}")
+def get_proposal(investigation_id:IdentityPath,proposal_id:IdentityPath,owner=Depends(owned_read),svc=Depends(service)):
+    return svc.repository.get_expansion_proposal(proposal_id,owner_subject_id=owner,investigation_id=investigation_id)
 
 
 def _assignment(value,replayed,manifold_revision_id,manifold_revision_hash):
