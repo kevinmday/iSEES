@@ -305,3 +305,5 @@ This canon does not:
 # Governed projection/admission separation
 
 Creating or inspecting a `.author` `MANIFOLD_ARTIFACT` projection has no Manifold effect. Admission is a separate explicit authenticated command governed by `MANIFOLD-ADMISSION-001` and the operational revision authority.
+
+That existing Studio admission accepts a deterministic `MANIFOLD_ARTIFACT` child of an immutable `AuthorRevision`. It is distinct from the future EVIDENCE-001 path in which substantively inspected, captured, and reviewed evidence supports proposed nodes or edges, each receives a separate researcher admission decision, and accepted input produces one deterministic operational Manifold revision. FREE metadata-only Web Discovery does not perform that inspection. Neither path grants a provider, REX, confidence, ranking, or payment direct mutation authority, and the two admission commands MUST NOT be conflated.

@@ -90,7 +90,8 @@ class WebDiscoverySearchRuntime:
     def adapter_execution_count(self) -> int:
         return self._adapter.execution_count
 
-    def search(self, *, principal_id: str, command: WebDiscoverySearchCommand) -> RuntimeSearchResult:
+    def search(self, *, principal_id: str, command: WebDiscoverySearchCommand,
+               timeout_seconds: float | None = None) -> RuntimeSearchResult:
         key = (principal_id, command.investigationId, command.idempotencyKey)
         now = self._clock()
         if now.tzinfo is None or now.utcoffset() is None:
@@ -128,7 +129,7 @@ class WebDiscoverySearchRuntime:
             while len(self._requests) > self._capacity:
                 self._requests.popitem(last=False)
         try:
-            outcome = self._sessions.search(request, self._adapter, Cancellation())
+            outcome = self._sessions.search(request, self._adapter, Cancellation(timeout_seconds=timeout_seconds))
         except WebDiscoveryError as error:
             if key in self._requests and self._sessions.session_count == 0:
                 self._requests.pop(key, None)

@@ -83,6 +83,16 @@ def test_request_limit_rejects_before_dispatch_and_zero_accounting():
     assert not backend.calls and error.accounting.provider_credit_usage == CreditUsage.ZERO
 
 
+def test_operator_deadline_is_applied_to_the_http_request_and_stream_boundary():
+    clock=Clock()
+    backend=Backend([Response((b"{}",),action=lambda:clock.advance(1.1))])
+    transport=WebDiscoveryTransport(endpoint="https://api.example.com/search",backend=backend,clock=clock)
+    error=error_code(TransportErrorCode.TOTAL_TIMEOUT,lambda:transport.post_json(
+        principal_id="p",payload={},timeout_seconds=1))
+    assert backend.calls[0]["timeout_seconds"]==1
+    assert error.accounting.provider_credit_usage==CreditUsage.ESTIMATED
+
+
 def test_streamed_response_limit_aborts_with_one_estimated_credit():
     error = error_code(TransportErrorCode.RESPONSE_TOO_LARGE, lambda: WebDiscoveryTransport(
         endpoint="https://api.example.com/search",

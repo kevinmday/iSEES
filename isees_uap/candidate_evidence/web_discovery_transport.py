@@ -98,7 +98,7 @@ class StreamingResponse(Protocol):
 
 class HttpBackend(Protocol):
     def post_stream(self, *, url: str, content: bytes,
-                    headers: Mapping[str, str]) -> AbstractContextManager[StreamingResponse]: ...
+                    headers: Mapping[str, str], timeout_seconds: float) -> AbstractContextManager[StreamingResponse]: ...
 
 
 class AmbiguousDispatchError(Exception):
@@ -116,8 +116,9 @@ class HttpxBackend:
         )
 
     def post_stream(self, *, url: str, content: bytes,
-                    headers: Mapping[str, str]) -> AbstractContextManager[StreamingResponse]:
-        return self._client.stream("POST", url, content=content, headers=headers)
+                    headers: Mapping[str, str], timeout_seconds: float) -> AbstractContextManager[StreamingResponse]:
+        timeout=httpx.Timeout(timeout_seconds, connect=min(CONNECT_TIMEOUT_SECONDS,timeout_seconds))
+        return self._client.stream("POST", url, content=content, headers=headers, timeout=timeout)
 
 
 class _Circuit:
@@ -160,7 +161,11 @@ class WebDiscoveryTransport:
 
     def post_json(self, *, principal_id: str, payload: object,
                   secret_headers: Mapping[str, str] | None = None,
-                  cancellation: CancellationBoundary | None = None) -> TransportResult:
+                  cancellation: CancellationBoundary | None = None,
+                  timeout_seconds: float | None = None) -> TransportResult:
+        deadline_seconds=min(TOTAL_DEADLINE_SECONDS, timeout_seconds or TOTAL_DEADLINE_SECONDS)
+        if deadline_seconds <= 0:
+            raise TransportError(TransportErrorCode.TOTAL_TIMEOUT, "total_deadline_exceeded")
         try:
             body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         except (TypeError, ValueError):
@@ -188,19 +193,20 @@ class WebDiscoveryTransport:
         headers.update(secret_headers or {})
         try:
             try:
-                with self._backend.post_stream(url=self.endpoint, content=body, headers=headers) as response:
+                with self._backend.post_stream(url=self.endpoint, content=body, headers=headers,
+                                               timeout_seconds=deadline_seconds) as response:
                     chunks: list[bytes] = []
                     size = 0
                     for chunk in response.iter_bytes():
                         if cancellation is not None and cancellation.is_cancelled():
                             raise TransportError(TransportErrorCode.CANCELLED, "cancelled_during_response", accounting)
-                        if self._clock() - started > TOTAL_DEADLINE_SECONDS:
+                        if self._clock() - started > deadline_seconds:
                             raise TransportError(TransportErrorCode.TOTAL_TIMEOUT, "total_deadline_exceeded", accounting)
                         size += len(chunk)
                         if size > MAX_RESPONSE_BYTES:
                             raise TransportError(TransportErrorCode.RESPONSE_TOO_LARGE, "response_size_exceeded", accounting)
                         chunks.append(chunk)
-                    if self._clock() - started > TOTAL_DEADLINE_SECONDS:
+                    if self._clock() - started > deadline_seconds:
                         raise TransportError(TransportErrorCode.TOTAL_TIMEOUT, "total_deadline_exceeded", accounting)
                     actual = TransportAccounting(1, CreditUsage.ACTUAL)
                     content_type = getattr(response, "headers", {}).get("content-type")

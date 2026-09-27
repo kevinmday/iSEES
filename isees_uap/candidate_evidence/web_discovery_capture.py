@@ -16,7 +16,8 @@ class WebDiscoveryCaptureService:
         self._runtime = runtime
         self._research_sources = research_sources
 
-    def capture(self, *, principal_id: str, command: WebDiscoveryCaptureCommand) -> tuple[WebDiscoveryCaptureResponse, bool]:
+    def capture(self, *, principal_id: str, command: WebDiscoveryCaptureCommand,
+                trusted_rex_provenance: dict | None = None) -> tuple[WebDiscoveryCaptureResponse, bool]:
         session, result = self._runtime.resolve_capture(
             principal_id=principal_id, investigation_id=command.investigationId,
             expected_investigation_revision=command.expectedInvestigationRevision,
@@ -45,12 +46,14 @@ class WebDiscoveryCaptureService:
             "queryNormalizationVersion": session.query_normalization_version,
             "resultRank": result.rank, "providerReturnedUrl": result.provider_returned_url,
             "normalizedUrl": result.normalized_url,
-            "aiAssistance": "NONE", "rexExecution": "NONE",
+            "aiAssistance": "NONE", "rexExecution": "EXPLICIT_RESULT_CAPTURE" if trusted_rex_provenance is not None else "NONE",
             "estimatedProviderCost": 0, "actualProviderCost": 0, "finalCharge": 0,
             "researchInboxEffect": "NONE", "publicationEffect": "NONE",
             "candidateKnowledgeEffect": "NONE", "canonEffect": "NONE",
             "graphEffect": "NONE", "manifoldEffect": "NONE", "resolveEffect": "NONE",
         }
+        if trusted_rex_provenance is not None:
+            receipt["rexProvenance"] = trusted_rex_provenance
         internal = {
             "schemaVersion": "candidate-evidence-command/v1",
             "investigationId": command.investigationId, "source": source, "association": None,
@@ -82,6 +85,7 @@ class WebDiscoveryCaptureService:
                 "researcherNote": command.researcherNote, "zeroExternalFetch": True,
                 "searchSessionId": command.searchSessionId, "resultId": command.resultId,
                 "exactSelectedResult": source,
+                **({"rexProvenance": trusted_rex_provenance} if trusted_rex_provenance is not None else {}),
             },
             "captureReceipt": receipt,
         }

@@ -173,7 +173,7 @@ class WebDiscoveryCaptureReceiptProjection(StrictWebDiscoveryModel):
     capturedAt: datetime
     idempotencyDisposition: Literal["CREATED", "REPLAYED"]
     aiAssistance: Literal["NONE"]
-    rexExecution: Literal["NONE"]
+    rexExecution: Literal["NONE", "EXPLICIT_RESULT_CAPTURE"]
     estimatedProviderCost: Literal[0]
     actualProviderCost: Literal[0]
     finalCharge: Literal[0]
@@ -184,6 +184,7 @@ class WebDiscoveryCaptureReceiptProjection(StrictWebDiscoveryModel):
     graphEffect: Literal["NONE"]
     manifoldEffect: Literal["NONE"]
     resolveEffect: Literal["NONE"]
+    rexProvenance: dict[str, object] | None = None
 
 
 class WebDiscoveryCaptureResponse(StrictWebDiscoveryModel):

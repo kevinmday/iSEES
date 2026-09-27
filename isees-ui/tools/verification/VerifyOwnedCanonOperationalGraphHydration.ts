@@ -21,11 +21,28 @@ const canonBefore = JSON.stringify(CANONICAL_EVENTS);
 let persisted: unknown;
 let rexRequests = 0;
 
+function authoritativeFingerprint(graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] }): string {
+  const stable = (value: unknown): unknown => Array.isArray(value) ? value.map(stable) : value !== null && typeof value === "object"
+    ? Object.fromEntries(Object.keys(value as Record<string, unknown>).sort().map(key => [key, stable((value as Record<string, unknown>)[key])]))
+    : value;
+  return JSON.stringify({
+    nodes: [...graph.nodes].sort((left, right) => String(left.id).localeCompare(String(right.id))).map(source => ({
+      id: source.id, label: source.label, type: source.type,
+      ...(source.iconType === undefined ? {} : { iconType: source.iconType }),
+      ...(source.metadata === undefined ? {} : { metadata: stable(source.metadata) }),
+    })),
+    edges: [...graph.edges].sort((left, right) => String(left.id).localeCompare(String(right.id))).map(source => ({
+      id: source.id, source: source.source, target: source.target, relationship: source.relationship, weight: source.weight,
+      ...(source.metrics === undefined ? {} : { metrics: stable(source.metrics) }), rationale: source.rationale,
+    })),
+  });
+}
+
 Object.defineProperty(globalThis, "document", { configurable: true, value: { cookie: "isees_csrf=owned-canon-token" } });
 
 const emptyAggregate = {
   activationSchemaVersion: "owned-investigation-activation/v1", investigationId,
-  title: "REX Local Browser Acceptance", objective: null, lifecycle: "ACTIVE",
+  title: "REX Local Trial", objective: null, lifecycle: "ACTIVE",
   createdAt: timestamp, modifiedAt: timestamp, version: 0,
   aggregateSchemaVersion: "investigation-aggregate/v1", aggregateState: "EMPTY", aggregateRevision: 0,
   access: { kind: "RESEARCHER_OWNED" }, freshnessToken: "0:0",
@@ -40,9 +57,17 @@ const transport: typeof fetch = async (input, init) => {
   const url = String(input);
   if (url.includes("/rex")) rexRequests += 1;
   const command = JSON.parse(String(init?.body)) as Record<string, unknown>;
+  const operationalRevision = command.operationalRevision as { graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] }; fingerprint: string };
+  assert.equal(operationalRevision.fingerprint, authoritativeFingerprint(operationalRevision.graph), "submitted fingerprint must match the authoritative snapshot canonicalization");
+  const revision = { investigationId, revisionId: "REV-0001", revisionNumber: 1, parentRevisionId: null,
+    graph: operationalRevision.graph, fingerprint: operationalRevision.fingerprint,
+    graphSchemaVersion: "investigation-operational-graph/v1", algorithmVersion: "KNOWLEDGE_TOPOLOGY_V1",
+    actorAuthority: "AUTHENTICATED_RESEARCHER", recordedAt: timestamp,
+    mutationKind: "CANON_EVENT_IMPORT", sourceIdentity: eventId };
   const workspace = command.workspace as Record<string, unknown>;
   const activation = {
     ...emptyAggregate, modifiedAt: timestamp, version: 1, aggregateState: "ADOPTED", aggregateRevision: 1, freshnessToken: "1:1",
+    operationalRevisionHead: revision, operationalRevisionLineage: [revision],
     operationalState: {
       kind: "ADOPTED", workspaceId: `workspace:${investigationId}`, schemaVersion: "canon-event-import/v1",
       source: { kind: "SYSTEM_CANON", eventId, importedAt: timestamp }, title: emptyAggregate.title, objective: null,

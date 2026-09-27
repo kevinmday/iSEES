@@ -353,6 +353,7 @@ class WebDiscoveryAdapter(Protocol):
 @dataclass(frozen=True, slots=True)
 class Cancellation:
     cancelled: bool = False
+    timeout_seconds: float | None = None
 
     def is_cancelled(self) -> bool:
         return self.cancelled

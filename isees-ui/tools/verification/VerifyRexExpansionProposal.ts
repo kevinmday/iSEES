@@ -3,14 +3,14 @@ import { createRexApi } from "../../src/rex/RexApi.ts";
 
 const H=`sha256:${"a".repeat(64)}`;
 const plan={plannerVersion:"rex-expansion-proposal-planner/v1",profile:{id:"GENERAL_NODE",version:"rex-general-selection-profile/v1"},objectivePacks:[{id:"GENERAL_EVIDENCE",version:"rex-general-evidence-objectives/v1"}],queryGuidance:["Clarify governed node identity","Find supporting or challenging evidence"],governedContext:["Selected node: Test"],limits:["8 sources"],stopRules:["stop at 8"]};
-const body={proposalId:"rxp_test",principalId:"acct_test",investigationId:"inv_test",selectedObject:{kind:"NODE",id:"node_test"},revision:{id:"REV-1",hash:H},researcherQuestion:"What contradicts this?",researcherNotes:null,plan,proposedQueryPlan:plan.queryGuidance,limits:plan.limits,stopRules:plan.stopRules,status:"PROPOSAL_ONLY",createdAt:"2026-09-26T00:00:00Z",inspectionWork:["Inspect after approval"],costEnvelope:{status:"PLANNING_ONLY",providerComponent:"UNAVAILABLE",iseesMargin:"UNAVAILABLE",maximumCustomerPrice:"UNAVAILABLE",customerCharge:"$0.00 FOR PROPOSAL CREATION ONLY"},effects:{externalDispatch:"NONE",webpageAcquisition:"NONE",candidateEvidence:"NONE",researchInbox:"NONE",graphChanges:"NONE",canon:"NONE",manifold:"NONE",creditDebit:"NONE",billing:"NONE"},idempotencyDisposition:"CREATED"};
+const body={proposalId:"rxp_test",principalId:"acct_test",investigationId:"inv_test",selectedObject:{kind:"NODE",id:"node_test"},revision:{id:"REV-1",hash:H},researcherQuestion:"What contradicts this?",researcherNotes:null,plan,proposedQueryPlan:plan.queryGuidance,limits:plan.limits,stopRules:plan.stopRules,status:"PROPOSAL_ONLY",createdAt:"2026-09-26T00:00:00Z",inspectionWork:["Inspect after approval"],costEnvelope:{status:"OPERATOR_FUNDED_FREE",providerComponent:"COVERED_BY_ISEES",iseesMargin:"NOT_APPLICABLE",maximumCustomerPrice:"$0.00",customerCharge:"$0.00"},effects:{externalDispatch:"NONE",webpageAcquisition:"NONE",candidateEvidence:"NONE",researchInbox:"NONE",graphChanges:"NONE",canon:"NONE",manifold:"NONE",creditDebit:"NONE",billing:"NONE"},idempotencyDisposition:"CREATED"};
 const calls:Array<{url:string;init?:RequestInit}>=[];
 const api=createRexApi({baseUrl:"https://isees.invalid",cookieSource:()=>"isees_csrf=token",fetch:async(input,init)=>{calls.push({url:String(input),init});return new Response(JSON.stringify(body),{status:calls.length===1?201:200,headers:{"Content-Type":"application/json"}})}});
 const request={targetId:"node_test",targetKind:"NODE" as const,operationalRevisionId:"REV-1",operationalRevisionHash:H,researcherQuestion:"What contradicts this?",researcherNotes:null};
 const created=await api.createProposal("inv_test",request);
 const inspected=await api.getProposal("inv_test",created.proposalId);
 assert.equal(created.status,"PROPOSAL_ONLY");
-assert.equal(created.costEnvelope.maximumCustomerPrice,"UNAVAILABLE");
+assert.equal(created.costEnvelope.maximumCustomerPrice,"$0.00");
 assert.equal(created.plan.plannerVersion,"rex-expansion-proposal-planner/v1");
 assert(Object.values(created.effects).every(value=>value==="NONE"));
 assert.equal(inspected.proposalId,created.proposalId);

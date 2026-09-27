@@ -17,7 +17,7 @@ from .fixture import (CandidateKnowledgeBundle, CandidateLineage, CandidateNode,
 from .lifecycle import transition_assignment
 from .models import *
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 
 def _now() -> datetime: return datetime.now(timezone.utc)
 def _text_time(value: datetime) -> str:
@@ -75,6 +75,8 @@ class SQLiteRexRepository:
                     required={"rex_assignments","rex_assignment_revisions","rex_eligibility_events","rex_authorization_decisions","rex_search_executions","rex_jobs","rex_budget_reservations","rex_usage_ledger","rex_candidate_bundles","rex_candidate_lineage","rex_research_publications","rex_state_history"}
                     if 2 in versions: required.add("rex_execution_receipts")
                     if 3 in versions: required.add("rex_expansion_proposals")
+                    if 4 in versions: required.add("rex_proposal_approval_attempts")
+                    if 5 in versions: required.add("rex_proposal_execution_claims")
                     present={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
                     if not required <= present: raise SchemaMismatch("REX database schema is incomplete")
                 if 1 not in versions:
@@ -86,6 +88,12 @@ class SQLiteRexRepository:
                 if 3 not in versions:
                     db.executescript(Path(__file__).with_name("migrations").joinpath("003_rex_expansion_proposals.sql").read_text(encoding="utf-8"))
                     db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(3,_text_time(self.clock())))
+                if 4 not in versions:
+                    db.executescript(Path(__file__).with_name("migrations").joinpath("004_rex_proposal_approval_attempts.sql").read_text(encoding="utf-8"))
+                    db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(4,_text_time(self.clock())))
+                if 5 not in versions:
+                    db.executescript(Path(__file__).with_name("migrations").joinpath("005_rex_free_execution.sql").read_text(encoding="utf-8"))
+                    db.execute("INSERT INTO rex_schema_migrations VALUES(?,?)",(5,_text_time(self.clock())))
                 db.commit()
         except SchemaMismatch: raise
         except (OSError,sqlite3.Error) as e: raise RepositoryUnavailable("REX repository is unavailable") from e
@@ -134,6 +142,134 @@ class SQLiteRexRepository:
             return value
         except (RecordNotFound,ContentHashMismatch): raise
         except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def record_proposal_approval_attempt(self, response: dict, *, owner_subject_id: str,
+                                         investigation_id: str, idempotency_key: str,
+                                         request_hash: str):
+        payload=canonical_bytes(response); content_hash=canonical_hash(response)
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                existing=db.execute("SELECT request_hash,response_payload,response_hash FROM rex_proposal_approval_attempts WHERE owner_subject_id=? AND investigation_id=? AND idempotency_key=?",(owner_subject_id,investigation_id,idempotency_key)).fetchone()
+                if existing:
+                    if existing["request_hash"]!=request_hash: raise DuplicateImmutableIdentity("REX approval idempotency key was reused for a different request")
+                    value=_json(existing["response_payload"])
+                    if canonical_hash(value)!=existing["response_hash"]: raise ContentHashMismatch("Stored REX approval attempt content hash does not match")
+                    db.commit(); return value,True
+                db.execute("INSERT INTO rex_proposal_approval_attempts VALUES(?,?,?,?,?,?,?,?)",(owner_subject_id,investigation_id,idempotency_key,request_hash,response["proposalId"],payload,content_hash,response["attemptedAt"]))
+                db.commit(); return response,False
+        except (DuplicateImmutableIdentity,ContentHashMismatch): raise
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def claim_proposal_execution(self, claim: dict, *, request_hash: str,
+                                 maximum_account_jobs: int, maximum_investigation_jobs: int):
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                existing=db.execute("SELECT * FROM rex_proposal_execution_claims WHERE owner_subject_id=? AND investigation_id=? AND idempotency_key=?",(claim["principalId"],claim["investigationId"],claim["idempotencyKey"])).fetchone()
+                if existing:
+                    if existing["request_hash"]!=request_hash: raise DuplicateImmutableIdentity("REX free execution idempotency key was reused")
+                    value=dict(existing)
+                    receipt=db.execute("SELECT payload,content_hash FROM rex_execution_receipts WHERE execution_id=?",(value["execution_id"],)).fetchone()
+                    if receipt:
+                        result=_json(receipt["payload"])
+                        if canonical_hash(result)!=receipt["content_hash"]: raise ContentHashMismatch("Stored REX receipt content hash does not match")
+                        return value,result,True
+                    return value,None,True
+                account_count=db.execute("SELECT count(*) FROM rex_proposal_execution_claims WHERE owner_subject_id=?",(claim["principalId"],)).fetchone()[0]
+                investigation_count=db.execute("SELECT count(*) FROM rex_proposal_execution_claims WHERE owner_subject_id=? AND investigation_id=?",(claim["principalId"],claim["investigationId"])).fetchone()[0]
+                if account_count>=maximum_account_jobs or investigation_count>=maximum_investigation_jobs: raise PermissionError("free REX execution limit reached")
+                db.execute("INSERT INTO rex_proposal_execution_claims VALUES(?,?,?,?,?,?,?,?,?)",(claim["proposalId"],claim["principalId"],claim["investigationId"],claim["idempotencyKey"],request_hash,claim["assignmentId"],claim["executionId"],claim["jobId"],claim["claimedAt"]))
+                db.commit(); return claim,None,False
+        except (DuplicateImmutableIdentity,ContentHashMismatch,PermissionError): raise
+        except sqlite3.IntegrityError as e: raise DuplicateImmutableIdentity("REX proposal already has an authorization") from e
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def reserve_tavily_proposal_execution(self, claim: dict, *, request_hash: str,
+                                           context: dict, maximum_account_jobs: int,
+                                           maximum_investigation_jobs: int):
+        """Atomically consume an entitlement and create the one provider job.
+
+        This is intentionally separate from the local-fixture preparation pipeline: its
+        durable identities and context describe Tavily metadata discovery, not fixture
+        retrieval or Candidate Knowledge normalization.
+        """
+        now=claim["claimedAt"]; payload=canonical_bytes(context); payload_hash=canonical_hash(context)
+        assignment={"schemaVersion":"rex-tavily-assignment/v1","assignmentId":claim["assignmentId"],
+                    "ownerSubjectId":claim["principalId"],"investigationId":claim["investigationId"],
+                    "proposalId":claim["proposalId"],"target":context["target"],
+                    "lifecycle":"EXECUTING","sourcePolicy":{"adapterId":context["sourceAdapterIdentity"],
+                    "adapterVersion":context["sourceAdapterVersion"],"acquisition":"METADATA_ONLY"},
+                    "createdAt":now}
+        ap=canonical_bytes(assignment); ah=canonical_hash(assignment)
+        revision_id=claim["assignmentId"]+"-rev-1"; event_id=claim["executionId"]+"-eligibility"
+        decision_id=claim["executionId"]+"-authorization"
+        event={"schemaVersion":"rex-tavily-eligibility/v1","eventId":event_id,
+               "proposalId":claim["proposalId"],"trigger":"EXPLICIT_RESEARCHER_APPROVAL","createdAt":now}
+        ep=canonical_bytes(event); eh=canonical_hash(event)
+        decision={"schemaVersion":"rex-tavily-authorization/v1","decisionId":decision_id,
+                  "disposition":"ALLOW","customerCharge":"$0.00","providerUsageCoveredBy":"iSEES",
+                  "entitlement":{"account":claim["principalId"],"investigation":claim["investigationId"]},
+                  "decidedAt":now}
+        dp=canonical_bytes(decision); dh=canonical_hash(decision)
+        try:
+            with closing(self._connect()) as db:
+                db.execute("BEGIN IMMEDIATE")
+                existing=db.execute("SELECT * FROM rex_proposal_execution_claims WHERE owner_subject_id=? AND investigation_id=? AND idempotency_key=?",(claim["principalId"],claim["investigationId"],claim["idempotencyKey"])).fetchone()
+                if existing:
+                    if existing["request_hash"]!=request_hash: raise DuplicateImmutableIdentity("REX free execution idempotency key was reused")
+                    receipt=db.execute("SELECT payload,content_hash FROM rex_execution_receipts WHERE execution_id=?",(existing["execution_id"],)).fetchone()
+                    result=None if receipt is None else _json(receipt["payload"])
+                    if receipt is not None and canonical_hash(result)!=receipt["content_hash"]: raise ContentHashMismatch("Stored REX receipt content hash does not match")
+                    db.commit(); return dict(existing),result,True
+                if db.execute("SELECT count(*) FROM rex_proposal_execution_claims WHERE owner_subject_id=?",(claim["principalId"],)).fetchone()[0]>=maximum_account_jobs: raise PermissionError("free REX account execution limit reached")
+                if db.execute("SELECT count(*) FROM rex_proposal_execution_claims WHERE owner_subject_id=? AND investigation_id=?",(claim["principalId"],claim["investigationId"])).fetchone()[0]>=maximum_investigation_jobs: raise PermissionError("free REX investigation execution limit reached")
+                db.execute("INSERT INTO rex_assignments VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(claim["assignmentId"],claim["principalId"],claim["principalId"],claim["investigationId"],context["target"]["id"],context["target"]["kind"],revision_id,"EXECUTING",now,now,ap,ah))
+                db.execute("INSERT INTO rex_assignment_revisions VALUES(?,?,?,?,?,?,?,?,?,?)",(revision_id,claim["assignmentId"],1,None,"EXECUTING",ap,ah,now,claim["principalId"],"EXPLICIT_TAVILY_APPROVAL"))
+                db.execute("INSERT INTO rex_eligibility_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(event_id,claim["assignmentId"],revision_id,context["manifoldRevisionId"],context["manifoldRevisionHash"],"RESEARCHER_REQUEST",claim["proposalId"],claim["proposalId"],now,now,ep,eh))
+                db.execute("INSERT INTO rex_authorization_decisions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(decision_id,revision_id,event_id,"operator-funded-free/v1",canonical_hash(decision["entitlement"]),context["manifoldRevisionId"],context["manifoldRevisionHash"],"ALLOW","NONE","rex-tavily-free/v1",1,0,canonical_bytes(()),dp,dh,now))
+                db.execute("INSERT INTO rex_search_executions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(claim["executionId"],decision_id,"proposal:"+claim["proposalId"],"EXECUTABLE","CLAIMED",None,payload,payload_hash,now,None,None,None))
+                db.execute("INSERT INTO rex_jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(claim["jobId"],claim["executionId"],"CLAIMED",1,now,now,claim["principalId"],claim["executionId"]+"-lease",None,None,None,None))
+                db.execute("INSERT INTO rex_proposal_execution_claims VALUES(?,?,?,?,?,?,?,?,?)",(claim["proposalId"],claim["principalId"],claim["investigationId"],claim["idempotencyKey"],request_hash,claim["assignmentId"],claim["executionId"],claim["jobId"],now))
+                db.commit(); return claim,None,False
+        except (DuplicateImmutableIdentity,ContentHashMismatch,PermissionError): raise
+        except sqlite3.IntegrityError as e: raise DuplicateImmutableIdentity("REX proposal already has an authorization") from e
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def get_proposal_execution_claim(self, *, owner_subject_id: str, investigation_id: str,
+                                     idempotency_key: str, request_hash: str):
+        with closing(self._connect()) as db:
+            row=db.execute("SELECT * FROM rex_proposal_execution_claims WHERE owner_subject_id=? AND investigation_id=? AND idempotency_key=?",(owner_subject_id,investigation_id,idempotency_key)).fetchone()
+            if row is None: return None
+            if row["request_hash"]!=request_hash: raise DuplicateImmutableIdentity("REX free execution idempotency key was reused")
+            receipt=db.execute("SELECT payload,content_hash FROM rex_execution_receipts WHERE execution_id=?",(row["execution_id"],)).fetchone()
+            result=None
+            if receipt:
+                result=_json(receipt["payload"])
+                if canonical_hash(result)!=receipt["content_hash"]: raise ContentHashMismatch("Stored REX receipt content hash does not match")
+            return dict(row),result
+
+    def complete_proposal_execution(self, execution_id: str, receipt: dict):
+        payload=canonical_bytes(receipt); content_hash=canonical_hash(receipt)
+        try:
+            with closing(self._connect()) as db:
+                db.execute("INSERT INTO rex_execution_receipts(execution_id,payload,content_hash,completed_at,candidate_bundle_id) VALUES(?,?,?,?,NULL)",(execution_id,payload,content_hash,receipt["completedAt"]))
+                failed=receipt["executionStatus"]!="COMPLETED"; durable_status="FAILED" if failed else "COMPLETED"
+                db.execute("UPDATE rex_search_executions SET status=?,completed_at=?,failed_at=?,failure_category=? WHERE execution_id=?",(durable_status,None if failed else receipt["completedAt"],receipt["completedAt"] if failed else None,receipt.get("failureCode") or receipt["executionStatus"],execution_id))
+                db.execute("UPDATE rex_jobs SET status=?,completed_at=?,failed_at=?,failure_category=? WHERE execution_id=?",(durable_status,None if failed else receipt["completedAt"],receipt["completedAt"] if failed else None,receipt.get("failureCode") or receipt["executionStatus"],execution_id))
+                db.commit()
+        except sqlite3.IntegrityError:
+            return
+        except sqlite3.Error as e: raise RepositoryUnavailable("REX repository is unavailable") from e
+
+    def reconstruct_proposal_execution_receipt(self, execution_id: str, *, owner_subject_id: str,
+                                                investigation_id: str):
+        with closing(self._connect()) as db:
+            row=db.execute("SELECT r.payload,r.content_hash FROM rex_execution_receipts r JOIN rex_proposal_execution_claims c ON c.execution_id=r.execution_id WHERE r.execution_id=? AND c.owner_subject_id=? AND c.investigation_id=?",(execution_id,owner_subject_id,investigation_id)).fetchone()
+        if row is None: return None
+        value=_json(row["payload"])
+        if canonical_hash(value)!=row["content_hash"]: raise ContentHashMismatch("Stored REX receipt content hash does not match")
+        return value
 
     def create_assignment(self, revision: FrontierAssignmentRevision):
         if revision.revision_number!=1 or revision.parent_revision_id is not None or revision.lifecycle is not Lifecycle.SLEEPING: raise RevisionConflict("Initial assignment revision is invalid")

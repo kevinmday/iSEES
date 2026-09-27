@@ -29,12 +29,12 @@ class ExpansionPlan:
             "queryGuidance": list(self.query_guidance),
             "governedContext": list(self.governed_context),
             "limits": [
-                f"Acquire at most {MAX_ACQUIRED_SOURCES} sources after separate approval",
+                f"Capture at most {MAX_ACQUIRED_SOURCES} metadata-only source leads after separate approval",
                 f"Use at most {MAX_QUERY_GUIDANCE} generated query-guidance items",
                 "Remain within the selected object and its governed one-hop context",
             ],
             "stopRules": [
-                f"Stop after {MAX_ACQUIRED_SOURCES} acquired sources",
+                f"Stop after {MAX_ACQUIRED_SOURCES} metadata-only source leads",
                 "Stop when every generated guidance item has been attempted",
                 "Stop on authorization, provider, acquisition, or provenance failure",
                 "Stop when further inspection would require facts absent from governed context",
@@ -49,7 +49,15 @@ def _text(value: object) -> str | None:
     return normalized if normalized else None
 
 
-def build_expansion_plan(*, graph: dict[str, Any], target_kind: str, target_id: str) -> ExpansionPlan:
+def _bounded_query(value: str) -> str:
+    return value[:2000].rstrip()
+
+
+def build_expansion_plan(*, graph: dict[str, Any], target_kind: str, target_id: str,
+                         researcher_question: str) -> ExpansionPlan:
+    question = _text(researcher_question)
+    if question is None:
+        raise ExpansionPlanUnavailable("the researcher question is unavailable")
     collection = "nodes" if target_kind == "NODE" else "edges"
     selected = next((item for item in graph.get(collection, ())
                      if isinstance(item, dict) and item.get("id") == target_id), None)
@@ -66,10 +74,9 @@ def build_expansion_plan(*, graph: dict[str, Any], target_kind: str, target_id: 
             raise ExpansionPlanUnavailable("the selected node has no governed label")
         node_type = _text(selected.get("type")) or "node"
         context.extend((f"Selected node: {label}", f"Governed type: {node_type}"))
-        guidance.extend((
-            f'Clarify the identity and documented attributes of "{label}"',
-            f'Find independent evidence that supports or challenges claims about "{label}"',
-        ))
+        guidance.extend((question,
+            f'"{label}" authoritative records relevant to: {question}',
+            f'"{label}" evidence supporting or challenging: {question}'))
         adjacent: list[str] = []
         for edge in graph.get("edges", ()):
             if not isinstance(edge, dict) or target_id not in (edge.get("source"), edge.get("target")):
@@ -82,9 +89,9 @@ def build_expansion_plan(*, graph: dict[str, Any], target_kind: str, target_id: 
                 adjacent.append(other_label)
                 context.append(f"Adjacent governed node: {other_label}")
                 relation_lens = f" under the governed {relationship} relationship" if relationship else ""
-                guidance.append(f'Inspect evidence connecting "{label}" and "{other_label}"{relation_lens}')
+                guidance.append(f'"{label}" "{other_label}"{relation_lens}: {question}')
         if adjacent:
-            guidance.append(f'Look for contradictions among governed context involving "{label}"')
+            guidance.append(f'Contradictions involving "{label}" relevant to: {question}')
         profile_id = "GENERAL_NODE"
     else:
         source = nodes.get(selected.get("source")); target = nodes.get(selected.get("target"))
@@ -95,14 +102,13 @@ def build_expansion_plan(*, graph: dict[str, Any], target_kind: str, target_id: 
         relationship = _text(selected.get("relationship")) or label or "relationship"
         context.extend((f"Governed source: {source_label}", f"Governed target: {target_label}",
                         f"Governed relationship: {relationship}"))
-        guidance.extend((
-            f'Find evidence supporting the "{relationship}" relationship between "{source_label}" and "{target_label}"',
-            f'Find evidence challenging the "{relationship}" relationship between "{source_label}" and "{target_label}"',
-            f'Clarify direction, timing, and uncertainty for the relationship between "{source_label}" and "{target_label}"',
-        ))
+        guidance.extend((question,
+            f'"{source_label}" "{target_label}" "{relationship}" authoritative records relevant to: {question}',
+            f'Evidence supporting the "{relationship}" relationship relevant to: {question}',
+            f'Evidence challenging the "{relationship}" relationship relevant to: {question}'))
         profile_id = "GENERAL_EDGE"
 
-    unique_guidance = tuple(dict.fromkeys(guidance))[:MAX_QUERY_GUIDANCE]
+    unique_guidance = tuple(dict.fromkeys(_bounded_query(item) for item in guidance))[:MAX_QUERY_GUIDANCE]
     if len(unique_guidance) < 2:
         raise ExpansionPlanUnavailable("the governed selection cannot produce bounded query guidance")
     return ExpansionPlan(profile_id, unique_guidance, tuple(dict.fromkeys(context)))

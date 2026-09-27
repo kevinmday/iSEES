@@ -94,7 +94,7 @@ Research Credits need not equal Tavily credits. They may represent a governed pa
 
 iSEES transparency concerns authority, behavior, provenance, restrictions, account charges, and epistemic state. It does not require disclosure of private commercial economics.
 
-Researchers should see:
+Researchers should see, when paid billing is eventually authorized and implemented:
 
 - What operation is proposed
 - What capabilities it may use
@@ -102,7 +102,7 @@ Researchers should see:
 - Estimated Research Credit consumption
 - Maximum authorized charge
 - Available account balance
-- Reservation and refund behavior
+- Applicable reservation, release, and refund terms, once governed
 - Actual consumption after execution
 
 Researchers should not see:
@@ -115,7 +115,7 @@ Researchers should not see:
 - Gross margin
 - Internal routing economics
 
-Customer-facing language shall use **Research Credits**, **estimated charge**, **maximum authorized charge**, and **account price**. The term **provider cost** remains internal.
+Customer-facing language may use **Research Credits**, **estimated charge**, **maximum authorized charge**, and **account price**. For the governed proposal described below, the Tavily provider component and iSEES margin are disclosed. Payment processing, refund terms, and paid billing are unresolved and disabled; no nonrefundable-balance rule or processing-fee deduction is Canon.
 
 ## 7. Frontier Agent research proposal
 
@@ -159,7 +159,7 @@ The researcher may authorize, modify, decline, or save the proposal for later.
 
 For an implemented paid execution, customer-visible disclosure MUST separately identify the **Tavily provider charge**, **disclosed iSEES service margin**, **maximum authorized total**, and actual reconciled final charge. A disclosed percentage is a service markup over provider cost, not a gross-margin percentage. Internal credentials, provider contracts, negotiated rates, security controls, and unrelated implementation details remain private.
 
-Proposal creation is free. A complimentary first focused discovery is a future eligibility policy, not an implemented entitlement. No execution may begin before explicit authorization; the final charge MUST NOT exceed the authorized maximum. Additional or revised cost requires a revised proposal and new approval, and specialized providers require separate disclosure and authorization.
+Proposal creation is free and performs no external work. It MUST label an unavailable provider component, margin, or maximum customer price as `UNAVAILABLE` or `PLANNING_ONLY`, never as a live quote. Under a future explicit eligibility policy, one real, bounded first expansion MAY be complimentary; this is not an implemented entitlement. Its exact proposal still requires explicit approval, and its receipt MUST show actual work, the normal price basis, complimentary coverage, and customer charge `$0.00`. No execution may begin before explicit authorization; the final charge MUST NOT exceed the authorized maximum. Additional or revised cost requires a revised proposal and new approval, and specialized providers require separate disclosure and authorization.
 
 This amendment supersedes prior customer-facing language that made provider cost categorically internal or required Research Credits as the sole customer unit. The present runtime remains planning-only: billing is disabled, displayed amounts are illustrative rather than quotes or active prices, and Tavily credits are not converted into customer currency.
 
@@ -191,11 +191,11 @@ The canonical transaction lifecycle is:
 1. **PROPOSED** — The agent presents the mission and estimated charge.
 2. **MODIFIED** — The researcher may narrow or alter permitted scope.
 3. **AUTHORIZED** — The researcher approves an exact maximum charge.
-4. **RESERVED** — iSEES holds the maximum approved Research Credits.
+4. **RESERVED** — when a governed credit ledger exists, iSEES holds the maximum approved Research Credits.
 5. **EXECUTING** — The mission operates only within the envelope.
 6. **COMPLETED, CANCELLED, EXPIRED, or FAILED** — Execution terminates deterministically.
 7. **RECONCILED** — Actual usage is calculated once.
-8. **RELEASED** — Unused reserved credits are returned.
+8. **RELEASED** — when reservation applies, unused reserved credits are returned under terms not yet settled by this Canon.
 9. **RECEIPTED** — An immutable execution receipt is available.
 
 Charging must be idempotent. Retries, duplicate browser commands, refreshes, or repeated callbacks must not create duplicate reservations or charges.
@@ -335,6 +335,20 @@ This model permits iSEES to remain a public-purpose research system while becomi
 8. Introduce Frontier Agents only after authorization and accounting foundations exist.
 9. Add REX as an optional, separately disclosed capability within the same envelope.
 10. Add institutional pooled budgets, approval roles, and audit policy after the single-researcher lifecycle is proven.
+
+## 19. I1 governed expansion reconciliation
+
+The governed target flow is:
+
+`SELECTED NODE OR EDGE + RESEARCHER QUESTION/NOTES → SERVER-DERIVED FREE BOUNDED REX EXPANSION PROPOSAL → EXPLICIT APPROVAL → FUTURE SUBSTANTIVE SOURCE ACQUISITION AND INSPECTION → EXPLICIT CANDIDATE EVIDENCE CAPTURE AND REVIEW → SUPPORTED PROPOSED NODES OR EDGES → SEPARATE RESEARCHER ADMISSION → ONE DETERMINISTIC OPERATIONAL MANIFOLD REVISION`
+
+The proposal planner MUST be server-owned, deterministic, bounded, and version-identified. It derives query guidance from the selected governed object and its applicable context while preserving the researcher question and optional notes as distinct inputs. The client MUST NOT author limits or stop conditions. If applicable guidance cannot be derived, the proposal is unavailable; the system MUST NOT fabricate source-specific facts. The proposal MUST disclose generated query guidance, governed scope, limits, stop conditions, provider component, iSEES margin, and maximum customer price. Approval authorizes only that envelope. Tavily, its metadata, REX confidence, ranking, warnings, and payment have zero direct graph, System Canon, or Manifold mutation authority. Confidence may rank and warn; it never admits. Each reference requires explicit capture as Candidate Evidence and review under SC-027 and EVIDENCE-001 before evidence-backed node or edge proposals are eligible for a separate researcher admission decision. One successful decision produces at most one deterministic operational Manifold revision. FREE Web Discovery remains a separate metadata-only URL lead search and is not a REX acquisition or inspection route.
+
+Account creation is free and never approves spending. Guest proposal preview and proposal adoption are not implemented or authorized. The adoption contract accepts only its enumerated snapshot fields and rejects Candidate Evidence, arbitrary documents, selection, and unknown state; therefore no Guest proposal, Web Discovery result, Candidate Evidence, or unsupported Guest work is promised to transfer.
+
+Purchased iSEES Research Credit is a later commercial capability. One card purchase funds an internal balance for separately approved expansions; an approved expansion consumes that balance and does not create another card transaction. A later top-up is a new purchase. `$25` is only a proposed funding amount, not permanent Canon. Payment processing, paid billing, refund rules, balance nonrefundability, and processing-fee deductions remain unresolved and disabled.
+
+The intended product direction permits disposable Guest Web Discovery, but the currently implemented Web Discovery routes are authenticated-only as recorded by EVIDENCE-001. That discrepancy remains unresolved; this Canon does not claim Guest execution exists.
 
 ---
 

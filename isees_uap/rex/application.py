@@ -140,6 +140,10 @@ class RexApiApplicationService:
         return service.execute_one(ExecuteDurableJob(job_id, subject_id))
 
     def receipt(self, *, subject_id: str, investigation_id: str, execution_id: str):
+        proposal_receipt = self.repository.reconstruct_proposal_execution_receipt(
+            execution_id, owner_subject_id=subject_id, investigation_id=investigation_id)
+        if proposal_receipt is not None:
+            return proposal_receipt
         context = self.repository.get_execution_context(execution_id, DurableExecutionContext)
         self._context_owned(context, subject_id, investigation_id)
         return self.repository.reconstruct_execution_receipt(SearchExecutionId(execution_id))

@@ -77,7 +77,8 @@ class TavilyWebDiscoveryAdapter:
         try:
             response = self._transport.post_json(
                 principal_id=request.principal_id, payload=payload,
-                secret_headers={"Authorization": f"Bearer {self._api_key}"}, cancellation=cancellation)
+                secret_headers={"Authorization": f"Bearer {self._api_key}"}, cancellation=cancellation,
+                timeout_seconds=getattr(cancellation, "timeout_seconds", None))
         except TransportError as error:
             return self._transport_failure(request, error)
         accounting = response.accounting

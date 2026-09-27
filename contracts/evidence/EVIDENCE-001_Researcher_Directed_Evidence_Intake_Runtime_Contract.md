@@ -245,6 +245,8 @@ Backend queries and object authorization MUST scope by principal membership and 
 
 Guest Web Discovery is not authorized in V1. It is deferred until a separate increment establishes a governed volatile-session authority, loss warnings, adoption rules, and isolation semantics. This deferral does not alter separately authorized guest behavior for other intake pathways.
 
+The intended product direction is disposable Guest Web Discovery, but the implemented search and capture routes are currently authenticated-only. This discrepancy is explicit and unresolved. Guest REX proposal preview and proposal adoption transfer are not implemented or claimed. The adoption contract does not transfer Candidate Evidence, Web Discovery results, proposal state, selection, or arbitrary Guest documents.
+
 ## 43. Saved-researcher durable behavior
 
 A free authenticated researcher account with investigation membership is required for persistent upload, durable Candidate Evidence, durable Research Inbox publication, Candidate Knowledge, and governed revision. Entitlement or operational limits MUST be capability-reported and explained. Saving does not advance epistemic state.
@@ -256,6 +258,8 @@ The EVIDENCE workspace MUST derive controls from authenticated/session capabilit
 ## 45. REX reconciliation
 
 REX cost and authorization structures may supply reusable vocabulary, but REX does not own Web Discovery. Completed REX results remain review-only and later enter through the same EVIDENCE Candidate review boundary with execution and receipt lineage. `RexResearchInboxHydrator` automatic publication remains prohibited. Selected structures from untracked REX entity-discovery experiments MAY be reviewed and adopted individually into tracked owners; the directory is not authority and MUST NOT be adopted wholesale.
+
+FREE Web Discovery and the bounded operator-funded REX/Tavily action return metadata-only leads—URLs, titles, snippets, and provider metadata—and do not acquire or inspect webpage content, establish evidence, or create proposed graph changes. REX requires an authenticated owner and an explicit exact-plan confirmation; Guest Web Discovery remains a separate disposable capability. Capture records a source LEAD in this existing Candidate Evidence owner, still awaiting inspection, without automatic Research Inbox publication. Deeper acquisition/inspection and evidence-backed node/edge proposals are planned and inactive. Only a future separate researcher admission command may cause at most one deterministic operational Manifold revision. Providers, REX confidence/ranking, capture, review, and payment have zero direct graph, Canon, or Manifold mutation authority.
 
 ## 46. Explicitly prohibited behavior
 

@@ -71,22 +71,10 @@ export function buildCanonicalOperationalGraph(
   return deepFreeze({ nodes, edges, statistics });
 }
 
-function stableValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(stableValue);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => lexical(left, right))
-        .map(([key, child]) => [key, stableValue(child)]),
-    );
-  }
-  return value;
-}
-
 export function createOperationalGraphFingerprint(graph: InvestigationGraph): string {
   const canonical = {
-    nodes: [...graph.nodes].sort((left, right) => lexical(left.id, right.id)).map(node => stableValue(canonicalNode(node))),
-    edges: [...graph.edges].sort((left, right) => lexical(left.id, right.id)).map(edge => stableValue(canonicalEdge(edge))),
+    nodes: [...graph.nodes].sort((left, right) => lexical(left.id, right.id)).map(canonicalNode),
+    edges: [...graph.edges].sort((left, right) => lexical(left.id, right.id)).map(canonicalEdge),
   };
   return JSON.stringify(canonical);
 }

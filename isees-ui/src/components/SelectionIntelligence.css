@@ -669,6 +669,19 @@
 .rex-explore ul { margin: 4px 0; padding-left: 17px; }
 .rex-explore li { margin: 3px 0; color: #94a3b8; font-size: 10px; line-height: 1.4; }
 .rex-explore__principle { padding-left: 8px; border-left: 2px solid #22d3ee; color: #c4b5fd !important; }
+.rex-leads { display: grid; gap: 8px; min-width: 0; margin: 8px 0; padding: 8px; border: 1px solid rgba(148,163,184,.22); border-radius: 6px; }
+.rex-leads legend { padding: 0 4px; color: #bae6fd; font-size: 10px; font-weight: 700; }
+.rex-lead { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 8px; min-width: 0; padding: 9px; border: 1px solid rgba(148,163,184,.24); border-radius: 6px; background: rgba(15,23,42,.72); cursor: pointer; }
+.rex-lead:has(.rex-lead__radio:checked) { border-color: #38bdf8; box-shadow: inset 3px 0 rgba(56,189,248,.75); background: rgba(14,116,144,.14); }
+.rex-lead__radio { margin: 2px 0 0; }
+.rex-lead__radio:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+.rex-lead__content { display: grid; gap: 5px; min-width: 0; }
+.rex-lead__title, .rex-lead__url, .rex-lead__snippet, .rex-lead__notice, .rex-lead__capture { display: block; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.rex-lead__title { color: #e2e8f0; font-size: 11px; line-height: 1.4; }
+.rex-lead__url { color: #67e8f9; font-size: 9px; line-height: 1.4; }
+.rex-lead__snippet { padding-top: 5px; border-top: 1px solid rgba(148,163,184,.16); color: #cbd5e1; font-size: 10px; line-height: 1.5; }
+.rex-lead__notice { padding: 6px 7px; border: 1px solid rgba(245,158,11,.48); border-radius: 4px; background: rgba(120,53,15,.2); color: #fde68a; font-size: 9px; font-weight: 800; line-height: 1.4; letter-spacing: .035em; }
+.rex-lead__capture { color: #86efac; font-size: 9px; font-weight: 700; }
 .rex-report { display: grid; gap: 7px; min-width: 0; padding-top: 4px; }
 .rex-report header { display: grid; gap: 5px; }
 .rex-report h3, .frontier-explainer h3 { margin: 0; color: #e2e8f0; font-size: 12px; line-height: 1.35; }
@@ -707,4 +720,4 @@
 .frontier-diagram > ul { margin-top: 0; }
 @media (max-width: 1100px) { .rex-report__pair { grid-template-columns: minmax(0,1fr); } }
 @media (prefers-reduced-motion: reduce) { .rex-explore *, .frontier-diagram * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
-@media (forced-colors: active) { .rex-report__warning, .rex-cost__receipt, .frontier-explainer__prohibitions, .frontier-diagram__box rect { border: 1px solid CanvasText; } .frontier-diagram path, .frontier-diagram circle, .frontier-diagram__gate path { stroke: CanvasText; } }
+@media (forced-colors: active) { .rex-lead, .rex-lead__notice, .rex-report__warning, .rex-cost__receipt, .frontier-explainer__prohibitions, .frontier-diagram__box rect { border: 1px solid CanvasText; } .frontier-diagram path, .frontier-diagram circle, .frontier-diagram__gate path { stroke: CanvasText; } }
