@@ -33,6 +33,52 @@ class AuthenticatedSession:
 
 
 @dataclass(frozen=True)
+class GuestIdentity:
+    guest_id: str
+    created_at: datetime
+    expires_at: datetime
+    revoked_at: datetime | None
+
+
+@dataclass(frozen=True)
+class GuestCredential:
+    credential_id: str
+    guest_id: str
+    created_at: datetime
+    expires_at: datetime
+    revoked_at: datetime | None
+    last_used_at: datetime
+    csrf_digest: bytes = field(repr=False)
+
+
+class GuestSearchOperationState(str, Enum):
+    RESERVED = "RESERVED"
+    DISPATCHING = "DISPATCHING"
+    COMPLETED = "COMPLETED"
+    DEFINITELY_UNDISPATCHED = "DEFINITELY_UNDISPATCHED"
+    UNKNOWN = "UNKNOWN"
+
+
+class GuestReservationState(str, Enum):
+    HELD = "HELD"
+    RELEASED = "RELEASED"
+    CHARGED = "CHARGED"
+
+
+@dataclass(frozen=True)
+class GuestSearchOperation:
+    operation_id: str
+    guest_id: str
+    idempotency_key: str
+    request_fingerprint: bytes = field(repr=False)
+    state: GuestSearchOperationState = GuestSearchOperationState.RESERVED
+    reservation_state: GuestReservationState = GuestReservationState.HELD
+    reserved_units: int = 1
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass(frozen=True)
 class LoginThrottle:
     normalized_email: str
     failure_count: int

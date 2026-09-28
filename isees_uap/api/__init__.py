@@ -17,7 +17,8 @@ from typing import Dict, List, Mapping, Optional
 from isees_uap.analysis.cluster_engine import run_cluster_engine
 from isees_uap.api.submit_report import build_report
 from isees_uap.api.v1.candidate_evidence import (
-    candidate_error_handler, native_case_router, router as candidate_evidence_router,
+    candidate_error_handler, guest_web_discovery_router, native_case_router,
+    router as candidate_evidence_router,
 )
 from isees_uap.candidate_evidence.errors import CandidateEvidenceError
 from isees_uap.api.v1.studio import router as studio_router, studio_error_handler
@@ -362,6 +363,7 @@ def create_application(
     application.include_router(system_router)
     application.add_exception_handler(AuthenticationError, authentication_error_handler)
     application.include_router(candidate_evidence_router)
+    application.include_router(guest_web_discovery_router)
     application.include_router(native_case_router)
     application.include_router(research_sources_router)
     application.add_exception_handler(CandidateEvidenceError, candidate_error_handler)

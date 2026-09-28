@@ -76,7 +76,7 @@ class TavilyWebDiscoveryAdapter:
         }
         try:
             response = self._transport.post_json(
-                principal_id=request.principal_id, payload=payload,
+                principal_id=request.principal_id or request.guest_id, payload=payload,
                 secret_headers={"Authorization": f"Bearer {self._api_key}"}, cancellation=cancellation,
                 timeout_seconds=getattr(cancellation, "timeout_seconds", None))
         except TransportError as error:
@@ -182,6 +182,7 @@ class TavilyWebDiscoveryAdapter:
             request.created_at, request.created_at,
             provider_credits_consumed=accounting.provider_credits_consumed,
             provider_credit_usage=usage,
+            guest_id=getattr(request, "guest_id", None),
         )
         return SearchOutcome(
             OUTCOME_SCHEMA_VERSION, request.search_session_id, request.operation_id,

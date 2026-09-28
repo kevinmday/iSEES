@@ -155,6 +155,49 @@ class SearchRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class GuestSearchRequest:
+    schema_version: str
+    search_session_id: str
+    operation_id: str
+    guest_id: str
+    normalized_query: str
+    query_normalization_version: str
+    selected_object_context: None
+    requested_result_limit: int
+    adapter_id: str
+    adapter_version: str
+    idempotency_key: str
+    metadata_only: bool
+    zero_spend_authorized: bool
+    created_at: datetime
+    expires_at: datetime
+    principal_id: None = None
+    investigation_id: None = None
+    expected_investigation_revision: None = None
+    manifold_revision_id: None = None
+
+    def __post_init__(self) -> None:
+        for name in ("search_session_id", "operation_id", "guest_id", "normalized_query",
+                     "adapter_id", "adapter_version", "idempotency_key"):
+            _require_text(name, getattr(self, name))
+        if self.schema_version != SEARCH_SCHEMA_VERSION or self.query_normalization_version != QUERY_NORMALIZATION_VERSION:
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "unsupported Guest search schema")
+        if self.normalized_query != normalize_query(self.normalized_query):
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "query is not normalized")
+        if not 1 <= self.requested_result_limit <= MAX_RESULT_LIMIT:
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "result limit exceeds policy")
+        if not self.metadata_only or not self.zero_spend_authorized:
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "metadata-only zero-spend policy required")
+        if not _aware(self.created_at) or not _aware(self.expires_at) or self.expires_at <= self.created_at:
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "invalid search lifetime")
+
+
+def _authority_key(request: SearchRequest | GuestSearchRequest) -> tuple[str, str]:
+    return (("GUEST", request.guest_id) if isinstance(request, GuestSearchRequest)
+            else ("ACCOUNT", f"{request.principal_id}\0{request.investigation_id}"))
+
+
+@dataclass(frozen=True, slots=True)
 class SearchResult:
     result_id: str
     search_session_id: str
@@ -217,9 +260,9 @@ class SearchResult:
 class OperationReceipt:
     schema_version: str
     operation_id: str
-    principal_id: str
-    investigation_id: str
-    manifold_revision_id: str
+    principal_id: str | None
+    investigation_id: str | None
+    manifold_revision_id: str | None
     status: SearchStatus
     created_at: datetime
     completed_at: datetime
@@ -240,10 +283,17 @@ class OperationReceipt:
     graph_effect: str = "NONE"
     manifold_effect: str = "NONE"
     resolve_effect: str = "NONE"
+    guest_id: str | None = None
 
     def __post_init__(self) -> None:
         if self.schema_version != RECEIPT_SCHEMA_VERSION:
             raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "unsupported receipt schema")
+        account_bound = (self.principal_id is not None and self.investigation_id is not None
+                         and self.manifold_revision_id is not None and self.guest_id is None)
+        guest_bound = (self.guest_id is not None and self.principal_id is None
+                       and self.investigation_id is None and self.manifold_revision_id is None)
+        if not (account_bound or guest_bound):
+            raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "receipt authority is invalid")
         zero = (self.estimated_provider_cost, self.actual_provider_cost, self.final_charge)
         effects = (self.ai_assistance, self.rex_execution, self.research_inbox_effect,
                    self.publication_effect, self.candidate_knowledge_effect, self.canon_effect,
@@ -347,7 +397,8 @@ class WebDiscoveryAdapter(Protocol):
     adapter_id: str
     adapter_version: str
 
-    def search(self, request: SearchRequest, cancellation: CancellationBoundary) -> SearchOutcome: ...
+    def search(self, request: SearchRequest | GuestSearchRequest,
+               cancellation: CancellationBoundary) -> SearchOutcome: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -361,7 +412,7 @@ class Cancellation:
 
 @dataclass(slots=True)
 class _SessionRecord:
-    request: SearchRequest
+    request: SearchRequest | GuestSearchRequest
     outcome: SearchOutcome
     fingerprint: str
     captured_results: dict[str, str] = field(default_factory=dict)
@@ -385,7 +436,7 @@ class InMemoryWebDiscoverySessions:
         self._purge_expired()
         return len(self._sessions)
 
-    def search(self, request: SearchRequest, adapter: WebDiscoveryAdapter,
+    def search(self, request: SearchRequest | GuestSearchRequest, adapter: WebDiscoveryAdapter,
                cancellation: CancellationBoundary) -> SearchOutcome:
         now = self._now()
         if request.created_at != now or request.expires_at != now + self._lifetime:
@@ -393,7 +444,7 @@ class InMemoryWebDiscoverySessions:
         if request.adapter_id != adapter.adapter_id or request.adapter_version != adapter.adapter_version:
             raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_REQUEST, "adapter identity mismatch")
         self._purge_expired(now)
-        key = (request.principal_id, request.investigation_id, request.idempotency_key)
+        key = (*_authority_key(request), request.idempotency_key)
         fingerprint = self._fingerprint(request)
         prior = self._idempotency.get(key)
         if prior is not None:
@@ -412,8 +463,7 @@ class InMemoryWebDiscoverySessions:
         self._idempotency[key] = (fingerprint, request.search_session_id)
         while len(self._sessions) > self._capacity:
             session_id, evicted = self._sessions.popitem(last=False)
-            evicted_key = (evicted.request.principal_id, evicted.request.investigation_id,
-                           evicted.request.idempotency_key)
+            evicted_key = (*_authority_key(evicted.request), evicted.request.idempotency_key)
             self._idempotency.pop(evicted_key, None)
         return outcome
 
@@ -517,6 +567,7 @@ class InMemoryWebDiscoverySessions:
                 "requested_result_limit", "adapter_id", "adapter_version", "idempotency_key",
                 "metadata_only", "zero_spend_authorized", "created_at", "expires_at")
         }
+        governed["guest_id"] = getattr(request, "guest_id", None)
         encoded = json.dumps(governed, default=str, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
@@ -530,5 +581,6 @@ class InMemoryWebDiscoverySessions:
                 or outcome.receipt.operation_id != request.operation_id
                 or outcome.receipt.principal_id != request.principal_id
                 or outcome.receipt.investigation_id != request.investigation_id
-                or outcome.receipt.manifold_revision_id != request.manifold_revision_id):
+                or outcome.receipt.manifold_revision_id != request.manifold_revision_id
+                or outcome.receipt.guest_id != getattr(request, "guest_id", None)):
             raise WebDiscoveryError(WebDiscoveryErrorCode.INVALID_PROVIDER_METADATA, "adapter outcome violates request authority")

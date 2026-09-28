@@ -11,8 +11,8 @@ const css = readFileSync("src/workspace/surfaces/EvidenceWorkspace.css", "utf8")
 const all = component + controller;
 
 includes(workspace, "<WebDiscoveryWorkspace", "EVIDENCE composes the modular discovery surface");
-includes(workspace, 'operator.identity?.kind === "ACCOUNT" ? apiScope : undefined', "only authenticated account identity creates Web Discovery scope");
-includes(workspace, "const principalId = operator.identity?.operatorId", "existing Candidate Evidence scope remains intact");
+includes(workspace, 'operator.identity?.kind === "ACCOUNT" ? operator.identity.operatorId : undefined', "only authenticated account identity creates Candidate Evidence scope");
+includes(workspace, "const webDiscoveryScope = apiScope", "Web Discovery reuses the account-owned Candidate Evidence scope");
 includes(workspace, "candidateEvidenceApi.list(apiScope)", "existing Candidate Evidence owner performs refresh");
 includes(workspace, "selectedCandidateId: candidateId", "created Candidate Evidence is selected after refresh");
 includes(component, "Web Discovery query", "query has a visible associated label");

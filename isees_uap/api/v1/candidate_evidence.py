@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 import os
 from functools import lru_cache
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Path, Query, Request, UploadFile
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -24,25 +27,33 @@ from isees_uap.candidate_evidence.sqlite_repository import SQLiteCandidateEviden
 from isees_uap.candidate_evidence.native_case_service import NativeCaseDraftService
 from isees_uap.candidate_evidence.sqlite_native_case_repository import SQLiteNativeCaseDraftRepository
 from isees_uap.authentication.principal import (
-    AuthenticatedPrincipal, require_authenticated_principal,
+    AuthenticatedPrincipal, GuestPrincipal, authentication_repository, settings,
+    require_authenticated_principal, require_csrf_protected_guest,
     require_csrf_protected_principal,
 )
+from isees_uap.authentication.config import AuthenticationSettings
+from isees_uap.authentication.guest import GuestAuthority
+from isees_uap.authentication.models import GuestSearchOperationState
 from isees_uap.investigations.authority import PersistedInvestigationAuthority
 from isees_uap.api.v1.investigations import repository as investigation_repository
 from isees_uap.candidate_evidence.upload_policy import sanitize_display_filename, validate_media
 from isees_uap.candidate_evidence.web_discovery_runtime import (
     WebDiscoveryRuntimeError, WebDiscoverySearchRuntime,
 )
+from isees_uap.candidate_evidence.web_discovery import normalize_query
 from isees_uap.candidate_evidence.web_discovery_capture import WebDiscoveryCaptureService
 from isees_uap.research_sources import SQLiteResearchSourceRepository, research_source_database_path
 from isees_uap.research_sources.sqlite_repository import ResearchSourceConflict
 from isees_uap.candidate_evidence.web_discovery_schemas import (
+    GuestWebDiscoverySearchCommand,
     WebDiscoveryCaptureCommand, WebDiscoveryCaptureResponse,
     WebDiscoverySearchCommand, WebDiscoverySearchResponse,
 )
 
 router = APIRouter(prefix="/api/v1/investigations/{investigation_id}/candidate-evidence", tags=["candidate-evidence"])
 native_case_router = APIRouter(prefix="/api/v1/native-case-drafts", tags=["native-case-drafts"])
+guest_web_discovery_router = APIRouter(
+    prefix="/api/v1/guest/web-discovery", tags=["guest-web-discovery"])
 InvestigationPath = Annotated[str, Path(min_length=1, pattern=r".*\S.*")]
 CandidatePath = Annotated[str, Path(min_length=1, pattern=r".*\S.*")]
 
@@ -207,6 +218,150 @@ def _web_discovery_error(
     if existing_candidate_id is not None:
         error["existingCandidateId"] = existing_candidate_id
     return JSONResponse(status_code=status_code, content={"error": error})
+
+
+def _guest_fingerprint(command: GuestWebDiscoverySearchCommand) -> bytes:
+    # Client correlation identifiers are deliberately excluded: equivalent work
+    # cannot evade the duplicate-dispatch guard by changing a key or operation ID.
+    governed = {
+        "queryNormalizationVersion": "web-discovery-query-normalization/v1",
+        "normalizedQuery": normalize_query(command.query),
+        "resultLimit": command.resultLimit,
+        "executionPolicy": command.executionPolicy.model_dump(mode="json"),
+    }
+    encoded = json.dumps(governed, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).digest()
+
+
+def _guest_operation_id(guest_id: str, client_operation_id: str) -> str:
+    digest = hashlib.sha256(
+        (guest_id + "\0" + client_operation_id).encode("utf-8")
+    ).hexdigest()
+    return f"gws_{digest[:40]}"
+
+
+def _guest_operation_response(operation, *, status_code: int | None = None) -> JSONResponse:
+    if status_code is None:
+        status_code = 503 if operation.state is GuestSearchOperationState.UNKNOWN else 202
+    return JSONResponse(status_code=status_code, content={
+        "schemaVersion": "guest-web-discovery-outcome/v1",
+        "operationId": operation.operation_id,
+        "operationState": operation.state.value,
+        "status": "PENDING" if operation.state in {
+            GuestSearchOperationState.RESERVED, GuestSearchOperationState.DISPATCHING,
+        } else operation.state.value,
+        "resultCount": 0,
+        "results": [],
+        "researcherCharge": "0.00",
+        "billingTriggered": False,
+        "providerCreditsConsumed": 1 if operation.state in {
+            GuestSearchOperationState.DISPATCHING, GuestSearchOperationState.UNKNOWN,
+            GuestSearchOperationState.COMPLETED,
+        } else 0,
+        "providerCreditUsage": (
+            "UNKNOWN" if operation.state is GuestSearchOperationState.UNKNOWN
+            else "ACTUAL" if operation.state is GuestSearchOperationState.COMPLETED
+            else "ESTIMATED" if operation.state is GuestSearchOperationState.DISPATCHING
+            else "ZERO"
+        ),
+        "effects": {name: "NONE" for name in (
+            "candidateEvidence", "researchInbox", "candidateKnowledge", "canon",
+            "graph", "manifold", "resolve", "rex",
+        )},
+    })
+
+
+@guest_web_discovery_router.post("/searches")
+def search_guest_web_discovery(
+    request: Request,
+    command: GuestWebDiscoverySearchCommand,
+    guest: GuestPrincipal = Depends(require_csrf_protected_guest),
+    repo=Depends(authentication_repository),
+    config: AuthenticationSettings = Depends(settings),
+    runtime: WebDiscoverySearchRuntime = Depends(web_discovery_runtime),
+):
+    # Origin is independently checked for this cost-bearing operation.  Browsers
+    # that omit it do not receive authority merely from possession of cookies.
+    if config.public_app_origin is None or request.headers.get("origin") != config.public_app_origin:
+        from isees_uap.authentication.errors import CsrfRejected
+        raise CsrfRejected("Request origin is not permitted")
+    if not config.guest_provider_dispatch_enabled or not runtime.guest_dispatch_available:
+        return _web_discovery_error(
+            "GUEST_SEARCH_UNAVAILABLE", "Guest Basic Search is unavailable", 503)
+    authority = GuestAuthority(repo, config)
+    try:
+        operation = authority.reserve(
+            guest_id=guest.guest_id,
+            operation_id=_guest_operation_id(guest.guest_id, command.operationId),
+            idempotency_key=command.idempotencyKey,
+            request_fingerprint=_guest_fingerprint(command),
+        )
+    except ValueError as error:
+        mapping = {
+            "IDEMPOTENCY_CONFLICT": (409, "IDEMPOTENCY_CONFLICT"),
+            "GUEST_ALLOWANCE_EXHAUSTED": (429, "GUEST_ALLOWANCE_EXHAUSTED"),
+            "GLOBAL_BUDGET_EXHAUSTED": (503, "GUEST_GLOBAL_BUDGET_EXHAUSTED"),
+            "GUEST_NOT_AUTHORIZED": (401, "AUTHENTICATION_REQUIRED"),
+        }
+        status_code, code = mapping.get(str(error), (503, "GUEST_SEARCH_UNAVAILABLE"))
+        return _web_discovery_error(code, "Guest Basic Search is unavailable", status_code)
+
+    if operation.state is not GuestSearchOperationState.RESERVED:
+        if operation.state is GuestSearchOperationState.COMPLETED:
+            try:
+                replay = runtime.search_guest(
+                    guest_id=guest.guest_id, operation_id=operation.operation_id, command=command)
+            except WebDiscoveryRuntimeError:
+                return _guest_operation_response(operation, status_code=410)
+            return _project_guest_search(replay, operation.state)
+        return _guest_operation_response(operation)
+
+    try:
+        operation = authority.mark_dispatching(operation.operation_id, guest.guest_id)
+    except ValueError:
+        # Another worker claimed the durable reservation.  It alone may dispatch.
+        return _guest_operation_response(operation)
+    try:
+        result = runtime.search_guest(
+            guest_id=guest.guest_id, operation_id=operation.operation_id, command=command)
+    except Exception:
+        # Once DISPATCHING is durable, provider execution is ambiguous.  Retain the
+        # charge and prohibit automatic retry under either this or another key.
+        unknown = authority.mark_unknown(operation.operation_id, guest.guest_id)
+        return _guest_operation_response(unknown, status_code=503)
+    completed = authority.mark_completed(operation.operation_id, guest.guest_id)
+    return _project_guest_search(result, completed.state)
+
+
+def _project_guest_search(result, operation_state: GuestSearchOperationState) -> JSONResponse:
+    source = (result.response.model_dump(mode="json", exclude_none=False)
+              if hasattr(result.response, "model_dump") else result.response)
+    receipt = source["receipt"]
+    return JSONResponse(status_code=result.status_code, content=jsonable_encoder({
+        "schemaVersion": "guest-web-discovery-outcome/v1",
+        "operationId": source["operationId"],
+        "operationState": operation_state.value,
+        "status": source["status"],
+        "normalizedQuery": source["normalizedQuery"],
+        "queryNormalizationVersion": source["queryNormalizationVersion"],
+        "runtimeStatus": source["runtimeStatus"],
+        "adapterId": source["adapterId"], "adapterVersion": source["adapterVersion"],
+        "startedAt": source["startedAt"], "completedAt": source["completedAt"],
+        "expiresAt": source["expiresAt"], "resultCount": source["resultCount"],
+        "results": source["results"], "providerAttribution": source["providerAttribution"],
+        "restrictions": source["restrictions"], "warnings": source["warnings"],
+        "error": source["error"], "researcherCharge": receipt["researcherCharge"],
+        "billingTriggered": receipt["billingTriggered"],
+        "providerCreditsConsumed": receipt["providerCreditsConsumed"],
+        "providerCreditUsage": receipt["providerCreditUsage"],
+        "effects": {
+            "candidateEvidence": "NONE", "researchInbox": receipt["researchInboxEffect"],
+            "candidateKnowledge": receipt["candidateKnowledgeEffect"],
+            "canon": receipt["canonEffect"], "graph": receipt["graphEffect"],
+            "manifold": receipt["manifoldEffect"], "resolve": receipt["resolveEffect"],
+            "rex": receipt["rexExecution"],
+        },
+    }))
 
 
 @router.post("/submissions")

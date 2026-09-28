@@ -104,7 +104,7 @@ class DeterministicWebDiscoveryFixture:
         receipt = OperationReceipt(
             RECEIPT_SCHEMA_VERSION, request.operation_id, request.principal_id,
             request.investigation_id, request.manifold_revision_id, status,
-            request.created_at, completed_at,
+            request.created_at, completed_at, guest_id=getattr(request, "guest_id", None),
         )
         return SearchOutcome(
             OUTCOME_SCHEMA_VERSION, request.search_session_id, request.operation_id,

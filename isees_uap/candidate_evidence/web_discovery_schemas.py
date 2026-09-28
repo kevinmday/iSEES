@@ -45,6 +45,20 @@ class WebDiscoverySearchCommand(StrictWebDiscoveryModel):
     executionPolicy: WebDiscoveryExecutionPolicy
 
 
+class GuestWebDiscoverySearchCommand(StrictWebDiscoveryModel):
+    """Bounded, investigation-free command for volatile Guest Basic Search."""
+
+    schemaVersion: Literal["guest-web-discovery-search/v1"]
+    operationId: Identity
+    query: Annotated[str, StringConstraints(
+        strip_whitespace=True, min_length=1, max_length=500,
+        pattern=r"^[^\x00-\x1f\x7f]+$",
+    )]
+    resultLimit: int = Field(ge=1, le=10)
+    idempotencyKey: Identity
+    executionPolicy: WebDiscoveryExecutionPolicy
+
+
 class SelectedObjectContextProjection(StrictWebDiscoveryModel):
     objectType: str
     objectId: str

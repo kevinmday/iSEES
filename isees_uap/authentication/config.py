@@ -62,6 +62,15 @@ class AuthenticationSettings:
     recovery_from_email: str | None = None
     recovery_from_name: str = "iSEES"
     resend_api_key: RedactedSecret | None = field(default=None, repr=False)
+    guest_credentials_enabled: bool = False
+    guest_provider_dispatch_enabled: bool = False
+    guest_credential_ttl_seconds: int = 60 * 60 * 24
+    guest_search_allowance: int = 5
+    guest_global_budget_units: int = 0
+    guest_issuance_max_requests: int = 5
+    guest_issuance_window_seconds: int = 15 * 60
+    guest_issuance_block_seconds: int = 15 * 60
+    guest_cookie_name: str = "isees_guest"
 
 
 def _bounded_integer(values: Mapping[str, str], name: str, default: int,
@@ -117,6 +126,8 @@ def authentication_settings(
     if environment_name not in {"production", "development", "test"}:
         raise RuntimeError("ISEES_AUTH_ENV must be production, development, or test")
     recovery_enabled = _boolean(values, "ISEES_PASSWORD_RECOVERY_ENABLED", False)
+    guest_enabled = _boolean(values, "ISEES_GUEST_CREDENTIALS_ENABLED", False)
+    guest_dispatch = _boolean(values, "ISEES_GUEST_PROVIDER_DISPATCH_ENABLED", False)
     recovery_ttl = _bounded_integer(
         values, "ISEES_RECOVERY_TOKEN_TTL_SECONDS", 30 * 60, 5 * 60, 24 * 60 * 60,
     )
@@ -144,6 +155,13 @@ def authentication_settings(
         if not from_name or any(c in from_name for c in "\r\n<>"):
             raise RuntimeError("ISEES_RECOVERY_FROM_NAME is invalid")
         resend_api_key = RedactedSecret(api_key)
+    if guest_dispatch and not guest_enabled:
+        raise RuntimeError("Guest provider dispatch requires Guest credentials")
+    if (guest_enabled or guest_dispatch) and public_origin is None:
+        origin_value = values.get("ISEES_PUBLIC_APP_ORIGIN", "")
+        if not origin_value.strip():
+            raise RuntimeError("Enabled Guest authority requires ISEES_PUBLIC_APP_ORIGIN")
+        public_origin = _public_origin(origin_value, development=environment_name == "development")
     path = database_path("ISEES_AUTH_DB_PATH", "authentication.sqlite3",
                          "runtime/authentication.sqlite3", values)
     return AuthenticationSettings(
@@ -163,4 +181,18 @@ def authentication_settings(
         recovery_from_email=from_email,
         recovery_from_name=from_name,
         resend_api_key=resend_api_key,
+        guest_credentials_enabled=guest_enabled,
+        guest_provider_dispatch_enabled=guest_dispatch,
+        guest_credential_ttl_seconds=_bounded_integer(
+            values, "ISEES_GUEST_CREDENTIAL_TTL_SECONDS", 24 * 60 * 60, 5 * 60, 7 * 24 * 60 * 60),
+        guest_search_allowance=_bounded_integer(
+            values, "ISEES_GUEST_SEARCH_ALLOWANCE", 5, 1, 10),
+        guest_global_budget_units=_bounded_integer(
+            values, "ISEES_GUEST_GLOBAL_BUDGET_UNITS", 0, 0, 10_000_000),
+        guest_issuance_max_requests=_bounded_integer(
+            values, "ISEES_GUEST_ISSUANCE_MAX_REQUESTS", 5, 1, 100),
+        guest_issuance_window_seconds=_bounded_integer(
+            values, "ISEES_GUEST_ISSUANCE_WINDOW_SECONDS", 15 * 60, 60, 24 * 60 * 60),
+        guest_issuance_block_seconds=_bounded_integer(
+            values, "ISEES_GUEST_ISSUANCE_BLOCK_SECONDS", 15 * 60, 60, 24 * 60 * 60),
     )

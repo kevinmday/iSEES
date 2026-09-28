@@ -11,6 +11,7 @@ from fastapi import Cookie, Depends, Header
 from .config import AuthenticationSettings, authentication_settings
 from .errors import AuthenticationRequired, CsrfRejected
 from .models import AccountStatus, AuthenticatedSession, ResearcherAccount
+from .guest import GuestAuthority
 from .sqlite_repository import SQLiteAuthenticationRepository, session_secret_digest
 
 
@@ -19,6 +20,14 @@ class AuthenticatedPrincipal:
     account_id: str
     email: str
     session_id: str
+    session_expires_at: datetime
+    csrf_digest: bytes
+
+
+@dataclass(frozen=True)
+class GuestPrincipal:
+    guest_id: str
+    credential_id: str
     session_expires_at: datetime
     csrf_digest: bytes
 
@@ -79,5 +88,30 @@ def require_csrf_protected_principal(
         raise CsrfRejected("Request could not be authorized")
     supplied = hashlib.sha256(csrf_header.encode("utf-8")).digest()
     if not hmac.compare_digest(supplied, principal.csrf_digest):
+        raise CsrfRejected("Request could not be authorized")
+    return principal
+
+
+def require_guest_principal(
+    guest_cookie: str | None = Cookie(default=None, alias="isees_guest"),
+    repository: SQLiteAuthenticationRepository = Depends(authentication_repository),
+    config: AuthenticationSettings = Depends(settings),
+) -> GuestPrincipal:
+    guest, credential = GuestAuthority(repository, config).resolve(guest_cookie)
+    return GuestPrincipal(
+        guest_id=guest.guest_id, credential_id=credential.credential_id,
+        session_expires_at=credential.expires_at, csrf_digest=credential.csrf_digest,
+    )
+
+
+def require_csrf_protected_guest(
+    principal: GuestPrincipal = Depends(require_guest_principal),
+    csrf_cookie: str | None = Cookie(default=None, alias="isees_csrf"),
+    csrf_header: str | None = Header(default=None, alias="X-ISEES-CSRF"),
+) -> GuestPrincipal:
+    if not csrf_cookie or not csrf_header or not hmac.compare_digest(csrf_cookie, csrf_header):
+        raise CsrfRejected("Request could not be authorized")
+    if not hmac.compare_digest(hashlib.sha256(csrf_header.encode()).digest(),
+                               principal.csrf_digest):
         raise CsrfRejected("Request could not be authorized")
     return principal

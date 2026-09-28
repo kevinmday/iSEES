@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import sqlite3
 import uuid
@@ -13,14 +14,16 @@ from .errors import AuthenticationRepositoryUnavailable, DuplicateAccount
 from .models import (
     AccountStatus, AuthenticatedSession, AuthenticationAuditEvent,
     AuthenticationAuditEventType, LoginThrottle, RecoveryTokenRecord,
-    RecoveryThrottleScope, ResearcherAccount,
+    RecoveryThrottleScope, ResearcherAccount, GuestCredential, GuestIdentity,
+    GuestSearchOperation, GuestSearchOperationState, GuestReservationState,
 )
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 _MIGRATION_NAMES = {
     1: "001_accounts_and_sessions.sql",
     2: "002_login_throttling.sql",
     3: "003_password_recovery.sql",
+    4: "004_guest_authority.sql",
 }
 
 _FORBIDDEN_AUDIT_KEYS = frozenset({
@@ -602,3 +605,249 @@ class SQLiteAuthenticationRepository:
         except sqlite3.Error as error:
             raise AuthenticationRepositoryUnavailable(
                 "Authentication service is unavailable") from error
+
+    @staticmethod
+    def _guest(row: sqlite3.Row) -> GuestIdentity:
+        return GuestIdentity(row["guest_id"], _datetime(row["created_at"]),
+                             _datetime(row["expires_at"]), _datetime(row["revoked_at"]))
+
+    @staticmethod
+    def _guest_credential(row: sqlite3.Row) -> GuestCredential:
+        return GuestCredential(
+            row["credential_id"], row["guest_id"], _datetime(row["created_at"]),
+            _datetime(row["expires_at"]), _datetime(row["revoked_at"]),
+            _datetime(row["last_used_at"]), row["csrf_digest"],
+        )
+
+    @staticmethod
+    def _guest_operation(row: sqlite3.Row) -> GuestSearchOperation:
+        return GuestSearchOperation(
+            operation_id=row["operation_id"], guest_id=row["guest_id"],
+            idempotency_key=row["idempotency_key"], request_fingerprint=row["request_fingerprint"],
+            state=GuestSearchOperationState(row["state"]),
+            reservation_state=GuestReservationState(row["reservation_state"]),
+            reserved_units=row["reserved_units"], created_at=_datetime(row["created_at"]),
+            updated_at=_datetime(row["updated_at"]),
+        )
+
+    def allow_guest_issuance(self, *, scope_digest: bytes, occurred_at: datetime,
+                             max_requests: int, window_seconds: int,
+                             block_seconds: int) -> bool:
+        from datetime import timedelta
+        now = _utc_text(occurred_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    "SELECT * FROM guest_issuance_throttle WHERE scope_digest=?", (scope_digest,)
+                ).fetchone()
+                if row and row["blocked_until"] and _datetime(row["blocked_until"]) > occurred_at:
+                    connection.commit()
+                    return False
+                start, count = occurred_at, 1
+                if row and _datetime(row["window_started_at"]) + timedelta(seconds=window_seconds) > occurred_at:
+                    start, count = _datetime(row["window_started_at"]), row["request_count"] + 1
+                blocked = occurred_at + timedelta(seconds=block_seconds) if count > max_requests else None
+                connection.execute(
+                    "INSERT INTO guest_issuance_throttle VALUES (?,?,?,?,?) "
+                    "ON CONFLICT(scope_digest) DO UPDATE SET request_count=excluded.request_count, "
+                    "window_started_at=excluded.window_started_at, blocked_until=excluded.blocked_until, "
+                    "updated_at=excluded.updated_at",
+                    (scope_digest, count, _utc_text(start), _utc_text(blocked) if blocked else None, now),
+                )
+                connection.commit()
+                return blocked is None
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable("Authentication service is unavailable") from error
+
+    def create_guest(self, *, guest_id: str, credential_id: str, secret_digest: bytes,
+                     csrf_digest: bytes, created_at: datetime,
+                     expires_at: datetime,
+                     revoke_guest_id: str | None = None) -> tuple[GuestIdentity, GuestCredential]:
+        now = _utc_text(created_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                if revoke_guest_id is not None:
+                    if connection.execute(
+                        "UPDATE guest_identity SET revoked_at=? WHERE guest_id=? AND revoked_at IS NULL",
+                        (now, revoke_guest_id),
+                    ).rowcount != 1:
+                        raise sqlite3.IntegrityError("Guest rotation target is unavailable")
+                    connection.execute(
+                        "UPDATE guest_credential SET revoked_at=? WHERE guest_id=? AND revoked_at IS NULL",
+                        (now, revoke_guest_id),
+                    )
+                connection.execute("INSERT INTO guest_identity VALUES (?,?,?,NULL)",
+                                   (guest_id, now, _utc_text(expires_at)))
+                connection.execute("INSERT INTO guest_credential VALUES (?,?,?,?,?,?,NULL,?)",
+                                   (credential_id, guest_id, secret_digest, csrf_digest, now,
+                                    _utc_text(expires_at), now))
+                identity = connection.execute("SELECT * FROM guest_identity WHERE guest_id=?",
+                                              (guest_id,)).fetchone()
+                credential = connection.execute("SELECT * FROM guest_credential WHERE credential_id=?",
+                                                (credential_id,)).fetchone()
+                connection.commit()
+                return self._guest(identity), self._guest_credential(credential)
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable("Authentication service is unavailable") from error
+
+    def resolve_guest(self, *, credential_id: str, secret_digest: bytes,
+                      used_at: datetime) -> tuple[GuestIdentity, GuestCredential] | None:
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    "SELECT c.*,g.created_at AS guest_created_at,g.expires_at AS guest_expires_at,"
+                    "g.revoked_at AS guest_revoked_at FROM guest_credential c JOIN guest_identity g "
+                    "ON g.guest_id=c.guest_id WHERE c.credential_id=? AND c.secret_digest=?",
+                    (credential_id, secret_digest),
+                ).fetchone()
+                valid = row and row["revoked_at"] is None and row["guest_revoked_at"] is None \
+                    and _datetime(row["expires_at"]) > used_at and _datetime(row["guest_expires_at"]) > used_at
+                if not valid:
+                    connection.rollback()
+                    return None
+                connection.execute("UPDATE guest_credential SET last_used_at=? WHERE credential_id=?",
+                                   (_utc_text(used_at), credential_id))
+                connection.commit()
+                guest = GuestIdentity(row["guest_id"], _datetime(row["guest_created_at"]),
+                                      _datetime(row["guest_expires_at"]), None)
+                return guest, self._guest_credential(row)
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable("Authentication service is unavailable") from error
+
+    def revoke_guest(self, *, guest_id: str, revoked_at: datetime) -> bool:
+        now = _utc_text(revoked_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                changed = connection.execute(
+                    "UPDATE guest_identity SET revoked_at=? WHERE guest_id=? AND revoked_at IS NULL",
+                    (now, guest_id),
+                ).rowcount
+                connection.execute(
+                    "UPDATE guest_credential SET revoked_at=? WHERE guest_id=? AND revoked_at IS NULL",
+                    (now, guest_id),
+                )
+                connection.commit()
+                return changed == 1
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable("Authentication service is unavailable") from error
+
+    def reserve_guest_search(self, *, operation_id: str, guest_id: str,
+                             idempotency_key: str, request_fingerprint: bytes,
+                             occurred_at: datetime, guest_allowance: int,
+                             global_budget: int, units: int = 1) -> GuestSearchOperation:
+        """Atomically replay or reserve. No provider call belongs inside this transaction."""
+        now = _utc_text(occurred_at)
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                guest = connection.execute("SELECT * FROM guest_identity WHERE guest_id=?", (guest_id,)).fetchone()
+                if not guest or guest["revoked_at"] or _datetime(guest["expires_at"]) <= occurred_at:
+                    raise ValueError("GUEST_NOT_AUTHORIZED")
+                by_operation = connection.execute(
+                    "SELECT * FROM guest_search_operation WHERE operation_id=?",
+                    (operation_id,),
+                ).fetchone()
+                if by_operation:
+                    if (by_operation["guest_id"] != guest_id
+                            or not hmac.compare_digest(
+                                by_operation["request_fingerprint"], request_fingerprint)
+                            or by_operation["idempotency_key"] != idempotency_key):
+                        raise ValueError("IDEMPOTENCY_CONFLICT")
+                    connection.commit()
+                    return self._guest_operation(by_operation)
+                by_key = connection.execute(
+                    "SELECT * FROM guest_search_operation WHERE guest_id=? AND idempotency_key=?",
+                    (guest_id, idempotency_key),
+                ).fetchone()
+                if by_key:
+                    if not hmac.compare_digest(by_key["request_fingerprint"], request_fingerprint):
+                        raise ValueError("IDEMPOTENCY_CONFLICT")
+                    connection.commit()
+                    return self._guest_operation(by_key)
+                by_fingerprint = connection.execute(
+                    "SELECT * FROM guest_search_operation WHERE guest_id=? AND request_fingerprint=?",
+                    (guest_id, request_fingerprint),
+                ).fetchone()
+                if by_fingerprint:
+                    connection.commit()
+                    return self._guest_operation(by_fingerprint)
+                used = connection.execute(
+                    "SELECT COUNT(*) FROM guest_search_operation WHERE guest_id=? "
+                    "AND reservation_state<>'RELEASED'", (guest_id,),
+                ).fetchone()[0]
+                if used + units > guest_allowance:
+                    raise ValueError("GUEST_ALLOWANCE_EXHAUSTED")
+                budget = connection.execute("SELECT * FROM guest_search_budget WHERE budget_id=1").fetchone()
+                if budget is None:
+                    connection.execute("INSERT INTO guest_search_budget VALUES (1,0,0,?)", (now,))
+                    reserved = charged = 0
+                else:
+                    reserved, charged = budget["reserved_units"], budget["charged_units"]
+                if reserved + charged + units > global_budget:
+                    raise ValueError("GLOBAL_BUDGET_EXHAUSTED")
+                connection.execute(
+                    "INSERT INTO guest_search_operation VALUES (?,?,?,?,?,?,?,?,?)",
+                    (operation_id, guest_id, idempotency_key, request_fingerprint,
+                     GuestSearchOperationState.RESERVED.value, GuestReservationState.HELD.value,
+                     units, now, now),
+                )
+                connection.execute(
+                    "UPDATE guest_search_budget SET reserved_units=reserved_units+?,updated_at=? WHERE budget_id=1",
+                    (units, now),
+                )
+                row = connection.execute("SELECT * FROM guest_search_operation WHERE operation_id=?",
+                                         (operation_id,)).fetchone()
+                connection.commit()
+                return self._guest_operation(row)
+        except ValueError:
+            raise
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable("Authentication service is unavailable") from error
+
+    def transition_guest_search(self, *, operation_id: str, guest_id: str,
+                                target: GuestSearchOperationState,
+                                occurred_at: datetime) -> GuestSearchOperation:
+        allowed = {
+            GuestSearchOperationState.DISPATCHING: ({GuestSearchOperationState.RESERVED}, GuestReservationState.HELD),
+            GuestSearchOperationState.DEFINITELY_UNDISPATCHED: ({GuestSearchOperationState.RESERVED}, GuestReservationState.RELEASED),
+            GuestSearchOperationState.UNKNOWN: ({GuestSearchOperationState.DISPATCHING}, GuestReservationState.CHARGED),
+            GuestSearchOperationState.COMPLETED: ({GuestSearchOperationState.DISPATCHING}, GuestReservationState.CHARGED),
+        }
+        if target not in allowed:
+            raise ValueError("INVALID_OPERATION_TRANSITION")
+        sources, reservation = allowed[target]
+        try:
+            with closing(self._connect()) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    "SELECT * FROM guest_search_operation WHERE operation_id=? AND guest_id=?",
+                    (operation_id, guest_id),
+                ).fetchone()
+                if row is None:
+                    raise ValueError("OPERATION_NOT_FOUND")
+                if GuestSearchOperationState(row["state"]) is target:
+                    connection.commit(); return self._guest_operation(row)
+                if GuestSearchOperationState(row["state"]) not in sources:
+                    raise ValueError("INVALID_OPERATION_TRANSITION")
+                units = row["reserved_units"]
+                if reservation is GuestReservationState.RELEASED:
+                    connection.execute("UPDATE guest_search_budget SET reserved_units=reserved_units-?,updated_at=? WHERE budget_id=1",
+                                       (units, _utc_text(occurred_at)))
+                elif reservation is GuestReservationState.CHARGED:
+                    connection.execute("UPDATE guest_search_budget SET reserved_units=reserved_units-?,charged_units=charged_units+?,updated_at=? WHERE budget_id=1",
+                                       (units, units, _utc_text(occurred_at)))
+                connection.execute(
+                    "UPDATE guest_search_operation SET state=?,reservation_state=?,updated_at=? WHERE operation_id=?",
+                    (target.value, reservation.value, _utc_text(occurred_at), operation_id),
+                )
+                row = connection.execute("SELECT * FROM guest_search_operation WHERE operation_id=?",
+                                         (operation_id,)).fetchone()
+                connection.commit(); return self._guest_operation(row)
+        except ValueError:
+            raise
+        except sqlite3.Error as error:
+            raise AuthenticationRepositoryUnavailable("Authentication service is unavailable") from error

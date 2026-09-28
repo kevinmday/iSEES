@@ -3,10 +3,10 @@ from __future__ import annotations
 import hashlib
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Cookie, Depends, Header, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -21,6 +21,7 @@ from isees_uap.authentication.principal import (
     require_authenticated_principal, require_csrf_protected_principal, settings,
 )
 from isees_uap.authentication.service import AuthenticationService
+from isees_uap.authentication.guest import GuestAuthority
 from isees_uap.authentication.recovery_delivery import (
     RecoveryDelivery, RecoveryDeliveryError, recovery_delivery_from_settings,
 )
@@ -61,6 +62,12 @@ class SafeResearcherIdentity(BaseModel):
     model_config = ConfigDict(extra="forbid")
     researcherId: str
     email: str
+    sessionExpiresAt: datetime
+
+
+class SafeGuestSessionStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: str
     sessionExpiresAt: datetime
 
 
@@ -154,24 +161,52 @@ def _clear_cookies(response: Response, config: AuthenticationSettings) -> None:
                            samesite=config.cookie_samesite)
 
 
+def _clear_guest_cookie(response: Response, config: AuthenticationSettings) -> None:
+    response.delete_cookie(config.guest_cookie_name, path=config.cookie_path,
+                           secure=config.secure_cookies, httponly=True,
+                           samesite=config.cookie_samesite)
+
+
+def _guest_authority(repo: SQLiteAuthenticationRepository,
+                     config: AuthenticationSettings) -> GuestAuthority:
+    return GuestAuthority(repo, config)
+
+
+def _revoke_present_guest(request: Request, response: Response,
+                          repo: SQLiteAuthenticationRepository,
+                          config: AuthenticationSettings) -> None:
+    bearer = request.cookies.get(config.guest_cookie_name)
+    if bearer:
+        try:
+            guest, _ = _guest_authority(repo, config).resolve(bearer)
+            repo.revoke_guest(guest_id=guest.guest_id, revoked_at=datetime.now(timezone.utc))
+        except AuthenticationError:
+            pass
+    _clear_guest_cookie(response, config)
+
+
 @router.post("/accounts", response_model=SafeResearcherIdentity, status_code=201)
-def create_account(credentials: Credentials, response: Response,
+def create_account(credentials: Credentials, request: Request, response: Response,
                    svc: AuthenticationService = Depends(service),
-                   config: AuthenticationSettings = Depends(settings)) -> SafeResearcherIdentity:
+                   config: AuthenticationSettings = Depends(settings),
+                   repo: SQLiteAuthenticationRepository = Depends(authentication_repository)) -> SafeResearcherIdentity:
     account = svc.create_account(email=credentials.email, password=credentials.password)
     account, issued = svc.login(email=credentials.email, password=credentials.password)
     _set_cookies(response, issued.bearer_secret, issued.csrf_secret,
                  issued.session.expires_at, config)
+    _revoke_present_guest(request, response, repo, config)
     return _identity(account.account_id, account.email, issued.session.expires_at)
 
 
 @router.post("/sessions", response_model=SafeResearcherIdentity)
-def login(credentials: Credentials, response: Response,
+def login(credentials: Credentials, request: Request, response: Response,
           svc: AuthenticationService = Depends(service),
-          config: AuthenticationSettings = Depends(settings)) -> SafeResearcherIdentity:
+          config: AuthenticationSettings = Depends(settings),
+          repo: SQLiteAuthenticationRepository = Depends(authentication_repository)) -> SafeResearcherIdentity:
     account, issued = svc.login(email=credentials.email, password=credentials.password)
     _set_cookies(response, issued.bearer_secret, issued.csrf_secret,
                  issued.session.expires_at, config)
+    _revoke_present_guest(request, response, repo, config)
     return _identity(account.account_id, account.email, issued.session.expires_at)
 
 
@@ -190,6 +225,71 @@ def logout(response: Response,
     from datetime import timezone
     repo.revoke_session(session_id=principal.session_id, revoked_at=datetime.now(timezone.utc))
     _clear_cookies(response, config)
+    return {"status": "logged_out"}
+
+
+@router.post("/guest-sessions", response_model=SafeGuestSessionStatus, status_code=201)
+def create_guest_session(
+    request: Request, response: Response,
+    repo: SQLiteAuthenticationRepository = Depends(authentication_repository),
+    config: AuthenticationSettings = Depends(settings),
+) -> SafeGuestSessionStatus:
+    origin = request.headers.get("origin")
+    fetch_site = request.headers.get("sec-fetch-site")
+    if (not config.guest_credentials_enabled or config.public_app_origin is None
+            or origin != config.public_app_origin
+            or fetch_site not in (None, "same-origin")):
+        from isees_uap.authentication.errors import CsrfRejected
+        raise CsrfRejected("Request origin is not permitted")
+    client_host = request.client.host if request.client is not None else "unavailable"
+    scope = hashlib.sha256((origin + "\0" + client_host).encode("utf-8")).digest()
+    authority = _guest_authority(repo, config)
+    prior_bearer = request.cookies.get(config.guest_cookie_name)
+    revoke_guest_id = None
+    if prior_bearer:
+        guest, credential = authority.resolve(prior_bearer)
+        authority.require_csrf(
+            credential, request.cookies.get(config.csrf_cookie_name),
+            request.headers.get("X-ISEES-CSRF"),
+        )
+        revoke_guest_id = guest.guest_id
+    issued = authority.issue(scope_digest=scope, revoke_guest_id=revoke_guest_id)
+    common = dict(max_age=config.guest_credential_ttl_seconds,
+                  expires=issued.credential.expires_at, path=config.cookie_path,
+                  secure=config.secure_cookies, samesite=config.cookie_samesite)
+    response.set_cookie(config.guest_cookie_name, issued.bearer, httponly=True, **common)
+    response.set_cookie(config.csrf_cookie_name, issued.csrf, httponly=False, **common)
+    return SafeGuestSessionStatus(status="ACTIVE",
+                                  sessionExpiresAt=issued.credential.expires_at)
+
+
+@router.get("/guest-session", response_model=SafeGuestSessionStatus)
+def restore_guest_session(
+    guest_cookie: str | None = Cookie(default=None, alias="isees_guest"),
+    repo: SQLiteAuthenticationRepository = Depends(authentication_repository),
+    config: AuthenticationSettings = Depends(settings),
+) -> SafeGuestSessionStatus:
+    _, credential = _guest_authority(repo, config).resolve(guest_cookie)
+    return SafeGuestSessionStatus(status="ACTIVE", sessionExpiresAt=credential.expires_at)
+
+
+@router.post("/guest-logout")
+def guest_logout(
+    response: Response,
+    guest_cookie: str | None = Cookie(default=None, alias="isees_guest"),
+    csrf_cookie: str | None = Cookie(default=None, alias="isees_csrf"),
+    csrf_header: str | None = Header(default=None, alias="X-ISEES-CSRF"),
+    repo: SQLiteAuthenticationRepository = Depends(authentication_repository),
+    config: AuthenticationSettings = Depends(settings),
+) -> dict[str, str]:
+    authority = _guest_authority(repo, config)
+    guest, credential = authority.resolve(guest_cookie)
+    authority.require_csrf(credential, csrf_cookie, csrf_header)
+    repo.revoke_guest(guest_id=guest.guest_id, revoked_at=datetime.now(timezone.utc))
+    _clear_guest_cookie(response, config)
+    response.delete_cookie(config.csrf_cookie_name, path=config.cookie_path,
+                           secure=config.secure_cookies, httponly=False,
+                           samesite=config.cookie_samesite)
     return {"status": "logged_out"}
 
 

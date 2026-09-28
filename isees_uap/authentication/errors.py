@@ -31,3 +31,8 @@ class CsrfRejected(AuthenticationError):
 class AuthenticationRepositoryUnavailable(AuthenticationError):
     status_code = 503
     code = "AUTHENTICATION_UNAVAILABLE"
+
+
+class GuestIssuanceRejected(AuthenticationError):
+    status_code = 429
+    code = "GUEST_ISSUANCE_REJECTED"

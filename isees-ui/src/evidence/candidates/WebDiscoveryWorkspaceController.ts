@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CandidateEvidenceApiScope, CandidateEvidenceHttpError } from "./CandidateEvidenceApi";
 import { buildWebDiscoveryCaptureCommand, buildWebDiscoverySearchCommand, webDiscoveryAlreadyCaptured, webDiscoveryApi } from "./WebDiscoveryApi";
 import type { WebDiscoveryCaptureDisposition, WebDiscoverySearchResponse, WebDiscoverySearchResult } from "./WebDiscoveryApi";
@@ -28,9 +28,11 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
   const [addToResearchInbox, setAddToResearchInbox] = useState(true);
   const [capturePending, setCapturePending] = useState<string>();
   const [captured, setCaptured] = useState<Readonly<Record<string, CapturedResult>>>({});
+  const generation = useRef(0);
+  const activeSearch = useRef<AbortController | undefined>(undefined);
   const bindingKey = scope && binding ? `${scope.principalId}\u0000${scope.investigationId}\u0000${binding.investigationAggregateRevision}\u0000${binding.manifoldRevisionId}` : "unavailable";
 
-  useEffect(() => { setResponse(undefined); setError(undefined); setConfirmation(undefined); setResearcherNote(""); setCapturePending(undefined); setCaptured({}); }, [bindingKey]);
+  useEffect(() => { generation.current += 1; activeSearch.current?.abort(); activeSearch.current = undefined; setQuery(""); setSearching(false); setResponse(undefined); setError(undefined); setConfirmation(undefined); setResearcherNote(""); setCapturePending(undefined); setCaptured({}); }, [bindingKey]);
 
   const search = useCallback(async () => {
     const normalized = query.trim();
@@ -38,13 +40,17 @@ export function useWebDiscoveryWorkspaceController(scope: CandidateEvidenceApiSc
     const searchSessionId = commandIdentity("session");
     const operationId = commandIdentity("search-operation");
     const idempotencyKey = commandIdentity("search-idempotency");
+    const controller = new AbortController();
+    activeSearch.current?.abort(); activeSearch.current = controller;
+    const ticket = ++generation.current;
     setSearching(true); setError(undefined); setConfirmation(undefined); setCaptured({});
     try {
-      const outcome = await webDiscoveryApi.search(scope, buildWebDiscoverySearchCommand({ investigationId: scope.investigationId, expectedInvestigationRevision: binding.investigationAggregateRevision, manifoldRevisionId: binding.manifoldRevisionId, searchSessionId, operationId, query: normalized, resultLimit: 10, idempotencyKey }));
+      const outcome = await webDiscoveryApi.search(scope, buildWebDiscoverySearchCommand({ investigationId: scope.investigationId, expectedInvestigationRevision: binding.investigationAggregateRevision, manifoldRevisionId: binding.manifoldRevisionId, searchSessionId, operationId, query: normalized, resultLimit: 10, idempotencyKey }), controller.signal);
+      if (controller.signal.aborted || generation.current !== ticket) return;
       setResponse(outcome);
       if (outcome.error) setError(`${outcome.error.code}: ${outcome.error.message}`);
-    } catch (caught) { setError(visibleError(caught, "search")); setResponse(undefined); }
-    finally { setSearching(false); }
+    } catch (caught) { if (!controller.signal.aborted && generation.current === ticket) { setError(visibleError(caught, "search")); setResponse(undefined); } }
+    finally { if (generation.current === ticket) { activeSearch.current = undefined; setSearching(false); } }
   }, [binding, query, scope, searching]);
 
   const requestCapture = useCallback((result: WebDiscoverySearchResult) => {

@@ -16,11 +16,13 @@ from typing import Callable
 
 from .web_discovery import (
     Cancellation, InMemoryWebDiscoverySessions, QUERY_NORMALIZATION_VERSION,
-    SEARCH_SCHEMA_VERSION, SearchRequest, SelectedObjectContext,
+    SEARCH_SCHEMA_VERSION, GuestSearchRequest, SearchRequest, SelectedObjectContext,
     WebDiscoveryError, WebDiscoveryErrorCode, normalize_query,
     WebDiscoveryAdapter,
 )
-from .web_discovery_schemas import WebDiscoverySearchCommand, WebDiscoverySearchResponse
+from .web_discovery_schemas import (
+    GuestWebDiscoverySearchCommand, WebDiscoverySearchCommand, WebDiscoverySearchResponse,
+)
 from .web_discovery_providers import WebDiscoveryProviderRegistry, WebDiscoveryRuntimeStatus
 
 
@@ -50,7 +52,7 @@ def _positive_environment_integer(name: str, default: int) -> int:
 
 @dataclass(frozen=True, slots=True)
 class RuntimeSearchResult:
-    response: WebDiscoverySearchResponse
+    response: WebDiscoverySearchResponse | dict
     status_code: int
 
 
@@ -89,6 +91,11 @@ class WebDiscoverySearchRuntime:
     @property
     def adapter_execution_count(self) -> int:
         return self._adapter.execution_count
+
+    @property
+    def guest_dispatch_available(self) -> bool:
+        """Guest admission must fail before reservation when no provider is configured."""
+        return self._runtime_status is not WebDiscoveryRuntimeStatus.UNAVAILABLE
 
     def search(self, *, principal_id: str, command: WebDiscoverySearchCommand,
                timeout_seconds: float | None = None) -> RuntimeSearchResult:
@@ -138,6 +145,47 @@ class WebDiscoverySearchRuntime:
         status_codes = {"UNAVAILABLE": 503, "RATE_LIMITED": 429, "FAILED": 502, "CANCELLED": 409}
         return RuntimeSearchResult(response, status_codes.get(outcome.status.value, 200))
 
+    def search_guest(self, *, guest_id: str, operation_id: str,
+                     command: GuestWebDiscoverySearchCommand,
+                     timeout_seconds: float | None = None) -> RuntimeSearchResult:
+        """Run Guest work with explicit Guest authority and no durable bindings."""
+        key = ("GUEST", guest_id, operation_id)
+        now = self._clock()
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise RuntimeError("Web Discovery clock must be timezone-aware")
+        prior = self._requests.get(key)
+        if prior is not None and prior.expires_at <= now:
+            raise WebDiscoveryRuntimeError(
+                "WEB_DISCOVERY_SESSION_EXPIRED", "The idempotent search session has expired", 410)
+        created_at = prior.created_at if prior is not None else now
+        request = GuestSearchRequest(
+            schema_version=SEARCH_SCHEMA_VERSION,
+            search_session_id=f"guest-search-session:{operation_id}",
+            operation_id=operation_id, guest_id=guest_id,
+            normalized_query=normalize_query(command.query),
+            query_normalization_version=QUERY_NORMALIZATION_VERSION,
+            selected_object_context=None, requested_result_limit=command.resultLimit,
+            adapter_id=self._adapter.adapter_id, adapter_version=self._adapter.adapter_version,
+            idempotency_key=f"guest-operation:{operation_id}", metadata_only=True,
+            zero_spend_authorized=True, created_at=created_at,
+            expires_at=created_at + self._lifetime,
+        )
+        self._authority_now = created_at
+        if prior is None:
+            self._requests[key] = request
+            while len(self._requests) > self._capacity:
+                self._requests.popitem(last=False)
+        try:
+            outcome = self._sessions.search(
+                request, self._adapter, Cancellation(timeout_seconds=timeout_seconds))
+        except WebDiscoveryError as error:
+            if key in self._requests and self._sessions.session_count == 0:
+                self._requests.pop(key, None)
+            raise self._translate(error) from error
+        response = self._guest_response(request, outcome, self._runtime_status)
+        status_codes = {"UNAVAILABLE": 503, "RATE_LIMITED": 429, "FAILED": 502, "CANCELLED": 409}
+        return RuntimeSearchResult(response, status_codes.get(outcome.status.value, 200))
+
     def resolve_capture(self, *, principal_id: str, investigation_id: str,
                         expected_investigation_revision: int, manifold_revision_id: str,
                         search_session_id: str, result_id: str):
@@ -178,6 +226,11 @@ class WebDiscoverySearchRuntime:
 
     @staticmethod
     def _response(request, outcome, runtime_status: WebDiscoveryRuntimeStatus) -> WebDiscoverySearchResponse:
+        return WebDiscoverySearchResponse.model_validate(
+            WebDiscoverySearchRuntime._response_data(request, outcome, runtime_status))
+
+    @staticmethod
+    def _response_data(request, outcome, runtime_status: WebDiscoveryRuntimeStatus) -> dict:
         results = [{
             "resultId": item.result_id, "providerResultId": item.provider_result_id,
             "rank": item.rank, "title": item.title,
@@ -189,7 +242,7 @@ class WebDiscoverySearchRuntime:
             "providerMetadata": dict(item.provider_metadata),
         } for item in outcome.results]
         receipt = outcome.receipt
-        return WebDiscoverySearchResponse.model_validate({
+        return {
             "schemaVersion": outcome.schema_version,
             "searchSessionId": outcome.search_session_id, "operationId": outcome.operation_id,
             "investigationId": request.investigation_id,
@@ -225,4 +278,14 @@ class WebDiscoverySearchRuntime:
                 "canonEffect": receipt.canon_effect, "graphEffect": receipt.graph_effect,
                 "manifoldEffect": receipt.manifold_effect, "resolveEffect": receipt.resolve_effect,
             },
-        })
+        }
+
+    @staticmethod
+    def _guest_response(request, outcome, runtime_status: WebDiscoveryRuntimeStatus) -> dict:
+        account_projection = WebDiscoverySearchRuntime._response_data(request, outcome, runtime_status)
+        for key in ("investigationId", "expectedInvestigationRevision", "manifoldRevisionId"):
+            account_projection.pop(key, None)
+        receipt = account_projection["receipt"]
+        for key in ("investigationId", "manifoldRevisionId"):
+            receipt.pop(key, None)
+        return account_projection
