@@ -53,6 +53,7 @@ from "./GraphNodes";
 
 import GraphEdges
 from "./GraphEdges";
+import GuestDiscoveryManifoldOverlay, { GuestDiscoverySelectionDetail } from "./GuestDiscoveryManifoldOverlay";
 
 
 import {
@@ -202,6 +203,9 @@ export default function InvestigationGraph({
     workspaceRuntime.getSelection() ?? {
       kind: "NONE" as const,
     };
+  const guestOverlay = workspaceRuntime.getGuestDiscoveryOverlay();
+  const visibleGuestOverlay = guestOverlay?.investigationId === activeInvestigation?.id ? guestOverlay : undefined;
+  const guestOverlaySelection = workspaceRuntime.getGuestDiscoveryOverlaySelection();
 
   const setSelection =
     workspaceRuntime.setSelection.bind(
@@ -321,6 +325,7 @@ function handleCollectEdge(
       pointerId: number;
       clientX: number;
       clientY: number;
+      moved: boolean;
     } | null>(
       null
     );
@@ -743,6 +748,8 @@ function handleCollectEdge(
 
               clientY:
                 event.clientY,
+
+              moved: false,
             };
 
             event.currentTarget.setPointerCapture(
@@ -807,6 +814,11 @@ function handleCollectEdge(
 
               clientY:
                 event.clientY,
+
+              moved:
+                drag.moved ||
+                deltaX !== 0 ||
+                deltaY !== 0,
             };
 
             setCamera(
@@ -842,6 +854,18 @@ function handleCollectEdge(
 
             cameraDragRef.current =
               null;
+
+            // Pointer capture retargets a browser's pointerup/click to the
+            // root SVG, so the background rect cannot own click dismissal.
+            // Complete a stationary background gesture here instead. The
+            // Guest overlay remains projected; only its detail selection is
+            // dismissed, and a camera drag never counts as an empty click.
+            if (
+              !drag.moved &&
+              event.type !== "pointercancel"
+            ) {
+              workspaceRuntime.clearGuestDiscoveryOverlaySelection();
+            }
 
             if (
               event.currentTarget.hasPointerCapture(
@@ -983,6 +1007,7 @@ function handleCollectEdge(
 
                 <rect
                   data-camera-surface="true"
+                  aria-label="Manifold background"
                   x={cameraViewBoxX}
                   y={cameraViewBoxY}
                   width={cameraViewBoxWidth}
@@ -1013,6 +1038,8 @@ function handleCollectEdge(
                   }
 
                 />
+
+                {visibleGuestOverlay && <GuestDiscoveryManifoldOverlay preview={visibleGuestOverlay} nodes={positionedNodes} selection={guestOverlaySelection} onSelect={kind => workspaceRuntime.selectGuestDiscoveryOverlay(kind)} />}
 
                              {/* ============================================ */}
               {/* NODES                                        */}
@@ -1058,6 +1085,8 @@ function handleCollectEdge(
                   pointerEvents: "none",
                 }}
               >
+
+                {visibleGuestOverlay && guestOverlaySelection && <GuestDiscoverySelectionDetail preview={visibleGuestOverlay} selection={guestOverlaySelection} />}
 
                   {/* ============================================ */}
               {/* MANIFOLD INSTRUMENTS                         */}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { guestWebDiscoveryApi, GuestWebDiscoveryError, type GuestWebDiscoveryOutcome } from "./GuestWebDiscoveryApi.ts";
+import { projectGuestDiscoveryPreview, type GuestDiscoveryConnection, type GuestDiscoveryLead, type GuestDiscoveryTarget } from "./GuestDiscoveryPreview.ts";
 
 const identity = (kind: string) => `guest-web-discovery-${kind}-${crypto.randomUUID()}`;
 
@@ -18,11 +19,14 @@ function visible(error: unknown): string {
   return messages[code] ?? (error instanceof Error ? error.message : "Guest Basic Search failed safely.");
 }
 
-export function useGuestWebDiscoveryWorkspaceController(enabled: boolean, contextKey: string) {
+export function useGuestWebDiscoveryWorkspaceController(enabled: boolean, contextKey: string, investigationId: string, proposedBy: string, targets: readonly GuestDiscoveryTarget[] = [], activeLayerIds: readonly string[] = []) {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [response, setResponse] = useState<GuestWebDiscoveryOutcome>();
   const [error, setError] = useState<string>();
+  const [leads, setLeads] = useState<readonly GuestDiscoveryLead[]>([]);
+  const [pendingResult, setPendingResult] = useState<GuestWebDiscoveryOutcome["results"][number]>();
+  const [connection, setConnection] = useState<GuestDiscoveryConnection>();
   const generation = useRef(0);
   const active = useRef<AbortController | undefined>(undefined);
 
@@ -34,7 +38,16 @@ export function useGuestWebDiscoveryWorkspaceController(enabled: boolean, contex
     setSearching(false);
     setResponse(undefined);
     setError(undefined);
+    setLeads([]); setPendingResult(undefined); setConnection(undefined);
   }, [enabled, contextKey]);
+  useEffect(() => {
+    if (!enabled || leads.length === 0) return;
+    const expiries = leads.map((lead) => lead.expiresAt ? Date.parse(lead.expiresAt) : Number.POSITIVE_INFINITY);
+    const next = Math.min(...expiries);
+    if (!Number.isFinite(next)) return;
+    const timeout = window.setTimeout(() => { setLeads((current) => current.filter((lead) => !lead.expiresAt || Date.parse(lead.expiresAt) > Date.now())); setConnection((current) => current && leads.some((lead) => lead.leadId === current.leadId && (!lead.expiresAt || Date.parse(lead.expiresAt) > Date.now())) ? current : undefined); }, Math.max(0, next - Date.now()));
+    return () => window.clearTimeout(timeout);
+  }, [enabled, leads]);
   useEffect(() => () => { generation.current += 1; active.current?.abort(); }, []);
 
   const search = useCallback(async () => {
@@ -61,5 +74,19 @@ export function useGuestWebDiscoveryWorkspaceController(enabled: boolean, contex
     }
   }, [enabled, query, searching]);
 
-  return useMemo(() => ({ query, setQuery, searching, response, error, search }), [query, searching, response, error, search]);
+  const requestAddLead = useCallback((result: GuestWebDiscoveryOutcome["results"][number]) => setPendingResult(result), []);
+  const cancelAddLead = useCallback(() => setPendingResult(undefined), []);
+  const confirmAddLead = useCallback(() => {
+    if (!pendingResult || !response) return;
+    const lead: GuestDiscoveryLead = Object.freeze({ leadId: `guest-lead:${pendingResult.resultId}`, result: pendingResult, query: response.normalizedQuery ?? query.trim(), provider: response.providerAttribution ?? pendingResult.attribution, expiresAt: response.expiresAt });
+    setLeads((current) => current.some((item) => item.leadId === lead.leadId) ? current : Object.freeze([...current, lead]));
+    setPendingResult(undefined);
+  }, [pendingResult, query, response]);
+  const removeLead = useCallback((leadId: string) => { setLeads((current) => current.filter((lead) => lead.leadId !== leadId)); setConnection((current) => current?.leadId === leadId ? undefined : current); }, []);
+  const reset = useCallback(() => { setLeads([]); setPendingResult(undefined); setConnection(undefined); setResponse(undefined); setQuery(""); }, []);
+  const proposeConnection = useCallback((next: GuestDiscoveryConnection) => setConnection(next), []);
+  const selectedLead = leads.find((lead) => lead.leadId === connection?.leadId);
+  const preview = selectedLead && connection ? projectGuestDiscoveryPreview({ investigationId, proposedBy, lead: selectedLead, connection, targets, activeLayerIds }) : undefined;
+
+  return useMemo(() => ({ query, setQuery, searching, response, error, leads, pendingResult, connection, preview, search, requestAddLead, cancelAddLead, confirmAddLead, removeLead, reset, proposeConnection }), [query, searching, response, error, leads, pendingResult, connection, preview, search, requestAddLead, cancelAddLead, confirmAddLead, removeLead, reset, proposeConnection]);
 }

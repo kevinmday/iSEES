@@ -93,6 +93,7 @@ import {
 
 import {
   WorkspaceRuntimeProvider,
+  workspaceRuntime,
 } from "./workspace/runtime";
 
 import {
@@ -203,6 +204,10 @@ function GuestWorkspaceSessionLifecycleBridge() {
 
       const identity =
         identityState.identity;
+
+      if (identityState.status === "READY" && identity?.kind !== "GUEST") {
+        workspaceRuntime.clearGuestDiscoveryOverlay();
+      }
 
 
       if (

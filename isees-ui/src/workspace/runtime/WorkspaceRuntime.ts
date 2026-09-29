@@ -55,6 +55,7 @@ import type {
   Investigation,
 } from "../../investigation/investigationTypes";
 import type { StudioManifoldArtifactDraft } from "../../studio/drafting/StudioDraftingTypes";
+import type { GuestDiscoveryPreview } from "../../evidence/candidates/GuestDiscoveryPreview";
 import { validateManifoldArtifactManifest } from "../../studio/contracts/StudioCanonicalSerialization";
 import type { MaterializedOwnedActivation } from "../../investigation/continuity/OwnedInvestigationContinuity";
 import { computeGuestManifoldArtifactAdmission, type GuestAdmissionCommand, type GuestAdmissionResult } from "../../studio/runtime/GuestManifoldArtifactAdmission";
@@ -119,6 +120,10 @@ WorkspaceComputationalConfiguration = {
 // ============================================================
 
 export class WorkspaceRuntime {
+  // Session-only presentation input. Deliberately excluded from WorkspaceRuntimeState,
+  // Investigation revisions, persistence snapshots, fingerprints, and admissions.
+  private guestDiscoveryOverlay?: GuestDiscoveryPreview;
+  private guestDiscoveryOverlaySelection?: "NODE" | "EDGE";
   private manifoldArtifactReview?: StudioManifoldArtifactDraft;
 
   private readonly guestArtifactAdmissions = new Map<string, { signature: string; result: GuestAdmissionResult }>();
@@ -530,12 +535,15 @@ export class WorkspaceRuntime {
 
     if (
       this.state.operator.selection ===
-      selection
+      selection &&
+      this.guestDiscoveryOverlaySelection === undefined
     ) {
 
       return;
 
     }
+
+    this.guestDiscoveryOverlaySelection = undefined;
 
     this.state = {
 
@@ -563,12 +571,15 @@ export class WorkspaceRuntime {
 
     if (
       this.state.operator.selection ===
-      undefined
+      undefined &&
+      this.guestDiscoveryOverlaySelection === undefined
     ) {
 
       return;
 
     }
+
+    this.guestDiscoveryOverlaySelection = undefined;
 
     this.state = {
 
@@ -1086,6 +1097,8 @@ export class WorkspaceRuntime {
     validateOperationalRevisionInvestigation(
       investigation,
     );
+    this.guestDiscoveryOverlay = undefined;
+    this.guestDiscoveryOverlaySelection = undefined;
 
     const workspace =
       investigation.workspace;
@@ -1149,6 +1162,34 @@ export class WorkspaceRuntime {
 
     this.notify();
 
+  }
+
+  getGuestDiscoveryOverlay(): GuestDiscoveryPreview | undefined { return this.guestDiscoveryOverlay; }
+  getGuestDiscoveryOverlaySelection(): "NODE" | "EDGE" | undefined { return this.guestDiscoveryOverlaySelection; }
+  setGuestDiscoveryOverlay(overlay: GuestDiscoveryPreview | undefined): void {
+    if (overlay && overlay.investigationId !== this.state.session.investigation?.id) return;
+    if (this.guestDiscoveryOverlay === overlay) return;
+    const replacesCurrentProjection = this.guestDiscoveryOverlay?.projectionId === overlay?.projectionId;
+    this.guestDiscoveryOverlay = overlay;
+    if (!replacesCurrentProjection) this.guestDiscoveryOverlaySelection = undefined;
+    this.state = { ...this.state, revision: this.state.revision + 1 };
+    this.notify();
+  }
+  selectGuestDiscoveryOverlay(kind: "NODE" | "EDGE"): void {
+    if (!this.guestDiscoveryOverlay || (this.guestDiscoveryOverlaySelection === kind && this.state.operator.selection === undefined)) return;
+    this.guestDiscoveryOverlaySelection = kind;
+    this.state = { ...this.state, operator: { ...this.state.operator, selection: undefined }, revision: this.state.revision + 1 };
+    this.notify();
+  }
+  clearGuestDiscoveryOverlaySelection(): void {
+    if (this.guestDiscoveryOverlaySelection === undefined) return;
+    this.guestDiscoveryOverlaySelection = undefined;
+    this.state = { ...this.state, revision: this.state.revision + 1 };
+    this.notify();
+  }
+  clearGuestDiscoveryOverlay(ownedOverlay?: GuestDiscoveryPreview): void {
+    if (ownedOverlay !== undefined && this.guestDiscoveryOverlay !== ownedOverlay) return;
+    this.setGuestDiscoveryOverlay(undefined);
   }
 
   /** Explicit operator navigation. Presentation history is recorded after validation. */
@@ -1250,6 +1291,8 @@ export class WorkspaceRuntime {
     ) throw new Error("Guest candidate activation rejected a non-candidate or non-operational payload.");
 
     validateOperationalRevisionInvestigation(investigation);
+    this.guestDiscoveryOverlay = undefined;
+    this.guestDiscoveryOverlaySelection = undefined;
 
     this.guestArtifactAdmissions.clear();
 
@@ -1278,6 +1321,8 @@ export class WorkspaceRuntime {
   private activateEmptyOwnedInvestigationState(
     investigation: Investigation,
   ): void {
+    this.guestDiscoveryOverlay = undefined;
+    this.guestDiscoveryOverlaySelection = undefined;
     const workspace = investigation.workspace;
     if (
       !investigation.id.trim() ||
@@ -1332,6 +1377,8 @@ export class WorkspaceRuntime {
   }
 
   private activateAdoptedOwnedInvestigationState(activation: MaterializedOwnedActivation): void {
+    this.guestDiscoveryOverlay = undefined;
+    this.guestDiscoveryOverlaySelection = undefined;
     validateOperationalRevisionInvestigation(activation.investigation);
     const workspace = activation.investigation.workspace;
     this.state = {
@@ -1374,6 +1421,8 @@ export class WorkspaceRuntime {
     this.guestArtifactAdmissions.clear();
 
     this.guestCanonicalWorkingCopies.clear();
+    this.guestDiscoveryOverlay = undefined;
+    this.guestDiscoveryOverlaySelection = undefined;
 
     this.state = {
 
